@@ -17,6 +17,8 @@ sealed trait Nat[N <: Nat[N]] {
   type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
   type ConsRec[Type, C <: NatConsRec[Type], +A] <: Type
 
+  // type Plus[M <: Nat[M]] <: Nat[Plus[M]]
+
 }
 
 case class Z() extends Nat[Z] {
@@ -26,6 +28,8 @@ case class Z() extends Nat[Z] {
 
   type TypeRec[Type, R <: NatTypeRec[Type]] = R#OnZero
   type ConsRec[Type, C <: NatConsRec[Type], +A] = C#OnZero[A]
+
+  type Plus[M <: Nat[M]] = M
 
 }
 
@@ -39,6 +43,8 @@ case class S[P <: Nat[P]](p : P) extends Nat[S[P]] {
 
   type ConsRec[Type, C <: NatConsRec[Type], +A] = 
     C#OnSucc[P, ({ type L[+X] = P#ConsRec[Type, C, X] })#L, A]
+
+  // type Plus[M <: Nat[M]] = S[M#Plus[P]]
 
 }
 
@@ -88,6 +94,13 @@ trait NatConsRec[Type] {
 
 }
 
+trait NatNatRec {
+
+  type OnZero <: Nat[OnZero]
+  type OnSucc[P <: Nat[P]] <: Nat[OnSucc[P]]
+
+}
+
 trait Nats {
 
   type _0 = Z
@@ -131,7 +144,23 @@ trait NatFunctions {
 
 }
 
-// trait NatSums { // self : Nats with NatRecursors =>
+trait NatSums { self : Nats => 
+
+  trait Sum[N <: Nat[N], M <: Nat[M]] {
+    type Out <: Nat[Out]
+  }
+
+  object Sum {
+
+    type Aux[N <: Nat[N], M <: Nat[M], K <: Nat[K]] = Sum[N, M] { type Out = K }
+
+    implicit def zeroSum[N <: Nat[N]] : Aux[Z, N, N] = 
+      new Sum[Z, N] { type Out = N }
+
+    implicit def succSum[P <: Nat[P], N <: Nat[N]](implicit psum : Sum[P, N]) : Aux[S[P], N, S[psum.Out]] = 
+      new Sum[S[P], N] { type Out = S[psum.Out] }
+
+  }
 
 //   def plusSuccLemma[M <: Nat, N <: Nat](m : M) : M#Plus[S[N]] =::= S[M#Plus[N]] = 
 //     (new NatElim {
@@ -158,7 +187,7 @@ trait NatFunctions {
 
 //     })(n)
 
-// }
+}
 
 // trait NatUtils { self : Nats =>
 
@@ -199,7 +228,7 @@ trait NatFunctions {
 
 // }
 
-object Nats extends Nats with NatFunctions
+object Nats extends Nats with NatSums with NatFunctions
 
 object Blorp {
 
@@ -238,7 +267,7 @@ object Blorp {
     type OnZero[+A] = Tree[Z, A]
 
     type OnSucc[P <: Nat[P], T[+_] <: AnyRef, +A] =
-      P#ConsRec[AnyRef, CardinalTreeRec, Tree[S[P], A]]
+      T[Tree[S[P], A]]
 
   }
 
@@ -252,7 +281,12 @@ object Blorp {
   type CCTree0[+A] = CardinalTree[Z, A]
   type CCTree1[+A] = CardinalTree[S[Z], A]
   // type CCTree2[+A] = CardinalTree[S[S[Z]], A]
-  // type CCTree2[+A] = CardinalTree[S[S[S[Z]]], A]
+  // type CCTree3[+A] = CardinalTree[S[S[S[Z]]], A]
+
+  type ECTree0[+A] = _0#ConsRec[AnyRef, CardinalTreeRec, A]
+  type ECTree1[+A] = _1#ConsRec[AnyRef, CardinalTreeRec, A]
+  // type ECTree2[+A] = _2#ConsRec[AnyRef, CardinalTreeRec, A]
+  // type ECTree3[+A] = _3#ConsRec[AnyRef, CardinalTreeRec, A]
 
   implicitly[CTree0[Int] =:= CardinalTree[_0, Int]]
   implicitly[CTree1[Int] =:= CardinalTree[_1, Int]]
