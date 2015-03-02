@@ -1,0 +1,236 @@
+/**
+  * Complex.scala - Complexes
+  * 
+  * @author Eric Finster
+  * @version 0.1 
+  */
+
+package opetopic.core
+
+import scala.language.higherKinds
+import scala.language.implicitConversions
+
+import scalaz.{Tree => _, Zipper => _, _}
+import scalaz.std.option._
+
+import Nats._
+import Tree._
+import DimSeqs._
+import Nesting._
+
+trait ComplexImplicits { self : ComplexFunctions => 
+
+  implicit def complexToSigma[N <: Nat, A](cmplx : Complex[N, A]) : Sigma[Complex, A] =
+    new Sigma[Complex, A] {
+      type Dim = N
+      val dim = DimSeqs.dim(cmplx)
+      val value = cmplx
+    }
+
+  implicit def complexFromSigma[A](cmplx : Sigma[Complex, A]) : Complex[cmplx.Dim, A] = 
+    cmplx.value
+
+  class ComplexOps[N <: Nat, A](cmplx : Complex[N, A]) {
+
+    def map[B](f : A => B) : Complex[N, B] = 
+      mapComplex(cmplx)(f)
+
+    def matchWith[B](cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] = 
+      zipComplex(cmplx, cmplxB)
+
+  }
+
+  implicit def complexToComplexOps[N <: Nat, A](cmplx : Complex[N, A]) : ComplexOps[N, A] = 
+    new ComplexOps(cmplx)
+
+  implicit def complexSigmaToComplexOps[A](cmplx : Sigma[Complex, A]) : ComplexOps[cmplx.Dim, A] = 
+    new ComplexOps(cmplx.value)
+
+}
+
+trait ComplexFunctions { self : ComplexImplicits =>
+
+  type Complex[N <: Nat, A] = DimSeq[Nesting, N, A]
+
+  def EmptyC[A] : IncSeq[Nesting, _0, _0, A] = IncNil[Nesting, _0, A]()
+
+  //============================================================================================
+  // MAP
+  //
+
+  def mapComplex[N <: Nat, A, B](cmplx : Complex[N, A])(f : A => B) : Complex[N, B] = 
+    (new NatCaseSplit {
+
+      type In[M <: Nat] = Complex[M, A]
+      type Out[M <: Nat] = Complex[M, B]
+
+      def caseZero(c : Complex[_0, A]) : Complex[_0, B] = 
+        c match {
+          case (_ :>> nst) => EmptyC :>> (nst map f)
+        }
+
+      def caseSucc[P <: Nat](c : Complex[S[P], A]) : Complex[S[P], B] = 
+        c match {
+          case (tl :>> hd) => mapComplex(tl)(f) :>> (hd map f)
+        }
+
+    })(dim(cmplx), cmplx)
+
+  //============================================================================================
+  // TRAVERSE
+  //
+
+  def traverseComplex[N <: Nat, G[_], A, B](cmplx : Complex[N, A])(f : A => G[B])(implicit apG : Applicative[G]) : G[Complex[N, B]] = 
+    (new NatCaseSplit {
+
+      import apG.{pure, ap, ap2} 
+
+      type In[M <: Nat] = Complex[M, A]
+      type Out[M <: Nat] = G[Complex[M, B]]
+
+      def caseZero(cmplx : Complex[_0, A]) : G[Complex[_0, B]] =
+        cmplx match {
+          case _ :>> nst =>
+            ap(traverseNesting(nst)(f)(apG))(pure((n : Nesting[_0, B]) => EmptyC :>> n))
+        }
+
+      def caseSucc[P <: Nat](cmplx : Complex[S[P], A]) : G[Complex[S[P], B]] =
+        cmplx match {
+          case (tl :>> hd) => {
+            ap2(traverseComplex(tl)(f)(apG), traverseNesting(hd)(f)(apG))(
+              pure((t : Complex[P, B], h : Nesting[S[P], B]) => t :>> h)
+            )
+          }
+        }
+
+    })(dim(cmplx), cmplx)
+
+  //============================================================================================
+  // ZIP COMPLEX
+  //
+
+  def zipComplex[N <: Nat, A, B](cmplxA : Complex[N, A], cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] =
+    (new NatCaseSplit {
+
+      type In[M <: Nat] = (Complex[M, A], Complex[M, B])
+      type Out[M <: Nat] = Option[Complex[M, (A, B)]]
+
+      def caseZero(cmplxs : (Complex[_0, A], Complex[_0, B])) : Option[Complex[_0, (A, B)]] =
+        cmplxs match {
+          case (_ :>> nA , _ :>> nB) =>
+            for {
+              nAB <- nA matchWith nB
+            } yield EmptyC :>> nAB
+        }
+
+      def caseSucc[P <: Nat](cmplxs : (Complex[S[P], A], Complex[S[P], B])) : Option[Complex[S[P], (A, B)]] =
+        cmplxs match {
+          case (tlA :>> hdA, tlB :>> hdB) =>
+            for {
+              tlAB <- zipComplex(tlA, tlB)
+              hdAB <- hdA matchWith hdB
+            } yield (tlAB :>> hdAB)
+        }
+
+    })(dim(cmplxA), (cmplxA, cmplxB))
+
+  //============================================================================================
+  // SOURCE ROUTINES
+  //
+
+  import ComplexZipper._
+
+  def sourceAt[N <: Nat, A](cmplx : Complex[N, A], addr : Address[S[N]]) : Option[Complex[N, A]] = 
+    for {
+      c0 <- restrictAt(cmplx, addr)
+      c1 <- contractAt(c0, Root()(addr.dim))
+    } yield c1
+
+
+  def restrictAt[N <: Nat, A](cmplx : Complex[N, A], addr : Address[S[N]]) : Option[Complex[N, A]] = {
+    for {
+      cz <- seekComplex(addr, fromComplex(cmplx))
+      cz0 <- restrictFocus(cz)
+    } yield seal(cz0)
+  }
+
+  def contractAt[N <: Nat, A](cmplx : Complex[N, A], addr : Address[S[N]]) : Option[Complex[N, A]] = {
+    for {
+      cz <- seekComplex(addr, fromComplex(cmplx))
+      cz0 <- contractFocus(cz)
+    } yield seal(cz0)
+  }
+
+  //============================================================================================
+  // COMULTIPLY
+  //
+
+  def comultiply[N <: Nat, A](cmplx : Complex[N, A]) : Option[Complex[N, Sigma[Complex, A]]] = 
+    (new NatCaseSplit {
+
+      type In[M <: Nat] = Complex[M, A]
+      type Out[M <: Nat] = Option[Complex[M, Sigma[Complex, A]]]
+
+      def caseZero(cmplx : Complex[_0, A]) : Option[Complex[_0, Sigma[Complex, A]]] =
+        cmplx match {
+          case _ :>> Obj(a) => Some(EmptyC :>> Obj(EmptyC :>> Obj(a)))
+          case _ :>> Box(a, Pt(nst)) =>
+            for {
+              _ :>> int <- caseZero(EmptyC :>> nst)
+            } yield EmptyC :>> Box(EmptyC :>> Obj(a), Pt(int))
+        }
+
+      def caseSucc[P <: Nat](cmplx : Complex[S[P], A]) : Option[Complex[S[P], Sigma[Complex, A]]] =
+        cmplx match {
+          case (tl :>> hd) => {
+            for {
+              // You should have a separate method for traversing *with* the address.
+              newHd <- hd.zipWithAddress traverse ({
+                case (_, addr) => for { src <- sourceAt(tl :>> hd, addr) } yield complexToSigma(src)
+              })
+              newTl <- comultiply(tl)
+            } yield newTl :>> newHd
+          }
+        }
+
+    })(dim(cmplx), cmplx)
+
+  //============================================================================================
+  // SOURCE CALCULATION MONAD
+  //
+
+  type SourceM[N <: Nat, A, R] = StateT[Option, Complex[N, A], R]
+
+  def liftS[N <: Nat, A, R](opt : Option[R]) : SourceM[N, A, R] =
+    StateT((cmplx : Complex[N, A]) => opt map (r => (cmplx, r)))
+
+  def exciseLocal[N <: Nat, A](addr : Address[S[N]], tr : Tree[S[N], A]) : SourceM[N, A, Unit] = {
+
+    type SrcM[R] = SourceM[N, A, R]
+    type SrcS[S, R] = StateT[Option, S, R]
+
+    val MS = MonadState[SrcS, Complex[N, A]]
+    import MS._
+
+    tr match {
+      case Leaf(_) =>
+        for {
+          complex <- get
+          contractResult <- liftS(contractAt(complex, addr))
+          _ <- put(contractResult)
+        } yield ()
+      case Node(a, sh) =>
+        for {  // A bit ugly ....
+          _ <- Tree.traverse[N, SrcM, (Address[N], Tree[S[N], A]), Unit](zipWithAddress(sh))({ 
+            case (d, t) => exciseLocal(Step(d, addr), t) 
+          })(implicitly[Applicative[SrcM]])
+        } yield ()
+    }
+
+  }
+
+}
+
+object Complex extends ComplexFunctions 
+    with ComplexImplicits
+
