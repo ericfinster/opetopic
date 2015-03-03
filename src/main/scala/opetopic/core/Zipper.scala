@@ -44,6 +44,7 @@ object Zippers {
   trait DerivativeClass[N <: Nat[N]] {
     type Out[+_]
     def plug[A](deriv : Out[A], a : A) : Tree[N, A]
+    def caseSplit[A](deriv : Out[A], split : DerivativeDimCase) : split.Out[N]
   }
 
   object DerivativeClass {
@@ -54,6 +55,7 @@ object Zippers {
       new DerivativeClass[_0] {
         type Out[+A] = Unit
         def plug[A](deriv : Unit, a : A) : Tree[_0, A] = Pt(a)
+        def caseSplit[A](deriv : Out[A], split : DerivativeDimCase) : split.Out[_0] = split.caseZero
       }
 
     implicit def succDerivative[P <: Nat[P], C[+_]](implicit cntxt : ContextClass.Aux[S[P], C]) 
@@ -63,9 +65,42 @@ object Zippers {
 
         def plug[A](deriv : Out[A], a : A) : Tree[S[P], A] = 
           cntxt.close(deriv._2, Node(a, deriv._1))
+
+        def caseSplit[A](deriv : Out[A], split : DerivativeDimCase) : split.Out[S[P]] = {
+          split.caseSucc(deriv._1, deriv._2)
+        }
+
       }
 
   }
+
+  // What if you just write out the recursors for each of these type, and
+  // then implement just that as part of the type class?  Then, presumably,
+  // all other functions should be derivable from that idea.
+
+  trait DerivativeDimCase {
+
+    type Out[N <: Nat[N]]
+
+    def caseZero : Out[_0]
+    def caseSucc[P <: Nat[P], C[+_], A](sh : Tree[P, Tree[S[P], A]], cntxt : C[A])(implicit cls : ContextClass.Aux[S[P], C]) : Out[S[P]]
+
+
+  }
+
+  // abstract class Derivative[N <: Nat[N], D[+_], A](d : D[A])(implicit cls : DerivativeClass.Aux[N, D]) {
+
+  //   def plugWith(a : A) : Tree[N, A] = 
+  //     (new DerivativeDimCase {
+
+  //       type Out[M <: Nat[M]] = A => Tree[M, A]
+
+  //       // def caseZero : Out[_0] = Pt(_)
+  //       // def caseSucc[P <: Nat[P], C[+_], A](sh : Tree[P, Tree[S[P], A]], cntxt : C[A])(implicit cls : ContextClass.Aux[S[P], C]) : Out[S[P]] = ???
+
+  //     })
+
+  // }
 
   //============================================================================================
   // CONTEXTS
@@ -105,6 +140,7 @@ object Zippers {
 
   trait ZipperClass[N <: Nat[N]] {
     type Out[+_]
+
   }
 
   object ZipperClass {
