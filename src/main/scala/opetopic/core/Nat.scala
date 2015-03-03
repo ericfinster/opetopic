@@ -17,8 +17,6 @@ sealed trait Nat[N <: Nat[N]] {
   type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
   type ConsRec[Type, C <: NatConsRec[Type], +A] <: Type
 
-  // type Plus[M <: Nat[M]] <: Nat[Plus[M]]
-
 }
 
 case class Z() extends Nat[Z] {
@@ -28,8 +26,6 @@ case class Z() extends Nat[Z] {
 
   type TypeRec[Type, R <: NatTypeRec[Type]] = R#OnZero
   type ConsRec[Type, C <: NatConsRec[Type], +A] = C#OnZero[A]
-
-  type Plus[M <: Nat[M]] = M
 
 }
 
@@ -43,8 +39,6 @@ case class S[P <: Nat[P]](p : P) extends Nat[S[P]] {
 
   type ConsRec[Type, C <: NatConsRec[Type], +A] = 
     C#OnSucc[P, ({ type L[+X] = P#ConsRec[Type, C, X] })#L, A]
-
-  // type Plus[M <: Nat[M]] = S[M#Plus[P]]
 
 }
 
@@ -91,13 +85,6 @@ trait NatConsRec[Type] {
 
   type OnZero[+A] <: Type
   type OnSucc[P <: Nat[P], T[+_] <: Type, +A] <: Type
-
-}
-
-trait NatNatRec {
-
-  type OnZero <: Nat[OnZero]
-  type OnSucc[P <: Nat[P]] <: Nat[OnSucc[P]]
 
 }
 
@@ -189,108 +176,5 @@ trait NatSums { self : Nats =>
 
 }
 
-// trait NatUtils { self : Nats =>
-
-//   def toSelf[N <: Nat](n : N) : N =::= n.Self = 
-//     Leibniz.force[Nothing, Nat, N, n.Self]
-
-//   def natFromInt(i : Int) : Nat = 
-//     if (i <= 0) Z else S(natFromInt(i - 1))
-
-//   def natToInt[N <: Nat](n : N) : Int = 
-//     n match {
-//       case Z => 0
-//       case S(p) => natToInt(p) + 1
-//     }
-
-//   implicit def zeroNat : Z.type = Z
-//   implicit def succNat[P <: Nat](implicit p : P) : S[P] = S(p)
-
-//   trait IsZero[N <: Nat] {
-//     def leibniz : Leibniz[Nothing, Nat, _0, N]
-//   }
-
-//   trait IsSucc[N <: Nat] {
-//     type P <: Nat
-//     def leibniz : Leibniz[Nothing, Nat, S[P], N]
-//   }
-
-//   implicit def zeroIsZero : IsZero[_0] =
-//     new IsZero[_0] {
-//       def leibniz : Leibniz[Nothing, Nat, _0, _0] = refl[_0]
-//     }
-
-//   implicit def succIsSucc[N <: Nat] : IsSucc[S[N]] = 
-//     new IsSucc[S[N]] {
-//       type P = N
-//       def leibniz : Leibniz[Nothing, Nat, S[P], S[P]] = refl[S[P]]
-//     }
-
-// }
-
 object Nats extends Nats with NatSums with NatFunctions
 
-object Blorp {
-
-  import Nats._
-
-  trait DirectionRec extends NatTypeRec[AnyRef] {
-
-    type OnZero = Nothing
-    type OnSucc[P <: Nat[P], T <: AnyRef] = List[T]
-
-  }
-
-  type Dir[N <: Nat[N]] = N#TypeRec[AnyRef, DirectionRec]
-
-  type Dir0 = Dir[_0] // _0#TypeRec[AnyRef, DirectionRec]
-  type Dir1 = Dir[_1] // _1#TypeRec[AnyRef, DirectionRec]
-  type Dir2 = Dir[_2] // _2#TypeRec[AnyRef, DirectionRec]
-  type Dir3 = Dir[_3] // _3#TypeRec[AnyRef, DirectionRec]
-
-  type DDir0 = Nothing
-  type DDir1 = List[Nothing]
-  type DDir2 = List[List[Nothing]]
-  type DDir3 = List[List[List[Nothing]]]
-
-  implicitly[Dir0 =:= DDir0]
-  implicitly[Dir1 =:= DDir1]
-  implicitly[Dir2 =:= DDir2]
-  implicitly[Dir3 =:= DDir3]
-
-  //============================================================================================
-  // CARDINALS
-  //
-
-  trait CardinalTreeRec extends NatConsRec[AnyRef] {
-
-    type OnZero[+A] = Tree[Z, A]
-
-    type OnSucc[P <: Nat[P], T[+_] <: AnyRef, +A] =
-      T[Tree[S[P], A]]
-
-  }
-
-  type CardinalTree[N <: Nat[N], +A] = N#ConsRec[AnyRef, CardinalTreeRec, A]
-
-  type CTree0[+A] = Tree[Z, A]
-  type CTree1[+A] = Tree[Z, Tree[S[Z], A]]
-  type CTree2[+A] = Tree[Z, Tree[S[Z], Tree[S[S[Z]], A]]]
-  type CTree3[+A] = Tree[Z, Tree[S[Z], Tree[S[S[Z]], Tree[S[S[S[Z]]], A]]]]
-
-  type CCTree0[+A] = CardinalTree[Z, A]
-  type CCTree1[+A] = CardinalTree[S[Z], A]
-  // type CCTree2[+A] = CardinalTree[S[S[Z]], A]
-  // type CCTree3[+A] = CardinalTree[S[S[S[Z]]], A]
-
-  type ECTree0[+A] = _0#ConsRec[AnyRef, CardinalTreeRec, A]
-  type ECTree1[+A] = _1#ConsRec[AnyRef, CardinalTreeRec, A]
-  // type ECTree2[+A] = _2#ConsRec[AnyRef, CardinalTreeRec, A]
-  // type ECTree3[+A] = _3#ConsRec[AnyRef, CardinalTreeRec, A]
-
-  implicitly[CTree0[Int] =:= CardinalTree[_0, Int]]
-  implicitly[CTree1[Int] =:= CardinalTree[_1, Int]]
-  implicitly[CTree2[Int] =:= CardinalTree[_2, Int]]
-  implicitly[CTree3[Int] =:= CardinalTree[_3, Int]]
-
-}

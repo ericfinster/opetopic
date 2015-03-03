@@ -32,7 +32,7 @@ case class ZLteN[N <: Nat[N]](n : N) extends Lte[_0, N, N, ZLteN[N]] {
 
 }
 
-case class SLteS[M <: Nat[M], N <: Nat[N], D <: Nat[D], L <: Lte[M, N, D, L]](plte : Lte[M, N, D, L]) extends Lte[S[M], S[N], D, SLteS[M, N, D, L]] {
+case class SLteS[M <: Nat[M], N <: Nat[N], D <: Nat[D], L <: Lte[M, N, D, L]](plte : L) extends Lte[S[M], S[N], D, SLteS[M, N, D, L]] {
 
   def upper : S[N] = S(plte.upper)
   def lower : S[M] = S(plte.lower)
@@ -48,7 +48,7 @@ trait LteCaseSplit {
   type Out[M <: Nat[M], N <: Nat[N], D <: Nat[D]]
 
   def caseNZ[N <: Nat[N]](n : N) : Out[_0, N, N]
-  def caseSS[M <: Nat[M], N <: Nat[N], D <: Nat[D], L <: Lte[M, N, D, L]](plte : Lte[M, N, D, L]) : Out[S[M], S[N], D]
+  def caseSS[M <: Nat[M], N <: Nat[N], D <: Nat[D], L <: Lte[M, N, D, L]](plte : L) : Out[S[M], S[N], D]
 
   def apply[M <: Nat[M], N <: Nat[N], D <: Nat[D], L <: Lte[M, N, D, L]](lte : Lte[M, N, D, L]) : Out[M, N, D] = 
     lte.caseSplit(this)
