@@ -26,10 +26,6 @@ object Zippers {
 
   type Address[N <: Nat[N]] = N#TypeRec[Any, AddressRec]
 
-  implicitly[Address[_0] =:= Unit]
-  implicitly[Address[_1] =:= List[Unit]]
-  implicitly[Address[_2] =:= List[List[Unit]]]
-
   //============================================================================================
   // DERIVATIVES
   //
@@ -37,24 +33,27 @@ object Zippers {
   trait DerivativeRec extends NatConsRec[Any] {
 
     type OnZero[+A] = Unit
-    type OnSucc[P <: Nat[P], T[+_] <: Any, +A] = (Tree[P, Tree[S[P], A]], List[(A, T[Tree[S[P], A]])])
+    type OnSucc[P <: Nat[P], T[+_] <: Any, +A] = 
+      (Tree[P, Tree[S[P], A]], List[(A, T[Tree[S[P], A]])])
 
   }
 
   type Derivative[N <: Nat[N], +A] = N#ConsRec[Any, DerivativeRec, A]
 
-  type Deriv0[+A] = Unit
-  type Deriv1[+A] = (Tree[_0, Tree[_1, A]], List[(A, Deriv0[Tree[_1, A]])])
-  type Deriv2[+A] = (Tree[_1, Tree[_2, A]], List[(A, Deriv1[Tree[_2, A]])])
-  type Deriv3[+A] = (Tree[_2, Tree[_3, A]], List[(A, Deriv2[Tree[_3, A]])])
+  def plug[N <: Nat[N], A](n : N)(deriv : Derivative[N, A], a : A) : Tree[N, A] = 
+    (new NatCaseSplit {
 
-  implicitly[Deriv1[Int] =:= Derivative[_1, Int]]
-  implicitly[Deriv2[Int] =:= Derivative[_2, Int]]
-  implicitly[Deriv3[Int] =:= Derivative[_3, Int]]
+      type Out[N <: Nat[N]] = Derivative[N, A] => Tree[N, A]
 
-  type DTest0 = Derivative[_0, Int]
-  type DTest1 = Derivative[_1, Int]
-  // type DTest2 = Derivative[_2, Int]
+      def caseZero : Derivative[_0, A] => Tree[_0, A] = {
+        _ => Pt(a)
+      }
+
+      def caseSucc[P <: Nat[P]](p : P) : Derivative[S[P], A] => Tree[S[P], A] = {
+        case (sh, cntxt) => close(S(p))(cntxt, Node(a, sh))
+      }
+
+    })(n)(deriv)
 
   //============================================================================================
   // CONTEXTS
@@ -63,11 +62,28 @@ object Zippers {
   trait ContextRec extends NatConsRec[Any] {
 
     type OnZero[+A] = Unit
-    type OnSucc[P <: Nat[P], T[+_] <: Any, +A] = List[(A, P#ConsRec[Any, DerivativeRec, Tree[S[P], A]])]
+    type OnSucc[P <: Nat[P], T[+_] <: Any, +A] = 
+      List[(A, P#ConsRec[Any, DerivativeRec, Tree[S[P], A]])]
 
   }
 
   type Context[N <: Nat[N], +A] = N#ConsRec[Any, ContextRec, A]
+
+  def close[N <: Nat[N], A](n : N)(cntxt : Context[N, A], tr : Tree[N, A]) : Tree[N, A] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat[N]] = (Context[N, A], Tree[N, A]) => Tree[N, A]
+
+      def caseZero : (Context[_0, A], Tree[_0, A]) => Tree[_0, A] = {
+        case (cntxt0, tr0) => tr0
+      }
+
+      def caseSucc[P <: Nat[P]](p : P) : (Context[S[P], A], Tree[S[P], A]) => Tree[S[P], A] = {
+        case (Nil, trS) => trS
+        case ((a, d) :: cs, trS) => close(S(p))(cs, Node(a, plug(p)(d, trS)))
+      }
+
+    })(n)(cntxt, tr)
 
   //============================================================================================
   // ZIPPERS
