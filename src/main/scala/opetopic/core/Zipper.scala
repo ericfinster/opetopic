@@ -17,142 +17,62 @@ object Zippers {
   // ADDRESSES
   //
 
-  trait Address[N <: Nat[N]] {
-    type Out
-  }
+  trait AddressRec extends NatTypeRec[Any] {
 
-  object Address {
-
-    type Aux[N <: Nat[N], A] = Address[N] { type Out = A }
-
-    implicit def zeroAddress : Aux[_0, Unit] = 
-      new Address[_0] {
-        type Out = Unit
-      }
-
-    implicit def succAddress[P <: Nat[P], A](implicit addr : Aux[P, A]) : Aux[S[P], List[addr.Out]] = 
-      new Address[S[P]] {
-        type Out = List[addr.Out]
-      }
+    type OnZero = Unit
+    type OnSucc[P <: Nat[P], T <: Any] = List[T]
 
   }
+
+  type Address[N <: Nat[N]] = N#TypeRec[Any, AddressRec]
+
+  implicitly[Address[_0] =:= Unit]
+  implicitly[Address[_1] =:= List[Unit]]
+  implicitly[Address[_2] =:= List[List[Unit]]]
 
   //============================================================================================
   // DERIVATIVES
   //
 
-  trait DerivativeClass[N <: Nat[N]] {
-    type Out[+_]
-    def plug[A](deriv : Out[A], a : A) : Tree[N, A]
-    def caseSplit[A](deriv : Out[A], split : DerivativeDimCase) : split.Out[N]
-  }
+  trait DerivativeRec extends NatConsRec[Any] {
 
-  object DerivativeClass {
-
-    type Aux[N <: Nat[N], T[+_]] = DerivativeClass[N] { type Out[+A] = T[A] }
-
-    implicit def zeroDerivative : Aux[_0, ({ type L[+A] = Unit })#L] = 
-      new DerivativeClass[_0] {
-        type Out[+A] = Unit
-        def plug[A](deriv : Unit, a : A) : Tree[_0, A] = Pt(a)
-        def caseSplit[A](deriv : Out[A], split : DerivativeDimCase) : split.Out[_0] = split.caseZero
-      }
-
-    implicit def succDerivative[P <: Nat[P], C[+_]](implicit cntxt : ContextClass.Aux[S[P], C]) 
-        : Aux[S[P], ({ type L[+A] = (Tree[P, Tree[S[P], A]], C[A]) })#L] =
-      new DerivativeClass[S[P]] {
-        type Out[+A] = (Tree[P, Tree[S[P], A]], C[A])
-
-        def plug[A](deriv : Out[A], a : A) : Tree[S[P], A] = 
-          cntxt.close(deriv._2, Node(a, deriv._1))
-
-        def caseSplit[A](deriv : Out[A], split : DerivativeDimCase) : split.Out[S[P]] = {
-          split.caseSucc(deriv._1, deriv._2)
-        }
-
-      }
+    type OnZero[+A] = Unit
+    type OnSucc[P <: Nat[P], T[+_] <: Any, +A] = (Tree[P, Tree[S[P], A]], List[(A, T[Tree[S[P], A]])])
 
   }
 
-  // What if you just write out the recursors for each of these type, and
-  // then implement just that as part of the type class?  Then, presumably,
-  // all other functions should be derivable from that idea.
+  type Derivative[N <: Nat[N], +A] = N#ConsRec[Any, DerivativeRec, A]
 
-  trait DerivativeDimCase {
+  type Deriv0[+A] = Unit
+  type Deriv1[+A] = (Tree[_0, Tree[_1, A]], List[(A, Deriv0[Tree[_1, A]])])
+  type Deriv2[+A] = (Tree[_1, Tree[_2, A]], List[(A, Deriv1[Tree[_2, A]])])
+  type Deriv3[+A] = (Tree[_2, Tree[_3, A]], List[(A, Deriv2[Tree[_3, A]])])
 
-    type Out[N <: Nat[N]]
+  implicitly[Deriv1[Int] =:= Derivative[_1, Int]]
+  implicitly[Deriv2[Int] =:= Derivative[_2, Int]]
+  implicitly[Deriv3[Int] =:= Derivative[_3, Int]]
 
-    def caseZero : Out[_0]
-    def caseSucc[P <: Nat[P], C[+_], A](sh : Tree[P, Tree[S[P], A]], cntxt : C[A])(implicit cls : ContextClass.Aux[S[P], C]) : Out[S[P]]
-
-
-  }
-
-  // abstract class Derivative[N <: Nat[N], D[+_], A](d : D[A])(implicit cls : DerivativeClass.Aux[N, D]) {
-
-  //   def plugWith(a : A) : Tree[N, A] = 
-  //     (new DerivativeDimCase {
-
-  //       type Out[M <: Nat[M]] = A => Tree[M, A]
-
-  //       // def caseZero : Out[_0] = Pt(_)
-  //       // def caseSucc[P <: Nat[P], C[+_], A](sh : Tree[P, Tree[S[P], A]], cntxt : C[A])(implicit cls : ContextClass.Aux[S[P], C]) : Out[S[P]] = ???
-
-  //     })
-
-  // }
+  type DTest0 = Derivative[_0, Int]
+  type DTest1 = Derivative[_1, Int]
+  // type DTest2 = Derivative[_2, Int]
 
   //============================================================================================
   // CONTEXTS
   //
 
-  trait ContextClass[N <: Nat[N]] {
-    type Out[+_]
-    def close[A](cntxt : Out[A], tr : Tree[N, A]) : Tree[N, A]
-  }
+  trait ContextRec extends NatConsRec[Any] {
 
-  object ContextClass {
-
-    type Aux[N <: Nat[N], T[+_]] = ContextClass[N] { type Out[+A] = T[A] }
-
-    implicit def zeroContext : Aux[_0, ({ type L[+A] = Unit })#L] = 
-      new ContextClass[_0] {
-        type Out[+A] = Unit
-        def close[A](cntxt : Out[A], tr : Tree[_0, A]) : Tree[_0, A] = tr
-      }
-
-    implicit def succContext[P <: Nat[P], D[+_]](implicit deriv : DerivativeClass.Aux[P, D])
-        : Aux[S[P], ({ type L[+A] = List[(A, D[Tree[S[P], A]])] })#L] = 
-      new ContextClass[S[P]] {
-        type Out[+A] = List[(A, D[Tree[S[P], A]])]
-        def close[A](cntxt : Out[A], tr : Tree[S[P], A]) : Tree[S[P], A] = 
-          cntxt match {
-            case Nil => tr
-            case ((a, d) :: cs) => close(cs, Node(a, deriv.plug(d, tr)))
-          }
-      }
+    type OnZero[+A] = Unit
+    type OnSucc[P <: Nat[P], T[+_] <: Any, +A] = List[(A, P#ConsRec[Any, DerivativeRec, Tree[S[P], A]])]
 
   }
+
+  type Context[N <: Nat[N], +A] = N#ConsRec[Any, ContextRec, A]
 
   //============================================================================================
   // ZIPPERS
   //
 
-  trait ZipperClass[N <: Nat[N]] {
-    type Out[+_]
-
-  }
-
-  object ZipperClass {
-
-    type Aux[N <: Nat[N], T[+_]] = ZipperClass[N] { type Out[+A] = T[A] }
-
-    implicit def zipperPair[N <: Nat[N], C[+_]](implicit cntxt : ContextClass.Aux[N, C]) 
-        : Aux[N, ({ type L[+A] = (Tree[N, A], C[A]) })#L] = 
-      new ZipperClass[N] {
-        type Out[+A] = (Tree[N, A], C[A])
-      }
-
-  }
+  type Zipper[N <: Nat[N], A] = (Tree[N, A], Context[N, A])
 
 }
