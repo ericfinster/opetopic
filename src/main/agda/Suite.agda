@@ -91,3 +91,22 @@ module Suite where
     where fₛ : (m : ℕ) → (suc n ≤ m) → P m → Maybe (Q m)
           fₛ m sn≤m p = f m (≤-suc-lem sn≤m) p
 
+
+  data Suite (P : ℕ → Set) : ℕ → Set where
+    || : Suite P 0
+    _:::_ : {n : ℕ} → Suite P n → P n → Suite P (suc n)
+
+  drop : {P : ℕ → Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → Suite P n → Suite P (Δ k≤n)
+  drop .0 z≤n s = s
+  drop .(suc k) (s≤s {k} {n} k≤n) (tl ::: hd) = drop k k≤n tl 
+
+  suiteHead : {P : ℕ → Set} → {n : ℕ} → Suite P (suc n) → P n
+  suiteHead (tl ::: hd) = hd
+
+  nget : {P : ℕ → Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → Suite P (suc n) → P k
+  nget {P} {n} k k≤n s = suiteHead (transport (λ m → Suite P m) p (drop {n = suc n} (Δ k≤n) (≤-suc (Δ-≤-lem k≤n)) s)) 
+
+    where p : Δ (≤-suc (Δ-≤-lem k≤n)) == suc k
+          p = Δ (≤-suc (Δ-≤-lem k≤n)) =⟨ Δ-lem (Δ-≤-lem k≤n) ⟩ 
+              suc (Δ (Δ-≤-lem k≤n)) =⟨ ap suc (Δ-≤-lem-eq k≤n) ⟩ 
+              suc k ∎
