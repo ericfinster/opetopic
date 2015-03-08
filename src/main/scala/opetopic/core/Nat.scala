@@ -9,9 +9,43 @@ package opetopic.core
 
 import scala.language.higherKinds
 
-sealed trait Nat
-case object Z extends Nat
-case class S[P <: Nat](p : P) extends Nat
+sealed trait Nat {
+
+  type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
+  type ConsRec[Type, C <: NatConsRec[Type], +A] <: Type
+
+}
+
+case object Z extends Nat {
+
+  type TypeRec[Type, R <: NatTypeRec[Type]] = R#OnZero
+  type ConsRec[Type, C <: NatConsRec[Type], +A] = C#OnZero[A]
+
+}
+
+case class S[P <: Nat](p : P) extends Nat {
+
+  type TypeRec[Type, R <: NatTypeRec[Type]] = 
+    R#OnSucc[P, P#TypeRec[Type, R]]
+
+  type ConsRec[Type, C <: NatConsRec[Type], +A] = 
+    C#OnSucc[P, ({ type L[+X] = P#ConsRec[Type, C, X] })#L, A]
+
+}
+
+trait NatTypeRec[Type] {
+
+  type OnZero <: Type
+  type OnSucc[P <: Nat, T <: Type] <: Type
+
+}
+
+trait NatConsRec[Type] {
+
+  type OnZero[+A] <: Type
+  type OnSucc[P <: Nat, T[+_] <: Type, +A] <: Type
+
+}
 
 trait NatCaseSplit {
 
@@ -72,5 +106,3 @@ trait NatConstants {
 object Nat extends NatFunctions 
     with NatImplicits 
     with NatConstants
-
-
