@@ -10,18 +10,64 @@ package opetopic.core
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
-// import scalaz.{Tree => _, Zipper => _, _}
-// import scalaz.std.option._
-// import scalaz.Leibniz._
+import scalaz.Applicative
 
 import Nat._
+import Zippers._
 
 sealed abstract class Tree[N <: Nat, +A] { def dim : N }
 case class Pt[+A](a : A) extends Tree[_0, A] { def dim = Z }
 case class Leaf[N <: Nat](d : S[N]) extends Tree[S[N], Nothing] { def dim = d ; override def toString = "Leaf" }
 case class Node[N <: Nat, +A](a : A, shell : Tree[N, Tree[S[N], A]]) extends Tree[S[N], A] { def dim = S(shell.dim) }
 
-trait TreeFunctions {
+trait TreeFunctions { tfns => 
+
+  trait TreeCaseSplit[A] {
+
+    type Out[N <: Nat, +T <: Tree[N, A]]
+
+    def casePt(a : A) : Out[_0, Pt[A]]
+    def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Leaf[P]]
+    def caseNode[P <: Nat](a : A, sh : Tree[P, Tree[S[P], A]]) : Out[S[P], Node[P, A]]
+
+    def apply[N <: Nat](tr : Tree[N, A]) : Out[N, Tree[N, A]] = 
+      tfns.caseSplit(tr)(this)
+
+  }
+
+  def caseSplit[N <: Nat, A](tr : Tree[N, A])(sp : TreeCaseSplit[A]) : sp.Out[N, Tree[N, A]] = 
+    tr match {
+      case Pt(a) => sp.casePt(a)
+      case Leaf(d) => sp.caseLeaf(d)
+      case Node(a, sh) => sp.caseNode(a, sh)
+    }
+
+  trait TreeElim[A] {
+
+    type Out[N <: Nat, +T <: Tree[N, A]]
+
+    def casePt(a : A) : Out[_0, Pt[A]]
+    def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Leaf[P]]
+    def caseNode[P <: Nat](a : A, sh : Tree[P, Out[S[P], Tree[S[P], A]]]) : Out[S[P], Node[P, A]]
+
+    def apply[N <: Nat](tr : Tree[N, A]) : Out[N, Tree[N, A]] = 
+      tfns.eliminate(tr)(this)
+
+  }
+
+  def eliminate[N <: Nat, A](tr : Tree[N, A])(elim : TreeElim[A]) : elim.Out[N, Tree[N, A]] = 
+    (new TreeCaseSplit[A] {
+
+      type Out[N <: Nat, +T <: Tree[N, A]] = elim.Out[N, Tree[N, A]]
+
+      def casePt(a : A) : Out[_0, Pt[A]] = elim.casePt(a)
+
+      def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Leaf[P]] = elim.caseLeaf(d)
+
+      def caseNode[P <: Nat](a : A, sh : Tree[P, Tree[S[P], A]]) : Out[S[P], Node[P, A]] = 
+        elim.caseNode(a, map[P, Tree[S[P], A], elim.Out[S[P], Tree[S[P], A]]](sh)(this(_)))
+
+    })(tr)
 
   //============================================================================================
   // MAP
@@ -38,33 +84,46 @@ trait TreeFunctions {
   // MAP WITH ADDRESS
   //
 
-  // def mapWithAddressFrom[N <: Nat, A, B](tr : Tree[N, A], addr : Address[N])(f : (Address[N], A) => B) : Tree[N, B] = 
-  //   tr match {
-  //     case Pt(a) => Pt(f(addr, a))
-  //     case Leaf(d) => Leaf(d)
-  //     case Node(a, sh) => {
-  //       Node(f(addr, a), mapWithAddress(sh)((dir, brnch) =>
-  //         mapWithAddressFrom(brnch, Step(dir, addr))(f)
-  //       ))
-  //     }
-  //   }
+  // def mapWithAddressFrom[N <: Nat, A, B](tr : Tree[N, A], base : Address[N])(f : (Address[N], A) => B) : Tree[N, B] = 
+  //   (new TreeCaseSplit {
+
+  //     type Out[N <: Nat, +A, +T <: Tree[N, A]] = Tree[N, B]
+
+  //     def casePt[A](a : A) : Out[_0, A, Pt[A]] = Pt(f(base, a))
+  //     def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Nothing, Leaf[P]] = ???
+  //     def caseNode[P <: Nat, A](a : A, sh : Tree[P, Tree[S[P], A]]) : Out[S[P], A, Node[P, A]] = ???
+
+
+  //   })(tr)
+
+
+    // tr match {
+    //   case Pt(a) => Pt(f(base, a))
+    //   case Leaf(d) => Leaf(d)
+    //   case Node(a, sh) => {
+    //     Node(f(base, a), mapWithAddress(sh)((dir, brnch) =>
+    //       mapWithAddressFrom(brnch, ??? // dir :: addr
+    //       )(f)
+    //     ))
+    //   }
+    // }
 
   // def mapWithAddress[N <: Nat, A, B](tr : Tree[N, A])(f : (Address[N], A) => B) : Tree[N, B] =
-  //   mapWithAddressFrom(tr, Root()(tr.dim))(f)
+  //   mapWithAddressFrom(tr, rootAddr(tr.dim))(f)
 
-//   //============================================================================================
-//   // TRAVERSE
-//   //
+  //============================================================================================
+  // TRAVERSE
+  //
 
-//   def traverse[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : A => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
-//     import apT.{pure, ap, ap2}
+  def traverse[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : A => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
+    import apT.{pure, ap, ap2}
 
-//     tr match {
-//       case Pt(a) => ap(f(a))(pure(Pt(_)))
-//       case Leaf(d) => pure(Leaf(d))
-//       case Node(a, sh) => ap2(f(a), traverse(sh)(traverse(_)(f)))(pure(Node(_, _)))
-//     }
-//   }
+    tr match {
+      case Pt(a) => ap(f(a))(pure(Pt(_)))
+      case Leaf(d) => pure(Leaf(d))
+      case Node(a, sh) => ap2(f(a), traverse(sh)(traverse(_)(f)))(pure(Node(_, _)))
+    }
+  }
 
 //   //============================================================================================
 //   // TRAVERSE WITH ADDRESS

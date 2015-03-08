@@ -54,6 +54,9 @@ trait NatCaseSplit {
   def caseZero : Out[Z.type]
   def caseSucc[P <: Nat](p: P) : Out[S[P]]
 
+  def apply[N <: Nat](n : N) : Out[N] = 
+    Nat.caseSplit(n)(this)
+
 }
 
 trait NatFunctions {
