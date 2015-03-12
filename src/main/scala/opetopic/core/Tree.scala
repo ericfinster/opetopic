@@ -10,6 +10,7 @@ package opetopic.core
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Traverse 
 import scalaz.Applicative
 import scalaz.std.option._
 
@@ -98,28 +99,36 @@ trait TreeFunctions { tfns =>
     }
   }
 
-//   //============================================================================================
-//   // TRAVERSE WITH ADDRESS
-//   //
+  //============================================================================================
+  // TRAVERSE WITH ADDRESS
+  //
 
-//   def traverseWithAddressFrom[N <: Nat, T[_], A, B](
-//     tr : Tree[N, A], addr : Address[N]
-//   )(f : (Address[N], A) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
+  def traverseWithAddress[N <: Nat, T[_], A, B](
+    tr : Tree[N, A], base : Address[N]
+  )(f : (Address[N], A) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = 
+    (new TreeCaseSplit[A] {
 
-//     import apT.{pure, ap, ap2}
-    
-//     tr match {
-//       case Pt(a) => ap(f(addr, a))(pure(Pt(_)))
-//       case Leaf(d) => pure(Leaf(d))
-//       case Node(a, sh) => ap2(f(addr, a), traverseWithAddress(sh)((dir, brnch) =>
-//         traverseWithAddressFrom(brnch, Step(dir, addr))(f)
-//       ))(pure(Node(_, _)))
-//     }
+      import apT.{pure, ap, ap2}
 
-//   }
+      type Out[N <: Nat, +U <: Tree[N, A]] = (Address[N], (Address[N], A) => T[B]) => T[Tree[N, B]]
 
-//   def traverseWithAddress[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : (Address[N], A) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = 
-//     traverseWithAddressFrom(tr, Root()(tr.dim))(f)
+      def casePt(a : A) : Out[_0, Pt[A]] = 
+        (addr, f) => ap(f(addr, a))(pure(Pt(_)))
+
+      def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Leaf[P]] = 
+        (addr, f) => pure(Leaf(d))
+
+      def caseNode[P <: Nat](a : A, sh : Tree[P, Tree[S[P], A]]) : Out[S[P], Node[P, A]] = 
+        (addr, f) => {
+          ap2(f(addr, a), traverseWithAddress(sh)((dir, brnch) =>
+            traverseWithAddress(brnch, dir :: addr : Address[S[P]])(f)
+          ))(pure(Node(_, _)))
+        }
+
+    })(tr)(base, f)
+
+  def traverseWithAddress[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : (Address[N], A) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = 
+    traverseWithAddress(tr, rootAddr(tr.dim))(f)
 
   //============================================================================================
   // TREE ELIMINATORS
@@ -201,91 +210,65 @@ trait TreeFunctions { tfns =>
       case _ => None
     }
 
-//   //============================================================================================
-//   // ZIP WITH DERIVATIVE
-//   //
+  //============================================================================================
+  // ZIP WITH DERIVATIVE
+  //
 
-//   def zipWithDerivative[N <: Nat, A, B](tr : Tree[N, A]) : Tree[N, (Derivative[N, B], A)] = 
-//     tr match {
-//       case Pt(a) => Pt((ZeroDeriv, a))
-//       case Leaf(d) => Leaf(d)
-//       case Node(a, sh) => Node(
-//         (Open(const(sh)(Leaf(tr.dim)), Empty[S[Nat]]), a),
-//         map(sh)(zipWithDerivative(_))
-//       )
-//     }
+  def zipWithDerivative[N <: Nat, A, B](tr : Tree[N, A]) : Tree[N, (Derivative[N, B], A)] = 
+    (new TreeCaseSplit[A] {
 
-//   //============================================================================================
-//   // SEEK
-//   //
+      type Out[N <: Nat, +T <: Tree[N, A]] = Tree[N, (Derivative[N, B], A)]
 
-//   def seekTo[N <: Nat, A](tr : Tree[N, A], addr : Address[N]) : Option[Zipper[N, A]] = 
-//     (new NatCaseSplit1 {
+      def casePt(a : A) : Out[_0, Pt[A]] = 
+        Pt((), a)
 
-//       type In[M <: Nat] = (Tree[M, A], Address[M])
-//       type Out[M <: Nat] = Option[Zipper[M, A]]
+      def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Leaf[P]] =
+        Leaf(d)
 
-//       def caseZero(pr : (Tree[_0, A], Address[_0])) : Option[Zipper[_0, A]] =
-//         Zipper.seek(pr._2, FocusPoint(pr._1))
+      def caseNode[P <: Nat](a : A, sh : Tree[P, Tree[S[P], A]]) : Out[S[P], Node[P, A]] = 
+        Node(
+          (???, a), //   (Open(const(sh)(Leaf(tr.dim)), Empty[S[Nat]]), a),
+          map(sh)(zipWithDerivative(_))
+        )
 
-//       def caseOne(pr : (Tree[_1, A], Address[_1])) : Option[Zipper[_1, A]] =
-//         Zipper.seek(pr._2, FocusList(pr._1, Empty()))
+    })(tr)
 
-//       def caseDblSucc[P <: Nat](pr : (Tree[S[S[P]], A], Address[S[S[P]]])) : Option[Zipper[S[S[P]], A]] =
-//         Zipper.seek(pr._2, FocusBranch(pr._1, Empty()))
+  //============================================================================================
+  // ROOT OPTION
+  //
 
-//     })(tr.dim, (tr, addr))
+  def rootOption[N <: Nat, A](tr : Tree[N, A]) : Option[A] =
+    tr match {
+      case Pt(a) => Some(a)
+      case Leaf(_) => None
+      case Node(a, _) => Some(a)
+    }
 
-//   //============================================================================================
-//   // VALUE AT
-//   //
+  //============================================================================================
+  // UNZIP
+  //
 
-//   def valueAt[N <: Nat, A](tr : Tree[N, A], addr : Address[N]) : Option[A] = 
-//     for {
-//       zp <- tr.seekTo(addr)   
-//       a <- zp.focus.rootValue 
-//     } yield a
+  def unzip[N <: Nat, A, B](tr : Tree[N, (A, B)]) : (Tree[N, A], Tree[N, B]) = 
+    (new TreeCaseSplit[(A, B)] {
 
-//   //============================================================================================
-//   // ROOT VALUE
-//   //
+      type Out[N <: Nat, +T <: Tree[N, (A, B)]] = (Tree[N, A], Tree[N, B])
 
-//   def rootValue[N <: Nat, A](tr : Tree[N, A]) : Option[A] = 
-//     tr match {
-//       case Pt(a) => Some(a)
-//       case Leaf(_) => None
-//       case Node(a, _) => Some(a)
-//     }
+      def casePt(pr : (A, B)) : Out[_0, Pt[(A, B)]] =
+        (Pt(pr._1), Pt(pr._2))
 
-//   //============================================================================================
-//   // UNZIP
-//   //
+      def caseLeaf[P <: Nat](d : S[P]) : Out[S[P], Leaf[P]] = 
+        (Leaf(d), Leaf(d))
 
-//   def unzip[N <: Nat, A, B](tr : Tree[N, (A, B)]) : (Tree[N, A], Tree[N, B]) = 
-//     (new NatCaseSplit {
+      def caseNode[P <: Nat](pr : (A, B), sh : Tree[P, Tree[S[P], (A, B)]]) : Out[S[P], Node[P, (A, B)]] = {
+        val (aSh, bSh) = unzip(map(sh)(unzip(_)))
+        (Node(pr._1, aSh), Node(pr._2, bSh))
+      }
 
-//       type In[M <: Nat] = Tree[M, (A, B)]
-//       type Out[M <: Nat] = (Tree[M, A], Tree[M, B])
+    })(tr)
 
-//       def caseZero(t : Tree[_0, (A, B)]) : (Tree[_0, A], Tree[_0, B]) = 
-//         t match {
-//           case Pt((a, b)) => (Pt(a), Pt(b))
-//         }
-
-//       def caseSucc[P <: Nat](t : Tree[S[P], (A, B)]) : (Tree[S[P], A], Tree[S[P], B]) = 
-//         t match {
-//           case Leaf(sp) => (Leaf(sp), Leaf(sp))
-//           case Node((a, b), sh) => {
-//             val (aSh, bSh) = unzip(map(sh)(unzip(_)))
-//             (Node(a, aSh), Node(b, bSh))
-//           }
-//         }
-
-//     })(tr.dim, tr)
-
-//   //============================================================================================  
-//   // LOCAL DATA
-//   //
+  //============================================================================================  
+  // LOCAL DATA
+  //
 
 //   def localData[N <: Nat, A, B](tr : Tree[N, A]) : Tree[N, (Address[N], Derivative[N, B], A)] = 
 //     tr match {
@@ -314,49 +297,21 @@ trait TreeFunctions { tfns =>
 //   def shellExtents[N <: Nat, A](shell : Tree[N, Tree[S[N], A]]) : Option[Tree[N, Address[S[N]]]] = 
 //     shellExtentsFrom(shell, Root()(S(shell.dim)))
 
-//   //============================================================================================
-//   // UTILITIES
-//   //
+  //============================================================================================
+  // GRAFT ELIMINATION
+  //
 
-//   // Note: you should simply move these guys to the tree ops section.  I think all of them will
-//   // really work better there, and the traversals will really be much nicer ....
+  trait TreeGraftElim[P <: Nat, A, B] {
 
-//   def zipWithAddress[N <: Nat, A](tr : Tree[N, A]) : Tree[N, (Address[N], A)] = 
-//     mapWithAddress(tr)((_, _))
+    def caseLeaf(addr : Address[P]) : Option[B]
+    def caseNode(a : A, sh : Tree[P, B]) : Option[B]
 
-//   def addressTree[N <: Nat, A](tr : Tree[N, A]) : Tree[N, Address[N]] = 
-//     mapWithAddress(tr)({ case (addr, _) => addr })
+  }
 
-//   def const[N <: Nat, A, B](tr : Tree[N, A])(b : B) : Tree[N, B] = 
-//     map(tr)(_ => b)
-
-//   // Ugggh.  Can we do better with the traversal implicit ... ???
-
-//   def nodesOf[N <: Nat, A](tr : Tree[N, A]) : List[A] = 
-//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].toList(tr)
-
-//   def nodeCountOf[N <: Nat, A](tr : Tree[N, A]) : Int = 
-//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].count(tr)
-
-//   def zipWithIndex[N <: Nat, A](tr : Tree[N, A]) : (Int, Tree[N, (A, Int)]) = 
-//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].
-//       mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
-
-//   //============================================================================================
-//   // GRAFT RECURSION
-//   //
-
-//   trait GraftRecursor[N <: Nat, A, B] {
-
-//     def leafRec(addr : Address[N]) : Option[B]
-//     def nodeRec(a : A, sh : Tree[N, B]) : Option[B]
-
-//   }
-
-//   // All this seems to work as expected.  Just needs to be cleaned up and simplified since it
-//   // is really in a performance critical position.  Ideas include a custom traverse which runs
-//   // a computation on two trees as they are being zipped and a trait which captures the node
-//   // and leaf recursion functions to simplify the API.
+  // All this seems to work as expected.  Just needs to be cleaned up and simplified since it
+  // is really in a performance critical position.  Ideas include a custom traverse which runs
+  // a computation on two trees as they are being zipped and a trait which captures the node
+  // and leaf recursion functions to simplify the API.
 
 //   def graftRecHoriz[N <: Nat, A, B](
 //     rec : GraftRecursor[S[N], A, B],
@@ -574,54 +529,105 @@ trait TreeFunctions { tfns =>
 
 }
 
-// trait TreeImplicits {
+trait TreeImplicits {
 
-//   implicit def treeIsTraverse[N <: Nat] : Traverse[({ type L[+A] = Tree[N, A] })#L] = 
-//     new Traverse[({ type L[+A] = Tree[N, A] })#L] {
+  implicit def treeIsTraverse[N <: Nat] : Traverse[({ type L[+A] = Tree[N, A] })#L] = 
+    new Traverse[({ type L[+A] = Tree[N, A] })#L] {
 
-//       override def map[A, B](ta : Tree[N, A])(f : A => B) : Tree[N, B] = 
-//         Tree.map(ta)(f)
+      override def map[A, B](ta : Tree[N, A])(f : A => B) : Tree[N, B] = 
+        Tree.map(ta)(f)
 
-//       def traverseImpl[G[_], A, B](ta : Tree[N, A])(f : A => G[B])(implicit isA : Applicative[G]) : G[Tree[N, B]] = 
-//         Tree.traverse(ta)(f)
+      def traverseImpl[G[_], A, B](ta : Tree[N, A])(f : A => G[B])(implicit isA : Applicative[G]) : G[Tree[N, B]] = 
+        Tree.traverse(ta)(f)
 
-//     }
+    }
 
-//   import scalaz.syntax.FunctorOps
-//   import scalaz.syntax.functor._
+  import scalaz.syntax.FunctorOps
+  import scalaz.syntax.functor._
 
-//   implicit def treeToFunctorOps[N <: Nat, A](tr : Tree[N, A]) : FunctorOps[({ type L[+X] = Tree[N, X] })#L, A] = 
-//     ToFunctorOps[({ type L[+X] = Tree[N, X] })#L, A](tr)
+  implicit def treeToFunctorOps[N <: Nat, A](tr : Tree[N, A]) : FunctorOps[({ type L[+X] = Tree[N, X] })#L, A] = 
+    ToFunctorOps[({ type L[+X] = Tree[N, X] })#L, A](tr)
 
-//   import scalaz.syntax.TraverseOps
-//   import scalaz.syntax.traverse._
+  import scalaz.syntax.TraverseOps
+  import scalaz.syntax.traverse._
 
-//   implicit def treeToTraverseOps[N <: Nat, A](tr : Tree[N, A]) : TraverseOps[({ type L[+X] = Tree[N, X] })#L, A] = 
-//     ToTraverseOps[({ type L[+X] = Tree[N, X] })#L, A](tr)
+  implicit def treeToTraverseOps[N <: Nat, A](tr : Tree[N, A]) : TraverseOps[({ type L[+X] = Tree[N, X] })#L, A] = 
+    ToTraverseOps[({ type L[+X] = Tree[N, X] })#L, A](tr)
 
-//   class TreeOps[N <: Nat, A](tr : Tree[N, A]) {
+  class TreeOps[N <: Nat, A](tr : Tree[N, A]) {
 
-//     def zipWithAddress : Tree[N, (Address[N], A)] = 
-//       Tree.zipWithAddress(tr)
+    val T = Traverse[({ type L[+A] = Tree[N, A] })#L]
 
-//     def zipWithDerivative[B] : Tree[N, (Derivative[N, B], A)] = 
-//       Tree.zipWithDerivative[N, A, B](tr)
+    def zipWithDerivative[B] : Tree[N, (Derivative[N, B], A)] = 
+      Tree.zipWithDerivative[N, A, B](tr)
 
-//     def matchWith[B](trB : Tree[N, B]) : Option[Tree[N, (A, B)]] = 
-//       Tree.zipComplete(tr, trB)
+    def matchWith[B](trB : Tree[N, B]) : Option[Tree[N, (A, B)]] = 
+      Tree.zipComplete(tr, trB)
 
-//     def seekTo(addr : Address[N]) : Option[Zipper[N, A]] = 
-//       Tree.seekTo(tr, addr)
+    def seekTo(addr : Address[N]) : Option[Zipper[N, A]] = 
+      (new NatCaseSplit {
 
-//     def rootValue : Option[A] = 
-//       Tree.rootValue(tr)
+        type Out[N <: Nat] = (Address[N], Tree[N, A]) => Option[Zipper[N, A]]
 
-//   }
+        def caseZero : (Address[_0], Tree[_0, A]) => Option[Zipper[_0, A]] = 
+          (addr, tr) => Some(tr, ())
 
-//   implicit def treeToTreeOps[N <: Nat, A](tr : Tree[N, A]) : TreeOps[N, A] = 
-//     new TreeOps[N, A](tr)
+        def caseSucc[P <: Nat](p : P) : (Address[S[P]], Tree[S[P], A]) => Option[Zipper[S[P], A]] = 
+          (addr, tr) => Zippers.seek((tr, Nil : Context[S[P], A]), addr)
 
-// }
+      })(tr.dim)(addr, tr)
 
-// object Tree extends TreeFunctions 
-//     with TreeImplicits
+    def rootOption : Option[A] = 
+      Tree.rootOption(tr)
+
+    def constWith[B](b : B) : Tree[N, B] = 
+      Tree.map(tr)(_ => b)
+
+    def nodes : List[A] = T.toList(tr)
+    def nodeCount : Int = T.count(tr)
+    def zipWithIndex : (Int, Tree[N, (A, Int)]) = 
+      T.mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
+
+    // def zipWithAddress : Tree[N, (Address[N], A)] = 
+    //   Tree.zipWithAddress(tr)
+
+    // def valueAt(addr : Address[N]) : Option[A] = 
+    //   for {
+    //     zipper <- tr seekTo addr
+    //     a <- zipper.focus.rootValue
+    //   } yield a
+
+  }
+
+  implicit def treeToTreeOps[N <: Nat, A](tr : Tree[N, A]) : TreeOps[N, A] = 
+    new TreeOps[N, A](tr)
+
+}
+
+object Tree extends TreeFunctions 
+    with TreeImplicits
+
+  //============================================================================================
+  // UTILITIES
+  //
+
+//   def zipWithAddress[N <: Nat, A](tr : Tree[N, A]) : Tree[N, (Address[N], A)] = 
+//     mapWithAddress(tr)((_, _))
+
+//   def addressTree[N <: Nat, A](tr : Tree[N, A]) : Tree[N, Address[N]] = 
+//     mapWithAddress(tr)({ case (addr, _) => addr })
+
+//   def const[N <: Nat, A, B](tr : Tree[N, A])(b : B) : Tree[N, B] = 
+//     map(tr)(_ => b)
+
+//   // Ugggh.  Can we do better with the traversal implicit ... ???
+
+//   def nodesOf[N <: Nat, A](tr : Tree[N, A]) : List[A] = 
+//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].toList(tr)
+
+//   def nodeCountOf[N <: Nat, A](tr : Tree[N, A]) : Int = 
+//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].count(tr)
+
+//   def zipWithIndex[N <: Nat, A](tr : Tree[N, A]) : (Int, Tree[N, (A, Int)]) = 
+//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].
+//       mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
