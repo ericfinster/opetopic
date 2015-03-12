@@ -69,15 +69,17 @@ object Zippers {
 
     })(n)(deriv)
 
-  class DerivOps[N <: Nat, A](deriv : Derivative[N, A]) {
 
-    // def plugWith(a : A) : Tree[N, A] = 
-    //   plug(???)(deriv, a)
+  def globDerivative[N <: Nat, A](n : N) : Derivative[N, A] = 
+    (new NatCaseSplit {
 
-  }
+      type Out[N <: Nat] = Derivative[N, A]
 
-  implicit def toDerivOps[N <: Nat, A](deriv : Derivative[N, A]) : DerivOps[N, A] = 
-    new DerivOps(deriv)
+      def caseZero : Out[_0] = ()
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+        (plug(p)(globDerivative[P, Tree[S[P], A]](p), Leaf(S(p))), Nil)
+
+    })(n)
 
   //============================================================================================
   // CONTEXTS

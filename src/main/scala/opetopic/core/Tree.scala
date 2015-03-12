@@ -463,62 +463,54 @@ trait TreeFunctions { tfns =>
 
     })(tr.dim)(tr)
 
-//   //============================================================================================
-//   // FLATTEN
-//   //
+  //============================================================================================
+  // FLATTEN
+  //
 
-//   def flattenWithPrefix[N <: Nat, A](
-//     ds : Address[S[N]], 
-//     derivOpt : Option[Derivative[N, Address[S[N]]]], 
-//     tr : Tree[S[N], A]
-//   ) : Option[Tree[N, Address[S[N]]]] = {
+  def flatten[N <: Nat, A](ds : Address[S[N]], deriv : Derivative[N, Address[S[N]]], tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
+    tr match {
+      case Leaf(d) => Some(plug(d.pred)(deriv, ds))
+      case Node(a, sh) => 
+        for {
+          jnSh <- traverse(localData[N, Tree[S[N], A], Address[S[N]]](sh))({
+            case (dir, deriv, v) => flatten[N, A](dir :: ds, deriv, v)
+          })
+          res <- join(jnSh)
+        } yield res
 
-//     import Derivative._
+    }
 
-//     (derivOpt, tr) match {
-//       case (None, Leaf(_)) => Some(plug(globDerivative[N, Address[S[N]]](tr.dim.pred), ds))
-//       case (Some(deriv), Leaf(_)) => Some(plug(deriv, ds))
-//       case (_, Node(a, sh)) => 
-//         for {
-//           jnSh <- traverse(localData[N, Tree[S[N], A], Address[S[N]]](sh))({
-//             case (dir, deriv, v) => flattenWithPrefix(Step(dir, ds), Some(deriv), v)
-//           })
-//           res <- join(jnSh)
-//         } yield res
-//     }
-//   }
+  def flatten[N <: Nat, A](deriv : Derivative[N, Address[S[N]]], tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
+    flatten(rootAddr(tr.dim), deriv, tr)
 
-//   def flatten[N <: Nat, A](tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
-//     flattenWithPrefix(Root()(tr.dim), None, tr)
+  //============================================================================================
+  // EXCISION
+  //
 
-//   //============================================================================================
-//   // EXCISION
-//   //
+  def exciseDeriv[N <: Nat, A, B](deriv : Derivative[N, Tree[S[N], A]], tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
+    (tr, msk) match {
+      case (Leaf(d), Leaf(_)) => Some(Leaf(d), plug(d.pred)(deriv, Leaf(d)))
+      case (Leaf(_), Node(_, _)) => None
+      case (Node(a, sh), Leaf(d)) => Some(Leaf(d), plug(d.pred)(deriv, Leaf(d)))
+      case (Node(a, sh), Node(_, mskSh)) => 
+        for {
+          zpSh <- zipComplete(sh.zipWithDerivative[Tree[S[N], A]], mskSh) 
+          zsh <- traverse(zpSh)({
+            case ((d, t), m) => exciseDeriv(d, t, m)
+          })
+          (nsh, crpJn) = unzip(zsh)
+          crp <- join(crpJn)
+        } yield (Node(a, nsh), crp)
+    }
 
-//   def exciseDeriv[N <: Nat, A, B](deriv : Derivative[N, Tree[S[N], A]], tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
-//     (tr, msk) match {
-//       case (Leaf(sp), Leaf(_)) => Some(Leaf(sp), Derivative.plug(deriv, Leaf(sp)))
-//       case (Leaf(_), Node(_, _)) => None
-//       case (Node(a, sh), Leaf(sp)) => Some(Leaf(sp), Derivative.plug(deriv, Leaf(sp)))
-//       case (Node(a, sh), Node(_, mskSh)) => 
-//         for {
-//           zpSh <- zipComplete(sh.zipWithDerivative[Tree[S[N], A]], mskSh) 
-//           zsh <- traverse(zpSh)({
-//             case ((d, t), m) => exciseDeriv(d, t, m)
-//           })
-//           (nsh, crpJn) = unzip(zsh)
-//           crp <- join(crpJn)
-//         } yield (Node(a, nsh), crp)
-//     }
+  def excise[N <: Nat, A, B](tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
+    exciseDeriv(globDerivative(tr.dim.pred), tr, msk)
 
-//   def excise[N <: Nat, A, B](tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
-//     exciseDeriv(Derivative.globDerivative(tr.dim.pred), tr, msk)
-
-//   def replace[N <: Nat, A, B](tr : Tree[S[N], A], msk : Tree[S[N], B], rpl : Tree[S[N], A] => A) : Option[Tree[S[N], A]] = 
-//     for {
-//       exPr <- excise(tr, msk)
-//       (exTr, exSh) = exPr
-//     } yield Node(rpl(exTr), exSh)
+  def replace[N <: Nat, A, B](tr : Tree[S[N], A], msk : Tree[S[N], B], rpl : Tree[S[N], A] => A) : Option[Tree[S[N], A]] = 
+    for {
+      exPr <- excise(tr, msk)
+      (exTr, exSh) = exPr
+    } yield Node(rpl(exTr), exSh)
 
 }
 
@@ -554,8 +546,11 @@ trait TreeImplicits {
     def zipWithDerivative[B] : Tree[N, (Derivative[N, B], A)] = 
       Tree.zipWithDerivative[N, A, B](tr)
 
-    // def zipWithAddress : Tree[N, (Address[N], A)] = 
-    //   Tree.zipWithAddress(tr)
+    def zipWithAddress : Tree[N, (Address[N], A)] = 
+      Tree.mapWithAddress(tr)((_, _))
+
+    def addressTree : Tree[N, Address[N]] =
+      Tree.mapWithAddress(tr)({ case (addr, _) => addr })
 
     def matchWith[B](trB : Tree[N, B]) : Option[Tree[N, (A, B)]] = 
       Tree.zipComplete(tr, trB)
@@ -600,27 +595,5 @@ trait TreeImplicits {
 object Tree extends TreeFunctions 
     with TreeImplicits
 
-  //============================================================================================
-  // UTILITIES
-  //
 
-//   def zipWithAddress[N <: Nat, A](tr : Tree[N, A]) : Tree[N, (Address[N], A)] = 
-//     mapWithAddress(tr)((_, _))
 
-//   def addressTree[N <: Nat, A](tr : Tree[N, A]) : Tree[N, Address[N]] = 
-//     mapWithAddress(tr)({ case (addr, _) => addr })
-
-//   def const[N <: Nat, A, B](tr : Tree[N, A])(b : B) : Tree[N, B] = 
-//     map(tr)(_ => b)
-
-//   // Ugggh.  Can we do better with the traversal implicit ... ???
-
-//   def nodesOf[N <: Nat, A](tr : Tree[N, A]) : List[A] = 
-//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].toList(tr)
-
-//   def nodeCountOf[N <: Nat, A](tr : Tree[N, A]) : Int = 
-//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].count(tr)
-
-//   def zipWithIndex[N <: Nat, A](tr : Tree[N, A]) : (Int, Tree[N, (A, Int)]) = 
-//     implicitly[Traverse[({ type L[+X] = Tree[N, X] })#L]].
-//       mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
