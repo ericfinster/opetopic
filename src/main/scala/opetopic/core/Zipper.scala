@@ -8,6 +8,7 @@
 package opetopic.core
 
 import scala.language.higherKinds
+import scala.language.implicitConversions
 
 import Nat._
 
@@ -67,6 +68,16 @@ object Zippers {
       }
 
     })(n)(deriv)
+
+  class DerivOps[N <: Nat, A](deriv : Derivative[N, A]) {
+
+    // def plugWith(a : A) : Tree[N, A] = 
+    //   plug(???)(deriv, a)
+
+  }
+
+  implicit def toDerivOps[N <: Nat, A](deriv : Derivative[N, A]) : DerivOps[N, A] = 
+    new DerivOps(deriv)
 
   //============================================================================================
   // CONTEXTS

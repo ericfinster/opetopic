@@ -23,7 +23,7 @@ case object Z extends Nat {
 
 }
 
-case class S[P <: Nat](p : P) extends Nat {
+case class S[P <: Nat](val pred : P) extends Nat {
 
   type TypeRec[Type, R <: NatTypeRec[Type]] = 
     R#OnSucc[P, P#TypeRec[Type, R]]
