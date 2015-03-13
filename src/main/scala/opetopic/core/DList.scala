@@ -11,22 +11,15 @@ import scala.language.higherKinds
 
 import Nat._
 
-sealed trait DList[F[_ <: Nat], N <: Nat] {
+sealed trait DList[F[_ <: Nat, +_], N <: Nat, +A] {
 
-  def :>>(fn : F[N]) : DList[F, S[N]] = 
+  def :>>[B >: A](fn : F[N, B]) : DList[F, S[N], B] = 
     new :>>(this, fn)
 
-}
-
-case class ||[F[_ <: Nat]]() extends DList[F, _0]
-case class :>>[F[_ <: Nat], P <: Nat](tl : DList[F, P], hd : F[P]) extends DList[F, S[P]]
-
-object Test {
-
-  import Zippers._
-
-  type CardinalAddress[N <: Nat] = DList[Address, S[N]]
-
-  val addr0 : CardinalAddress[_1] = ||[Address]() :>> (()) :>> Nil
+  def dim : N
 
 }
+
+case class ||[F[_ <: Nat, +_]]() extends DList[F, _0, Nothing] { def dim = __0 }
+case class :>>[F[_ <: Nat, +_], P <: Nat, A](tl : DList[F, P, A], hd : F[P, A]) extends DList[F, S[P], A] { def dim = S(tl.dim) }
+
