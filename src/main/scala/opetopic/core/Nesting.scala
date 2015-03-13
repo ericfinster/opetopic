@@ -221,6 +221,99 @@ trait NestingFunctions { self : NestingImplicits =>
 
     })(tr.dim)(addr, tr, msk)
 
+  //============================================================================================
+  // NESTING ZIPPERS
+  //
+
+  type NestingDerivative[N <: Nat, A] = 
+    (Tree[N, Nesting[N, A]], NestingContext[N, A])
+
+  type NestingContext[N <: Nat, A] = 
+    List[(A, Derivative[N, Nesting[N, A]])]
+
+  type NestingZipper[N <: Nat, A] = 
+    (Nesting[N, A], NestingContext[N, A])
+
+  def plugNesting[N <: Nat, A](n : N)(deriv : NestingDerivative[N, A], a : A) : Nesting[N, A] = 
+    closeNesting(n)(deriv._2, Box(a, deriv._1))
+
+  def closeNesting[N <: Nat, A](n : N)(cntxt : NestingContext[N, A], nst : Nesting[N, A]) : Nesting[N, A] = 
+    cntxt match {
+      case Nil => nst
+      case (a, d) :: cs => closeNesting(n)(cs, Box(a, plug(n)(d, nst)))
+    }
+
+  def visitNesting[N <: Nat, A](dir : Address[N], zipper : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat] = (Address[N], NestingZipper[N, A]) => Option[NestingZipper[N, A]]
+
+      def caseZero : Out[_0] = {
+        case (d, (Obj(_), cntxt)) => None
+        case (d, (Box(a, Pt(int)), cntxt)) => 
+          Some(int, (a, ()) :: cntxt)
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (d, (Dot(_, _), cntxt)) => None
+        case (d, (Box(a, canopy), cntxt)) => 
+          for {
+            loc <- canopy seekTo d
+            res <- (
+              loc.focus match {
+                case Leaf(_) => None
+                case Node(nst, hsh) => 
+                  Some(nst, (a, (hsh, loc.context)) :: cntxt)
+              }
+            )
+          } yield res
+      }
+
+    })(zipper._1.dim)(dir, zipper)
+
+  def seekNesting[N <: Nat, A](addr : Address[S[N]], nz : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
+    addr match {
+      case Nil => Some(nz)
+      case (d :: ds) =>
+        for {
+          zp <- seekNesting(ds, nz)
+          zr <- visitNesting(d, zp)
+        } yield zr
+    }
+
+  def sibling[N <: Nat, A](addr : Address[N], nz : NestingZipper[S[N], A]) : Option[NestingZipper[S[N], A]] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat] = (Address[N], NestingZipper[S[N], A]) => Option[NestingZipper[S[N], A]]
+
+      def caseZero : Out[_0] = {
+        case (addr, (nst, Nil)) => None
+        case (addr, (nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt)) => None
+        case (addr, (nst, (a, (Pt(Node(nfcs, sh)), hcn)) :: cntxt)) => 
+          Some(nfcs, (a, (sh, (nst, ()) :: hcn)) :: cntxt)
+      }
+
+      type UnfoldedZipper[P <: Nat] = 
+        (Nesting[S[S[P]], A], List[(A, DerivDblSucc[P, Nesting[S[S[P]], A]])])
+
+      def caseSucc[P <: Nat](p : P) : (Address[S[P]], UnfoldedZipper[P]) => Option[UnfoldedZipper[P]] = {
+        case (addr, (nst, Nil)) => None
+        case (addr, (nst, (a, (verts, hcn)) :: cntxt)) => 
+          for {
+            vzip <- verts seekTo addr
+            res <- (
+              vzip.focus match {
+                case Leaf(_) => None
+                case Node(Leaf(_), _) => None
+                case Node(Node(nfcs, vrem), hmask) => 
+                  Some(nfcs, (a, (vrem, (nst, (hmask, vzip.context)) :: hcn)) :: cntxt)
+              }
+            )
+          } yield res
+      }
+
+    })(nz._1.dim.pred)(addr, nz)
+
 }
 
 trait NestingImplicits {
