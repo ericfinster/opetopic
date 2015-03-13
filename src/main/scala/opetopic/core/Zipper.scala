@@ -169,4 +169,17 @@ object Zippers {
 
     })(zp._1.dim)(zp, addr)
 
+  class ZipperOps[N <: Nat, A](zipper : Zipper[N, A]) {
+
+    def focus : Tree[N, A] = zipper._1
+    def context : Context[N, A] = zipper._2
+
+    def seekTo(addr : Address[N]) : Option[Zipper[N, A]] = 
+      seek(zipper, addr)
+
+  }
+
+  implicit def toZipperOps[N <: Nat, A](zipper : Zipper[N, A]) : ZipperOps[N, A] = 
+    new ZipperOps(zipper)
+
 }

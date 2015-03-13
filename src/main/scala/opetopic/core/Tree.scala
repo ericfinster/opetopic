@@ -582,7 +582,7 @@ trait TreeImplicits {
     def valueAt(addr : Address[N]) : Option[A] = 
       for {
         zipper <- tr seekTo addr
-        a <- zipper._1.rootOption
+        a <- zipper.focus.rootOption
       } yield a
 
   }
