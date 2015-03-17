@@ -23,3 +23,16 @@ sealed trait DList[F[_ <: Nat, +_], N <: Nat, +A] {
 case class ||[F[_ <: Nat, +_]]() extends DList[F, _0, Nothing] { def dim = __0 }
 case class :>>[F[_ <: Nat, +_], P <: Nat, A](tl : DList[F, P, A], hd : F[P, A]) extends DList[F, S[P], A] { def dim = S(tl.dim) }
 
+object DList {
+
+  def head[F[_ <: Nat, +_], N <: Nat, A](dl : DList[F, S[N], A]) : F[N, A] = 
+    dl match {
+      case (_ :>> hd) => hd
+    }
+
+  def tail[F[_ <: Nat, +_], N <: Nat, A](dl : DList[F, S[N], A]) : DList[F, N, A] = 
+    dl match {
+      case (tl :>> _) => tl
+    }
+
+}

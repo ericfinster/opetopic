@@ -15,6 +15,7 @@ import scalaz.std.option._
 
 import Nat._
 import Tree._
+import Zippers._
 
 trait ComplexFunctions { self : ComplexImplicits => 
 
@@ -117,9 +118,9 @@ trait ComplexFunctions { self : ComplexImplicits =>
   //   } yield seal(cz0)
   // }
 
-  // //============================================================================================
-  // // COMULTIPLY
-  // //
+  //============================================================================================
+  // COMULTIPLY
+  //
 
   // def comultiply[N <: Nat, A](cmplx : Complex[N, A]) : Option[Complex[N, Sigma[Complex, A]]] = 
   //   (new NatCaseSplit {
@@ -151,16 +152,17 @@ trait ComplexFunctions { self : ComplexImplicits =>
 
   //   })(dim(cmplx), cmplx)
 
-  // //============================================================================================
-  // // SOURCE CALCULATION MONAD
-  // //
+  //============================================================================================
+  // SOURCE CALCULATION MONAD
+  //
 
-  // type SourceM[N <: Nat, A, R] = StateT[Option, Complex[N, A], R]
+  type SourceM[N <: Nat, A, R] = StateT[Option, Complex[N, A], R]
 
-  // def liftS[N <: Nat, A, R](opt : Option[R]) : SourceM[N, A, R] =
-  //   StateT((cmplx : Complex[N, A]) => opt map (r => (cmplx, r)))
+  def liftS[N <: Nat, A, R](opt : Option[R]) : SourceM[N, A, R] =
+    StateT((cmplx : Complex[N, A]) => opt map (r => (cmplx, r)))
 
-  // def exciseLocal[N <: Nat, A](addr : Address[S[N]], tr : Tree[S[N], A]) : SourceM[N, A, Unit] = {
+  def exciseLocal[N <: Nat, A](addr : Address[S[N]], tr : Tree[S[N], A]) : SourceM[N, A, Unit] = ???
+  // {
 
   //   type SrcM[R] = SourceM[N, A, R]
   //   type SrcS[S, R] = StateT[Option, S, R]

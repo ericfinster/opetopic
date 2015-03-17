@@ -225,13 +225,13 @@ trait NestingFunctions { self : NestingImplicits =>
   // NESTING ZIPPERS
   //
 
-  type NestingDerivative[N <: Nat, A] = 
+  type NestingDerivative[N <: Nat, +A] = 
     (Tree[N, Nesting[N, A]], NestingContext[N, A])
 
-  type NestingContext[N <: Nat, A] = 
+  type NestingContext[N <: Nat, +A] = 
     List[(A, Derivative[N, Nesting[N, A]])]
 
-  type NestingZipper[N <: Nat, A] = 
+  type NestingZipper[N <: Nat, +A] = 
     (Nesting[N, A], NestingContext[N, A])
 
   def plugNesting[N <: Nat, A](n : N)(deriv : NestingDerivative[N, A], a : A) : Nesting[N, A] = 
