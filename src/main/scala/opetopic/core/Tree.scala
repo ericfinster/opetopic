@@ -483,6 +483,9 @@ trait TreeFunctions { tfns =>
   def flatten[N <: Nat, A](deriv : Derivative[N, Address[S[N]]], tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
     flatten(rootAddr(tr.dim), deriv, tr)
 
+  def flatten[N <: Nat, A](tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
+    flatten(globDerivative(tr.dim.pred), tr)
+
   //============================================================================================
   // EXCISION
   //

@@ -31,6 +31,9 @@ object Cardinals {
 
   type TreeSeq[N <: Nat, K <: Nat, +A] = K#ConsRec[AnyRef, TreeSeqRec[N], A]
 
+  type TreeSeqDblSucc[N <: Nat, P <: Nat, +A] = 
+    Tree[N, Tree[S[N], TreeSeq[S[S[N]], P, A]]]
+
   //============================================================================================
   // AUXILLARY TYPES
   //
@@ -44,7 +47,12 @@ object Cardinals {
   }
 
   type CardinalTree[N <: Nat, +A] = N#ConsRec[AnyRef, CardinalTreeRec, A]
+  type CardinalTreeDblSucc[P <: Nat, +A] = 
+    CardinalTree[P, Tree[S[P], Tree[S[S[P]], Nesting[S[S[P]], A]]]]
+
   type CardinalNesting[N <: Nat, +A] = CardinalTree[N, Nesting[N, A]]
+  type CardinalNestingDblSucc[P <: Nat, +A] = 
+    CardinalTreeDblSucc[P, Nesting[S[S[P]], A]]
 
   type Cardinal[N <: Nat, +A] = ConsSeq[CardinalNesting, S[N], A]
 
@@ -71,32 +79,30 @@ object Cardinals {
 
   def treeSeqAssoc[N <: Nat, M <: Nat, K <: Nat, D <: Nat, A](implicit lte : Lte[K, M, D]) 
       : TreeSeq[N, S[M], A] === TreeSeq[N, K, TreeSeq[S[K#Plus[N]], D, A]] = 
-    (new LteSimpleMatch {
+    (new LteCaseSplit {
 
       type Out[K <: Nat, Y <: Nat, E <: Nat] = 
         TreeSeq[N, S[Y], A] === TreeSeq[N, K, TreeSeq[S[K#Plus[N]], E, A]]
 
-      def caseZero[X <: Nat](x : X) : TreeSeq[N, S[X], A] === TreeSeq[N, _0, TreeSeq[S[N], X, A]] = refl
+      def caseZero[K <: Nat](k : K) : TreeSeq[N, S[K], A] === TreeSeq[N, _0, TreeSeq[S[N], K, A]] = refl
 
-      def caseSucc[X <: Nat, Y <: Nat, E <: Nat](plte : Lte[X, Y, E])
-          : TreeSeq[N, S[S[Y]], A] === TreeSeq[N, S[X], TreeSeq[S[S[X]#Plus[N]], E, A]] = {
+      def caseSucc[K <: Nat, M <: Nat, D <: Nat](plte : Lte[K, M, D])
+          : TreeSeq[N, S[S[M]], A] === TreeSeq[N, S[K], TreeSeq[S[S[K]#Plus[N]], D, A]] = {
 
-        // In above, we have X = K, Y = M, N = N
-
-        val step1 : Tree[N, Tree[S[N], TreeSeq[S[S[N]], Y, A]]] ===
-                    Tree[N, TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]] = 
+        val step1 : Tree[N, Tree[S[N], TreeSeq[S[S[N]], M, A]]] ===
+                    Tree[N, TreeSeq[S[N], K, TreeSeq[S[K#Plus[S[N]]], D, A]]] = 
                       lift[Nothing, Nothing, Any, Any, 
                         ({ type L[+B] = Tree[N, B] })#L, 
-                        Tree[S[N], TreeSeq[S[S[N]], Y, A]], 
-                        TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]
-                      ](treeSeqAssoc[S[N], Y, X, E, A](plte))
+                        Tree[S[N], TreeSeq[S[S[N]], M, A]], 
+                        TreeSeq[S[N], K, TreeSeq[S[K#Plus[S[N]]], D, A]]
+                      ](treeSeqAssoc[S[N], M, K, D, A](plte))
 
-        val step2 : Tree[N, TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]] === 
-                    Tree[N, TreeSeq[S[N], X, TreeSeq[S[S[X#Plus[N]]], E, A]]] = 
+        val step2 : Tree[N, TreeSeq[S[N], K, TreeSeq[S[K#Plus[S[N]]], D, A]]] === 
+                    Tree[N, TreeSeq[S[N], K, TreeSeq[S[S[K#Plus[N]]], D, A]]] = 
                       lift[Nothing, Nothing, Nat, Any,
-                        ({ type L[P <: Nat] = Tree[N, TreeSeq[S[N], X, TreeSeq[S[P], E, A]]] })#L,
-                        X#Plus[S[N]], S[X#Plus[N]]
-                      ](plusSuccLemma[X, N](plte.lower))
+                        ({ type L[P <: Nat] = Tree[N, TreeSeq[S[N], K, TreeSeq[S[P], D, A]]] })#L,
+                        K#Plus[S[N]], S[K#Plus[N]]
+                      ](plusSuccLemma[K, N](plte.lower))
 
         step1.andThen(step2)
 
@@ -104,212 +110,234 @@ object Cardinals {
 
     })(lte)
 
-  // def cardinalTreeIsSeq[N <: Nat, A](n : N) : CardinalTree[N, A] === TreeSeq[_0, N, A] = 
-  //   (new NatElim {
+  def cardinalTreeIsSeq[N <: Nat, A](n : N) : CardinalTree[N, A] === TreeSeq[_0, N, A] = 
+    (new NatCaseSplit {
 
-  //     type Out[M <: Nat] = CardinalTree[M, A] === TreeSeq[_0, M, A]
+      type Out[M <: Nat] = CardinalTree[M, A] === TreeSeq[_0, M, A]
 
-  //     def caseZero : CardinalTree[_0, A] === TreeSeq[_0, _0, A] = refl
+      def caseZero : CardinalTree[_0, A] === TreeSeq[_0, _0, A] = refl
 
-  //     def caseSucc[P <: Nat](p : P, ih : Out[P]) : CardinalTree[S[P], A] === TreeSeq[_0, S[P], A] = {
+      def caseSucc[P <: Nat](p : P) : CardinalTree[S[P], A] === TreeSeq[_0, S[P], A] = {
 
-  //       val step1 : CardinalTree[P, Tree[S[P], A]] === TreeSeq[_0, P, Tree[S[P], A]] = 
-  //         cardinalTreeIsSeq[P, Tree[S[P], A]](p)
+        val step1 : CardinalTree[P, Tree[S[P], A]] === TreeSeq[_0, P, Tree[S[P], A]] = 
+          cardinalTreeIsSeq[P, Tree[S[P], A]](p)
 
-  //       val step2 : TreeSeq[_0, P, Tree[S[P], A]] === TreeSeq[_0, P, TreeSeq[S[P#Plus[_0]], _0, A]] = 
-  //         lift[Nothing, Nothing, Nat, Any,
-  //           ({ type L[Q <: Nat] = TreeSeq[_0, P, Tree[S[Q], A]] })#L,
-  //           P, P#Plus[_0]
-  //         ](plusUnitRight(p))
+        val step2 : TreeSeq[_0, P, Tree[S[P], A]] === TreeSeq[_0, P, TreeSeq[S[P#Plus[_0]], _0, A]] = 
+          lift[Nothing, Nothing, Nat, Any,
+            ({ type L[Q <: Nat] = TreeSeq[_0, P, Tree[S[Q], A]] })#L,
+            P, P#Plus[_0]
+          ](plusUnitRight(p))
 
-  //       val step3 : TreeSeq[_0, P, TreeSeq[S[P#Plus[_0]], _0, A]] === Tree[_0, TreeSeq[_1, P, A]] = 
-  //         symm[Nothing, Any, TreeSeq[_0, S[P], A], TreeSeq[_0, P, TreeSeq[S[P#Plus[_0]], _0, A]]](
-  //           treeSeqAssoc[_0, P, P, _0, A](Lte.lteRefl(p))
-  //         )
+        val step3 : TreeSeq[_0, P, TreeSeq[S[P#Plus[_0]], _0, A]] === Tree[_0, TreeSeq[_1, P, A]] = 
+          symm[Nothing, Any, TreeSeq[_0, S[P], A], TreeSeq[_0, P, TreeSeq[S[P#Plus[_0]], _0, A]]](
+            treeSeqAssoc[_0, P, P, _0, A](Lte.lteRefl(p))
+          )
 
-  //       step1.andThen(step2).andThen(step3)
+        step1.andThen(step2).andThen(step3)
 
-  //     }
+      }
 
-  //   })(n)
+    })(n)
 
 
-  // def cardinalTreeAssoc[N <: Nat, K <: Nat, D <: Nat, A](implicit lte : Lte[K, N, D]) : 
-  //     CardinalTree[S[N], A] === CardinalTree[K, TreeSeq[S[K], D, A]] = {
+  def cardinalTreeAssoc[N <: Nat, K <: Nat, D <: Nat, A](implicit lte : Lte[K, N, D]) : 
+      CardinalTree[S[N], A] === CardinalTree[K, TreeSeq[S[K], D, A]] = {
 
-  //   val step1 : CardinalTree[S[N], A] === TreeSeq[_0, S[N], A] = 
-  //     cardinalTreeIsSeq(S(lte.upper))
+    val step1 : CardinalTree[S[N], A] === TreeSeq[_0, S[N], A] = 
+      cardinalTreeIsSeq(S(lte.upper))
 
-  //   val step2 : TreeSeq[_0, S[N], A] === TreeSeq[_0, K, TreeSeq[S[K#Plus[_0]], D, A]] =
-  //     treeSeqAssoc
+    val step2 : TreeSeq[_0, S[N], A] === TreeSeq[_0, K, TreeSeq[S[K#Plus[_0]], D, A]] =
+      treeSeqAssoc
 
-  //   val step3 : TreeSeq[_0, K, TreeSeq[S[K#Plus[_0]], D, A]] === TreeSeq[_0, K, TreeSeq[S[K], D, A]] = 
-  //     lift[
-  //       Nothing, Nothing, Nat, Any,
-  //       ({ type L[X <: Nat] = TreeSeq[_0, K, TreeSeq[S[X], D, A]] })#L,
-  //       K#Plus[_0], K
-  //     ](symm[Nothing, Nat, K, K#Plus[_0]](plusUnitRight[K](lte.lower)))
+    val step3 : TreeSeq[_0, K, TreeSeq[S[K#Plus[_0]], D, A]] === TreeSeq[_0, K, TreeSeq[S[K], D, A]] = 
+      lift[
+        Nothing, Nothing, Nat, Any,
+        ({ type L[X <: Nat] = TreeSeq[_0, K, TreeSeq[S[X], D, A]] })#L,
+        K#Plus[_0], K
+      ](symm[Nothing, Nat, K, K#Plus[_0]](plusUnitRight[K](lte.lower)))
 
-  //   val step4 : TreeSeq[_0, K, TreeSeq[S[K], D, A]] === CardinalTree[K, TreeSeq[S[K], D, A]] = 
-  //     symm[Nothing, Any, 
-  //       CardinalTree[K, TreeSeq[S[K], D, A]], 
-  //       TreeSeq[_0, K, TreeSeq[S[K], D, A]]
-  //     ](cardinalTreeIsSeq(lte.lower))
+    val step4 : TreeSeq[_0, K, TreeSeq[S[K], D, A]] === CardinalTree[K, TreeSeq[S[K], D, A]] = 
+      symm[Nothing, Any, 
+        CardinalTree[K, TreeSeq[S[K], D, A]], 
+        TreeSeq[_0, K, TreeSeq[S[K], D, A]]
+      ](cardinalTreeIsSeq(lte.lower))
 
-  //   step1.andThen(step2).andThen(step3).andThen(step4)
+    step1.andThen(step2).andThen(step3).andThen(step4)
 
-  // }
+  }
 
   //============================================================================================
   // MAP CARDINAL TREE
   //
 
-  // def mapCardinalTree[N <: Nat, A, B](n : N)(ct : CardinalTree[N, A])(f : A => B) : CardinalTree[N, B] = 
-  //   (new RealNatCaseSplit {
+  def mapCardinalTree[N <: Nat, A, B](n : N)(ct : CardinalTree[N, A])(f : A => B) : CardinalTree[N, B] = 
+    (new NatCaseSplit {
 
-  //     type Out[N0 <: Nat] = CardinalTree[N0, A] => CardinalTree[N0, B]
+      type Out[N0 <: Nat] = CardinalTree[N0, A] => CardinalTree[N0, B]
 
-  //     def caseZero : Out[_0] = {
-  //       case Pt(a) => Pt(f(a))
-  //     }
+      def caseZero : Out[_0] = {
+        case Pt(a) => Pt(f(a))
+      }
 
-  //     def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-  //       cts => mapCardinalTree(p)(cts)(Tree.map(_)(f))
-  //     }
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        cts => mapCardinalTree(p)(cts)(Tree.map(_)(f))
+      }
 
-  //   })(n)(ct)
+    })(n)(ct)
 
   //============================================================================================
   // POKE
   //
 
-  // def poke[N <: Nat, A](ct : CardinalTree[N, A], ca : CardinalAddress[N]) : Option[(CardinalDerivative[N, A], A)] = 
-  //   (new RealNatCaseSplit {
+  def poke[N <: Nat, A](ct : CardinalTree[N, A], ca : CardinalAddress[N]) : Option[(CardinalDerivative[N, A], A)] = 
+    (new NatCaseSplit {
 
-  //     type Out[N0 <: Nat] = (CardinalTree[N0, A], CardinalAddress[N0]) => Option[(CardinalDerivative[N0, A], A)]
+      type Out[N0 <: Nat] = (CardinalTree[N0, A], CardinalAddress[N0]) => Option[(CardinalDerivative[N0, A], A)]
 
-  //     def caseZero : Out[_0] = {
-  //       case (Pt(a), _) => Some((InitDeriv, a))
-  //     }
+      def caseZero : Out[_0] = {
+        case (Pt(a), _) => Some((), a)
+      }
 
-  //     def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-  //       case (ct, tl >:> hd) => 
-  //         for {
-  //           res <- poke[P, Tree[S[P], A]](ct, tl)
-  //           (deriv, tr) = res
-  //           plc <- Tree.seekTo(tr, hd)
-  //           res <- (
-  //             plc.focus match {
-  //               case Leaf(_) => None
-  //               case Node(a, sh) => Some((NextCard(deriv, Open(sh, plc.context)), a))
-  //             }
-  //           )
-  //         } yield res
-  //     }
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (ct, tl >> hd) => 
+          for {
+            res <- poke[P, Tree[S[P], A]](ct, tl)
+            (deriv, tr) = res
+            plc <- tr seekTo hd 
+            res <- (
+              plc.focus match {
+                case Leaf(_) => None
+                case Node(a, sh) => Some((deriv, (sh, plc.context)), a)
+              }
+            )
+          } yield res
+      }
 
-  //   })(dim(ca))(ct, ca)
+    })(ca.length.pred)(ct, ca)
 
   //============================================================================================
   // TAIL WITH DERIVATIVE
   //
 
-  // def tailWithDerivative[N <: Nat, K <: Nat, D <: Nat, A](ct : CardinalTree[S[N], A], ca : CardinalAddress[K])(
-  //   implicit lte : Lte[K, N, D]
-  // ) : Option[(CardinalDerivative[K, TreeSeq[S[K], D, A]], TreeSeq[S[K], D, A])] = 
-  //   poke(cardinalTreeAssoc(lte)(ct), ca)
+  def tailWithDerivative[N <: Nat, K <: Nat, D <: Nat, A](ct : CardinalTree[S[N], A], ca : CardinalAddress[K])(
+    implicit lte : Lte[K, N, D]
+  ) : Option[(CardinalDerivative[K, TreeSeq[S[K], D, A]], TreeSeq[S[K], D, A])] = 
+    poke(cardinalTreeAssoc(lte)(ct), ca)
 
   //============================================================================================
   // PLUG CARDINAL
   //
 
-  // def plugCardinal[N <: Nat, A](cd : CardinalDerivative[N, A], a : A) : CardinalTree[N, A] = 
-  //   (new NatCaseSplit {
+  def plugCardinal[N <: Nat, A](n : N)(cd : CardinalDerivative[N, A], a : A) : CardinalTree[N, A] = 
+    (new NatCaseSplit {
 
-  //     type In[M <: Nat] = CardinalDerivative[M, A]
-  //     type Out[M <: Nat] = CardinalTree[M, A]
+      type Out[N <: Nat] = CardinalDerivative[N, A] => CardinalTree[N, A]
 
-  //     def caseZero(cd : CardinalDerivative[_0, A]) : CardinalTree[_0, A] = Pt(a)
+      def caseZero : Out[_0] = _ => Pt(a)
 
-  //     def caseSucc[P <: Nat](cd : CardinalDerivative[S[P], A]) =
-  //       cd match {
-  //         case NextCard(pd, d) => plugCardinal(pd, Derivative.plug(d, a))
-  //       }
+      def caseSucc[P <: Nat](p : P) = {
+        case (pd, d) => plugCardinal(p)(pd, plug(S(p))(d, a))
+      }
 
-  //   })(cd.dim, cd)
+    })(n)(cd)
 
   //============================================================================================
   // EXTEND
   //
 
-  // def extend[N <: Nat, A](a : A, c : Cardinal[N, A]) : Cardinal[S[N], A] = 
-  //   c match {
-  //     case (tl :>> hd) => tl :>> hd :>> mapCardinalTree(dim(c))(hd)(Nesting.extendNesting(a, _))
-  //   }
+  def extend[N <: Nat, A](a : A, c : Cardinal[N, A]) : Cardinal[S[N], A] = 
+    c match {
+      case (tl >>> hd) => tl >>> hd >>> mapCardinalTree(c.length.pred)(hd)(Nesting.extendNesting(a, _))
+    }
 
   //============================================================================================
   // SEQ LEAF
   //
 
-  // def seqLeaf[N <: Nat, K <: Nat, A](n : N, k : K) : TreeSeq[S[N], K, A] = 
-  //   (new NatCaseSplit {
+  def seqLeaf[N <: Nat, K <: Nat, A](n : N, k : K) : TreeSeq[S[N], K, A] = 
+    (new NatCaseSplit {
 
-  //     type In[M <: Nat] = Unit
-  //     type Out[M <: Nat] = TreeSeq[S[N], M, A]
+      type Out[M <: Nat] = TreeSeq[S[N], M, A]
 
-  //     def caseZero(in : Unit) : TreeSeq[S[N], _0, A] = Leaf(S(n))
-  //     def caseSucc[P <: Nat](in : Unit) : TreeSeq[S[N], S[P], A] = Leaf(S(n))
+      def caseZero : TreeSeq[S[N], _0, A] = 
+        Leaf(S(n))
 
-  //   })(k, ())
+      def caseSucc[P <: Nat](p : P) : TreeSeq[S[N], S[P], A] = 
+        Leaf(S(n))
+
+    })(k)
 
   //============================================================================================
   // EXTRUDE NESTING AT
   //
 
-  // def extrudeNestingAt[N <: Nat, A, B](a : A, cn : CardinalNesting[S[N], A], ca : CardinalAddress[S[N]], msk : Tree[S[N], B]) : Option[CardinalNesting[S[N], A]] = 
-  //   ca match {
-  //     case (ca >:> addr) => 
-  //       for {
-  //         pr <- poke(cn, ca)
-  //         (deriv, tr) = pr
-  //         res <- Nesting.extrudeNesting(a, addr, tr, msk)
-  //       } yield plugCardinal(deriv, res)
-  //   }
+  def extrudeNestingAt[N <: Nat, A, B](a : A, cn : CardinalNesting[S[N], A], ca : CardinalAddress[S[N]], msk : Tree[S[N], B]) : Option[CardinalNesting[S[N], A]] = 
+    ca match {
+      case (ca >> addr) => 
+        for {
+          pr <- poke(cn, ca)
+          (deriv, tr) = pr
+          res <- Nesting.extrudeNesting(a, addr, tr, msk)
+        } yield plugCardinal(msk.dim.pred)(deriv, res)
+    }
 
   //============================================================================================
   // ENCLOSE AT
   //
 
-  // def encloseAt[N <: Nat, A](a : A, addr : Address[S[N]], tr : Tree[S[N], Tree[S[S[N]], A]]) : Option[Tree[S[N], Tree[S[S[N]], A]]] = 
-  //   for {
-  //     zp <- Tree.seekTo(tr, addr)
-  //     flt <- Tree.flatten(zp.focus)
-  //   } yield Context.close(zp.context, 
-  //     Node(Node(a, zp.focus), Tree.const(flt)(Leaf(tr.dim)))
-  //   )
+  def encloseAt[N <: Nat, A](a : A, addr : Address[S[N]], tr : Tree[S[N], Tree[S[S[N]], A]]) : Option[Tree[S[N], Tree[S[S[N]], A]]] = 
+    for {
+      zp <- tr seekTo addr
+      flt <- Tree.flatten(zp.focus)
+    } yield close(tr.dim)(zp.context, 
+      Node(Node(a, zp.focus), flt.constWith(Leaf(tr.dim)))
+    )
 
   //============================================================================================
   // PAD WITH LEAF
   //
 
-  // type PrefixSeq[N <: Nat, K <: Nat, +A] = 
-  //   Tree[N, Tree[S[N], TreeSeq[S[S[N]], K, A]]]
-
-  // def padWithLeaf[N <: Nat, K <: Nat, A](k : K, addr : Address[S[N]], seq : PrefixSeq[S[N], K, A]) : Option[PrefixSeq[S[N], K, A]] =
-  //   for {
-  //     zp <- Tree.seekTo(seq, addr)
-  //     flt <- Tree.flatten(zp.focus)
-  //   } yield Context.close(zp.context,
-  //     Node(Node(seqLeaf(S(addr.dim), k), zp.focus), Tree.const(flt)(Leaf(seq.dim)))
-  //   )
+  def padWithLeaf[N <: Nat, K <: Nat, A](k : K, addr : Address[S[N]], seq : TreeSeqDblSucc[S[N], K, A]) : Option[TreeSeqDblSucc[S[N], K, A]] =
+    for {
+      zp <- seq seekTo addr 
+      flt <- Tree.flatten(zp.focus)
+    } yield close(seq.dim)(zp.context,
+      Node(Node(seqLeaf(S(seq.dim), k), zp.focus), flt.constWith(Leaf(seq.dim)))
+    )
 
   //============================================================================================
   // DO TAIL
   //
 
-  // type PrefixNesting[N <: Nat, A] = 
-  //   CardinalTree[N, Tree[S[N], Tree[S[S[N]], Nesting[S[S[N]], A]]]]
+  def doTail[K <: Nat, N <: Nat, D <: Nat, A](lte : Lte[K, N, D], cn : CardinalNestingDblSucc[N, A], ca : CardinalAddress[K]) 
+      : Option[CardinalNestingDblSucc[N, A]] = 
+    (new LteCaseSplit {
 
-  // def doTail[K <: Nat, N <: Nat, D <: Nat, A](lte : Lte[K, N, D], cn : PrefixNesting[N, A], ca : CardinalAddress[K]) : Option[PrefixNesting[N, A]] = 
+      type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingDblSucc[N, A], CardinalAddress[K]) => Option[CardinalNestingDblSucc[N, A]]
+
+      def caseZero[N <: Nat](n : N) : Out[_0, N, N] = {
+        case (cn, ca) => 
+          for {
+            pr <- tailWithDerivative[S[N], _0, S[N], Nesting[S[S[N]], A]](cn, ca)(ZeroLte(S(n)))
+          } yield {
+            val (deriv, seq) = pr
+
+            // symm[Nothing, Any, PrefixNesting[N0, A], CardinalTree[_1, TreeSeq[_2, N0, Nesting[S[S[N0]], A]]]](
+            //   cardinalTreeAssoc[S[N0], _1, N0, Nesting[S[S[N0]], A]](SuccLte(ZeroLte(n0)))
+            // )(
+            //   plugCardinal(deriv, Node(seqLeaf(__1, n0), Pt(seq)))
+            // )
+            ???
+          }
+
+      }
+
+      def caseSucc[K <: Nat, N <: Nat, D <: Nat](plte : Lte[K, N, D]) : Out[S[K], S[N], D] = {
+        case (cn, ca) => ???
+      }
+
+    })(lte)(cn, ca)
+
   //   (new LteTwoParamCaseSplit {
 
   //     type In0[K0 <: Nat, N0 <: Nat, D0 <: Nat] = PrefixNesting[N0, A]

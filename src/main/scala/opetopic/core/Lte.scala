@@ -35,7 +35,7 @@ case class SuccLte[M <: Nat, N <: Nat, D <: Nat](plte : Lte[M, N, D]) extends Lt
 
 }
 
-trait LteSimpleMatch {
+trait LteCaseSplit {
 
   type Out[M <: Nat, N <: Nat, D <: Nat]
 

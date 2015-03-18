@@ -9,6 +9,9 @@ package opetopic.core
 
 import scala.language.higherKinds
 
+import scalaz.Leibniz
+import scalaz.Leibniz._
+
 sealed trait Nat {
 
   type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
@@ -75,6 +78,41 @@ trait NatFunctions {
 
 }
 
+trait NatLemmas { this : NatConstants => 
+
+  type =::=[N <: Nat, M <: Nat] = Leibniz[Nothing, Nat, N, M]
+
+  def plusSuccLemma[M <: Nat, N <: Nat](m : M) : M#Plus[S[N]] =::= S[M#Plus[N]] = 
+    (new NatCaseSplit {
+
+      type Out[X <: Nat] = X#Plus[S[N]] =::= S[X#Plus[N]]
+
+      def caseZero : _0#Plus[S[N]] =::= S[_0#Plus[N]] = refl
+
+      def caseSucc[P <: Nat](p : P) : S[P]#Plus[S[N]] =::= S[S[P]#Plus[N]] = {
+        lift[Nothing, Nothing, Nat, Nat, S, P#Plus[S[N]], S[P]#Plus[N]](
+          plusSuccLemma(p)
+        )
+      }
+
+    })(m)
+
+  def plusUnitRight[N <: Nat](n : N) : N =::= N#Plus[_0] = 
+    (new NatCaseSplit {
+
+      type Out[M <: Nat] = M =::= M#Plus[_0]
+
+      def caseZero : _0 =::= _0#Plus[_0] = refl 
+
+      def caseSucc[P <: Nat](p : P) : S[P] =::= S[P]#Plus[_0] = 
+        lift[Nothing, Nothing, Nat, Nat, S, P, P#Plus[_0]](
+          plusUnitRight(p)
+        )
+
+    })(n)
+
+}
+
 trait NatImplicits { self : NatFunctions =>
 
   implicit class NatOps[N <: Nat](n : N) {
@@ -115,3 +153,4 @@ trait NatConstants {
 object Nat extends NatFunctions 
     with NatImplicits 
     with NatConstants
+    with NatLemmas
