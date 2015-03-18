@@ -18,7 +18,7 @@ import Zippers._
 
 object ComplexZipper {
 
-  type ComplexZipper[N <: Nat, +A] = DList[NestingZipper, S[N], A]
+  type ComplexZipper[N <: Nat, +A] = ConsSeq[NestingZipper, S[N], A]
 
   //============================================================================================
   // SEAL
@@ -30,14 +30,14 @@ object ComplexZipper {
       type Out[N <: Nat] = ComplexZipper[N, A] => Complex[N, A]
 
       def caseZero : Out[_0] = {
-        case :>>(_, (nst, cntxt)) => ||() :>> closeNesting(__0)(cntxt, nst)
+        case >>>(_, (nst, cntxt)) => CNil() >>> closeNesting(__0)(cntxt, nst)
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case :>>(tl, (nst, cntxt)) => seal(tl) :>> closeNesting(S(p))(cntxt, nst)
+        case >>>(tl, (nst, cntxt)) => seal(tl) >>> closeNesting(S(p))(cntxt, nst)
       }
 
-    })(cz.dim.pred)(cz)
+    })(cz.length.pred)(cz)
 
   //============================================================================================
   // FROM COMPLEX
@@ -49,14 +49,14 @@ object ComplexZipper {
       type Out[N <: Nat] = Complex[N, A] => ComplexZipper[N, A]
 
       def caseZero : Out[_0] = {
-        case (_ :>> nst) => ||[NestingZipper]() :>> (nst, Nil)
+        case (_ >>> nst) => CNil[NestingZipper]() >>> (nst, Nil)
       }
         
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (tl :>> nst) => fromComplex(tl) :>> (nst, Nil)
+        case (tl >>> nst) => fromComplex(tl) >>> (nst, Nil)
       }
 
-    })(cmplx.dim.pred)(cmplx)
+    })(cmplx.length.pred)(cmplx)
 
   //============================================================================================
   // VISIT
@@ -68,32 +68,32 @@ object ComplexZipper {
       type Out[N <: Nat] = (Address[N], ComplexZipper[N, A]) => Option[ComplexZipper[N, A]]
 
       def caseZero : Out[_0] = {
-        case (dir, _ :>> nst) => for { zp <- visitNesting(dir, nst) } yield ||[NestingZipper] :>> zp
+        case (dir, _ >>> nst) => for { zp <- visitNesting(dir, nst) } yield CNil[NestingZipper] >>> zp
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (Nil, tl :>> nst) => for { zp <- visitNesting(Nil : Address[S[P]], nst) } yield tl :>> zp
+        case (Nil, tl >>> nst) => for { zp <- visitNesting(Nil : Address[S[P]], nst) } yield tl >>> zp
         case (d :: ds, zipper) => 
           for {
             prefixZipper <- visitComplex[S[P], A](ds, zipper)
-            nestingSibling <- sibling(d, DList.head(prefixZipper))
+            nestingSibling <- sibling(d, ConsSeq.head(prefixZipper))
             prefixSpine <- focusSpine(prefixZipper)
 
             res <- (
               prefixSpine match {
-                case Leaf(_) => Some(DList.tail(prefixZipper) :>> nestingSibling)
+                case Leaf(_) => Some(ConsSeq.tail(prefixZipper) >>> nestingSibling)
                 case Node(_, shell) =>
                   for {
                     extents <- Tree.shellExtents(shell)
                     recAddr <- extents valueAt d 
-                    fixupLower <- seekComplex(recAddr, DList.tail(prefixZipper))
-                  } yield (fixupLower :>> nestingSibling)
+                    fixupLower <- seekComplex(recAddr, ConsSeq.tail(prefixZipper))
+                  } yield (fixupLower >>> nestingSibling)
               }
             )
           } yield res
       }
 
-    })(cz.dim.pred)(dir, cz)
+    })(cz.length.pred)(dir, cz)
 
   //============================================================================================
   // SEEK
@@ -115,31 +115,31 @@ object ComplexZipper {
 
   def updateFocus[N <: Nat, A](cz : ComplexZipper[N, A], nst : Nesting[N, A]) : ComplexZipper[N, A] =
     cz match {
-      case (tl :>> nz) => tl :>> (nst, nz._2)
+      case (tl >>> nz) => tl >>> (nst, nz._2)
     }
 
   def focusValue[N <: Nat, A](cz : ComplexZipper[N, A]) : A =
-    baseValue(DList.head(cz)._1)
+    baseValue(ConsSeq.head(cz)._1)
 
   def focusDeriv[N <: Nat, A](cz : ComplexZipper[N, A]) : Option[Derivative[S[N], A]] = 
     cz match {
-      case (tl :>> ((Obj(a), _))) => Some(Pt(Leaf(__1)), Nil)
-      case (tl :>> ((Dot(a, d), _))) => None
-      case (tl :>> ((Box(a, c), _))) => Some(c.constWith(Leaf(S(c.dim))), Nil)
+      case (tl >>> ((Obj(a), _))) => Some(Pt(Leaf(__1)), Nil)
+      case (tl >>> ((Dot(a, d), _))) => None
+      case (tl >>> ((Box(a, c), _))) => Some(c.constWith(Leaf(S(c.dim))), Nil)
     }
 
   def focusSpine[N <: Nat, A](cz : ComplexZipper[N, A]) : Option[Tree[N, A]] = 
     cz match {
-      case (tl :>> ((Obj(a), _))) => Some(Pt(a))
-      case (tl :>> ((Dot(a, d), _))) => for { deriv <- focusDeriv(tl) } yield plug(d)(deriv, a)
-      case (tl :>> ((Box(a, c), _))) => spineFromCanopy(c)
+      case (tl >>> ((Obj(a), _))) => Some(Pt(a))
+      case (tl >>> ((Dot(a, d), _))) => for { deriv <- focusDeriv(tl) } yield plug(d)(deriv, a)
+      case (tl >>> ((Box(a, c), _))) => spineFromCanopy(c)
     }
 
   def focusCanopy[N <: Nat, A](cz : ComplexZipper[N, A]) : Option[Tree[N, Address[N]]] =
     cz match {
-      case (tl :>> ((Obj(a), _))) => Some(Pt(rootAddr(__0)))
-      case (tl :>> ((Dot(a, d), _))) => None
-      case (tl :>> ((Box(a, c), _))) => Some(c.addressTree)
+      case (tl >>> ((Obj(a), _))) => Some(Pt(rootAddr(__0)))
+      case (tl >>> ((Dot(a, d), _))) => None
+      case (tl >>> ((Box(a, c), _))) => Some(c.addressTree)
     }
 
   // The idea here is to embed the current focus of this nesting zipping in exactly the
@@ -153,11 +153,11 @@ object ComplexZipper {
       type Out[N <: Nat] = ComplexZipper[N, A] => Option[Tree[N, Nesting[N, A]]]
 
       def caseZero : Out[_0] = 
-        cz => Some(Pt(DList.head(cz)._1))
+        cz => Some(Pt(ConsSeq.head(cz)._1))
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = cz => {
 
-        val fcs = DList.head(cz)._1
+        val fcs = ConsSeq.head(cz)._1
 
         for {
           spine <- focusSpine(cz)
@@ -165,7 +165,7 @@ object ComplexZipper {
             spine match {
               case Leaf(d) =>
                 for {
-                  unit <- focusUnit(DList.tail(cz))
+                  unit <- focusUnit(ConsSeq.tail(cz))
                 } yield Node(fcs, unit.constWith(Leaf(d)))
               case Node(a, shell) =>
                 for {
@@ -177,7 +177,7 @@ object ComplexZipper {
 
       }
 
-    })(cz.dim.pred)(cz)
+    })(cz.length.pred)(cz)
 
   //============================================================================================
   // RESTRICT FOCUS
@@ -189,7 +189,7 @@ object ComplexZipper {
       type Out[N <: Nat] = ComplexZipper[N, A] => Option[ComplexZipper[N, A]]
 
       def caseZero : Out[_0] = {
-        case (tl :>> ((fcs, _))) => Some(tl :>> ((fcs, Nil)))
+        case (tl >>> ((fcs, _))) => Some(tl >>> ((fcs, Nil)))
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = cz => {
@@ -202,13 +202,13 @@ object ComplexZipper {
 
         for {
           fnst <- focusSpine(cz)
-          newTail <- restrictFocus(DList.tail(cz))
+          newTail <- restrictFocus(ConsSeq.tail(cz))
           newComplex <- exciseLocal(rootAddr(fnst.dim), fnst).exec(seal(newTail))
-        } yield (fromComplex(newComplex) :>> ((DList.head(cz)._1, Nil)))
+        } yield (fromComplex(newComplex) >>> ((ConsSeq.head(cz)._1, Nil)))
 
       }
 
-    })(cz.dim.pred)(cz)
+    })(cz.length.pred)(cz)
 
   //============================================================================================
   // CONTRACT FOCUS
@@ -220,18 +220,18 @@ object ComplexZipper {
       type Out[N <: Nat] = ComplexZipper[N, A] => Option[ComplexZipper[N, A]]
 
       def caseZero : Out[_0] = {
-        case (tl :>> ((fcs, cntxt))) => Some(tl :>> ((Obj(baseValue(fcs)), cntxt)))
+        case (tl >>> ((fcs, cntxt))) => Some(tl >>> ((Obj(baseValue(fcs)), cntxt)))
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = cz => {
         for {
           spine <- focusSpine(cz)
-          newTail <- compressFocus(DList.tail(cz), spine)
-          nstZp = DList.head(cz)
-        } yield newTail :>> ((Dot(baseValue(nstZp._1), cz.dim.pred), nstZp._2))
+          newTail <- compressFocus(ConsSeq.tail(cz), spine)
+          nstZp = ConsSeq.head(cz)
+        } yield newTail >>> ((Dot(baseValue(nstZp._1), cz.length.pred), nstZp._2))
       }
 
-    })(cz.dim.pred)(cz)
+    })(cz.length.pred)(cz)
 
   //============================================================================================
   // COMPRESS FOCUS

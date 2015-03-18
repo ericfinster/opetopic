@@ -12,6 +12,7 @@ import scalaz.Leibniz
 import scalaz.Leibniz._
 
 import Nat._
+import Zippers._
 
 object Cardinals {
 
@@ -38,27 +39,31 @@ object Cardinals {
 
     type OnZero[+A] = Tree[_0, A]
 
-    type OnSucc[P <: Nat, T[+_] <: AnyRef, +A] =
-      P#ConsRec[AnyRef, CardinalTreeRec, Tree[S[P], A]]
+    type OnSucc[P <: Nat, T[+_] <: AnyRef, +A] = T[Tree[S[P], A]]
 
   }
 
   type CardinalTree[N <: Nat, +A] = N#ConsRec[AnyRef, CardinalTreeRec, A]
   type CardinalNesting[N <: Nat, +A] = CardinalTree[N, Nesting[N, A]]
 
-  type Cardinal[N <: Nat, +A] = DList[CardinalNesting, S[N], A]
+  type Cardinal[N <: Nat, +A] = ConsSeq[CardinalNesting, S[N], A]
 
   //============================================================================================
   // CARDINAL ADDRESSES AND DERIVATIVES
   //
 
-  // type CardinalAddress[N <: Nat] = DimSeq0[Address, N]
+  type CardinalAddress[N <: Nat] = TypeSeq[Address, S[N]]
 
-  // sealed trait CardinalDerivative[N <: Nat, +A] { def dim : N }
-  // case object InitDeriv extends CardinalDerivative[_0, Nothing] { def dim = Z }
-  // case class NextCard[N <: Nat, +A](cd : CardinalDerivative[N, Tree[S[N], A]], d : Derivative[S[N], A]) extends CardinalDerivative[S[N], A] {
-  //   def dim = S(cd.dim)
-  // }
+  trait CardinalDerivRec extends NatConsRec[Any] {
+
+    type OnZero[+A] = Unit
+
+    type OnSucc[P <: Nat, T[+_] <: Any, +A] = 
+      (T[Tree[S[P], A]], DerivSucc[P, A])
+
+  }
+
+  type CardinalDerivative[N <: Nat, A] = N#ConsRec[Any, CardinalDerivRec, A]
 
   //============================================================================================
   // TYPE EQUALITY LEMMAS
