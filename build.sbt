@@ -4,7 +4,7 @@ version := "0.1-SNAPSHOT"
 
 organization := "opetopic"
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
 scalacOptions += "-feature"
 

@@ -17,6 +17,10 @@ sealed trait Nat[N <: Nat[N]] {
   type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
   type ConsRec[Type, C <: NatConsRec[Type], +A] <: Type
 
+  type Plus[K <: Nat[K]] <: Nat[Plus[K]]
+
+  type Test <: Nat[N#Test]
+
 }
 
 case class Z() extends Nat[Z] {
