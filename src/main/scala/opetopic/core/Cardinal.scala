@@ -69,40 +69,40 @@ object Cardinals {
   // TYPE EQUALITY LEMMAS
   //
 
-  // def treeSeqAssoc[N <: Nat, M <: Nat, K <: Nat, D <: Nat, A](implicit lte : Lte[K, M, D]) 
-  //     : TreeSeq[N, S[M], A] === TreeSeq[N, K, TreeSeq[S[K#Plus[N]], D, A]] = 
-  //   (new LteSimpleMatch {
+  def treeSeqAssoc[N <: Nat, M <: Nat, K <: Nat, D <: Nat, A](implicit lte : Lte[K, M, D]) 
+      : TreeSeq[N, S[M], A] === TreeSeq[N, K, TreeSeq[S[K#Plus[N]], D, A]] = 
+    (new LteSimpleMatch {
 
-  //     type Out[X <: Nat, Y <: Nat, E <: Nat] = 
-  //       TreeSeq[N, S[Y], A] === TreeSeq[N, X, TreeSeq[S[X#Plus[N]], E, A]]
+      type Out[K <: Nat, Y <: Nat, E <: Nat] = 
+        TreeSeq[N, S[Y], A] === TreeSeq[N, K, TreeSeq[S[K#Plus[N]], E, A]]
 
-  //     def caseZero[X <: Nat](x : X) : TreeSeq[N, S[X], A] === TreeSeq[N, _0, TreeSeq[S[N], X, A]] = refl
+      def caseZero[X <: Nat](x : X) : TreeSeq[N, S[X], A] === TreeSeq[N, _0, TreeSeq[S[N], X, A]] = refl
 
-  //     def caseSucc[X <: Nat, Y <: Nat, E <: Nat](plte : Lte[X, Y, E])
-  //         : TreeSeq[N, S[S[Y]], A] === TreeSeq[N, S[X], TreeSeq[S[S[X]#Plus[N]], E, A]] = {
+      def caseSucc[X <: Nat, Y <: Nat, E <: Nat](plte : Lte[X, Y, E])
+          : TreeSeq[N, S[S[Y]], A] === TreeSeq[N, S[X], TreeSeq[S[S[X]#Plus[N]], E, A]] = {
 
-  //       // In above, we have X = K, Y = M, N = N
+        // In above, we have X = K, Y = M, N = N
 
-  //       val step1 : Tree[N, Tree[S[N], TreeSeq[S[S[N]], Y, A]]] ===
-  //                   Tree[N, TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]] = 
-  //                     lift[Nothing, Nothing, Any, Any, 
-  //                       ({ type L[+B] = Tree[N, B] })#L, 
-  //                       Tree[S[N], TreeSeq[S[S[N]], Y, A]], 
-  //                       TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]
-  //                     ](treeSeqAssoc[S[N], Y, X, E, A](plte))
+        val step1 : Tree[N, Tree[S[N], TreeSeq[S[S[N]], Y, A]]] ===
+                    Tree[N, TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]] = 
+                      lift[Nothing, Nothing, Any, Any, 
+                        ({ type L[+B] = Tree[N, B] })#L, 
+                        Tree[S[N], TreeSeq[S[S[N]], Y, A]], 
+                        TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]
+                      ](treeSeqAssoc[S[N], Y, X, E, A](plte))
 
-  //       val step2 : Tree[N, TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]] === 
-  //                   Tree[N, TreeSeq[S[N], X, TreeSeq[S[S[X#Plus[N]]], E, A]]] = 
-  //                     lift[Nothing, Nothing, Nat, Any,
-  //                       ({ type L[P <: Nat] = Tree[N, TreeSeq[S[N], X, TreeSeq[S[P], E, A]]] })#L,
-  //                       X#Plus[S[N]], S[X#Plus[N]]
-  //                     ](plusSuccLemma[X, N](plte.lower))
+        val step2 : Tree[N, TreeSeq[S[N], X, TreeSeq[S[X#Plus[S[N]]], E, A]]] === 
+                    Tree[N, TreeSeq[S[N], X, TreeSeq[S[S[X#Plus[N]]], E, A]]] = 
+                      lift[Nothing, Nothing, Nat, Any,
+                        ({ type L[P <: Nat] = Tree[N, TreeSeq[S[N], X, TreeSeq[S[P], E, A]]] })#L,
+                        X#Plus[S[N]], S[X#Plus[N]]
+                      ](plusSuccLemma[X, N](plte.lower))
 
-  //       step1.andThen(step2)
+        step1.andThen(step2)
 
-  //     }
+      }
 
-  //   })(lte)
+    })(lte)
 
   // def cardinalTreeIsSeq[N <: Nat, A](n : N) : CardinalTree[N, A] === TreeSeq[_0, N, A] = 
   //   (new NatElim {

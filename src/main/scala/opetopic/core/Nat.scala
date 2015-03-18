@@ -14,12 +14,16 @@ sealed trait Nat {
   type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
   type ConsRec[Type, C <: NatConsRec[Type], +A] <: Type
 
+  type Plus[K <: Nat] <: Nat
+
 }
 
 case object Z extends Nat {
 
   type TypeRec[Type, R <: NatTypeRec[Type]] = R#OnZero
   type ConsRec[Type, C <: NatConsRec[Type], +A] = C#OnZero[A]
+
+  type Plus[K <: Nat] = K
 
 }
 
@@ -30,6 +34,8 @@ case class S[P <: Nat](val pred : P) extends Nat {
 
   type ConsRec[Type, C <: NatConsRec[Type], +A] = 
     C#OnSucc[P, ({ type L[+X] = P#ConsRec[Type, C, X] })#L, A]
+
+  type Plus[K <: Nat] = S[P#Plus[K]]
 
 }
 
