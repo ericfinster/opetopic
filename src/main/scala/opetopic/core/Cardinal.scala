@@ -490,52 +490,49 @@ object Cardinals {
   // TRAVERSE CARDINAL
   //
 
-  // trait CardinalTraversal[A] {
-  //   def execute[N <: Nat](n : N, cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]]
-  // }
+  trait CardinalTraversal[A] {
+    def apply[N <: Nat](n : N, cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]]
+  }
 
-  // def traverseCardinal[N <: Nat, A](trav : CardinalTraversal[A])(cn : Cardinal[N, A]) : Option[Cardinal[N, A]] = 
-  //   (new NatCaseSplit {
+  def traverseCardinal[N <: Nat, A](trav : CardinalTraversal[A])(cn : Cardinal[N, A]) : Option[Cardinal[N, A]] = 
+    (new NatCaseSplit {
 
-  //     type In[N0 <: Nat] = Cardinal[N0, A]
-  //     type Out[N0 <: Nat] = Option[Cardinal[N0, A]]
+      type Out[N <: Nat] = Cardinal[N, A] => Option[Cardinal[N, A]]
 
-  //     def caseZero(c0 : Cardinal[_0, A]) : Option[Cardinal[_0, A]] = 
-  //       c0 match {
-  //         case (_ :>> hd) => 
-  //           for {
-  //             newHd <- trav.execute(Z, hd)
-  //           } yield NilCard :>> newHd
-  //       }
+      def caseZero : Out[_0] = {
+        case (_ >>> nst) => 
+          for {
+            newNst <- trav(Z, nst)
+          } yield CNil() >>> newNst
+      }
 
-  //     def caseSucc[P <: Nat](cp : Cardinal[S[P], A]) : Option[Cardinal[S[P], A]] = 
-  //       cp match {
-  //         case (t :>> h) => 
-  //           for {
-  //             newTl <- traverseCardinal(trav)(t)
-  //             newHd <- trav.execute(dim(cp), h)
-  //           } yield newTl :>> newHd
-  //       }
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (t >>> h) => 
+          for {
+            newTl <- traverseCardinal(trav)(t)
+            newHd <- trav(S(p), h)
+          } yield newTl >>> newHd
+      }
 
-  //   })(dim(cn), cn)
+    })(cn.length.pred)(cn)
 
   //============================================================================================
   // DO EXTRUDE
   //
 
-  // def doExtrude[N <: Nat, K <: Nat, A, B](
-  //   a0 : A, a1 : A,
-  //   msk : Tree[K, B],
-  //   ca : CardinalAddress[K],
-  //   c : Cardinal[N, A]
-  // ) : Option[Cardinal[N, A]] = {
-  //   val k : K = msk.dim
-  //   traverseCardinal(
-  //     new CardinalTraversal[A] {
-  //       def execute[N0 <: Nat](n0 : N0, cn : CardinalNesting[N0, A]) : Option[CardinalNesting[N0, A]] = 
-  //         getFlag(n0, k).extrudeDispatch(a0, a1, msk, ca, cn)
-  //     }
-  //   )(c)
-  // }
+  def doExtrude[N <: Nat, K <: Nat, A, B](
+    a0 : A, a1 : A,
+    msk : Tree[K, B],
+    ca : CardinalAddress[K],
+    c : Cardinal[N, A]
+  ) : Option[Cardinal[N, A]] = {
+    val k : K = msk.dim
+    traverseCardinal(
+      new CardinalTraversal[A] {
+        def apply[N0 <: Nat](n0 : N0, cn : CardinalNesting[N0, A]) : Option[CardinalNesting[N0, A]] = 
+          getFlag(n0, k).extrudeDispatch(a0, a1, msk, ca, cn)
+      }
+    )(c)
+  }
 
 }
