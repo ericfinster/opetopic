@@ -19,7 +19,7 @@ import Zippers._
 
 trait ComplexFunctions { self : ComplexImplicits => 
 
-  type Complex[N <: Nat, A] = ConsSeq[Nesting, S[N], A]
+  type Complex[N <: Nat, +A] = ConsSeq[Nesting, S[N], A]
 
   //============================================================================================
   // MAP
@@ -38,7 +38,7 @@ trait ComplexFunctions { self : ComplexImplicits =>
         case (tl >>> nst) => (tl map f) >>> (nst map f)
       }
 
-    })(cmplx.length.pred)(cmplx)
+    })(cmplx.dim)(cmplx)
 
   //============================================================================================
   // TRAVERSE
@@ -63,7 +63,7 @@ trait ComplexFunctions { self : ComplexImplicits =>
           }
       }
 
-    })(cmplx.length.pred)(cmplx)
+    })(cmplx.dim)(cmplx)
 
   //============================================================================================
   // ZIP COMPLEX
@@ -89,7 +89,7 @@ trait ComplexFunctions { self : ComplexImplicits =>
           } yield (tlAB >>> hdAB)
       }
 
-    })(cmplxA.length.pred)(cmplxA, cmplxB)
+    })(cmplxA.dim)(cmplxA, cmplxB)
 
   //============================================================================================
   // SOURCE ROUTINES
@@ -122,35 +122,31 @@ trait ComplexFunctions { self : ComplexImplicits =>
   // COMULTIPLY
   //
 
-  // def comultiply[N <: Nat, A](cmplx : Complex[N, A]) : Option[Complex[N, Sigma[Complex, A]]] = 
-  //   (new NatCaseSplit {
+  def comultiply[N <: Nat, A](cmplx : Complex[N, A]) : Option[Complex[N, Sigma[Complex, A]]] = 
+    (new NatCaseSplit {
 
-  //     type In[M <: Nat] = Complex[M, A]
-  //     type Out[M <: Nat] = Option[Complex[M, Sigma[Complex, A]]]
+      type Out[N <: Nat] = Complex[N, A] => Option[Complex[N, Sigma[Complex, A]]]
 
-  //     def caseZero(cmplx : Complex[_0, A]) : Option[Complex[_0, Sigma[Complex, A]]] =
-  //       cmplx match {
-  //         case _ >>> Obj(a) => Some(EmptyC >>> Obj(EmptyC >>> Obj(a)))
-  //         case _ >>> Box(a, Pt(nst)) =>
-  //           for {
-  //             _ >>> int <- caseZero(EmptyC >>> nst)
-  //           } yield EmptyC >>> Box(EmptyC >>> Obj(a), Pt(int))
-  //       }
+      def caseZero : Out[_0] = {
+        case _ >>> Obj(a) => Some(CNil() >>> Obj(CNil() >>> Obj(a)))
+        case _ >>> Box(a, Pt(nst)) =>
+          for {
+            _ >>> int <- caseZero(CNil() >>> nst)
+          } yield CNil() >>> Box(CNil() >>> Obj(a), Pt(int))
+      }
 
-  //     def caseSucc[P <: Nat](cmplx : Complex[S[P], A]) : Option[Complex[S[P], Sigma[Complex, A]]] =
-  //       cmplx match {
-  //         case (tl >>> hd) => {
-  //           for {
-  //             // You should have a separate method for traversing *with* the address.
-  //             newHd <- hd.zipWithAddress traverse ({
-  //               case (_, addr) => for { src <- sourceAt(tl >>> hd, addr) } yield complexToSigma(src)
-  //             })
-  //             newTl <- comultiply(tl)
-  //           } yield newTl >>> newHd
-  //         }
-  //       }
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (tl >>> hd) => 
+          for {
+            // You should have a separate method for traversing *with* the address.
+            newHd <- hd.zipWithAddress traverse ({
+              case (_, addr) => for { src <- sourceAt(tl >>> hd, addr) } yield complexToSigma(src)
+            })
+            newTl <- comultiply(tl)
+          } yield newTl >>> newHd
+      }
 
-  //   })(dim(cmplx), cmplx)
+    })(cmplx.dim)(cmplx)
 
   //============================================================================================
   // SOURCE CALCULATION MONAD
@@ -214,31 +210,29 @@ trait ComplexImplicits { self : ComplexFunctions =>
     ToTraverseOps[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L, A](cmplx)
 
 
-  // implicit def complexToSigma[N <: Nat, A](cmplx : Complex[N, A]) : Sigma[Complex, A] =
-  //   new Sigma[Complex, A] {
-  //     type Dim = N
-  //     val dim = DimSeqs.dim(cmplx)
-  //     val value = cmplx
-  //   }
+  implicit def complexToSigma[M <: Nat, A](cmplx : Complex[M, A]) : Sigma[Complex, A] =
+    new Sigma[Complex, A] {
+      type N = M
+      val value = cmplx
+    }
 
-  // implicit def complexFromSigma[A](cmplx : Sigma[Complex, A]) : Complex[cmplx.Dim, A] = 
-  //   cmplx.value
+  implicit def complexFromSigma[A](cmplx : Sigma[Complex, A]) : Complex[cmplx.N, A] = 
+    cmplx.value
 
-  // class ComplexOps[N <: Nat, A](cmplx : Complex[N, A]) {
+  class ComplexOps[N <: Nat, A](cmplx : Complex[N, A]) {
 
-  //   def map[B](f : A => B) : Complex[N, B] = 
-  //     mapComplex(cmplx)(f)
+    def dim : N = cmplx.dim
 
-  //   def matchWith[B](cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] = 
-  //     zipComplex(cmplx, cmplxB)
+    def matchWith[B](cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] = 
+      zipComplex(cmplx, cmplxB)
 
-  // }
+  }
 
-  // implicit def complexToComplexOps[N <: Nat, A](cmplx : Complex[N, A]) : ComplexOps[N, A] = 
-  //   new ComplexOps(cmplx)
+  implicit def complexToComplexOps[N <: Nat, A](cmplx : Complex[N, A]) : ComplexOps[N, A] = 
+    new ComplexOps(cmplx)
 
-  // implicit def complexSigmaToComplexOps[A](cmplx : Sigma[Complex, A]) : ComplexOps[cmplx.Dim, A] = 
-  //   new ComplexOps(cmplx.value)
+  implicit def complexSigmaToComplexOps[A](cmplx : Sigma[Complex, A]) : ComplexOps[cmplx.N, A] = 
+    new ComplexOps(cmplx.value)
 
 }
 

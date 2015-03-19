@@ -56,7 +56,7 @@ object ComplexZipper {
         case (tl >>> nst) => fromComplex(tl) >>> (nst, Nil)
       }
 
-    })(cmplx.length.pred)(cmplx)
+    })(cmplx.dim)(cmplx)
 
   //============================================================================================
   // VISIT

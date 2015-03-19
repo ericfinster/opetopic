@@ -305,7 +305,7 @@ abstract class Renderer[T, A](implicit isNumeric : Numeric[T]) {
           }
       }
 
-    })(cmplx.length.pred)(cmplx)
+    })(cmplx.dim)(cmplx)
 
   //============================================================================================
   // OBJECT NESTING RENDERING
