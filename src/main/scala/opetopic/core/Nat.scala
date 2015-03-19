@@ -171,6 +171,11 @@ trait NatConstants {
   val __8 = S(__7)
   val __9 = S(__8)
 
+  def natToInt[N <: Nat](n : N) : Int = 
+    n match {
+      case Z => 0
+      case S(p) => natToInt(p) + 1
+    }
 }
 
 object Nat extends NatFunctions 
