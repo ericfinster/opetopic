@@ -213,6 +213,7 @@ trait ComplexImplicits { self : ComplexFunctions =>
   implicit def complexToSigma[M <: Nat, A](cmplx : Complex[M, A]) : Sigma[Complex, A] =
     new Sigma[Complex, A] {
       type N = M
+      val n = cmplx.dim
       val value = cmplx
     }
 
@@ -221,7 +222,7 @@ trait ComplexImplicits { self : ComplexFunctions =>
 
   class ComplexOps[N <: Nat, A](cmplx : Complex[N, A]) {
 
-    def dim : N = cmplx.dim
+    def dim : N = cmplx.length.pred
 
     def matchWith[B](cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] = 
       zipComplex(cmplx, cmplxB)

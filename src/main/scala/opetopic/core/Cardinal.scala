@@ -490,6 +490,8 @@ object Cardinals {
   // TRAVERSE CARDINAL
   //
 
+  // Rewrite this using fold or something ....
+
   trait CardinalTraversal[A] {
     def apply[N <: Nat](n : N, cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]]
   }

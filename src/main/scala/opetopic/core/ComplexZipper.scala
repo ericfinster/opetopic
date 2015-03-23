@@ -76,17 +76,17 @@ object ComplexZipper {
         case (d :: ds, zipper) => 
           for {
             prefixZipper <- visitComplex[S[P], A](ds, zipper)
-            nestingSibling <- sibling(d, ConsSeq.head(prefixZipper))
+            nestingSibling <- sibling(d, prefixZipper.head)  
             prefixSpine <- focusSpine(prefixZipper)
 
             res <- (
               prefixSpine match {
-                case Leaf(_) => Some(ConsSeq.tail(prefixZipper) >>> nestingSibling)
+                case Leaf(_) => Some(prefixZipper.tail >>> nestingSibling)
                 case Node(_, shell) =>
                   for {
                     extents <- Tree.shellExtents(shell)
                     recAddr <- extents valueAt d 
-                    fixupLower <- seekComplex(recAddr, ConsSeq.tail(prefixZipper))
+                    fixupLower <- seekComplex(recAddr, prefixZipper.tail)
                   } yield (fixupLower >>> nestingSibling)
               }
             )
@@ -119,7 +119,7 @@ object ComplexZipper {
     }
 
   def focusValue[N <: Nat, A](cz : ComplexZipper[N, A]) : A =
-    baseValue(ConsSeq.head(cz)._1)
+    baseValue(cz.head._1)
 
   def focusDeriv[N <: Nat, A](cz : ComplexZipper[N, A]) : Option[Derivative[S[N], A]] = 
     cz match {
@@ -153,11 +153,11 @@ object ComplexZipper {
       type Out[N <: Nat] = ComplexZipper[N, A] => Option[Tree[N, Nesting[N, A]]]
 
       def caseZero : Out[_0] = 
-        cz => Some(Pt(ConsSeq.head(cz)._1))
+        cz => Some(Pt(cz.head._1))
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = cz => {
 
-        val fcs = ConsSeq.head(cz)._1
+        val fcs = cz.head._1
 
         for {
           spine <- focusSpine(cz)
@@ -165,7 +165,7 @@ object ComplexZipper {
             spine match {
               case Leaf(d) =>
                 for {
-                  unit <- focusUnit(ConsSeq.tail(cz))
+                  unit <- focusUnit(cz.tail)
                 } yield Node(fcs, unit.constWith(Leaf(d)))
               case Node(a, shell) =>
                 for {
@@ -202,9 +202,9 @@ object ComplexZipper {
 
         for {
           fnst <- focusSpine(cz)
-          newTail <- restrictFocus(ConsSeq.tail(cz))
+          newTail <- restrictFocus(cz.tail)
           newComplex <- exciseLocal(rootAddr(fnst.dim), fnst).exec(seal(newTail))
-        } yield (fromComplex(newComplex) >>> ((ConsSeq.head(cz)._1, Nil)))
+        } yield (fromComplex(newComplex) >>> (cz.head._1, Nil))
 
       }
 
@@ -226,8 +226,8 @@ object ComplexZipper {
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = cz => {
         for {
           spine <- focusSpine(cz)
-          newTail <- compressFocus(ConsSeq.tail(cz), spine)
-          nstZp = ConsSeq.head(cz)
+          newTail <- compressFocus(cz.tail, spine)
+          nstZp = cz.head
         } yield newTail >>> ((Dot(baseValue(nstZp._1), cz.length.pred), nstZp._2))
       }
 

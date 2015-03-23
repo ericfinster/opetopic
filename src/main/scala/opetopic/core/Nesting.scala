@@ -349,6 +349,9 @@ trait NestingImplicits {
     def matchWith[B](nstB : Nesting[N, B]) : Option[Nesting[N, (A, B)]] = 
       Nesting.zipCompleteNesting(nst, nstB)
 
+    def toTree : Tree[S[N], A] = 
+      Nesting.toTree(nst)
+
   }
 
   implicit def nestingToNestinOps[N <: Nat, A](nst : Nesting[N, A]) : NestingOps[N, A] = 

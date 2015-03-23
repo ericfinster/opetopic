@@ -285,6 +285,16 @@ module Tree where
       else 
         just (node (inj₁ a) sh))
 
+  -- Okay, the idea is that we can store the cardinal address of the root of the selection.  We then would like a routine
+  -- which traces the selection tree, generating the mask.  The result should be the tree consisting of all places where
+  -- the selection function returns true, and as soon as it returns false, we should cut.  Let's try this:
+  
+  takeWhile : {n : ℕ} → {A : Set} → Tree (suc n) A → (A → Bool) → Tree (suc n) A
+  takeWhile leaf p = leaf
+  takeWhile (node a sh) p = if p a then node a (mapTree (λ t → takeWhile t p) sh) else leaf
+
+  -- Great.  That was easy.  Now, can we apply this to a cardinal?
+
   exciseDeriv : {n : ℕ} → {A B : Set} → Derivative n (Tree (suc n) A) → Tree (suc n) A → Tree (suc n) B → Maybe (Tree (suc n) A × Tree n (Tree (suc n) A))
   exciseDeriv ∂ leaf leaf = just (leaf , ∂ ← leaf)
   exciseDeriv ∂ leaf (node a sil) = nothing 

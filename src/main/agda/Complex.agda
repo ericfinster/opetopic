@@ -15,10 +15,10 @@ module Complex where
   open Monad maybeM hiding (fmap ; η ; μ)
 
   Complex : Set → ℕ → Set
-  Complex A n = DimSeq (λ k → Nesting k A) n
+  Complex A n = Suite (λ k → Nesting k A) (suc n)
 
   ComplexZipper : Set → ℕ → Set
-  ComplexZipper A n = DimSeq (λ k → ZipperNst k A) n
+  ComplexZipper A n = Suite (λ k → ZipperNst k A) (suc n)
 
   NComplex : Set → Set
   NComplex A = Σ[ n ∈ ℕ ] Complex A n

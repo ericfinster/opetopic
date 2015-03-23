@@ -13,6 +13,7 @@ trait Sigma[F[_ <: Nat, +_], A] {
 
   type N <: Nat
 
+  val n : N
   val value : F[N, A]
 
 }

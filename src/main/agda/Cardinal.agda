@@ -49,7 +49,7 @@ module Cardinal where
     CardinalTree k (TreeSeq (suc k) (Δ k≤n) A) ∎
 
   CardinalAddress : ℕ → Set
-  CardinalAddress = DimSeq Address
+  CardinalAddress n = Suite Address (suc n)
 
   CardinalDerivative : ℕ → Set → Set
   CardinalDerivative zero A = ⊤
@@ -109,7 +109,7 @@ module Cardinal where
   rootTree {suc n} cn = poke cn (rootAddr n) >>= (λ res → just (proj₂ res))
 
   Cardinal : ℕ → Set → Set
-  Cardinal n A = DimSeq (λ k → CardinalNesting k A) n
+  Cardinal n A = Suite (λ k → CardinalNesting k A) (suc n)
 
   objectCardinal : {A : Set} → A → Cardinal 0 A
   objectCardinal a = ∥ ▶ (pt (obj a))
@@ -131,6 +131,12 @@ module Cardinal where
   seqLeaf : {n k : ℕ} → {A : Set} → TreeSeq (suc n) k A
   seqLeaf {k = zero} = leaf
   seqLeaf {k = suc k} = leaf
+
+  findSelectionMask : {n : ℕ} → {A : Set} → CardinalNesting (suc n) A → CardinalAddress (suc n) → (A → Bool) → Maybe (Tree (suc n) (Nesting (suc n) A))
+  findSelectionMask cn (ca ▶ hdAddr) p = 
+    poke cn ca 
+    >>= (λ { (∂ , tr) → seekTo hdAddr tr 
+                        >>= (λ { (fcs , cntxt) → just (takeWhile fcs (λ nst → p (baseValue nst))) }) })
 
   extrudeNestingAt : {n : ℕ} → {A B : Set} → A → CardinalNesting (suc n) A → CardinalAddress (suc n) → Tree (suc n) B → Maybe (CardinalNesting (suc n) A)
   extrudeNestingAt a cn (ca ▶ addr) msk = 
@@ -210,8 +216,19 @@ module Cardinal where
   doExtrude {k = k} a₀ a₁ msk ca c = traverseCardinal (λ m → extrudeDispatch a₀ a₁ msk ca (getFlag m k)) c
 
   doRootExtrusion : {n : ℕ} → {A : Set} → (k : ℕ) → (k≤n : k ≤ n) → A → A → Cardinal (suc n) A → Maybe (Cardinal (suc n) A)
-  doRootExtrusion {n} {A} k k≤n a₀ a₁ c = rootTree {k} {A} (getAt n k k≤n (tail c)) >>= (λ tr → doExtrude a₀ a₁ tr (rootAddr k) c)
+  doRootExtrusion {n} {A} k k≤n a₀ a₁ c = rootTree {k} {A} (getAt k k≤n (tail c)) >>= (λ tr → doExtrude a₀ a₁ tr (rootAddr k) c)
 
   -- A bit weird, since the upper information passed to extend gets thrown away
   doTopRootExtrusion : {n : ℕ} → {A : Set} → A → A → Cardinal n A → Maybe (Cardinal (suc n) A)
   doTopRootExtrusion {n} a₀ a₁ c = doRootExtrusion n ≤-refl a₀ a₁ (extend a₁ c)
+
+  extrudeSelection : {n : ℕ} → {A : Set} → (k : ℕ) → (k≤n : k ≤ n) → A → A → (A → Bool) → CardinalAddress (suc k) → Cardinal (suc n) A → Maybe (Cardinal (suc n) A)
+  extrudeSelection k k≤n a₀ a₁ p ca c = 
+    findSelectionMask (getAt (suc k) (s≤s k≤n) c) ca p 
+    >>= (λ msk → doExtrude a₀ a₁ msk ca c)
+
+  -- Right, well, this looks pretty good.  What I need now is to set up a cardinal rendering/selection mechanism in 
+  -- my editor code.  For this I'm going to need a cardinal to play with ...  Time, I think, to generate a scala cardinal
+  -- example so that I can test this out.
+
+  -- Shit.  I can't run the old version now that I have moved to Java 8.
