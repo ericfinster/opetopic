@@ -105,6 +105,41 @@ trait NatLemmas { this : NatConstants =>
 
   type =::=[N <: Nat, M <: Nat] = Leibniz[Nothing, Nat, N, M]
 
+  def rewriteNatIn[F[_ <: Nat], N <: Nat, M <: Nat](ev : N =::= M) : F[N] === F[M] = 
+    lift[Nothing, Nothing, Nat, Any, F, N, M](ev)
+
+  def matchNatPair[N <: Nat, M <: Nat](n : N, m : M) : Option[N =::= M] = 
+    (new NatCaseSplit { sp => 
+
+      type Out[N0 <: Nat] = Option[N0 =::= M]
+
+      def caseZero : Out[_0] = 
+        (new NatCaseSplit {
+
+          type Out[M0 <: Nat] = Option[_0 =::= M0]
+
+          def caseZero : Out[_0] = Some(refl)
+          def caseSucc[P <: Nat](p : P) : Out[S[P]] = None
+
+        })(m)
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+        (new NatCaseSplit {
+
+          type Out[M0 <: Nat] = Option[S[P] =::= M0]
+
+          def caseZero : Out[_0] = None
+          def caseSucc[Q <: Nat](q : Q) : Out[S[Q]] = 
+            for {
+              ev <- matchNatPair(p, q)
+            } yield {
+              lift[Nothing, Nothing, Nat, Nat, S, P, Q](ev)
+            }
+
+        })(m)
+
+    })(n)
+
   def plusSuccLemma[M <: Nat, N <: Nat](m : M) : M#Plus[S[N]] =::= S[M#Plus[N]] = 
     (new NatCaseSplit {
 

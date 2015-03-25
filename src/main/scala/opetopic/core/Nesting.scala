@@ -25,31 +25,6 @@ case class Box[N <: Nat, +A](a : A, c : Tree[N, Nesting[N, A]]) extends Nesting[
 trait NestingFunctions { self : NestingImplicits =>
 
   //============================================================================================
-  // MAP
-  //
-
-  def mapNesting[N <: Nat, A, B](nst : Nesting[N, A])(f : A => B) : Nesting[N, B] =
-    nst match {
-      case Obj(a) => Obj(f(a))
-      case Dot(a, d) => Dot(f(a), d)
-      case Box(a, c) => Box(f(a), c map (mapNesting(_)(f)))
-    }
-
-  //============================================================================================
-  // TRAVERSE
-  //
-
-  def traverseNesting[N <: Nat, T[_], A, B](nst : Nesting[N, A])(f : A => T[B])(implicit apT : Applicative[T]) : T[Nesting[N, B]] = {
-    import apT.{pure, ap, ap2}
-
-    nst match {
-      case Obj(a) => ap(f(a))(pure(Obj(_)))
-      case Dot(a, d) => ap2(f(a), pure(d))(pure(Dot(_, _)))
-      case Box(a, c) => ap2(f(a), Tree.traverse(c)(traverseNesting(_)(f)))(pure(Box(_, _)))
-    }
-  }
-
-  //============================================================================================
   // CASE SPLITTING
   //
 
@@ -71,6 +46,73 @@ trait NestingFunctions { self : NestingImplicits =>
       case Obj(a) => sp.caseObj(a)
       case Dot(a, d) => sp.caseDot(a, d)
       case Box(a, c) => sp.caseBox(a, c)
+    }
+
+  //============================================================================================
+  // MAP
+  //
+
+  def mapNesting[N <: Nat, A, B](nst : Nesting[N, A])(f : A => B) : Nesting[N, B] =
+    nst match {
+      case Obj(a) => Obj(f(a))
+      case Dot(a, d) => Dot(f(a), d)
+      case Box(a, c) => Box(f(a), c map (mapNesting(_)(f)))
+    }
+
+  def mapNestingWithAddress[N <: Nat, A, B](nst : Nesting[N, A], addr : Address[S[N]])(f : (Address[S[N]], A) => B) : Nesting[N, B] = 
+    (new NestingCaseSplit[A] {
+
+      type Out[N <: Nat, +U <: Nesting[N, A]] = (Address[S[N]], (Address[S[N]], A) => B) => Nesting[N, B]
+
+      def caseObj(a : A) : Out[_0, Obj[A]] = 
+        (addr, f) => Obj(f(addr, a))
+
+      def caseDot[P <: Nat](a : A, d : S[P]) : Out[S[P], Dot[P, A]] = 
+        (addr, f) => Dot(f(addr, a), d)
+
+      def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]] = 
+        (addr, f) => {
+          val newCanopy =
+            mapWithAddress(c : Tree[N, Nesting[N, A]])({
+              case (dir, n) => {
+                mapNestingWithAddress(n, dir :: addr)(f)
+              }
+            })
+
+          Box(f(addr, a), newCanopy)
+        }
+
+    })(nst)(addr, f)
+
+  def mapNestingWithAddress[N <: Nat, A, B](nst : Nesting[N, A])(f : (Address[S[N]], A) => B) : Nesting[N, B] = 
+    mapNestingWithAddress(nst, rootAddr(S(nst.dim)))(f)
+
+  //============================================================================================
+  // TRAVERSE
+  //
+
+  def traverseNesting[N <: Nat, T[_], A, B](nst : Nesting[N, A])(f : A => T[B])(implicit apT : Applicative[T]) : T[Nesting[N, B]] = {
+    import apT.{pure, ap, ap2}
+
+    nst match {
+      case Obj(a) => ap(f(a))(pure(Obj(_)))
+      case Dot(a, d) => ap2(f(a), pure(d))(pure(Dot(_, _)))
+      case Box(a, c) => ap2(f(a), Tree.traverse(c)(traverseNesting(_)(f)))(pure(Box(_, _)))
+    }
+  }
+
+  //============================================================================================
+  // FOREACH
+  //
+
+  def foreach[N <: Nat, A](nst : Nesting[N, A])(op : A => Unit) : Unit = 
+    nst match {
+      case Obj(a) => op(a)
+      case Dot(a, _) => op(a)
+      case Box(a, cn) => {
+        for { n <- cn } { foreach(n)(op) }
+        op(a)
+      }
     }
 
   //============================================================================================
@@ -137,31 +179,6 @@ trait NestingFunctions { self : NestingImplicits =>
         deriv => spineFromCanopy(c)
 
     })(nst)(d)
-
-  //============================================================================================
-  // WITH ADDRESS
-  //
-
-  def withAddress[N <: Nat, A](addr : Address[S[N]], nst : Nesting[N, A]) : Nesting[N, (A, Address[S[N]])] = 
-    (new NestingCaseSplit[A] {
-
-      type Out[N <: Nat, +U <: Nesting[N, A]] = Address[S[N]] => Nesting[N, (A, Address[S[N]])]
-
-      def caseObj(a : A) : Out[_0, Obj[A]] = 
-        addr => Obj(a, addr)
-
-      def caseDot[P <: Nat](a : A, d : S[P]) : Out[S[P], Dot[P, A]] = 
-        addr => Dot((a, addr), d)
-
-      def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]] = 
-        addr => Box((a, addr), mapWithAddress(c)(
-          (d, t) => withAddress(d :: addr, t)
-        ))
-
-    })(nst)(addr)
-
-  def withAddress[N <: Nat, A](nst : Nesting[N, A]) : Nesting[N, (A, Address[S[N]])] = 
-    withAddress(rootAddr(S(nst.dim)), nst)
 
   //============================================================================================
   // ZIP COMPLETE
@@ -314,6 +331,41 @@ trait NestingFunctions { self : NestingImplicits =>
 
     })(nz._1.dim.pred)(addr, nz)
 
+  def predecessor[N <: Nat, A](nz : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
+
+      def caseZero : Out[_0] = 
+        nz => None
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (fcs, Nil) => None
+        case (fcs, (a, (verts, Nil)) :: cs) => None
+        case (fcs, (a, (verts, (pred, deriv) :: vs)) :: cs) => {
+          Some(pred, (a, (plug(p)(deriv, Node(fcs, verts)), vs)) :: cs)
+        }
+      }
+
+    })(nz._1.dim)(nz)
+
+  def predecessorWhich[N <: Nat, A](nz : NestingZipper[N, A])(f : A => Boolean) : Option[NestingZipper[N, A]] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
+
+      def caseZero : Out[_0] = 
+        nz => if (f(nz._1.baseValue)) Some(nz) else None
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+        nz => if (f(nz._1.baseValue)) Some(nz) else 
+          for {
+            pred <- predecessor(nz)
+            res <- predecessorWhich(pred)(f)
+          } yield res
+
+    })(nz._1.dim)(nz)
+
 }
 
 trait NestingImplicits {
@@ -344,7 +396,10 @@ trait NestingImplicits {
   class NestingOps[N <: Nat, A](nst : Nesting[N, A]) {
 
     def zipWithAddress : Nesting[N, (A, Address[S[N]])] = 
-      Nesting.withAddress(nst)
+      Nesting.mapNestingWithAddress(nst)((addr, a) => (a, addr))
+
+    def mapWithAddress[B](f : (Address[S[N]], A) => B) : Nesting[N, B] = 
+      Nesting.mapNestingWithAddress(nst)(f)
 
     def matchWith[B](nstB : Nesting[N, B]) : Option[Nesting[N, (A, B)]] = 
       Nesting.zipCompleteNesting(nst, nstB)
@@ -352,9 +407,15 @@ trait NestingImplicits {
     def toTree : Tree[S[N], A] = 
       Nesting.toTree(nst)
 
+    def baseValue : A = 
+      Nesting.baseValue(nst)
+
+    def foreach(op : A => Unit) : Unit = 
+      Nesting.foreach(nst)(op)
+
   }
 
-  implicit def nestingToNestinOps[N <: Nat, A](nst : Nesting[N, A]) : NestingOps[N, A] = 
+  implicit def nestingToNestingOps[N <: Nat, A](nst : Nesting[N, A]) : NestingOps[N, A] = 
     new NestingOps[N, A](nst)
 
 }

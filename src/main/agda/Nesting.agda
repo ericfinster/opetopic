@@ -124,28 +124,31 @@ module Nesting where
     seekNesting [] z = just z
     seekNesting (d ∷ ds) z = seekNesting ds z >>= visitNesting d
 
-    sibling : {n : ℕ} → {A : Set} → Address n → ZipperNst (suc n) A → Maybe (ZipperNst (suc n) A)
-    sibling dir (fcs , []) = nothing
-    sibling {zero} dir (fcs , (a , pt leaf , hcn) ∷ cn) = nothing
-    sibling {zero} dir (fcs , (a , pt (node nfcs shell) , hcn) ∷ cn) = 
-      just (nfcs , ((a , (shell , ((fcs , tt) ∷ hcn))) ∷ cn))
-    sibling {suc n} dir (fcs , (a , verts , hcn) ∷ cn) = 
-      seek dir (verts , []) 
-      >>= (λ { (leaf , vcn) → nothing ; 
-               (node leaf shell , vcn) → nothing ; 
-               (node (node nfcs vrem) hmask , vcn) → 
-                 just (nfcs , (a , (vrem , (fcs , (hmask , vcn)) ∷ hcn)) ∷ cn) })
+  sibling : {n : ℕ} → {A : Set} → Address n → ZipperNst (suc n) A → Maybe (ZipperNst (suc n) A)
+  sibling dir (fcs , []) = nothing
+  sibling {zero} dir (fcs , (a , pt leaf , hcn) ∷ cn) = nothing
+  sibling {zero} dir (fcs , (a , pt (node nfcs shell) , hcn) ∷ cn) = 
+    just (nfcs , ((a , (shell , ((fcs , tt) ∷ hcn))) ∷ cn))
+  sibling {suc n} dir (fcs , (a , verts , hcn) ∷ cn) = 
+    seek dir (verts , []) 
+    >>= (λ { (leaf , vcn) → nothing ; 
+             (node leaf shell , vcn) → nothing ; 
+             (node (node nfcs vrem) hmask , vcn) → 
+               just (nfcs , (a , (vrem , (fcs , (hmask , vcn)) ∷ hcn)) ∷ cn) })
 
-  
+  predecessor : {n : ℕ} → {A : Set} → ZipperNst n A → Maybe (ZipperNst n A)
+  predecessor {zero} _ = nothing
+  predecessor {suc n} (fcs , []) = nothing
+  predecessor {suc n} (fcs , (a , verts , []) ∷ cs) = nothing
+  predecessor {suc n} (fcs , (a , verts , (pred , ∂) ∷ vs) ∷ cs) = just (pred , (a , ∂ ← node fcs verts , vs) ∷ cs)
+
+  predecessorWhich : {n : ℕ} → {A : Set} → (A → Bool) → ZipperNst n A → Maybe (ZipperNst n A)
+  predecessorWhich {zero} p z = if p (baseValue (proj₁ z)) then just z else nothing
+  predecessorWhich {suc n} p z = 
+    if p (baseValue (proj₁ z)) 
+    then just z 
+    else (predecessor z >>= (λ pred → predecessorWhich p pred))
+
   seekToNesting : {n : ℕ} → {A : Set} → Address (suc n) → Nesting n A → Maybe (ZipperNst n A)
   seekToNesting addr nst = seekNesting addr (nst , [])
 
-  -- dualRecurse : {n : ℕ} → {A B C : Set} → Nesting n A → Nesting (suc n) B → (B → Tree n (Nesting n A) → C) → Maybe C
-  -- dualRecurse (obj a) (ext b) f = {!!}
-  -- dualRecurse (ext a) (ext b) f = nothing -- We must have a tree of leaves?
-  -- dualRecurse (int a sh) (ext b) f = just (f b sh)
-  -- dualRecurse n0 (int b cn) f = spineFromCanopy cn >>= (λ sp → {!zipComplete (toTree n0) sp!})
-
-  -- Okay, so one solution is to not set the edges at all during the actual rendering pass except for the leaves.
-  -- Then you use the spine from canopy idea to zip the two together and set edge values to the result.  Would this
-  -- satisfy you?

@@ -131,6 +131,20 @@ trait TreeFunctions { tfns =>
     traverseWithAddress(tr, rootAddr(tr.dim))(f)
 
   //============================================================================================
+  // FOREACH
+  //
+
+  def foreach[N <: Nat, A](tr : Tree[N, A])(op : A => Unit) : Unit = 
+    tr match {
+      case Pt(a) => op(a)
+      case Leaf(d) => ()
+      case Node(a, sh) => {
+        foreach(sh)(foreach(_)(op))
+        op(a)
+      }
+    }
+
+  //============================================================================================
   // TREE ELIMINATORS
   //
 
@@ -545,6 +559,12 @@ trait TreeImplicits {
   class TreeOps[N <: Nat, A](tr : Tree[N, A]) {
 
     val T = Traverse[({ type L[+A] = Tree[N, A] })#L]
+
+    def foreach(op : A => Unit) : Unit = 
+      Tree.foreach(tr)(op)
+
+    def mapWithAddress[B](f : (Address[N], A) => B) : Tree[N, B] = 
+      Tree.mapWithAddress(tr)(f)
 
     def zipWithDerivative[B] : Tree[N, (Derivative[N, B], A)] = 
       Tree.zipWithDerivative[N, A, B](tr)

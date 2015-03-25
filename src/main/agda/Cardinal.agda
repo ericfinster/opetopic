@@ -94,6 +94,10 @@ module Cardinal where
   map-cardinal-tree {zero} f (pt a) = pt (f a)
   map-cardinal-tree {suc n} f ct = map-cardinal-tree {n} (mapTree f) ct
 
+  mapCardinalTreeWithAddr : {n : ℕ} → {A B : Set} → (f : CardinalAddress n → A → B) → CardinalTree n A → CardinalTree n B
+  mapCardinalTreeWithAddr {zero} f (pt a) = pt (f (∥ ▶ []) a)
+  mapCardinalTreeWithAddr {suc n} f ct = mapCardinalTreeWithAddr {n} (λ ca tr → mapWithAddress (λ addr a → f (ca ▶ addr ) a) tr) ct
+
   CardinalNesting : ℕ → Set → Set
   CardinalNesting n A = CardinalTree n (Nesting n A)
 
@@ -227,8 +231,3 @@ module Cardinal where
     findSelectionMask (getAt (suc k) (s≤s k≤n) c) ca p 
     >>= (λ msk → doExtrude a₀ a₁ msk ca c)
 
-  -- Right, well, this looks pretty good.  What I need now is to set up a cardinal rendering/selection mechanism in 
-  -- my editor code.  For this I'm going to need a cardinal to play with ...  Time, I think, to generate a scala cardinal
-  -- example so that I can test this out.
-
-  -- Shit.  I can't run the old version now that I have moved to Java 8.

@@ -25,8 +25,14 @@ sealed trait TypeSeq[F[_ <: Nat], L <: Nat] {
 
 }
 
-case class TNil[F[_ <: Nat]]() extends TypeSeq[F, _0] { def length = Z }
-case class >>[F[_ <: Nat], P <: Nat](tl : TypeSeq[F, P], hd : F[P]) extends TypeSeq[F, S[P]] { def length = S(tl.length) }
+case class TNil[F[_ <: Nat]]() extends TypeSeq[F, _0] { 
+  def length = Z 
+  override def toString = "[]"
+}
+case class >>[F[_ <: Nat], P <: Nat](tl : TypeSeq[F, P], hd : F[P]) extends TypeSeq[F, S[P]] { 
+  def length = S(tl.length) 
+  override def toString = tl.toString ++ " >> " ++ hd.toString
+}
 
 object TypeSeq {
 
@@ -78,6 +84,23 @@ object ConsSeq {
     cs match {
       case (tl >>> _) => tl
     }
+
+  def drop[F[_ <: Nat, +_], K <: Nat, N <: Nat, D <: Nat, A](cs : ConsSeq[F, N, A])(lte : Lte[K, N, D]) : ConsSeq[F, D, A] = 
+    (new LteCaseSplit {
+
+      type Out[K <: Nat, N <: Nat, D <: Nat] = ConsSeq[F, N, A] => ConsSeq[F, D, A]
+
+      def caseZero[N <: Nat](n : N) : Out[_0, N, N] = 
+        cs => cs
+
+      def caseSucc[M <: Nat, N <: Nat, D <: Nat](plte : Lte[M, N, D]) : Out[S[M], S[N], D] = {
+        case (tl >>> hd) => drop(tl)(plte)
+      }
+
+    })(lte)(cs)
+
+  def getAt[F[_ <: Nat, +_], K <: Nat, N <: Nat, D <: Nat, A](cs : ConsSeq[F, S[N], A])(lte : Lte[K, N, D]) : F[K, A] = 
+    head(drop(cs)(Lte.lteSucc(Lte.lteInvert(lte))))
 
   def fold[F[_ <: Nat, +_], N <: Nat, A](cs : ConsSeq[F, N, A])(fld : ConsFold[F, A]) : fld.Out[N] = 
     cs match {

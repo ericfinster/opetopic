@@ -66,6 +66,22 @@ trait ComplexFunctions { self : ComplexImplicits =>
     })(cmplx.dim)(cmplx)
 
   //============================================================================================
+  // FOREACH
+  //
+
+  def foreach[N <: Nat, A](cmplx : Complex[N, A])(op : A => Unit) : Unit = 
+    cmplx.fold(new ConsFold[Nesting, A] {
+
+      type Out[N <: Nat] = Unit
+
+      def caseZero : Out[_0] = ()
+
+      def caseSucc[P <: Nat](nst : Nesting[P, A], u : Unit) : Unit = 
+        for { a <- nst } { op(a) }
+
+    })
+
+  //============================================================================================
   // ZIP COMPLEX
   //
 
@@ -226,6 +242,9 @@ trait ComplexImplicits { self : ComplexFunctions =>
 
     def matchWith[B](cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] = 
       zipComplex(cmplx, cmplxB)
+
+    def foreach(op : A => Unit) : Unit = 
+      Complex.foreach(cmplx)(op)
 
   }
 

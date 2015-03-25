@@ -325,10 +325,10 @@ trait Renderer[U]  {
 
               if (isOdd) {
 
-                println("Mid marker is: " ++ midMarker.toString)
+                // println("Mid marker is: " ++ midMarker.toString)
 
-                println("Dot coords: (" ++ rm.rootX.toString ++ ", " ++ rm.rootY.toString ++ ", " ++
-                  rm.width.toString ++ ", " ++ rm.height.toString ++ ")")
+                // println("Dot coords: (" ++ rm.rootX.toString ++ ", " ++ rm.rootY.toString ++ ", " ++
+                //   rm.width.toString ++ ", " ++ rm.height.toString ++ ")")
 
                 midMarker.rootEdgeMarker.edgeEndX = rm.rootX
                 midMarker.rootEdgeMarker.edgeEndY = rm.rootY - rm.height
@@ -350,16 +350,16 @@ trait Renderer[U]  {
                 val leftChild = leftChildren.head
                 val rightChild = rightChildren.last
 
-                val midLeftOffset = if (isOdd) midMarker.leftMargin else zero
-                val midRightOffset = if (isOdd) midMarker.rightMargin else zero
+                val midLeftOffset = if (isOdd) midMarker.leftMargin + externalPadding else zero
+                val midRightOffset = if (isOdd) midMarker.rightMargin + externalPadding else zero
 
                 val leftChildShift = max(max(midLeftOffset, leftChild.rightMargin + externalPadding), rm.leftMargin + halfLeafWidth)
                 val rightChildShift = max(max(midRightOffset, rightChild.leftMargin + externalPadding), rm.rightMargin + halfLeafWidth)
 
                 def doLeftPlacement(marker : LayoutMarker, shift : U) : Unit = {
 
-                  println("Placing marker: " ++ marker.toString)
-                  println("Shifting " ++ marker.toString ++ " left by " ++ shift.toString)
+                  // println("Placing marker: " ++ marker.toString)
+                  // println("Shifting " ++ marker.toString ++ " left by " ++ shift.toString)
 
                   marker.element.shiftLeft(shift)
                   rm.horizontalDependants :+= marker.element
@@ -376,8 +376,8 @@ trait Renderer[U]  {
 
                 def doRightPlacement(marker : LayoutMarker, shift : U) : Unit = {
 
-                  println("Passing marker: " ++ marker.toString)
-                  println("Shifting " ++ marker.toString ++ " right by " ++ shift.toString)
+                  // println("Passing marker: " ++ marker.toString)
+                  // println("Shifting " ++ marker.toString ++ " right by " ++ shift.toString)
 
                   marker.element.shiftRight(shift)
                   rm.horizontalDependants :+= marker.element
@@ -392,8 +392,8 @@ trait Renderer[U]  {
 
                 }
 
-                println("Left child shift: " ++ leftChildShift.toString)
-                println("Right child shift: " ++ rightChildShift.toString)
+                // println("Left child shift: " ++ leftChildShift.toString)
+                // println("Right child shift: " ++ rightChildShift.toString)
 
                 doLeftPlacement(leftChild, leftChildShift)
                 doRightPlacement(rightChild, rightChildShift)
@@ -454,7 +454,7 @@ trait Renderer[U]  {
 
             }
 
-          println("Rendered dot: " ++ rm.toString)
+          // println("Rendered dot: " ++ rm.toString)
 
           marker
         }
@@ -476,10 +476,10 @@ trait Renderer[U]  {
                 if (leafIndex == 0 && leafCount == 1) {
                   leafMarker.truncateUnique
                 } else if (leafIndex == 0) {
-                  println("Truncating right: " ++ leafMarker.toString)
+                  // println("Truncating right: " ++ leafMarker.toString)
                   leafMarker.truncateRight
                 } else if (leafIndex == leafCount - 1) {
-                  println("Truncating left: " ++ leafMarker.toString)
+                  // println("Truncating left: " ++ leafMarker.toString)
                   leafMarker.truncateLeft
                 } else {
                   leafMarker.truncateMiddle
@@ -542,7 +542,7 @@ trait Renderer[U]  {
           layout <- verticalPass(cn)
         } yield {
 
-          println("Finished interior layout with: " ++ layout.toString)
+          // println("Finished interior layout with: " ++ layout.toString)
 
           // Set interior margins
           rm.leftInteriorMargin = layout.leftMargin
@@ -568,7 +568,7 @@ trait Renderer[U]  {
 
           }
 
-          println("Rendered box: " ++ rm.toString)
+          // println("Rendered box: " ++ rm.toString)
 
           marker
 

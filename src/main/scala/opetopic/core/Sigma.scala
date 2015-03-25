@@ -17,3 +17,23 @@ trait Sigma[F[_ <: Nat, +_], A] {
   val value : F[N, A]
 
 }
+
+trait SigmaT[F[_ <: Nat]] {
+
+  type N <: Nat
+
+  val n : N
+  val value : F[N]
+
+}
+
+object SigmaT {
+
+  def apply[F[_ <: Nat], M <: Nat](m : M)(fm : F[M]) : SigmaT[F] = 
+    new SigmaT[F] {
+      type N = M
+      val n = m
+      val value = fm
+    }
+
+}
