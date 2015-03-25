@@ -501,6 +501,21 @@ trait TreeFunctions { tfns =>
     flatten(globDerivative(tr.dim.pred), tr)
 
   //============================================================================================
+  // TAKE WHILE
+  //
+
+  def takeWhile[N <: Nat, A](tr : Tree[S[N], A])(p : A => Boolean) : Tree[S[N], A] = 
+    tr match {
+      case Leaf(d) => Leaf(d)
+      case Node(a, sh) => 
+        if (p(a)) {
+          Node(a, sh map (takeWhile(_)(p)))
+        } else {
+          Leaf(S(sh.dim))
+        }
+    }
+
+  //============================================================================================
   // EXCISION
   //
 

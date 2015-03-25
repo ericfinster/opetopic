@@ -311,6 +311,35 @@ object Cardinals {
     }
 
   //============================================================================================
+  // ROOT ADDRESS
+  //
+
+  object cardinalRootAddr extends NatCaseSplit0 {
+
+    type Out[N <: Nat] = CardinalAddress[N]
+
+    def caseZero : Out[_0] = TNil[Address]() >> Nil
+
+    def caseSucc[P <: Nat](p : P) : Out[S[P]] =
+      cardinalRootAddr(p) >> Nil
+
+  }
+
+  object cardinalRootTree extends NatCaseSplit1 {
+
+    type Out[N <: Nat, A] = CardinalNesting[N, A] => Option[Tree[N, Nesting[N, A]]]
+
+    def caseZero[A] : Out[_0, A] = 
+      cn => Some(cn)
+
+    def caseSucc[P <: Nat, A](p : P) : Out[S[P], A] = 
+      cn => for {
+        res <- poke(cn, cardinalRootAddr(p))
+      } yield res._2
+
+  }
+
+  //============================================================================================
   // TO COMPLEX
   //
 
@@ -628,6 +657,30 @@ object Cardinals {
       }
     )(c)
   }
+
+  def doRootExtrusion[K <: Nat, N <: Nat, D <: Nat, A](a0 : A, a1 : A, c : Cardinal[S[N], A])(lte : Lte[K, N, D]) : Option[Cardinal[S[N], A]] = 
+    for {
+      tr <- cardinalRootTree(lte.lower)(c.tail.getAt(lte))
+      res <- doExtrude(a0, a1, tr, cardinalRootAddr(lte.lower), c)
+    } yield res
+
+  def doTopRootExtrusion[N <: Nat, A](a0 : A, a1 : A, c : Cardinal[N, A]) : Option[Cardinal[S[N], A]] = 
+    doRootExtrusion(a0, a1, extend(a1, c))(Lte.lteRefl(c.dim))
+
+  def getSelectionMask[N <: Nat, A](cn : CardinalNesting[S[N], A], ca : CardinalAddress[S[N]])(p : A => Boolean) : Option[Tree[S[N], Nesting[S[N], A]]] = 
+    ca match {
+      case (ca >> hdAddr) =>
+        for {
+          cd <- poke(cn, ca)
+          zp <- cd._2 seekTo hdAddr
+        } yield Tree.takeWhile(zp._1)(nst => p(nst.baseValue))
+    }
+
+  def extrudeSelection[K <: Nat, N <: Nat, D <: Nat, A](a0 : A, a1 : A, ca : CardinalAddress[S[K]], c : Cardinal[S[N], A])(p : A => Boolean)(lte : Lte[K, N, D]) : Option[Cardinal[S[N], A]] = 
+    for {
+      msk <- getSelectionMask(c.getAt(SuccLte(lte)), ca)(p)
+      res <- doExtrude(a0, a1, msk, ca, c)
+    } yield res
 
   //============================================================================================
   // OPS CLASS

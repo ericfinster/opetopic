@@ -119,6 +119,9 @@ object ConsSeq {
     def fold(fld : ConsFold[F, A]) : fld.Out[S[P]] = 
       ConsSeq.fold(seq)(fld)
 
+    def getAt[K <: Nat, D <: Nat](lte : Lte[K, P, D]) : F[K, A] = 
+      ConsSeq.getAt(seq)(lte)
+
   }
 
   implicit def toConsSuccOps[F[_ <: Nat, +_], P <: Nat, A](seq : ConsSeq[F, S[P], A]) : ConsSuccOps[F, P, A] = 
