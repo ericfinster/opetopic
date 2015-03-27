@@ -713,17 +713,7 @@ object Cardinals {
           for {
             msk <- getSelectionMask(c.getAt(SuccLte(plte)), ca)(p)
             res <- doExtrude(a0, a1, msk, ca, c)
-          } yield {
-
-            println("Selection consists of the following: ")
-            for {
-              el <- msk
-            } {
-              println(el.toString)
-            }
-
-            res
-          }
+          } yield res
         }
 
     })(lte)(ca, c)

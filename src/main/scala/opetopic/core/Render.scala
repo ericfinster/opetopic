@@ -341,7 +341,7 @@ trait Renderer[U]  {
 
               if (isOdd) {
 
-                println("Mid marker is: " ++ midMarker.toString)
+                // println("Mid marker is: " ++ midMarker.toString)
 
                 // println("Dot coords: (" ++ rm.rootX.toString ++ ", " ++ rm.rootY.toString ++ ", " ++
                 //   rm.width.toString ++ ", " ++ rm.height.toString ++ ")")
