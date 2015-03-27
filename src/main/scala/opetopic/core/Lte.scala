@@ -50,7 +50,17 @@ trait LteCaseSplit {
 
 }
 
-object Lte {
+trait LteImplicits {
+
+  implicit def zeroLte[N <: Nat](implicit n : N) : Lte[_0, N, N] = 
+    ZeroLte(n)
+
+  implicit def succLte[M <: Nat, N <: Nat, D <: Nat](implicit plte : Lte[M, N, D]) : Lte[S[M], S[N], D] = 
+    SuccLte(plte)
+
+}
+
+object Lte extends LteImplicits {
 
   def lteSucc[M <: Nat, N <: Nat, D <: Nat](implicit lte : Lte[M, N, D]) : Lte[M, S[N], S[D]] = 
     lte match {

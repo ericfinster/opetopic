@@ -141,12 +141,26 @@ trait NestingFunctions { self : NestingImplicits =>
   // EXTEND NESTING
   //
 
-  def extendNesting[N <: Nat, A, B](b : B, nst : Nesting[N, A]) : Tree[S[N], Nesting[S[N], B]] = 
-    nst match {
-      case Obj(a) => Leaf(S(nst.dim))
-      case Dot(a, sp) => Leaf(S(sp))
-      case Box(a, sh) => Node(Dot(b, S(nst.dim)), Tree.map(sh)(extendNesting(b, _)))
-    }
+  def extendNesting[N <: Nat, A](nst : Nesting[N, A], addr : Address[S[N]])(f : Address[S[N]] => A) : Tree[S[N], Nesting[S[N], A]] = 
+    (new NestingCaseSplit[A] {
+
+      type Out[N <: Nat, +U <: Nesting[N, A]] = (Address[S[N]], (Address[S[N]] => A)) => Tree[S[N], Nesting[S[N], A]]
+
+      def caseObj(a : A) : Out[_0, Obj[A]] = 
+        (addr, f) => Leaf(__1)
+
+      def caseDot[P <: Nat](a : A, d : S[P]) : Out[S[P], Dot[P, A]] = 
+        (addr, f) => Leaf(S(d))
+
+      def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]] = 
+        (addr, f) => Node(Dot(f(addr), S(c.dim)), c.mapWithAddress({
+          (dir, n) => extendNesting(n, dir :: addr)(f)
+        }))
+
+    })(nst)(addr, f)
+
+  def newNestingExtend[N <: Nat, A](nst : Nesting[N, A])(f : Address[S[N]] => A) : Tree[S[N], Nesting[S[N], A]] = 
+    extendNesting(nst, rootAddr(S(nst.dim)))(f)
 
   //============================================================================================
   // SPINE FROM CANOPY
@@ -412,6 +426,9 @@ trait NestingImplicits {
 
     def foreach(op : A => Unit) : Unit = 
       Nesting.foreach(nst)(op)
+
+    def seekTo(addr : Address[S[N]]) = 
+      Nesting.seekNesting(addr, (nst, Nil))
 
   }
 

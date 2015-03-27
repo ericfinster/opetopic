@@ -76,7 +76,7 @@ trait ComplexFunctions { self : ComplexImplicits =>
 
       def caseZero : Out[_0] = ()
 
-      def caseSucc[P <: Nat](nst : Nesting[P, A], u : Unit) : Unit = 
+      def caseSucc[P <: Nat](p : P, nst : Nesting[P, A], u : Unit) : Unit = 
         for { a <- nst } { op(a) }
 
     })

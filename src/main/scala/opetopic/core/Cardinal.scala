@@ -130,6 +130,21 @@ object Cardinals {
       })
     })
 
+  def mapCardinal[N <: Nat, A, B](c : Cardinal[N, A])(f : A => B) : Cardinal[N, B] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat] = Cardinal[N, A] => Cardinal[N, B]
+
+      def caseZero : Out[_0] = {
+        case (_ >>> hd) => CNil() >>> mapCardinalNesting(Z)(hd)(f)
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (tl >>> hd) => mapCardinal(tl)(f) >>> mapCardinalNesting(S(p))(hd)(f)
+      }
+
+    })(c.dim)(c)
+
   //============================================================================================
   // COMPLETE WITH
   //
@@ -305,9 +320,17 @@ object Cardinals {
   // EXTEND
   //
 
-  def extend[N <: Nat, A](a : A, c : Cardinal[N, A]) : Cardinal[S[N], A] = 
+  def extendCardinal[N <: Nat, A](c : Cardinal[N, A])(f : CardinalAddress[S[N]] => A) : Cardinal[S[N], A] = 
     c match {
-      case (tl >>> hd) => tl >>> hd >>> mapCardinalTree(c.length.pred)(hd)(Nesting.extendNesting(a, _))
+      case (tl >>> hd) => {
+        val extension = mapCardinalTreeWithAddr(c.dim)(hd)({ 
+          case (ca, nst) => Nesting.newNestingExtend(nst)({ 
+            case addr => f(ca >> addr)
+          })
+        })
+
+        tl >>> hd >>> extension
+      }
     }
 
   //============================================================================================
@@ -344,8 +367,9 @@ object Cardinals {
   //
 
   sealed trait Polarity[A]
-  case class Positive[A]() extends Polarity[A] { override def toString = "+" }
-  case class Negative[A]() extends Polarity[A] { override def toString = "-" }
+  sealed trait Polarization[A] extends Polarity[A]
+  case class Positive[A]() extends Polarization[A] { override def toString = "+" }
+  case class Negative[A]() extends Polarization[A] { override def toString = "-" }
   case class Neutral[A](a : A) extends Polarity[A] { override def toString = a.toString }
 
   trait CardinalCellGenerator[F[_], A] {
@@ -410,38 +434,38 @@ object Cardinals {
   // ENCLOSE AT
   //
 
-  def encloseAt[N <: Nat, A](a : A, addr : Address[S[N]], tr : Tree[S[N], Tree[S[S[N]], A]]) : Option[Tree[S[N], Tree[S[S[N]], A]]] = 
+  def encloseAt[N <: Nat, A, B](a : A, addr : Address[S[N]], tr : Tree[S[N], Tree[S[S[N]], A]], msk : Tree[S[N], B]) : Option[Tree[S[N], Tree[S[S[N]], A]]] = 
     for {
       zp <- tr seekTo addr
-      flt <- Tree.flatten(zp.focus)
+      (cut, cutSh) <- Tree.excise(zp.focus, msk)
     } yield close(tr.dim)(zp.context, 
-      Node(Node(a, zp.focus), flt.constWith(Leaf(tr.dim)))
+      Node(Node(a, cut), cutSh)
     )
 
   //============================================================================================
   // PAD WITH LEAF
   //
 
-  def padWithLeaf[N <: Nat, K <: Nat, A](k : K, addr : Address[S[N]], seq : TreeSeqDblSucc[S[N], K, A]) : Option[TreeSeqDblSucc[S[N], K, A]] =
+  def padWithLeaf[N <: Nat, K <: Nat, A, B](k : K, addr : Address[S[N]], seq : TreeSeqDblSucc[S[N], K, A], msk : Tree[S[N], B]) : Option[TreeSeqDblSucc[S[N], K, A]] =
     for {
       zp <- seq seekTo addr 
-      flt <- Tree.flatten(zp.focus)
+      (cut, cutSh) <- Tree.excise(zp.focus, msk)
     } yield close(seq.dim)(zp.context,
-      Node(Node(seqLeaf(S(seq.dim), k), zp.focus), flt.constWith(Leaf(seq.dim)))
+      Node(Node(seqLeaf(S(seq.dim), k), cut), cutSh)
     )
 
   //============================================================================================
   // DO TAIL
   //
 
-  def doTail[K <: Nat, N <: Nat, D <: Nat, A](lte : Lte[K, N, D], cn : CardinalNestingDblSucc[N, A], ca : CardinalAddress[K]) 
+  def doTail[K <: Nat, N <: Nat, D <: Nat, A, B](lte : Lte[K, N, D], cn : CardinalNestingDblSucc[N, A], ca : CardinalAddress[K], msk : Tree[K, B]) 
       : Option[CardinalNestingDblSucc[N, A]] = 
     (new LteCaseSplit {
 
-      type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingDblSucc[N, A], CardinalAddress[K]) => Option[CardinalNestingDblSucc[N, A]]
+      type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingDblSucc[N, A], CardinalAddress[K], Tree[K, B]) => Option[CardinalNestingDblSucc[N, A]]
 
       def caseZero[N <: Nat](n : N) : Out[_0, N, N] = {
-        case (cn, ca) => 
+        case (cn, ca, msk) => 
           for {
             pr <- tailWithDerivative[S[N], _0, S[N], Nesting[S[S[N]], A]](cn, ca)(ZeroLte(S(n)))
           } yield {
@@ -457,7 +481,7 @@ object Cardinals {
       }
 
       def caseSucc[K <: Nat, N <: Nat, D <: Nat](plte : Lte[K, N, D]) : Out[S[K], S[N], D] = {
-        case (cn, ca >> addr) => {
+        case (cn, ca >> addr, msk) => {
 
           import Lte.lteSucc
 
@@ -466,7 +490,7 @@ object Cardinals {
 
           for {
             pr <- tailWithDerivative[S[S[N]], K, S[S[D]], Nesting[S[S[S[N]]], A]](cn, ca)(lteSucc(lteSucc(plte)))
-            res <- padWithLeaf(plte.diff, addr, pr._2)
+            res <- padWithLeaf(plte.diff, addr, pr._2, msk)
           } yield {
 
             type SrcType = CardinalTree[N, Tree[S[N], Tree[S[S[N]], Tree[S[S[S[N]]], Nesting[S[S[S[N]]], A]]]]]
@@ -481,37 +505,37 @@ object Cardinals {
         }
       }
 
-    })(lte)(cn, ca)
+    })(lte)(cn, ca, msk)
 
   //============================================================================================
   // DO FILLER
   //
 
-  def doFiller[N <: Nat, A](a : A, cn : CardinalNesting[S[N], A], ca : CardinalAddress[N]) : Option[CardinalNesting[S[N], A]] = 
+  def doFiller[N <: Nat, A, B](a : A, cn : CardinalNesting[S[N], A], ca : CardinalAddress[N], msk : Tree[N, B]) : Option[CardinalNesting[S[N], A]] = 
     (new NatCaseSplit {
 
-      type Out[N <: Nat] = (CardinalNestingSucc[N, A], CardinalAddress[N]) => Option[CardinalNestingSucc[N, A]]
+      type Out[N <: Nat] = (CardinalNestingSucc[N, A], CardinalAddress[N], Tree[N, B]) => Option[CardinalNestingSucc[N, A]]
 
       def caseZero : Out[_0] = {
-        case (cn, _ >> addr) => Some(Pt(Node(Dot(a, S(Z)), cn)))
+        case (cn, _ >> addr, msk) => Some(Pt(Node(Dot(a, S(Z)), cn)))
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (cn, ca >> hdAddr) => {
+        case (cn, ca >> hdAddr, msk) => {
 
           type SeqType = TreeSeq[S[P], _0, Tree[S[S[P]], Nesting[S[S[P]], A]]]
           type DerivType = CardinalDerivative[P, SeqType]
 
           for {
             pr <- tailWithDerivative[P, P, _0, Tree[S[S[P]], Nesting[S[S[P]], A]]](cn, ca)(Lte.lteRefl(ca.length.pred))
-            res <- encloseAt[P, Nesting[S[S[P]], A]](Dot(a, S(ca.length)), hdAddr, pr._2)
+            res <- encloseAt[P, Nesting[S[S[P]], A], B](Dot(a, S(ca.length)), hdAddr, pr._2, msk)
           } yield {
             plugCardinal[P, SeqType](p)(pr._1, res)
           }
         }
       }
 
-    })(ca.length.pred)(cn, ca)
+    })(ca.length.pred)(cn, ca, msk)
 
   //============================================================================================
   // DIMENSION FLAGS
@@ -546,7 +570,7 @@ object Cardinals {
   case class DimSucc[K <: Nat](k : K) extends CardinalDimFlag[S[K], K] {
     def succ : CardinalDimFlag[S[S[K]], S[K]] = DimSucc(S(k))
     def extrudeDispatch[A, B](a0 : A, a1 : A, msk : Tree[K, B], ca : CardinalAddress[K], cn : CardinalNesting[S[K], A]) : Option[CardinalNesting[S[K], A]] = 
-      doFiller(a1, cn, ca)
+      doFiller(a1, cn, ca, msk)
   }
 
   case class DimLt[N <: Nat, K <: Nat, D <: Nat](slte : Lte[S[N], K, D]) extends CardinalDimFlag[N, K] {
@@ -571,7 +595,7 @@ object Cardinals {
         }
 
         def caseDblSucc[P <: Nat](p : P) : (Lte[S[S[K]], S[S[P]], D], CardinalNestingDblSucc[P, A]) => Option[CardinalNestingDblSucc[P, A]] = {
-          case (SuccLte(SuccLte(lte)), cn) => doTail(lte, cn, ca)
+          case (SuccLte(SuccLte(lte)), cn) => doTail(lte, cn, ca, msk)
         }
 
       })(sslte.upper)(sslte, cn)
@@ -658,14 +682,14 @@ object Cardinals {
     )(c)
   }
 
-  def doRootExtrusion[K <: Nat, N <: Nat, D <: Nat, A](a0 : A, a1 : A, c : Cardinal[S[N], A])(lte : Lte[K, N, D]) : Option[Cardinal[S[N], A]] = 
+  def doRootExtrusion[K <: Nat, N <: Nat, D <: Nat, A](k : K)(a0 : A, a1 : A, c : Cardinal[S[N], A])(implicit lte : Lte[K, N, D]) : Option[Cardinal[S[N], A]] = 
     for {
       tr <- cardinalRootTree(lte.lower)(c.tail.getAt(lte))
       res <- doExtrude(a0, a1, tr, cardinalRootAddr(lte.lower), c)
     } yield res
 
   def doTopRootExtrusion[N <: Nat, A](a0 : A, a1 : A, c : Cardinal[N, A]) : Option[Cardinal[S[N], A]] = 
-    doRootExtrusion(a0, a1, extend(a1, c))(Lte.lteRefl(c.dim))
+    doRootExtrusion(c.dim)(a0, a1, extendCardinal(c)(_ => a1))(Lte.lteRefl(c.dim))
 
   def getSelectionMask[N <: Nat, A](cn : CardinalNesting[S[N], A], ca : CardinalAddress[S[N]])(p : A => Boolean) : Option[Tree[S[N], Nesting[S[N], A]]] = 
     ca match {
@@ -676,11 +700,33 @@ object Cardinals {
         } yield Tree.takeWhile(zp._1)(nst => p(nst.baseValue))
     }
 
-  def extrudeSelection[K <: Nat, N <: Nat, D <: Nat, A](a0 : A, a1 : A, ca : CardinalAddress[S[K]], c : Cardinal[S[N], A])(p : A => Boolean)(lte : Lte[K, N, D]) : Option[Cardinal[S[N], A]] = 
-    for {
-      msk <- getSelectionMask(c.getAt(SuccLte(lte)), ca)(p)
-      res <- doExtrude(a0, a1, msk, ca, c)
-    } yield res
+  def extrudeSelection[K <: Nat, N <: Nat, D <: Nat, A](a0 : A, a1 : A, ca : CardinalAddress[K], c : Cardinal[N, A])(p : A => Boolean)(lte : Lte[K, N, D]) : Option[Cardinal[N, A]] = 
+    (new LteCaseSplit {
+
+      type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalAddress[K], Cardinal[N, A]) => Option[Cardinal[N, A]]
+
+      def caseZero[N <: Nat](n : N) : Out[_0, N, N] =
+        (ca, c) => doExtrude(a0, a1, Pt(()), ca, c)
+
+      def caseSucc[K <: Nat, N <: Nat, D <: Nat](plte : Lte[K, N, D]) : Out[S[K], S[N], D] = 
+        (ca, c) => {
+          for {
+            msk <- getSelectionMask(c.getAt(SuccLte(plte)), ca)(p)
+            res <- doExtrude(a0, a1, msk, ca, c)
+          } yield {
+
+            println("Selection consists of the following: ")
+            for {
+              el <- msk
+            } {
+              println(el.toString)
+            }
+
+            res
+          }
+        }
+
+    })(lte)(ca, c)
 
   //============================================================================================
   // OPS CLASS

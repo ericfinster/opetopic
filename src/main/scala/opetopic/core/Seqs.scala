@@ -61,15 +61,22 @@ sealed trait ConsSeq[F[_ <: Nat, +_], L <: Nat, +A] {
 
 }
 
-case class CNil[F[_ <: Nat, +_]]() extends ConsSeq[F, _0, Nothing] { def length = Z }
-case class >>>[F[_ <: Nat, +_], P <: Nat, A](tl : ConsSeq[F, P, A], hd : F[P, A]) extends ConsSeq[F, S[P], A] { def length = S(tl.length) }
+case class CNil[F[_ <: Nat, +_]]() extends ConsSeq[F, _0, Nothing] { 
+  def length = Z 
+  override def toString = "[]"
+}
+
+case class >>>[F[_ <: Nat, +_], P <: Nat, A](tl : ConsSeq[F, P, A], hd : F[P, A]) extends ConsSeq[F, S[P], A] { 
+  def length = S(tl.length) 
+  override def toString = tl.toString ++ " >>> \n" ++ hd.toString
+}
 
 trait ConsFold[F[_ <: Nat, +_], A] {
 
   type Out[N <: Nat]
 
   def caseZero : Out[_0]
-  def caseSucc[P <: Nat](fp : F[P, A], ih : Out[P]) : Out[S[P]]
+  def caseSucc[P <: Nat](p : P, fp : F[P, A], ih : Out[P]) : Out[S[P]]
 
 }
 
@@ -105,7 +112,7 @@ object ConsSeq {
   def fold[F[_ <: Nat, +_], N <: Nat, A](cs : ConsSeq[F, N, A])(fld : ConsFold[F, A]) : fld.Out[N] = 
     cs match {
       case CNil() => fld.caseZero
-      case tl >>> hd => fld.caseSucc(hd, fold(tl)(fld))
+      case tl >>> hd => fld.caseSucc(tl.length, hd, fold(tl)(fld))
     }
 
   class ConsSuccOps[F[_ <: Nat, +_], P <: Nat, A](seq : ConsSeq[F, S[P], A]) {

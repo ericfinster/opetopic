@@ -95,7 +95,6 @@ trait NatCaseSplit1 {
       case Z => caseZero[A].asInstanceOf[Out[N, A]]
       case S(p) => caseSucc[Nat, A](p).asInstanceOf[Out[N, A]]
     }
-
 }
 
 trait NatCaseSplitWithOne extends NatCaseSplit { sp => 
@@ -202,6 +201,9 @@ trait NatLemmas { this : NatConstants =>
 }
 
 trait NatImplicits { self : NatFunctions =>
+
+  implicit def zeroNat : Z.type = Z
+  implicit def succNat[P <: Nat](implicit p : P) : S[P] = S(p)
 
   implicit class NatOps[N <: Nat](n : N) {
 

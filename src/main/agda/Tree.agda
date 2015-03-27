@@ -147,6 +147,21 @@ module Tree where
     seek [] z = just z
     seek (d ∷ ds) z = seek ds z >>= visit d 
 
+  parent : {n : ℕ} → {A : Set} → Zipper n A → Maybe (Zipper n A)
+  parent {zero} z = nothing
+  parent {suc n} (fcs , []) = nothing
+  parent {suc n} (fcs , (a , ∂) ∷ cs) = just (node a (∂ ← fcs) , cs)
+
+  parentWhich : {n : ℕ} → {A : Set} → (A → Bool) → Zipper n A → Maybe (Zipper n A)
+  parentWhich {zero} p z = nothing
+  parentWhich {suc n} p (fcs , []) = nothing
+  parentWhich {suc n} p (fcs , (a , ∂) ∷ cs) = 
+    let parent = (node a (∂ ← fcs) , cs) in
+      if p a then 
+        just parent
+      else 
+        parentWhich p parent
+
   seekTo : {n : ℕ} → {A : Set} → Address n → Tree n A → Maybe (Zipper n A)
   seekTo {zero} addr tr = seek addr (tr , tt)
   seekTo {suc n} addr tr = seek addr (tr , [])
@@ -296,20 +311,19 @@ module Tree where
   -- Great.  That was easy.  Now, can we apply this to a cardinal?
 
   exciseDeriv : {n : ℕ} → {A B : Set} → Derivative n (Tree (suc n) A) → Tree (suc n) A → Tree (suc n) B → Maybe (Tree (suc n) A × Tree n (Tree (suc n) A))
-  exciseDeriv ∂ leaf leaf = just (leaf , ∂ ← leaf)
-  exciseDeriv ∂ leaf (node a sil) = nothing 
-  exciseDeriv ∂ (node a tr) leaf = just (leaf , ∂ ← leaf)
-  exciseDeriv {n} {A} ∂ (node a trSh) (node _ silSh) = 
+  exciseDeriv ∂ tr leaf = just (leaf , ∂ ← tr)
+  exciseDeriv ∂ leaf (node b msk) = nothing 
+  exciseDeriv {n} {A} ∂ (node a trSh) (node _ mskSh) = 
     traverseTree maybeA (uncurry (uncurry exciseDeriv))
-      (zip (zipWithDeriv {B = Tree (suc n) A} trSh) silSh)
+      (zip (zipWithDeriv {B = Tree (suc n) A} trSh) mskSh)
     >>= (λ zsh → let (nsh , crpJn) = unzip zsh in join crpJn >>= (λ crp → just (node a nsh , crp)))
 
   excise : {n : ℕ} → {A B : Set} → Tree (suc n) A → Tree (suc n) B → Maybe (Tree (suc n) A × Tree n (Tree (suc n) A))
-  excise tr sil = exciseDeriv (globDeriv _ _) tr sil
+  excise tr msk = exciseDeriv (globDeriv _ _) tr msk
 
   replace : {n : ℕ} → {A B : Set} → Tree (suc n) A → Tree (suc n) B → (Tree (suc n) A → A) → Maybe (Tree (suc n) A)
-  replace tr sil rplfn = excise tr sil >>= (λ { (exTr , sh) → just (node (rplfn exTr) sh) })
+  replace tr msk rplfn = excise tr msk >>= (λ { (exTr , sh) → just (node (rplfn exTr) sh) })
   
   -- replaceAt : {n : ℕ} → {A B : Set} → Address (suc n) → Tree (suc n) A → Tree (suc n) B → (Tree (suc n) A → A) → Maybe (Tree (suc n) A)
-  -- replaceAt addr tr sil rplfn = seekTo addr tr >>= (λ { (fcs , cntxt)  → replace fcs sil rplfn >>= (λ res → just (cntxt ↓ res)) })
+  -- replaceAt addr tr msk rplfn = seekTo addr tr >>= (λ { (fcs , cntxt)  → replace fcs msk rplfn >>= (λ res → just (cntxt ↓ res)) })
 

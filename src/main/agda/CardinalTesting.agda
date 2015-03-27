@@ -354,3 +354,15 @@ module CardinalTesting where
   complex4 : Maybe (Complex (Polarity ℕ) 2)
   complex4 = sbs4 >>= (λ c → just (toComplex c))
 
+  --
+  --  Going to set up to do a bit of replacement testing
+  --
+
+  mask : Tree 1 ℕ
+  mask = node 0 (pt leaf)
+
+  setupTree : Tree 1 (Nesting 1 ℕ)
+  setupTree = node (ext 1) (pt (node (ext 2) (pt (node (ext 3) (pt leaf)))))
+
+  resultTree : Maybe (Tree 1 (Nesting 1 ℕ))
+  resultTree = extrudeNesting 4 [] setupTree mask

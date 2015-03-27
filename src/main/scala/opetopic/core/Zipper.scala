@@ -169,6 +169,25 @@ object Zippers {
 
     })(zp._1.dim)(zp, addr)
 
+
+  def parentWhich[N <: Nat, A](n : N)(zp : Zipper[N, A])(f : A => Boolean) : Option[Zipper[N, A]] = 
+    (new NatCaseSplit {
+
+      type Out[N <: Nat] = Zipper[N, A] => Option[Zipper[N, A]]
+
+      def caseZero : Out[_0] = 
+        zp => None
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (fcs, Nil) => None
+        case (fcs, (a, deriv) :: cs) => {
+          val parent : Zipper[S[P], A] = (Node(a, plug(p)(deriv, fcs)), cs)
+          if (f(a)) Some(parent) else parentWhich(S(p))(parent)(f)
+        }
+      }
+
+    })(n)(zp)
+
   class ZipperOps[N <: Nat, A](zipper : Zipper[N, A]) {
 
     def focus : Tree[N, A] = zipper._1

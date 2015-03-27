@@ -521,9 +521,8 @@ trait TreeFunctions { tfns =>
 
   def exciseDeriv[N <: Nat, A, B](deriv : Derivative[N, Tree[S[N], A]], tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
     (tr, msk) match {
-      case (Leaf(d), Leaf(_)) => Some(Leaf(d), plug(d.pred)(deriv, Leaf(d)))
+      case (tr, Leaf(d)) => Some(Leaf(d), plug(d.pred)(deriv, tr))
       case (Leaf(_), Node(_, _)) => None
-      case (Node(a, sh), Leaf(d)) => Some(Leaf(d), plug(d.pred)(deriv, Leaf(d)))
       case (Node(a, sh), Node(_, mskSh)) => 
         for {
           zpSh <- zipComplete(sh.zipWithDerivative[Tree[S[N], A]], mskSh) 

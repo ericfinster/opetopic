@@ -171,6 +171,20 @@ trait Renderer[U]  {
 
     def outgoingEdgeMarker : Option[RenderMarker]
 
+    def clear : Unit = {
+      rootX = zero
+      rootY = zero
+      leftInteriorMargin = zero
+      rightInteriorMargin = zero 
+      interiorHeight = zero
+      edgeStartX = zero
+      edgeStartY = zero
+      edgeEndX = zero
+      edgeEndY = zero
+      horizontalDependants = Nil
+      verticalDependants = Nil
+    }
+
   }
 
   //============================================================================================
@@ -253,14 +267,14 @@ trait Renderer[U]  {
   def renderObjectNesting(nst : Nesting[_0, RenderMarker]) : RenderMarker = 
     nst match {
       case Obj(rm) => {
-        rm.leftInteriorMargin = zero
-        rm.rightInteriorMargin = zero
-        rm.interiorHeight = zero
+        rm.clear
         rm
       }
       case Box(rm, Pt(n)) => {
 
         val internalMarker = renderObjectNesting(n)
+
+        rm.clear
 
         rm.leftInteriorMargin = internalMarker.leftMargin
         rm.rightInteriorMargin = internalMarker.rightMargin
@@ -285,6 +299,8 @@ trait Renderer[U]  {
         for {
           outgoingEdge <- rm.outgoingEdgeMarker
         } yield {
+
+          rm.clear
 
           val newEdgeMarker = new EdgeStartMarker(outgoingEdge)
 
@@ -325,7 +341,7 @@ trait Renderer[U]  {
 
               if (isOdd) {
 
-                // println("Mid marker is: " ++ midMarker.toString)
+                println("Mid marker is: " ++ midMarker.toString)
 
                 // println("Dot coords: (" ++ rm.rootX.toString ++ ", " ++ rm.rootY.toString ++ ", " ++
                 //   rm.width.toString ++ ", " ++ rm.height.toString ++ ")")
@@ -350,11 +366,11 @@ trait Renderer[U]  {
                 val leftChild = leftChildren.head
                 val rightChild = rightChildren.last
 
-                val midLeftOffset = if (isOdd) midMarker.leftMargin + externalPadding else zero
-                val midRightOffset = if (isOdd) midMarker.rightMargin + externalPadding else zero
+                val midLeftOffset = if (isOdd) midMarker.leftMargin else zero
+                val midRightOffset = if (isOdd) midMarker.rightMargin else zero
 
-                val leftChildShift = max(max(midLeftOffset, leftChild.rightMargin + externalPadding), rm.leftMargin + halfLeafWidth)
-                val rightChildShift = max(max(midRightOffset, rightChild.leftMargin + externalPadding), rm.rightMargin + halfLeafWidth)
+                val leftChildShift = max(midLeftOffset + externalPadding + leftChild.rightMargin, rm.leftMargin + externalPadding)
+                val rightChildShift = max(midRightOffset + externalPadding + rightChild.leftMargin, rm.rightMargin + externalPadding)
 
                 def doLeftPlacement(marker : LayoutMarker, shift : U) : Unit = {
 
@@ -460,6 +476,8 @@ trait Renderer[U]  {
         }
 
       case Box(rm, cn) => {
+
+        rm.clear
 
         val (leafCount : Int, leavesWithIndices : Tree[N, (LayoutMarker, Int)]) = lvs.zipWithIndex
 
