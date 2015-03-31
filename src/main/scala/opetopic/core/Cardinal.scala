@@ -34,8 +34,14 @@ object Cardinals {
 
   type TreeSeq[N <: Nat, K <: Nat, +A] = K#ConsRec[AnyRef, TreeSeqRec[N], A]
 
+  type TreeSeqSucc[N <: Nat, P <: Nat, +A] = 
+    Tree[N, TreeSeq[S[N], P, A]]
   type TreeSeqDblSucc[N <: Nat, P <: Nat, +A] = 
     Tree[N, Tree[S[N], TreeSeq[S[S[N]], P, A]]]
+  type TreeSeqTrplSucc[N <: Nat, P <: Nat, +A] = 
+    Tree[N, Tree[S[N], Tree[S[S[N]], TreeSeq[S[S[S[N]]], P, A]]]]
+  type TreeSeqQuadSucc[N <: Nat, P <: Nat, +A] = 
+    Tree[N, Tree[S[N], Tree[S[S[N]], Tree[S[S[S[N]]], TreeSeq[S[S[S[S[N]]]], P, A]]]]]
 
   //============================================================================================
   // AUXILLARY TYPES
@@ -54,12 +60,20 @@ object Cardinals {
     CardinalTree[P, Tree[S[P], A]]
   type CardinalTreeDblSucc[P <: Nat, +A] = 
     CardinalTree[P, Tree[S[P], Tree[S[S[P]], A]]]
+  type CardinalTreeTrplSucc[P <: Nat, +A] =
+    CardinalTree[P, Tree[S[P], Tree[S[S[P]], Tree[S[S[S[P]]], A]]]]
+  type CardinalTreeQuadSucc[P <: Nat, +A] = 
+    CardinalTree[P, Tree[S[P], Tree[S[S[P]], Tree[S[S[S[P]]], Tree[S[S[S[S[P]]]], A]]]]]
 
   type CardinalNesting[N <: Nat, +A] = CardinalTree[N, Nesting[N, A]]
   type CardinalNestingSucc[P <: Nat, +A] = 
     CardinalTreeSucc[P, Nesting[S[P], A]]
   type CardinalNestingDblSucc[P <: Nat, +A] = 
     CardinalTreeDblSucc[P, Nesting[S[S[P]], A]]
+  type CardinalNestingTrplSucc[P <: Nat, +A] = 
+    CardinalTreeTrplSucc[P, Nesting[S[S[S[P]]], A]]
+  type CardinalNestingQuadSucc[P <: Nat, +A] = 
+    CardinalTreeQuadSucc[P, Nesting[S[S[S[S[P]]]], A]]
 
   type Cardinal[N <: Nat, +A] = ConsSeq[CardinalNesting, S[N], A]
 
@@ -499,7 +513,7 @@ object Cardinals {
             symm[Nothing, Any, SrcType, TgtType](
               cardinalTreeAssoc[S[S[N]], S[S[K]], D, Nesting[S[S[S[N]]], A]](SuccLte(SuccLte(plte)))
             )(
-              plugCardinal(plte.lower)(pr._1, pr._2)
+              plugCardinal(plte.lower)(pr._1, res)
             )
           }
         }
@@ -538,67 +552,182 @@ object Cardinals {
     })(ca.length.pred)(cn, ca, msk)
 
   //============================================================================================
+  // EXTRUDE LOOP AT
+  //
+
+  object extrudeLoopAt extends NatCaseSplit1 {
+
+    type Out[N <: Nat, A] = (A, CardinalNesting[S[N], A], CardinalAddress[N]) => Option[CardinalNesting[S[N], A]]
+
+    def caseZero[A] : Out[_0, A] = {
+      case (a, cn, ca) => Some(Pt(Node(Box(a, Leaf(__1)), cn)))
+    }
+
+    def caseSucc[P <: Nat, A](p : P) : (A, CardinalNestingDblSucc[P, A], CardinalAddress[S[P]]) => Option[CardinalNestingDblSucc[P, A]] = {
+      case (a, cn, ca) => 
+        for {
+          (deriv, tr) <- poke[S[P], Tree[S[S[P]], Nesting[S[S[P]], A]]](cn, ca)
+        } yield {
+          plugCardinal[S[P], Tree[S[S[P]], Nesting[S[S[P]], A]]](S(p))(deriv, 
+            Node(Box(a, Leaf(S(S(p)))), Node(tr, deriv._2._1.constWith(Leaf(S(p)))))
+          )
+        }
+    }
+
+  }
+
+  //============================================================================================
+  // EXTRUDE DROP AT
+  //
+
+  object extrudeDropAt extends NatCaseSplit1 {
+
+    type Out[N <: Nat, A] = (A, CardinalNesting[S[S[N]], A], CardinalAddress[N]) => Option[CardinalNesting[S[S[N]], A]]
+
+    def caseZero[A] : (A, CardinalNestingDblSucc[_0, A], CardinalAddress[_0]) => Option[CardinalNestingDblSucc[_0, A]] = {
+      case (a, cn, ca) => Some(Pt(Node(Node(Dot(a, __2), Leaf(__1)), cn)))
+    }
+
+    def caseSucc[P <: Nat, A](p : P) : (A, CardinalNestingTrplSucc[P, A], CardinalAddress[S[P]]) => Option[CardinalNestingTrplSucc[P, A]] = {
+      case (a, cn, ca) => 
+        for {
+          (deriv, tr) <- poke[S[P], Tree[S[S[P]], Tree[S[S[S[P]]], Nesting[S[S[S[P]]], A]]]](cn, ca)
+        } yield {
+          plugCardinal[S[P], Tree[S[S[P]], Tree[S[S[S[P]]], Nesting[S[S[S[P]]], A]]]](S(p))(deriv, 
+            Node(Node(Dot(a, S(S(S(p)))), Leaf(S(S(p)))), Node(tr, deriv._2._1.constWith(Leaf(S(p)))))
+          )
+        }
+    }
+
+  }
+
+  //============================================================================================
+  // PAD WITH DROP LEAF
+  //
+
+  // What a horrendous nightmare.  Please rewrite this to make it readable ...
+
+  def padWithDropLeaf[A, K <: Nat, N <: Nat, D <: Nat](cn : CardinalNesting[N, A], ca : CardinalAddress[K])(lte : Lte[S[S[S[K]]], N, D]) 
+      : Option[CardinalNesting[N, A]] = 
+    (new NatCaseSplitWithOne { sp => 
+
+      type Out[N <: Nat] = (Lte[S[S[S[K]]], N, D], CardinalNesting[N, A], CardinalAddress[K]) => Option[CardinalNesting[N, A]]
+
+      def caseZero : Out[_0] = {
+        case (_, _, _) => None  // Unreachable
+      }
+
+      def caseOne : Out[_1] = {
+        case (_, _, _) => None  // Unreachable
+      }
+
+      def caseDblSucc[P <: Nat](p : P) 
+          : (Lte[S[S[S[K]]], S[S[P]], D], CardinalNestingDblSucc[P, A], CardinalAddress[K]) => Option[CardinalNestingDblSucc[P, A]]
+      = {
+        case (plte, cn, ca) => {
+          (new NatCaseSplit {
+
+            type Out[Q <: Nat] = sp.Out[S[S[Q]]]
+
+            def caseZero : (Lte[S[S[S[K]]], S[S[_0]], D], CardinalNestingDblSucc[_0, A], CardinalAddress[K]) => Option[CardinalNestingDblSucc[_0, A]] = {
+              case (_, _, _) => None  // Unreachable
+            }
+
+            def caseSucc[Q <: Nat](q : Q) : (Lte[S[S[S[K]]], S[S[S[Q]]], D], CardinalNestingTrplSucc[Q, A], CardinalAddress[K]) => Option[CardinalNestingTrplSucc[Q, A]] = {
+              case (SuccLte(SuccLte(SuccLte(qlte))), cn, ca) => 
+                (new LteCaseSplit {
+
+                  type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingTrplSucc[N, A], CardinalAddress[K]) => Option[CardinalNestingTrplSucc[N, A]]
+
+                  def caseZero[N <: Nat](n : N) : Out[_0, N, N] = {
+                    case (cn, ca) => 
+                      for {
+                        pr <- tailWithDerivative[S[S[N]], _0, S[S[N]], Nesting[S[S[S[N]]], A]](cn, ca)(ZeroLte(S(S(n))))
+                      } yield { 
+                        symm[Nothing, Any, CardinalNestingTrplSucc[N, A], TreeSeqTrplSucc[_0, N, Nesting[S[S[S[N]]], A]]](
+                          cardinalTreeAssoc[S[S[N]], _2, N, Nesting[S[S[S[N]]], A]](SuccLte(SuccLte(ZeroLte(n))))
+                        )(
+                          plugCardinal(__0)(pr._1, Node(Node(seqLeaf(__2, n), Leaf(__1)), Pt(pr._2)))
+                        )
+                      }
+                  }
+
+                  def caseSucc[K <: Nat, N <: Nat, D <: Nat](plte : Lte[K, N, D]) : Out[S[K], S[N], D] = {
+                    case (cn, ca) => {
+                      import Lte._
+
+                      val ev = lteSucc(lteSucc(SuccLte(plte)))
+
+                      for {
+                        pr <- tailWithDerivative[S[S[S[N]]],S[K],S[S[D]], Nesting[S[S[S[S[N]]]], A]](cn, ca)(ev)
+                      } yield {
+
+                        val k : K = plte.lower
+                        val n : N = plte.upper
+                        val d : D = plte.diff
+
+                        symm[Nothing, Any, CardinalNestingQuadSucc[N, A], CardinalTree[S[K], TreeSeq[S[S[K]], S[S[D]], Nesting[S[S[S[S[N]]]], A]]]](
+                          cardinalTreeAssoc[S[S[S[N]]], S[K], S[S[D]], Nesting[S[S[S[S[N]]]], A]](ev)
+                        )(
+                          plugCardinal(S(k))(pr._1, Node(Node(seqLeaf(S(S(S(k))), d), Leaf(S(S(k)))), Node(pr._2, pr._1._2._1.constWith(Leaf(S(k))))))
+                        )
+                      }
+                    }
+                  }
+
+                })(qlte)(cn, ca)
+            }
+
+          })(p)(plte, cn, ca)
+        }
+      }
+
+    })(lte.upper)(lte, cn, ca)
+
+  //============================================================================================
   // DIMENSION FLAGS
   //
 
   sealed trait CardinalDimFlag[N <: Nat, K <: Nat] { 
     def succ : CardinalDimFlag[S[N], S[K]] 
-    def extrudeDispatch[A, B](a0 : A, a1 : A, msk : Tree[K, B], ca : CardinalAddress[K], cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]]
+    def dispatch(disp : DimDispatcher[K]) : disp.Out[N]
   }
 
   case class DimEq[K <: Nat](k : K) extends CardinalDimFlag[K, K] {
     def succ : CardinalDimFlag[S[K], S[K]] = DimEq(S(k))
-
-    def extrudeDispatch[A, B](a0 : A, a1 : A, msk : Tree[K, B], ca : CardinalAddress[K], cn : CardinalNesting[K, A]) : Option[CardinalNesting[K, A]] =
-      (new NatCaseSplit {
-
-        type Out[N <: Nat] = (Tree[N, B], CardinalAddress[N], CardinalNesting[N, A]) => Option[CardinalNesting[N, A]]
-
-        def caseZero : Out[_0] = {
-          (msk, ca, cn) => Some(Pt(Box(a0, cn)))
-        }
-
-        def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-          (msk, ca, cn) => extrudeNestingAt(a0, cn, ca, msk)
-        }
-
-      })(msk.dim)(msk, ca, cn)
-
+    def dispatch(disp : DimDispatcher[K]) : disp.Out[K] = 
+      disp.caseEq(k)
   }
-
 
   case class DimSucc[K <: Nat](k : K) extends CardinalDimFlag[S[K], K] {
     def succ : CardinalDimFlag[S[S[K]], S[K]] = DimSucc(S(k))
-    def extrudeDispatch[A, B](a0 : A, a1 : A, msk : Tree[K, B], ca : CardinalAddress[K], cn : CardinalNesting[S[K], A]) : Option[CardinalNesting[S[K], A]] = 
-      doFiller(a1, cn, ca, msk)
+    def dispatch(disp : DimDispatcher[K]) : disp.Out[S[K]] = 
+      disp.caseSucc(k)
   }
 
   case class DimLt[N <: Nat, K <: Nat, D <: Nat](slte : Lte[S[N], K, D]) extends CardinalDimFlag[N, K] {
     def succ : CardinalDimFlag[S[N], S[K]] = DimLt(SuccLte(slte))
-    def extrudeDispatch[A, B](a0 : A, a1 : A, msk : Tree[K, B], ca : CardinalAddress[K], cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]] = 
-      Some(cn)
+    def dispatch(disp : DimDispatcher[K]) : disp.Out[N] = 
+      disp.caseLt(slte)
   }
 
   case class DimDblSucc[N <: Nat, K <: Nat, D <: Nat](sslte : Lte[S[S[K]], N, D]) extends CardinalDimFlag[N, K] {
     def succ : CardinalDimFlag[S[N], S[K]] = DimDblSucc(SuccLte(sslte))
-    def extrudeDispatch[A, B](a0 : A, a1 : A, msk : Tree[K, B], ca : CardinalAddress[K], cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]] = 
-      (new NatCaseSplitWithOne {  
+    def dispatch(disp : DimDispatcher[K]) : disp.Out[N] = 
+      disp.caseDblSucc(sslte)
+  }
 
-        type Out[N <: Nat] = (Lte[S[S[K]], N, D], CardinalNesting[N, A]) => Option[CardinalNesting[N, A]]
+  trait DimDispatcher[K <: Nat] {
 
-        def caseZero : Out[_0] = {
-          case (_, _) => None  // Unreachable
-        }
+    type Out[N <: Nat]
 
-        def caseOne : Out[_1] = {
-          case (_, _) => None // Unreachable
-        }
+    def caseEq(k : K) : Out[K]
+    def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], K, D]) : Out[N]
+    def caseSucc(k : K) : Out[S[K]]
+    def caseDblSucc[N <: Nat, D <: Nat](sslte : Lte[S[S[K]], N, D]) : Out[N]
 
-        def caseDblSucc[P <: Nat](p : P) : (Lte[S[S[K]], S[S[P]], D], CardinalNestingDblSucc[P, A]) => Option[CardinalNestingDblSucc[P, A]] = {
-          case (SuccLte(SuccLte(lte)), cn) => doTail(lte, cn, ca, msk)
-        }
-
-      })(sslte.upper)(sslte, cn)
+    def apply[N <: Nat](flag : CardinalDimFlag[N, K]) : Out[N] = 
+      flag.dispatch(this)
 
   }
 
@@ -630,6 +759,102 @@ object Cardinals {
         })(n)
 
     })(k)
+
+
+  //============================================================================================
+  // EXTRUDE DISPATCH
+  //
+
+  def extrudeDispatch[N <: Nat, K <: Nat, A, B](flag : CardinalDimFlag[N, K])(
+    a0 : A, a1 : A,
+    msk : Tree[K, B],
+    ca : CardinalAddress[K],
+    cn : CardinalNesting[N, A]
+  ) : Option[CardinalNesting[N, A]] = 
+    (new DimDispatcher[K] {
+
+      type Out[N <: Nat] = (Tree[K, B], CardinalAddress[K], CardinalNesting[N, A]) => Option[CardinalNesting[N, A]]
+
+      def caseEq(k : K) : Out[K] = {
+        case (msk, ca, cn) => {
+          (new NatCaseSplit {
+
+            type Out[N <: Nat] = (Tree[N, B], CardinalAddress[N], CardinalNesting[N, A]) => Option[CardinalNesting[N, A]]
+
+            def caseZero : Out[_0] = {
+              (msk, ca, cn) => Some(Pt(Box(a0, cn)))
+            }
+
+            def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+              (msk, ca, cn) => extrudeNestingAt(a0, cn, ca, msk)
+            }
+
+          })(k)(msk, ca, cn)
+        }
+      }
+
+
+      def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], K, D]) : Out[N] = {
+        case (msk, ca, cn) => Some(cn)
+      }
+
+      def caseSucc(k : K) : Out[S[K]] = {
+        case (msk, ca, cn) => doFiller(a1, cn, ca, msk)
+      }
+
+      def caseDblSucc[N <: Nat, D <: Nat](sslte : Lte[S[S[K]], N, D]) : Out[N] = {
+        case (msk, ca, cn) => 
+          (new NatCaseSplitWithOne {
+
+            type Out[N <: Nat] = (Lte[S[S[K]], N, D], CardinalNesting[N, A]) => Option[CardinalNesting[N, A]]
+
+            def caseZero : Out[_0] = {
+              case (_, _) => None  // Unreachable
+            }
+
+            def caseOne : Out[_1] = {
+              case (_, _) => None // Unreachable
+            }
+
+            def caseDblSucc[P <: Nat](p : P) : (Lte[S[S[K]], S[S[P]], D], CardinalNestingDblSucc[P, A]) => Option[CardinalNestingDblSucc[P, A]] = {
+              case (SuccLte(SuccLte(lte)), cn) => doTail(lte, cn, ca, msk)
+            }
+
+          })(sslte.upper)(sslte, cn)
+      }
+
+    })(flag)(msk, ca, cn)
+
+  //============================================================================================
+  // DROP DISPATCH
+  //
+
+  def dropDispatch[N <: Nat, K <: Nat, A](flag : CardinalDimFlag[N, S[K]])(
+    a0 : A, a1 : A,
+    ca : CardinalAddress[K],
+    cn : CardinalNesting[N, A]
+  ) : Option[CardinalNesting[N, A]] = 
+    (new DimDispatcher[S[K]] {
+
+      type Out[N <: Nat] = CardinalNesting[N, A] => Option[CardinalNesting[N, A]]
+
+      def caseEq(sk : S[K]) : Out[S[K]] = {
+        cn => extrudeLoopAt(sk.pred)(a0, cn, ca)
+      }
+
+      def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], S[K], D]) : Out[N] = {
+        cn => Some(cn)
+      }
+
+      def caseSucc(sk : S[K]) : CardinalNestingDblSucc[K, A] => Option[CardinalNestingDblSucc[K, A]] = {
+        cn => extrudeDropAt(sk.pred)(a1, cn, ca)
+      }
+
+      def caseDblSucc[N <: Nat, D <: Nat](sslte : Lte[S[S[S[K]]], N, D]) : Out[N] = {
+        cn => padWithDropLeaf(cn, ca)(sslte)
+      }
+
+    })(flag)(cn)
 
   //============================================================================================
   // TRAVERSE CARDINAL
@@ -677,10 +902,20 @@ object Cardinals {
     traverseCardinal(
       new CardinalTraversal[A] {
         def apply[N0 <: Nat](n0 : N0, cn : CardinalNesting[N0, A]) : Option[CardinalNesting[N0, A]] = 
-          getFlag(n0, k).extrudeDispatch(a0, a1, msk, ca, cn)
+          extrudeDispatch(getFlag(n0, k))(a0, a1, msk, ca, cn)
       }
     )(c)
   }
+
+  def doDrop[N <: Nat, K <: Nat, A](
+    a0 : A, a1 : A,
+    ca : CardinalAddress[K],
+    c : Cardinal[N, A]
+  ) : Option[Cardinal[N, A]] = 
+    traverseCardinal(new CardinalTraversal[A] {
+      def apply[N <: Nat](n : N, cn : CardinalNesting[N, A]) : Option[CardinalNesting[N, A]] =
+        dropDispatch(getFlag(n, S(ca.length.pred)))(a0, a1, ca, cn)
+    })(c)
 
   def doRootExtrusion[K <: Nat, N <: Nat, D <: Nat, A](k : K)(a0 : A, a1 : A, c : Cardinal[S[N], A])(implicit lte : Lte[K, N, D]) : Option[Cardinal[S[N], A]] = 
     for {
@@ -739,7 +974,26 @@ object Cardinals {
     def toComplexWith[F[_]](gen : CardinalCellGenerator[F, A]) : Complex[N, F[A]] = 
       Cardinals.toComplex(c)(gen)
 
+    def toComplex : Complex[N, Polarity[A]] = 
+      Cardinals.toComplex(c)(new CardinalCellGenerator[Polarity, A] {
+
+        def positive[N <: Nat](n : N) : Polarity[A] = Positive()
+        def negative[N <: Nat](n : N) : Polarity[A] = Negative()
+
+        def neutral[N <: Nat](a : A) : Polarity[A] = Neutral(a)
+
+      })
   }
+
+
+  // trait CardinalCellGenerator[F[_], A] {
+
+  //   def positive[N <: Nat](n : N) : F[A]
+  //   def negative[N <: Nat](n : N) : F[A]
+
+  //   def neutral[N <: Nat](a : A) : F[A]
+
+  // }
 
   implicit def cardinalToOps[N <: Nat, A](c : Cardinal[N, A]) : CardinalOps[N, A] = 
     new CardinalOps(c)

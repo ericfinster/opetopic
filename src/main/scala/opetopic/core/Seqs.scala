@@ -129,6 +129,9 @@ object ConsSeq {
     def getAt[K <: Nat, D <: Nat](lte : Lte[K, P, D]) : F[K, A] = 
       ConsSeq.getAt(seq)(lte)
 
+    def get[K <: Nat, D <: Nat](k : K)(implicit lte : Lte[K, P, D]) : F[K, A] = 
+      ConsSeq.getAt(seq)(lte)
+
   }
 
   implicit def toConsSuccOps[F[_ <: Nat, +_], P <: Nat, A](seq : ConsSeq[F, S[P], A]) : ConsSuccOps[F, P, A] = 

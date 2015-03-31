@@ -354,7 +354,7 @@ trait TreeFunctions { tfns =>
           b <- elim.caseLeaf(addr)
         } yield (Node(b, bSh), adTr)
       }
-      case Node(Node(a, vsh), hsh) =>
+      case Node(Node(a, vsh), hsh) => 
         for {
           pr <- graftRecHoriz(elim, addr, deriv, vsh)
           (bTr, adTr0) = pr
@@ -407,9 +407,9 @@ trait TreeFunctions { tfns =>
         graftElimChain(elim, a, hsh,
           for {
             b <- elim.caseNode(a0, Leaf(dim))
-          } yield (b, mapWithAddress(hsh)((dir, _) => dir :: rootAddr(dim)))
+          } yield (b, mapWithAddress(hsh)((dir, _) => rootAddr(dim))) 
         )
-      case Node(a0, Node(v, hsh0)) => 
+      case Node(a0, Node(v, hsh0)) =>
         graftElimChain(elim, a, hsh, graftElimStart(elim, v, a0, hsh0))
     }
 

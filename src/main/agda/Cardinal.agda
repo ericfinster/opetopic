@@ -163,6 +163,45 @@ module Cardinal where
     >>= (λ { (fcs , cntxt) → excise fcs msk 
     >>= (λ { (cut , cutSh) → just (cntxt ↓ node (node (seqLeaf {2 + n} {k}) cut) cutSh) }) })
 
+
+  -- Here are the three dropping routines.  Notice how completely uniform they are.  Should do something
+  -- similar for the extrusion routines ....
+  extrudeLoopAt : {n : ℕ} → {A : Set} → A → CardinalNesting (suc n) A → CardinalAddress n → Maybe (CardinalNesting (suc n) A)
+  extrudeLoopAt {zero} a cn ca = just (pt (node (int a leaf) cn))
+  extrudeLoopAt {suc n} a cn ca = 
+    poke cn ca >>= (λ { (∂ , tr) → just (plug-cardinal ∂ (node (int a leaf) (node tr (const leaf (proj₁ (proj₂ ∂)))))) })
+
+  extrudeDropAt : {n : ℕ} → {A : Set} → A → CardinalNesting (suc (suc n)) A → CardinalAddress n → Maybe (CardinalNesting (suc (suc n)) A)
+  extrudeDropAt {zero} a cn ca = just (pt (node (node (ext a) leaf) cn))
+  extrudeDropAt {suc n} a cn ca = 
+    poke cn ca >>= (λ { (∂ , tr) → just (plug-cardinal ∂ (node (node (ext a) leaf) (node tr (const leaf (proj₁ (proj₂ ∂)))))) })
+
+  -- cardinalTreeAssoc : {n k : ℕ} → {A : Set} → (k≤n : k ≤ n) → CardinalTree (suc n) A == CardinalTree k (TreeSeq (suc k) (Δ k≤n) A)
+  -- plug-cardinal : {n : ℕ} → {A : Set} → CardinalDerivative n A → A → CardinalTree n A
+  -- tailDeriv : {n k : ℕ} → {A : Set} → (k≤n : k ≤ n) → CardinalTree (suc n) A → CardinalAddress k → 
+  --             Maybe (CardinalDerivative k (TreeSeq (suc k) (Δ k≤n) A) × (TreeSeq (suc k) (Δ k≤n) A))
+
+  padWithDropLeaf : {n k : ℕ} → {A : Set} → (3pk≤n : 3 + k ≤ n) → CardinalNesting n A → CardinalAddress k → Maybe (CardinalNesting n A)
+  padWithDropLeaf {A = A} (s≤s (s≤s (s≤s (z≤n {n})))) cn ca = 
+    tailDeriv {suc (suc n)} {0} z≤n cn ca >>= (λ { (∂ , seq) → 
+      just (coe! (cardinalTreeAssoc {2 + n} {2} {Nesting (3 + n) A} (s≤s (s≤s (z≤n {n})))) 
+           (plug-cardinal {0} {TreeSeq 1 (2 + n) (Nesting (3 + n) A)} ∂ (node (node (seqLeaf {2} {n}) leaf) (pt seq)))) })
+  padWithDropLeaf {A = A} (s≤s (s≤s (s≤s (s≤s {k} {n} k≤n)))) cn ca = 
+    tailDeriv {suc (suc (suc n))} {suc k} {Nesting (4 + n) A} (≤-suc (≤-suc (s≤s k≤n))) cn ca 
+    >>= (λ { (∂ , seq) → 
+      just (coe! (cardinalTreeAssoc {3 + n} {1 + k} {Nesting (4 + n) A} (≤-suc (≤-suc (s≤s k≤n)))) 
+           (plug-cardinal {1 + k} {TreeSeq (2 + k) (Δ (≤-suc (≤-suc k≤n))) (Nesting (4 + n) A)} ∂ (transport! P p (node (node (seqLeaf {3 + k} {Δ k≤n}) (leaf {n = 1 + k})) 
+                                                  (node (transport P p seq) (const leaf (transport Q p (proj₁ (proj₂ ∂))))))))) })
+
+    where p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
+          p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
+
+          P : ℕ → Set
+          P m = TreeSeq (suc (suc k)) m (Nesting (4 + n) A)
+  
+          Q : ℕ → Set
+          Q m = Tree k (Tree (suc k) (P m))
+
   doTail : {n k : ℕ} → {A B : Set} → (k≤n : k ≤ n) → CardinalNesting (2 + n) A → CardinalAddress k → Tree k B → Maybe (CardinalNesting (2 + n) A)
   doTail (z≤n {n}) cn ca msk = 
     tailDeriv {suc n} {0} z≤n cn ca 
@@ -215,12 +254,21 @@ module Cardinal where
   extrudeDispatch a₀ a₁ msk ca (dimLt sn≤k) cn = just cn
   extrudeDispatch a₀ a₁ msk ca (dimDblSucc (s≤s (s≤s k≤n))) cn = doTail k≤n cn ca msk
 
+  dropDispatch : {n k : ℕ} → {A : Set} → A → A → CardinalAddress k → CardinalDimFlag n (suc k) → CardinalNesting n A → Maybe (CardinalNesting n A)
+  dropDispatch a₀ a₁ ca dimEq cn = {!!} -- extrudeLoopAt a₀ cn ca
+  dropDispatch a₀ a₁ ca dimSucc cn = extrudeDropAt a₁ cn ca
+  dropDispatch a₀ a₁ ca (dimLt sn≤sk) cn = just cn
+  dropDispatch a₀ a₁ ca (dimDblSucc 3pk≤n) cn = padWithDropLeaf 3pk≤n cn ca
+
   traverseCardinal : {n : ℕ} → {A : Set} → ((m : ℕ) → CardinalNesting m A → Maybe (CardinalNesting m A)) → Cardinal n A → Maybe (Cardinal n A)
   traverseCardinal {zero} f (∥ ▶ hd) = f 0 hd >>= (λ newHd → just (∥ ▶ newHd))
   traverseCardinal {suc n} f (c ▶ hd) = traverseCardinal {n} f c >>= (λ newTl → f (suc n) hd >>= (λ newHd → just (newTl ▶ newHd)))
 
   doExtrude : {n k : ℕ} → {A B : Set} → A → A → Tree k B → CardinalAddress k → Cardinal n A → Maybe (Cardinal n A)
   doExtrude {k = k} a₀ a₁ msk ca c = traverseCardinal (λ m → extrudeDispatch a₀ a₁ msk ca (getFlag m k)) c
+
+  doDrop : {n k : ℕ} → {A : Set} → A → A → CardinalAddress k → Cardinal n A → Maybe (Cardinal n A)
+  doDrop {k = k} a₀ a₁ ca c = traverseCardinal (λ m → dropDispatch a₀ a₁ ca (getFlag m (suc k))) c
 
   doRootExtrusion : {n : ℕ} → {A : Set} → (k : ℕ) → (k≤n : k ≤ n) → A → A → Cardinal (suc n) A → Maybe (Cardinal (suc n) A)
   doRootExtrusion {n} {A} k k≤n a₀ a₁ c = rootTree {k} {A} (getAt k k≤n (tail c)) >>= (λ tr → doExtrude a₀ a₁ tr (rootAddr k) c)

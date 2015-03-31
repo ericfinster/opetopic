@@ -86,6 +86,8 @@ trait Renderer[U]  {
     def rootY_=(u : U) : Unit = 
       rm.edgeStartY = u
 
+    override def toString = "Edge(" ++ rm.toString ++ ")"
+
   }
 
   class EdgeEndMarker(rm : RenderMarker) extends RootedElement {
@@ -251,6 +253,7 @@ trait Renderer[U]  {
 
     override def toString = "LM(" ++ element.toString ++ ")" ++ 
       "(we = " ++ external.toString ++ ", ht = " ++ height.toString ++
+      ", re = " ++ rootEdgeMarker.toString ++
       ", rx = " ++ element.rootX.toString ++
       ", ry = " ++ element.rootY.toString ++
       ", lsm = " ++ leftSubtreeMargin.toString ++
@@ -567,10 +570,13 @@ trait Renderer[U]  {
           rm.rightInteriorMargin = layout.rightMargin
           rm.interiorHeight = layout.height
 
+          // Even if the layout was external  (meaning that we just
+          // rendered a loop) we need to move it horizontally
+          rm.horizontalDependants :+= layout.element
+
           if (! layout.external) {
             layout.element.shiftUp(strokeWidth + rm.labelContainerHeight)
             rm.verticalDependants :+= layout.element
-            rm.horizontalDependants :+= layout.element
           }
 
           // Setup and return an appropriate marker

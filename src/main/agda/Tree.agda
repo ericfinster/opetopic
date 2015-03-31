@@ -240,7 +240,7 @@ module Tree where
     graftRecStart ndRec lfRec leaf a hsh = 
       graftRecChain ndRec lfRec a hsh (lfRec [] >>= (λ b → just (b , mapWithAddress (λ dir _ → dir ∷ []) hsh)))
     graftRecStart ndRec lfRec (node a₀ leaf) a hsh = 
-      graftRecChain ndRec lfRec a hsh (ndRec a leaf >>= (λ b → just (b , mapWithAddress (λ dir _ → dir ∷ []) hsh)))
+      graftRecChain ndRec lfRec a hsh (ndRec a leaf >>= (λ b → just (b , mapWithAddress (λ _ _ → []) hsh)))
     graftRecStart ndRec lfRec (node a₀ (node v hsh₀)) a hsh = 
       graftRecChain ndRec lfRec a hsh (graftRecStart ndRec lfRec v a₀ hsh₀)
 
