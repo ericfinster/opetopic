@@ -13,10 +13,10 @@ import scala.language.implicitConversions
 import scalaz.Id._
 import scalaz.Applicative
 
-sealed abstract class Tree[N <: Nat, +A] { def dim : N }
-case class Pt[+A](a : A) extends Tree[_0, A] { def dim = Z }
-case class Leaf[N <: Nat](d : S[N]) extends Tree[S[N], Nothing] { def dim = d ; override def toString = "Leaf" }
-case class Node[N <: Nat, +A](a : A, shell : Tree[N, Tree[S[N], A]]) extends Tree[S[N], A] { def dim = S(shell.dim) }
+sealed abstract class Tree[+A, N <: Nat] { def dim : N }
+case class Pt[+A](a : A) extends Tree[A, _0] { def dim = Z }
+case class Leaf[N <: Nat](d : S[N]) extends Tree[Nothing, S[N]] { def dim = d ; override def toString = "Leaf" }
+case class Node[+A, N <: Nat](a : A, shell : Tree[Tree[A, S[N]], N]) extends Tree[A, S[N]] { def dim = S(shell.dim) }
 
 trait TreeFunctions { tfns => 
 
@@ -24,7 +24,7 @@ trait TreeFunctions { tfns =>
   // TRAVERSE
   //
 
-  def traverse[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : A => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
+  def traverse[T[_], A, B, N <: Nat](tr : Tree[A, N])(f : A => T[B])(implicit apT : Applicative[T]) : T[Tree[B, N]] = {
 
     import apT.{pure, ap, ap2}
 
@@ -40,17 +40,17 @@ trait TreeFunctions { tfns =>
   // TRAVERSE WITH ADDRESS
   //
 
-  def traverseWithAddress[N <: Nat, T[_], A, B](
-    tr : Tree[N, A], base : Address[N]
-  )(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
+  def traverseWithAddress[T[_], A, B, N <: Nat](
+    tr : Tree[A, N], base : Address[N]
+  )(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[B, N]] = {
 
     import apT.{pure, ap, ap2}
 
     def traverseShell[P <: Nat](
-      a : A, sh : Tree[P, Tree[S[P], A]], 
+      a : A, sh : Tree[Tree[A, S[P]], P], 
       addr : Address[S[P]], 
       f : (A, Address[S[P]]) => T[B]
-    ) : T[Tree[P, Tree[S[P], B]]] = {
+    ) : T[Tree[Tree[B, S[P]], P]] = {
       traverseWithAddress(sh)({
         case (br, dir) => traverseWithAddress(br, dir :: addr : Address[S[P]])(f)
       })
@@ -64,21 +64,50 @@ trait TreeFunctions { tfns =>
 
   }
 
-  def traverseWithAddress[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = 
+  def traverseWithAddress[T[_], A, B, N <: Nat](tr : Tree[A, N])(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[B, N]] = 
     traverseWithAddress(tr, rootAddr(tr.dim))(f)
 
   //============================================================================================
-  // MAP IMPLEMENTATIONS
+  // MATCH TRAVERSE
   //
 
-  def map[N <: Nat, A, B](tr : Tree[N, A])(f : A => B) : Tree[N, B] = 
-    traverse[N, Id, A, B](tr)(f)
+  def matchTraverse[M[+_], A, B, C, N <: Nat](trA : Tree[A, N], trB : Tree[B, N])(f : (A, B) => M[C])(implicit sm : ShapeMonad[M]) : M[Tree[C, N]] = {
 
-  def mapWithAddress[N <: Nat, A, B](tr : Tree[N, A])(f : (A, Address[N]) => B) : Tree[N, B] =
-    traverseWithAddress[N, Id, A, B](tr)(f)
+    import sm.failWith
 
-  def const[N <: Nat, A, B](tr : Tree[N, A], b : B) : Tree[N, B] = 
-    map(tr)(_ => b)
+    val apM = Applicative[M]
+    import apM.{pure, ap, ap2}
+
+    (trA, trB) match {
+      case (Pt(a), Pt(b)) => ap(f(a, b))(pure(Pt(_)))
+      case (Leaf(d), Leaf(_)) => pure(Leaf(d))
+      case (Node(a, shA), Node(b, shB)) => {
+
+        val matchedShell = 
+          matchTraverse(shA, shB)({
+            case (brA, brB) => matchTraverse(brA, brB)(f)
+          })
+
+        ap2(f(a, b), matchedShell)(pure(Node(_, _)))
+
+      }
+      case _ => failWith(new ShapeMatchError)
+    }
+
+  }
+
+  // //============================================================================================
+  // // MAP IMPLEMENTATIONS
+  // //
+
+  // def map[N <: Nat, A, B](tr : Tree[N, A])(f : A => B) : Tree[N, B] = 
+  //   traverse[N, Id, A, B](tr)(f)
+
+  // def mapWithAddress[N <: Nat, A, B](tr : Tree[N, A])(f : (A, Address[N]) => B) : Tree[N, B] =
+  //   traverseWithAddress[N, Id, A, B](tr)(f)
+
+  // def const[N <: Nat, A, B](tr : Tree[N, A], b : B) : Tree[N, B] = 
+  //   map(tr)(_ => b)
 
   // //============================================================================================
   // // FOREACH
@@ -179,25 +208,6 @@ trait TreeFunctions { tfns =>
   //   }
 
   // }
-
-  // //============================================================================================
-  // // MATCH TREE
-  // //
-
-  // def matchTree[N <: Nat, A, B](trA : Tree[N, A], trB : Tree[N, B]) : Option[Tree[N, (A, B)]] = 
-  //   (trA, trB) match {
-  //     case (Pt(a), Pt(b)) => Some(Pt((a, b)))
-  //     case (Leaf(d), Leaf(_)) => Some(Leaf(d))
-  //     case (Node(a, ash), Node(b, bsh)) =>
-  //       for {
-  //         zsh <- matchTree(ash, bsh)
-  //         psh <- traverse(zsh)({
-  //           case (at, bt) => matchTree(at, bt)
-  //         })
-  //       } yield Node((a, b), psh)
-
-  //     case _ => None
-  //   }
 
   // //============================================================================================
   // // ZIP WITH DERIVATIVE

@@ -7,11 +7,19 @@
 
 package opetopic
 
+import scala.language.higherKinds
+
+import scalaz.Monad
+
 package object core 
     extends NatExports
     with AddressExports {
 
-  // type ShapeM[A] = Either[ShapeError, A]
+  trait ShapeMonad[M[+_]] extends Monad[M] {
+
+    def failWith[A](se : ShapeError) : M[A]
+
+  }
 
 }
 
