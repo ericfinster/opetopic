@@ -5,12 +5,8 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
-package object core {
-
-  // Package wide type aliases should go here
-  type Complex[N <: Nat, +A] = ConsSeq[Nesting, S[N], A]
+package object core extends NatConstants 
 
 
-}

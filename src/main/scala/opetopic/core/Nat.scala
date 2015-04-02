@@ -62,18 +62,6 @@ trait ~~>[F[_ <: Nat], G[_ <: Nat]] {
 
 }
 
-trait NatCaseSplit {
-
-  type Out[N <: Nat]
-
-  def caseZero : Out[Z.type]
-  def caseSucc[P <: Nat](p: P) : Out[S[P]]
-
-  def apply[N <: Nat](n : N) : Out[N] = 
-    Nat.caseSplit(n)(this)
-
-}
-
 trait NatCaseSplit0 {
 
   type Out[N <: Nat]
@@ -103,7 +91,7 @@ trait NatCaseSplit1 {
     }
 }
 
-trait NatCaseSplitWithOne extends NatCaseSplit { sp => 
+trait NatCaseSplitWithOne extends NatCaseSplit0 { sp => 
 
   type Out[N <: Nat]
 
@@ -112,27 +100,19 @@ trait NatCaseSplitWithOne extends NatCaseSplit { sp =>
   def caseDblSucc[P <: Nat](p : P) : Out[S[S[P]]]
 
   final def caseSucc[P <: Nat](p : P) : Out[S[P]] =
-    (new NatCaseSplit {
+    splitSucc(p)
 
-      type Out[N <: Nat] = sp.Out[S[N]]
+  object splitSucc extends NatCaseSplit0 {
 
-      def caseZero : Out[Z.type] = 
-        sp.caseOne
+    type Out[N <: Nat] = sp.Out[S[N]]
 
-      def caseSucc[PP <: Nat](pp : PP) : Out[S[PP]] = 
-        sp.caseDblSucc(pp)
+    def caseZero : Out[Z.type] =
+      sp.caseOne
 
-    })(p)
+    def caseSucc[PP <: Nat](pp : PP) : Out[S[PP]] =
+      sp.caseDblSucc(pp)
 
-}
-
-trait NatFunctions {
-
-  def caseSplit[N <: Nat](n: N)(sp: NatCaseSplit) : sp.Out[N] = 
-    n match {
-      case Z => sp.caseZero.asInstanceOf[sp.Out[N]]
-      case S(p) => sp.caseSucc(p).asInstanceOf[sp.Out[N]]
-    }
+  }
 
 }
 
@@ -144,12 +124,12 @@ trait NatLemmas { this : NatConstants =>
     lift[Nothing, Nothing, Nat, Any, F, N, M](ev)
 
   def matchNatPair[N <: Nat, M <: Nat](n : N, m : M) : Option[N =::= M] = 
-    (new NatCaseSplit { sp => 
+    (new NatCaseSplit0 { sp => 
 
       type Out[N0 <: Nat] = Option[N0 =::= M]
 
       def caseZero : Out[_0] = 
-        (new NatCaseSplit {
+        (new NatCaseSplit0 {
 
           type Out[M0 <: Nat] = Option[_0 =::= M0]
 
@@ -159,7 +139,7 @@ trait NatLemmas { this : NatConstants =>
         })(m)
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
-        (new NatCaseSplit {
+        (new NatCaseSplit0 {
 
           type Out[M0 <: Nat] = Option[S[P] =::= M0]
 
@@ -176,7 +156,7 @@ trait NatLemmas { this : NatConstants =>
     })(n)
 
   def plusSuccLemma[M <: Nat, N <: Nat](m : M) : M#Plus[S[N]] =::= S[M#Plus[N]] = 
-    (new NatCaseSplit {
+    (new NatCaseSplit0 {
 
       type Out[X <: Nat] = X#Plus[S[N]] =::= S[X#Plus[N]]
 
@@ -191,7 +171,7 @@ trait NatLemmas { this : NatConstants =>
     })(m)
 
   def plusUnitRight[N <: Nat](n : N) : N =::= N#Plus[_0] = 
-    (new NatCaseSplit {
+    (new NatCaseSplit0 {
 
       type Out[M <: Nat] = M =::= M#Plus[_0]
 
@@ -206,17 +186,10 @@ trait NatLemmas { this : NatConstants =>
 
 }
 
-trait NatImplicits { self : NatFunctions =>
+trait NatImplicits { 
 
   implicit def zeroNat : Z.type = Z
   implicit def succNat[P <: Nat](implicit p : P) : S[P] = S(p)
-
-  implicit class NatOps[N <: Nat](n : N) {
-
-    def caseSplit(sp: NatCaseSplit) : sp.Out[N] = 
-      self.caseSplit(n)(sp)
-
-  }
 
 }
 
@@ -249,9 +222,9 @@ trait NatConstants {
       case Z => 0
       case S(p) => natToInt(p) + 1
     }
+
 }
 
-object Nat extends NatFunctions 
+object Nat extends NatConstants
     with NatImplicits 
-    with NatConstants
     with NatLemmas
