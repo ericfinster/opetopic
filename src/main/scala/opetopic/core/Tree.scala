@@ -11,9 +11,7 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
-import scalaz.Traverse 
 import scalaz.Applicative
-import scalaz.std.option._
 
 sealed abstract class Tree[N <: Nat, +A] { def dim : N }
 case class Pt[+A](a : A) extends Tree[_0, A] { def dim = Z }
@@ -38,49 +36,49 @@ trait TreeFunctions { tfns =>
 
   }
 
-  // //============================================================================================
-  // // TRAVERSE WITH ADDRESS
-  // //
+  //============================================================================================
+  // TRAVERSE WITH ADDRESS
+  //
 
-  // def traverseWithAddress[N <: Nat, T[_], A, B](
-  //   tr : Tree[N, A], base : Address[N]
-  // )(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
+  def traverseWithAddress[N <: Nat, T[_], A, B](
+    tr : Tree[N, A], base : Address[N]
+  )(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = {
 
-  //   import apT.{pure, ap, ap2}
+    import apT.{pure, ap, ap2}
 
-  //   def traverseShell[P <: Nat](
-  //     a : A, sh : Tree[P, Tree[S[P], A]], 
-  //     addr : Address[S[P]], 
-  //     f : (A, Address[S[P]]) => T[B]
-  //   ) : T[Tree[P, Tree[S[P], B]]] = {
-  //     traverseWithAddress(sh)({
-  //       case (br, dir) => traverseWithAddress(br, dir :: addr : Address[S[P]])(f)
-  //     })
-  //   }
+    def traverseShell[P <: Nat](
+      a : A, sh : Tree[P, Tree[S[P], A]], 
+      addr : Address[S[P]], 
+      f : (A, Address[S[P]]) => T[B]
+    ) : T[Tree[P, Tree[S[P], B]]] = {
+      traverseWithAddress(sh)({
+        case (br, dir) => traverseWithAddress(br, dir :: addr : Address[S[P]])(f)
+      })
+    }
 
-  //   tr match {
-  //     case Pt(a) => ap(f(a, base))(pure(Pt(_)))
-  //     case Leaf(d) => pure(Leaf(d))
-  //     case Node(a, sh) => ap2(f(a, base), traverseShell(a, sh, base, f))(pure(Node(_, _)))
-  //   }
+    tr match {
+      case Pt(a) => ap(f(a, base))(pure(Pt(_)))
+      case Leaf(d) => pure(Leaf(d))
+      case Node(a, sh) => ap2(f(a, base), traverseShell(a, sh, base, f))(pure(Node(_, _)))
+    }
 
-  // }
+  }
 
-  // def traverseWithAddress[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = 
-  //   traverseWithAddress(tr, rootAddr(tr.dim))(f)
+  def traverseWithAddress[N <: Nat, T[_], A, B](tr : Tree[N, A])(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[N, B]] = 
+    traverseWithAddress(tr, rootAddr(tr.dim))(f)
 
-  // //============================================================================================
-  // // MAP IMPLEMENTATIONS
-  // //
+  //============================================================================================
+  // MAP IMPLEMENTATIONS
+  //
 
-  // def map[N <: Nat, A, B](tr : Tree[N, A])(f : A => B) : Tree[N, B] = 
-  //   traverse[N, Id, A, B](tr)(f)
+  def map[N <: Nat, A, B](tr : Tree[N, A])(f : A => B) : Tree[N, B] = 
+    traverse[N, Id, A, B](tr)(f)
 
-  // def mapWithAddress[N <: Nat, A, B](tr : Tree[N, A])(f : (A, Address[N]) => B) : Tree[N, B] =
-  //   traverseWithAddress[N, Id, A, B](tr)(f)
+  def mapWithAddress[N <: Nat, A, B](tr : Tree[N, A])(f : (A, Address[N]) => B) : Tree[N, B] =
+    traverseWithAddress[N, Id, A, B](tr)(f)
 
-  // def const[N <: Nat, A, B](tr : Tree[N, A], b : B) : Tree[N, B] = 
-  //   map(tr)(_ => b)
+  def const[N <: Nat, A, B](tr : Tree[N, A], b : B) : Tree[N, B] = 
+    map(tr)(_ => b)
 
   // //============================================================================================
   // // FOREACH

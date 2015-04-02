@@ -225,6 +225,7 @@ trait NatConstants {
 
 }
 
-object Nat extends NatConstants
+trait NatExports 
+    extends NatConstants
     with NatImplicits 
     with NatLemmas

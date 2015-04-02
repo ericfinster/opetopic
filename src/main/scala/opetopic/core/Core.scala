@@ -7,6 +7,11 @@
 
 package opetopic
 
-package object core extends NatConstants 
+package object core 
+    extends NatExports
+    with AddressExports {
 
+  // type ShapeM[A] = Either[ShapeError, A]
+
+}
 
