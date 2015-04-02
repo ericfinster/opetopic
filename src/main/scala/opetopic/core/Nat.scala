@@ -56,6 +56,12 @@ trait NatConsRec[Type] {
 
 }
 
+trait ~~>[F[_ <: Nat], G[_ <: Nat]] {
+
+  def apply[N <: Nat](fn : F[N]) : G[N]
+
+}
+
 trait NatCaseSplit {
 
   type Out[N <: Nat]

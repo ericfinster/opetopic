@@ -27,15 +27,21 @@ object Zippers {
 
   type Address[N <: Nat] = N#TypeRec[Any, AddressRec]
 
-  def rootAddr[N <: Nat](n : N) : Address[N] = 
-    (new NatCaseSplit {
+  object rootAddr extends NatCaseSplit0 {
 
-      type Out[N <: Nat] = Address[N]
+    type Out[N <: Nat] = Address[N]
 
-      def caseZero : Address[_0] = ()
-      def caseSucc[P <: Nat](p : P) : Address[S[P]] = Nil
+    def caseZero : Address[_0] = ()
+    def caseSucc[P <: Nat](p : P) : Address[S[P]] = Nil
 
-    })(n)
+  }
+
+  class AddressSuccOps[N <: Nat](addr : Address[S[N]]) {
+
+    def andThen(dir : Address[N]) : Address[S[N]] = 
+      (dir :: addr)
+
+  }
 
   //============================================================================================
   // DERIVATIVES

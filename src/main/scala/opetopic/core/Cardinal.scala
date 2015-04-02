@@ -126,7 +126,7 @@ object Cardinals {
         case (ct, f) => {
           mapCardinalTreeWithAddr(p)(ct)({
             case (ca, tr) => Tree.mapWithAddress(tr)({
-              case (addr, a) => f(ca >> addr, a)
+              case (a, addr) => f(ca >> addr, a)
             })
           })
         }

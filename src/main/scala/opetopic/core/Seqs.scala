@@ -46,6 +46,22 @@ object TypeSeq {
       case (tl >> _) => tl
     }
 
+  def map[F[_ <: Nat], G[_ <: Nat], L <: Nat](seq : TypeSeq[F, L])(f : F ~~> G) : TypeSeq[G, L] =
+    seq match {
+      case TNil() => TNil()
+      case tail >> hd => map(tail)(f) >> f(hd)
+    }
+
+  class TypeSeqOps[F[_ <: Nat], L <: Nat](seq : TypeSeq[F, L]) {
+
+    def map[G[_ <: Nat]](f : F ~~> G) : TypeSeq[G, L] = 
+      TypeSeq.map(seq)(f)
+
+  }
+
+  implicit def toTypeSeqOps[F[_ <: Nat], L <: Nat](seq : TypeSeq[F, L]) : TypeSeqOps[F, L] = 
+    new TypeSeqOps(seq)
+
 }
 
 //============================================================================================

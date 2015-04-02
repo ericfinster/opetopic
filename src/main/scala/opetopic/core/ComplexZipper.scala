@@ -251,7 +251,7 @@ object ComplexZipper {
 
         for {
           cp <- focusCanopy(cz)
-          zsh <- Tree.zipComplete(cp, sh)
+          zsh <- Tree.matchTree(cp, sh)
           toJoin <- traverse(zsh)({ case (d, t) => 
             for {
               cz0 <- visitComplex(d, cz)

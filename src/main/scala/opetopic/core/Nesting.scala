@@ -74,7 +74,7 @@ trait NestingFunctions { self : NestingImplicits =>
         (addr, f) => {
           val newCanopy =
             mapWithAddress(c : Tree[N, Nesting[N, A]])({
-              case (dir, n) => {
+              case (n, dir) => {
                 mapNestingWithAddress(n, dir :: addr)(f)
               }
             })
@@ -154,7 +154,7 @@ trait NestingFunctions { self : NestingImplicits =>
 
       def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]] = 
         (addr, f) => Node(Dot(f(addr), S(c.dim)), c.mapWithAddress({
-          (dir, n) => extendNesting(n, dir :: addr)(f)
+          (n, dir) => extendNesting(n, dir :: addr)(f)
         }))
 
     })(nst)(addr, f)

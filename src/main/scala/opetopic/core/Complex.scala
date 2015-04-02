@@ -190,8 +190,8 @@ trait ComplexFunctions { self : ComplexImplicits =>
         } yield ()
       case Node(a, sh) =>
         for {  // A bit ugly ....
-          _ <- Tree.traverse[N, SrcM, (Address[N], Tree[S[N], A]), Unit](sh.zipWithAddress)({ 
-            case (d, t) => exciseLocal(d :: addr : Address[S[N]], t) 
+          _ <- Tree.traverse[N, SrcM, (Tree[S[N], A], Address[N]), Unit](sh.zipWithAddress)({ 
+            case (t, d) => exciseLocal(d :: addr : Address[S[N]], t) 
           })(implicitly[Applicative[SrcM]])
         } yield ()
     }
