@@ -98,37 +98,46 @@ module Mtl where
 
     open Monad isMonad public
 
+  record MonadError (F : Set → Set) : Set₁ where
+    field
+
+      isMonad : Monad F
+
+      failWith : {A : Set} → String → F A
+    
+    open Monad isMonad public
+
   --
   -- Identity
   --
 
-  data Identity (A : Set) : Set where
-    id : (a : A) → Identity A
+  Id : Set → Set
+  Id A = A
 
-  un-id : {A : Set} → Identity A → A
-  un-id (id a) = a
+  map-id : {A B : Set} → (f : A → B) → Id A → Id B
+  map-id f a = f a
 
-  map-id : {A B : Set} → (f : A → B) → Identity A → Identity B
-  map-id f (id a) = id (f a)
+  η-id : {A : Set} → A → Id A
+  η-id a = a
 
-  η-id : {A : Set} → A → Identity A
-  η-id = id
+  μ-id : {A : Set} → Id (Id A) → Id A
+  μ-id a = a
 
-  μ-id : {A : Set} → Identity (Identity A) → Identity A
-  μ-id (id ia) = ia
+  traverse-id : {A B : Set} → {G : Set → Set} → Applicative G → (f : A → G B) → Id A → G (Id B)
+  traverse-id apG f a = f a
+    where open Applicative apG
 
-  traverse-id : ∀ {A B} → {G : Set → Set} → (isA : Applicative G) → (f : A → G B) → Identity A → G (Identity B)
-  traverse-id isA f (id a) = pure id ⊛ (f a)
-    where open Applicative isA
+  idF : Functor Id
+  idF = record { fmap = map-id }
 
-  identityF : Functor Identity
-  identityF = record { fmap = map-id }
+  idM : Monad Id
+  idM = record { isFunctor = idF ; η = η-id ; μ = μ-id }
 
-  identityM : Monad Identity
-  identityM = record { isFunctor = identityF ; η = η-id ; μ = μ-id }
+  idT : Traverse Id
+  idT = record { isFunctor = idF ; traverse = traverse-id }
 
-  identityT : Traverse Identity
-  identityT = record { isFunctor = identityF ; traverse = traverse-id }
+  idA : Applicative Id
+  idA = monadIsApp idM
 
   --
   -- Boolean Monoid for detecting conditions in a traverse

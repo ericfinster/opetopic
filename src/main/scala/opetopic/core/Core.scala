@@ -13,7 +13,8 @@ import scalaz.Monad
 
 package object core 
     extends NatExports
-    with AddressExports {
+    with AddressExports 
+    with ZipperExports {
 
   trait ShapeMonad[M[+_]] extends Monad[M] {
 

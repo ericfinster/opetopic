@@ -2,11 +2,11 @@
  :root-dir "/home/ericfinster/Code/opetopic"
  :cache-dir "/home/ericfinster/Code/opetopic/.ensime_cache"
  :name "opetopic"
- :java-home "/usr/lib/jvm/java-7-oracle"
- :java-flags ("-Xms1024m" "-Xmx1024m" "-XX:ReservedCodeCacheSize=128m" "-XX:MaxPermSize=256m")
- :reference-source-roots ("/usr/lib/jvm/java-7-oracle/src.zip")
+ :java-home "/usr/lib/jvm/java-8-oracle"
+ :java-flags ("-Xms1024m" "-Xmx1024m" "-XX:ReservedCodeCacheSize=128m" "-XX:MaxMetaspaceSize=256m")
+ :reference-source-roots ("/usr/lib/jvm/java-8-oracle/src.zip")
  :scala-version "2.11.6"
- :compiler-args ("-feature")
+ :compiler-args ("-feature" "-deprecation")
  
  :subprojects ((
    :name "opetopic"

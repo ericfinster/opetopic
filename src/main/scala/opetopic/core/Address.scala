@@ -36,40 +36,7 @@ trait AddressExports {
 
 }
 
-// /**
-//   * Zipper.scala - Higher Dimensional Zippers
-//   * 
-//   * @author Eric Finster
-//   * @version 0.1 
-//   */
-
-// package opetopic.core
-
-
-// import Nat._
-
 // object Zippers {
-
-//   //============================================================================================
-//   // ADDRESSES
-//   //
-
-//   trait AddressRec extends NatTypeRec[Any] {
-
-//     type OnZero = Unit
-//     type OnSucc[P <: Nat, T <: Any] = List[T]
-
-//   }
-
-//   type Address[N <: Nat] = N#TypeRec[Any, AddressRec]
-
-
-//   class AddressSuccOps[N <: Nat](addr : Address[S[N]]) {
-
-//     def andThen(dir : Address[N]) : Address[S[N]] = 
-//       (dir :: addr)
-
-//   }
 
 //   //============================================================================================
 //   // DERIVATIVES
