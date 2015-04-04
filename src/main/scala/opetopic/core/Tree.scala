@@ -13,6 +13,7 @@ import scala.language.implicitConversions
 import scalaz.Id._
 import scalaz.Applicative
 import scalaz.Monad
+import scalaz.syntax.monad._
 
 sealed abstract class Tree[+A, N <: Nat] { def dim : N }
 case class Pt[+A](a : A) extends Tree[A, _0] { def dim = Z }
@@ -168,6 +169,138 @@ trait TreeFunctions { tfns =>
   }
 
   //============================================================================================
+  // GRAFTING
+  //
+
+  abstract class GraftRecursor[M[+_], A, B, P <: Nat](implicit sm : ShapeMonad[M]) {
+
+    def caseLeaf(addr: Address[S[P]]) : M[B]
+    def caseNode(a: A, sh: Tree[B, S[P]]) : M[B]
+
+    def unzipAndJoin(zt: Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P]) : M[(Tree[Tree[B, S[P]], P], Tree[Address[S[P]], P])] = {
+      val (bSh, adJnSh) = unzip(zt)
+      for {
+        adTr <- join(adJnSh)
+      } yield (bSh, adTr)
+    }
+
+    def unzipJoinAndAppend(zt : Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P], mb : M[B]) : M[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
+      for {
+        pr <- unzipAndJoin(zt)
+        (bSh, adTr) = pr
+        b <- mb
+      } yield (Node(b, bSh), adTr)
+
+    def horizontalPass(base: Address[S[P]], hbr: Tree[Tree[A, S[S[P]]], S[P]], deriv : Derivative[Address[S[P]], P]) : M[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
+      hbr match {
+        case Leaf(sp) => sm.point((Leaf(sp), Zipper.plug(sp.pred)(deriv, base)))
+        case Node(Leaf(ssp), hsh) => 
+          for {
+            hres <- traverseWithLocalData(hsh)({
+              case (hbr, d, deriv0) => horizontalPass(d :: base, hbr, deriv0)
+            })
+            res <- unzipJoinAndAppend(hres, caseLeaf(base))
+          } yield res
+        case Node(Node(a, vsh), hsh) => 
+          for {
+            pr <- horizontalPass(base, vsh, deriv)
+            (bTr, adTr0) = pr
+            mres <- matchWithDerivative(adTr0, hsh)(horizontalPass(_,_,_))
+            res <- unzipJoinAndAppend(mres, caseNode(a, bTr))
+          } yield res
+      }
+
+    def initHorizontal(a: A, hsh: Tree[Tree[Tree[A, S[S[P]]], S[P]], P])(m: M[(B, Tree[Address[S[P]], P])]) : M[(B, Tree[Address[S[P]], P])] = 
+      for {
+        pr0 <- m
+        (b0, adTr0) = pr0
+        res <- matchWithDerivative(adTr0, hsh)(horizontalPass(_, _, _))
+        pr1 <- unzipAndJoin(res)
+        (bSh, adTr) = pr1
+        b <- caseNode(a, Node(b0, bSh))
+      } yield (b, adTr)
+
+    def initVertical(a0: A, v: Tree[A, S[S[P]]], hsh0: Tree[Tree[Tree[A, S[S[P]]], S[P]], P]) : M[(B, Tree[Address[S[P]], P])] = 
+      v match {
+        case Leaf(ssp) => initHorizontal(a0, hsh0)(
+          for { 
+            b <- caseLeaf(Nil)
+          } yield (b, mapWithAddress(hsh0)({ case (_, d) => d :: Nil : Address[S[P]] }))
+        )
+        case Node(a1, Leaf(sp)) => initHorizontal(a0, hsh0)(
+          for { 
+            b <- caseNode(a0, Leaf(sp)) 
+          } yield (b, const(hsh0, Nil))
+        )
+        case Node(a1, Node(v, hsh1)) => 
+          initHorizontal(a0, hsh0)(initVertical(a1, v, hsh1))
+      }
+
+  }
+
+  def graftRec[M[+_], A, B, N <: Nat](tr : Tree[A, S[N]])(leafRec : Address[N] => M[B])(nodeRec : (A, Tree[B, N]) => M[B])(implicit sm : ShapeMonad[M]) : M[B] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = (Tree[A, S[N]], Address[N] => M[B], (A, Tree[B, N]) => M[B]) => M[B]
+
+      def caseZero : Out[_0] = {
+        case (Leaf(_), lfR, ndR) => lfR(())
+        case (Node(hd, Pt(tl)), lfR, ndR) => 
+          for {
+            b0 <- caseZero(tl, lfR, ndR)
+            b <- ndR(hd, Pt(b0))
+          } yield b
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (Leaf(_), lfR, ndR) => lfR(Nil)
+        case (Node(a, Leaf(d)), lfR, ndR) => ndR(a, Leaf(d))
+        case (Node(a, Node(v, hsh)), lfR, ndR) => {
+
+          val recursor = new GraftRecursor[M, A, B, P] { 
+
+            def caseLeaf(addr: Address[S[P]]) : M[B] = lfR(addr)
+            def caseNode(a: A, sh: Tree[B, S[P]]) : M[B] = ndR(a, sh)
+
+          }
+
+          for {
+            pr <- recursor.initVertical(a, v, hsh)
+          } yield pr._1
+        }
+      }
+
+    })(tr.dim.pred)(tr, leafRec, nodeRec)
+
+  def graft[M[+_], A, N <: Nat](tr : Tree[A, S[N]])(brs : Tree[Tree[A, S[N]], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, S[N]]] = 
+    graftRec(tr)(addr => valueAt(brs, addr))({ case (a, sh) => sm.pure(Node(a, sh)) })
+
+  //============================================================================================
+  // JOIN
+  //
+
+  def join[M[+_], A, N <: Nat](tr : Tree[Tree[A, N], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = Tree[Tree[A, N], N] => M[Tree[A, N]]
+
+      def caseZero : Out[_0] = {
+        case Pt(t) => sm.pure(t)
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case Leaf(d) => sm.pure(Leaf(d))
+        case Node(t, tsh) => 
+          for {
+            gsh <- traverse(tsh)(join(_))
+            res <- graft(t)(gsh)
+          } yield res
+      }
+
+    })(tr.dim)(tr)
+
+
+  //============================================================================================
   // SPLIT WITH
   //
 
@@ -207,14 +340,14 @@ trait TreeFunctions { tfns =>
     }
 
   //============================================================================================
-  // ROOT OPTION
+  // ROOT VALUE
   //
 
-  def rootOption[A, N <: Nat](tr : Tree[A, N]) : Option[A] =
+  def rootValue[M[+_], A, N <: Nat](tr : Tree[A, N])(implicit sm : ShapeMonad[M]) : M[A] =
     tr match {
-      case Pt(a) => Some(a)
-      case Leaf(_) => None
-      case Node(a, _) => Some(a)
+      case Pt(a) => sm.pure(a)
+      case Leaf(_) => sm.failWith(new ShapeRootEmptyError)
+      case Node(a, _) => sm.pure(a)
     }
 
   //============================================================================================
@@ -231,257 +364,30 @@ trait TreeFunctions { tfns =>
     map(tr)(_ => b)
 
   //============================================================================================
-  // GRAFTING
+  // SEEK TO
   //
 
-  abstract class GraftRecursor[M[+_], A, B, P <: Nat](implicit sm : ShapeMonad[M]) {
+  def seekTo[M[+_], A, N <: Nat](tr : Tree[A, N], addr : Address[N])(implicit sm : ShapeMonad[M]) : M[Zipper[A, N]] = 
+    (new NatCaseSplit0 {
 
-    import scalaz.syntax.monad._
+      type Out[N <: Nat] = (Tree[A, N], Address[N]) => M[Zipper[A, N]]
 
-    def caseLeaf(addr: Address[S[P]]) : M[B]
-    def caseNode(a: A, sh: Tree[B, S[P]]) : M[B]
-
-    def unzipAndJoin(zt: Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P]) : M[(Tree[Tree[B, S[P]], P], Tree[Address[S[P]], P])] = {
-      val (bSh, adJnSh) = unzip(zt)
-      for {
-        adTr <- join(adJnSh)
-      } yield (bSh, adTr)
-    }
-
-    def unzipJoinAndAppend(zt : Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P], mb : M[B]) : M[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
-      for {
-        pr <- unzipAndJoin(zt)
-        (bSh, adTr) = pr
-        b <- mb
-      } yield (Node(b, bSh), adTr)
-
-    def horizontalPass(base: Address[S[P]], hbr: Tree[Tree[A, S[S[P]]], S[P]], deriv : Derivative[Address[S[P]], P]) : M[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
-      hbr match {
-        case Leaf(sp) => sm.point((Leaf(sp), ???))
-        case Node(Leaf(ssp), hsh) => ???
-        case Node(Node(a, vsh), hsh) => ???
+      def caseZero : Out[_0] = {
+        case (tr, addr) => sm.pure((tr, ()))
       }
 
-    // horizontalPass : Address (suc n) → Tree (Tree A (suc (suc n))) (suc n) → Derivative (Address (suc n)) n → M (Tree B (suc n) × Tree (Address (suc n)) n)
-    // horizontalPass base leaf ∂ = η (leaf , ∂ ← base)
-    // horizontalPass base (node leaf hsh) ∂ =
-    //   traverseWithLocalData apM hsh (λ hbr d ∂₀ → horizontalPass (d ∷ base) hbr ∂₀)
-    //   >>= (λ res → unzipJoinAndAppend res (λ-rec base))
-    // horizontalPass base (node (node a vsh) hsh) ∂ =
-    //   horizontalPass base vsh ∂
-    //   >>= (λ { (bTr , adTr₀) → matchWithDerivative isE {C = Address (suc n)} horizontalPass adTr₀ hsh
-    //   >>= (λ res → unzipJoinAndAppend res (ν-rec a bTr)) })
-
-    def initHorizontal(a: A, hsh: Tree[Tree[Tree[A, S[S[P]]], S[P]], P], m: M[(B, Tree[Address[S[P]], P])]) : M[(B, Tree[Address[S[P]], P])] = 
-      for {
-        pr0 <- m
-        (b0, adTr0) = pr0
-        res <- matchWithDerivative(adTr0, hsh)(horizontalPass(_, _, _))
-        pr1 <- unzipAndJoin(res)
-        (bSh, adTr) = pr1
-        b <- caseNode(a, Node(b0, bSh))
-      } yield (b, adTr)
-
-    def initVertical(a0: A, v: Tree[A, S[S[P]]], hsh0: Tree[Tree[Tree[A, S[S[P]]], S[P]], P]) : M[(B, Tree[Address[S[P]], P])] = 
-      v match {
-        case Leaf(ssp) => ???
-        case Node(a1, Leaf(sp)) => ???
-        case Node(a1, Node(v, hsh1)) => ???
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (tr, addr) => Zipper.seek(S(p))((tr, Nil), addr)
       }
 
-    // initVertial : A → Tree A (suc (suc n)) → Tree (Tree (Tree A (suc (suc n))) (suc n)) n → M (B × Tree (Address (suc n)) n)
-    // initVertial a₀ leaf hsh₀ = initHorizontal a₀ hsh₀ (λ-rec [] >>= (λ b → η (b , mapWithAddress hsh₀ (λ _ d → d ∷ []))))
-    // initVertial a₀ (node a₁ leaf) hsh₀ = initHorizontal a₀ hsh₀ (ν-rec a₀ leaf >>= (λ b → η (b , const hsh₀ [])))
-    // initVertial a₀ (node a₁ (node v hsh₁)) hsh₀ = initHorizontal a₀ hsh₀ (initVertial a₁ v hsh₁)
+    })(tr.dim)(tr, addr)
 
-  }
 
-  //============================================================================================
-  // JOIN
-  //
-
-  def join[M[+_], A, N <: Nat](tr : Tree[Tree[A, N], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, N]] = ???
-
-  // def join[N <: Nat, A](tr : Tree[N, Tree[N, A]]) : Option[Tree[N, A]] = 
-  //   (new NatCaseSplit {
-
-  //     type Out[N <: Nat] = Tree[N, Tree[N, A]] => Option[Tree[N, A]]
-
-  //     def caseZero : Tree[_0, Tree[_0, A]] => Option[Tree[_0, A]] = {
-  //       case Pt(t) => Some(t)
-  //     }
-        
-  //     def caseSucc[P <: Nat](p : P) : Tree[S[P], Tree[S[P], A]] => Option[Tree[S[P], A]] = {
-  //       case Leaf(d) => Some(Leaf(d))
-  //       case Node(t, tsh) => 
-  //         for {
-  //           gsh <- traverse(tsh)(join(_))
-  //           str <- graft(t, gsh)
-  //         } yield str
-  //     }
-
-  //   })(tr.dim)(tr)
-
-  // //============================================================================================
-  // // GRAFT ELIMINATION
-  // //
-
-  // trait TreeGraftElim[P <: Nat, A, B] {
-
-  //   def caseLeaf(addr : Address[P]) : Option[B]
-  //   def caseNode(a : A, sh : Tree[P, B]) : Option[B]
-
-  //   def apply(tr : Tree[S[P], A]) : Option[B] = 
-  //     graftElim(tr)(this)
-
-  // }
-
-  // // All this seems to work as expected.  Just needs to be cleaned up and simplified since it
-  // // is really in a performance critical position.  Ideas include a custom traverse which runs
-  // // a computation on two trees as they are being zipped and a trait which captures the node
-  // // and leaf recursion functions to simplify the API.
-
-  // def graftRecHoriz[N <: Nat, A, B](
-  //   elim : TreeGraftElim[S[N], A, B],
-  //   addr : Address[S[N]],
-  //   deriv : Derivative[N, Address[S[N]]],
-  //   tr : Tree[S[N], Tree[S[S[N]], A]]
-  // ) : Option[(Tree[S[N], B], Tree[N, Address[S[N]]])] = 
-  //   tr match {
-  //     case Leaf(d) => Some(Leaf(d), plug(tr.dim.pred)(deriv, addr))
-  //     case Node(Leaf(d), hsh) => {
-
-  //       val contData = map(localData[N, Tree[S[N], Tree[S[S[N]], A]], Address[S[N]]](hsh))({
-  //         case (dir, deriv, vsh) => (dir :: addr, (deriv, vsh))
-  //       })
-
-  //       for { 
-  //         res <- graftElimCont(elim, contData)
-  //         (bSh , adTr) = res
-  //         b <- elim.caseLeaf(addr)
-  //       } yield (Node(b, bSh), adTr)
-  //     }
-  //     case Node(Node(a, vsh), hsh) => 
-  //       for {
-  //         pr <- graftRecHoriz(elim, addr, deriv, vsh)
-  //         (bTr, adTr0) = pr
-  //         zt <- matchTree(adTr0,  hsh.zipWithDerivative[Address[S[N]]]) 
-  //         res <- graftElimCont(elim, zt)
-  //         (bSh, adTr) = res
-  //         b <- elim.caseNode(a, bTr)
-  //       } yield (Node(b, bSh), adTr)
-  //   }
-
-  // def graftElimCont[N <: Nat, A, B](
-  //   elim : TreeGraftElim[S[N], A, B],
-  //   contData : Tree[N, (Address[S[N]], (Derivative[N, Address[S[N]]], Tree[S[N], Tree[S[S[N]], A]]))]
-  // ) : Option[(Tree[N, Tree[S[N], B]], Tree[N, Address[S[N]]])] = 
-  //   for {
-  //     trRes <- contData.traverse({ case (addr, (deriv, nsh)) => graftRecHoriz(elim, addr, deriv, nsh) })
-  //     (bSh, adrJnSh) = unzip(trRes)
-  //     adSh <- join(adrJnSh)
-  //   } yield (bSh, adSh)
-
-  // def graftElimChain[N <: Nat, A, B](
-  //   elim : TreeGraftElim[S[N], A, B],
-  //   a : A,
-  //   hsh : Tree[N, Tree[S[N], Tree[S[S[N]], A]]],
-  //   prevOpt : Option[(B, Tree[N, Address[S[N]]])]
-  // ) : Option[(B, Tree[N, Address[S[N]]])] = 
-  //   for {
-  //     pr0 <- prevOpt
-  //     (b0, adTr0) = pr0
-  //     zt <- matchTree(adTr0, hsh.zipWithDerivative[Address[S[N]]])
-  //     pr <- graftElimCont(elim, zt)
-  //     (bSh, adTr) = pr
-  //     b <- elim.caseNode(a, Node(b0, bSh))
-  //   } yield (b, adTr)
-
-  // def graftElimStart[N <: Nat, A, B](
-  //   elim : TreeGraftElim[S[N], A, B], 
-  //   tr : Tree[S[S[N]], A],
-  //   a : A,
-  //   hsh : Tree[N, Tree[S[N], Tree[S[S[N]], A]]]
-  // ) : Option[(B, Tree[N, Address[S[N]]])] = 
-  //   tr match {
-  //     case Leaf(dim) => 
-  //       graftElimChain(elim, a, hsh,
-  //         for {
-  //           b <- elim.caseLeaf(rootAddr(dim.pred))
-  //         } yield (b, mapWithAddress(hsh)((_, dir) => dir :: rootAddr(dim.pred)))
-  //       )
-  //     case Node(a0, Leaf(dim)) => 
-  //       graftElimChain(elim, a, hsh,
-  //         for {
-  //           b <- elim.caseNode(a0, Leaf(dim))
-  //         } yield (b, mapWithAddress(hsh)((dir, _) => rootAddr(dim))) 
-  //       )
-  //     case Node(a0, Node(v, hsh0)) =>
-  //       graftElimChain(elim, a, hsh, graftElimStart(elim, v, a0, hsh0))
-  //   }
-
-  // def graftElim[N <: Nat, A, B](tr : Tree[S[N], A])(elim : TreeGraftElim[N, A, B]) : Option[B] = 
-  //   (new NatCaseSplit {
-
-  //     type Out[N <: Nat] = (Tree[S[N], A], TreeGraftElim[N, A, B]) => Option[B]
-
-  //     def caseZero : Out[_0] = {
-  //       case (Leaf(d), elim) => elim.caseLeaf(rootAddr(__0))
-  //       case (Node(hd, Pt(tl)), elim) => 
-  //         for {
-  //           b0 <- caseZero(tl, elim)
-  //           b <- elim.caseNode(hd, Pt(b0))
-  //         } yield b
-  //     }
-
-  //     def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-  //       case (Leaf(d), elim) => elim.caseLeaf(rootAddr(d.pred))
-  //       case (Node(a, Leaf(d)), elim) => elim.caseNode(a, Leaf(d))
-  //       case (Node(a, Node(v, hsh)), elim) =>
-  //         for {
-  //           res <- graftElimStart(elim, v, a, hsh)
-  //         } yield res._1
-  //     }
-
-  //   })(tr.dim.pred)(tr, elim)
-
-  // //============================================================================================
-  // // GRAFT
-  // //
-
-  // def graft[N <: Nat, A](tr : Tree[S[N], A], brs : Tree[N, Tree[S[N], A]]) : Option[Tree[S[N], A]] = 
-  //   (new TreeGraftElim[N, A, Tree[S[N], A]] {
-
-  //     def caseLeaf(addr : Address[N]) : Option[Tree[S[N], A]] = 
-  //       brs valueAt addr
-
-  //     def caseNode(a : A, sh : Tree[N, Tree[S[N], A]]) : Option[Tree[S[N], A]] = 
-  //       Some(Node(a, sh))
-
-  //   })(tr)
-
-  // //============================================================================================
-  // // FLATTEN
-  // //
-
-  // def flatten[N <: Nat, A](ds : Address[S[N]], deriv : Derivative[N, Address[S[N]]], tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
-  //   tr match {
-  //     case Leaf(d) => Some(plug(d.pred)(deriv, ds))
-  //     case Node(a, sh) => 
-  //       for {
-  //         jnSh <- traverse(localData[N, Tree[S[N], A], Address[S[N]]](sh))({
-  //           case (dir, deriv, v) => flatten[N, A](dir :: ds, deriv, v)
-  //         })
-  //         res <- join(jnSh)
-  //       } yield res
-
-  //   }
-
-  // def flatten[N <: Nat, A](deriv : Derivative[N, Address[S[N]]], tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
-  //   flatten(rootAddr(tr.dim), deriv, tr)
-
-  // def flatten[N <: Nat, A](tr : Tree[S[N], A]) : Option[Tree[N, Address[S[N]]]] = 
-  //   flatten(globDerivative(tr.dim.pred), tr)
+  def valueAt[M[+_], A, N <: Nat](tr : Tree[A, N], addr : Address[N])(implicit sm : ShapeMonad[M]) : M[A] = 
+    for {
+      zp <- seekTo(tr, addr)
+      v <- rootValue(zp._1)
+    } yield v
 
   // //============================================================================================
   // // TAKE WHILE

@@ -10,87 +10,104 @@ package opetopic.core
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
-trait ZipperExports {
+import scalaz.syntax.monad._
 
-  //============================================================================================
-  // DERIVATIVES
-  //
+trait ZipperFunctions {
 
-  trait DerivativeRec extends NatConsRec[Any] {
+  object plug extends NatCaseSplit1 {
 
-    type OnZero[+A] = Unit
-    type OnSucc[P <: Nat, T[+_] <: Any, +A] = 
-      (Tree[Tree[A, S[P]], P], List[(A, T[Tree[A, S[P]]])])
+    type Out[N <: Nat, A] = (Derivative[A, N], A) => Tree[A, N]
 
-  }
+    def caseZero[A] : Out[_0, A] = {
+      case (_, a) => Pt(a)
+    }
 
-  type Derivative[+A, N <: Nat] = N#ConsRec[Any, DerivativeRec, A]
-
-  type DerivSucc[+A, P <: Nat] = (Tree[Tree[A, S[P]], P], List[(A, Derivative[Tree[A, S[P]], P])])
-  type DerivDblSucc[+A, P <: Nat] = (Tree[Tree[A, S[S[P]]], S[P]], List[(A, DerivSucc[Tree[A, S[S[P]]], P])])
-
-  //============================================================================================
-  // CONTEXTS
-  //
-
-  trait ContextRec extends NatConsRec[Any] {
-
-    type OnZero[+A] = Unit
-    type OnSucc[P <: Nat, T[+_] <: Any, +A] = 
-      List[(A, P#ConsRec[Any, DerivativeRec, Tree[A, S[P]]])]
+    def caseSucc[P <: Nat, A](p : P) : Out[S[P], A] = {
+      case ((sh, cntxt), a) => close(S(p))(cntxt, Node(a, sh))
+    }
 
   }
 
-  type Context[+A, N <: Nat] = N#ConsRec[Any, ContextRec, A]
+  object close extends NatCaseSplit1 {
 
-  type CntxtSucc[+A, P <: Nat] = List[(A, Derivative[Tree[A, S[P]], P])]
-  type CntxtDblSucc[+A, P <: Nat] = List[(A, DerivSucc[Tree[A, S[S[P]]], P])]
+    type Out[N <: Nat, A] = (Context[A, N], Tree[A, N]) => Tree[A, N]
 
-  //============================================================================================
-  // ZIPPERS
-  //
+    def caseZero[A] : Out[_0, A] = {
+      case (_, tr) => tr
+    }
 
-  type Zipper[+A, N <: Nat] = (Tree[A, N], Context[A, N])
+    def caseSucc[P <: Nat, A](p : P) : Out[S[P], A] = {
+      case (Nil, tr) => tr
+      case ((a, d) :: cs, tr) => close(S(p))(cs, Node(a, plug(p)(d, tr)))
+    }
 
-  type ZipperSucc[+A, P <: Nat] = (Tree[A, S[P]], CntxtSucc[A, P])
-  type ZipperDblSucc[+A, P <: Nat] = (Tree[A, S[S[P]]], CntxtDblSucc[A, P])
+  }
+
+  def visit[M[+_], A, N <: Nat](n : N)(zp : Zipper[A, S[N]], dir : Address[N])(implicit sm : ShapeMonad[M]) : M[Zipper[A, S[N]]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = (Zipper[A, S[N]], Address[N]) => M[Zipper[A, S[N]]]
+
+      def caseZero : Out[_0] = {
+        case ((Leaf(_), _), ()) => sm.failWith(new ShapeLookupError)
+        case ((Node(hd, Pt(tl)), c), ()) => sm.pure((tl, (hd, ()) :: c))
+      }
+
+      def caseSucc[P <: Nat](p : P) : (ZipperDblSucc[A, P], Address[S[P]]) => M[ZipperDblSucc[A, P]] = {
+        case ((Leaf(_), _), _) => sm.failWith(new ShapeLookupError)
+        case ((Node(a, sh), c), d) => 
+          for {
+            shZp <- seek[M, Tree[A, S[S[P]]], S[P]](S(p))((sh, Nil), d)
+            res <- (
+              shZp match {
+                case (Leaf(_), _) => sm.failWith(new ShapeLookupError)
+                case (Node(tr, hsh), c0) => sm.pure((tr, (a, (hsh, c0)) :: c))
+              }
+            )
+          } yield res
+      }
+
+
+    })(n)(zp, dir)
+
+  def seek[M[+_], A, N <: Nat](n : N)(zp : Zipper[A, N], addr : Address[N])(implicit sm : ShapeMonad[M]) : M[Zipper[A, N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = (Zipper[A, N], Address[N]) => M[Zipper[A, N]]
+
+      def caseZero : Out[_0] = {
+        case (zp, ()) => sm.pure(zp)
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (zp, Nil) => sm.pure(zp)
+        case (zp, d :: ds) =>
+          for {
+            zpP <- caseSucc(p)(zp, ds)
+            zpN <- visit(p)(zpP, d)
+          } yield zpN
+      }
+
+    })(n)(zp, addr)
+
+//   def parentWhich[N <: Nat, A](n : N)(zp : Zipper[N, A])(f : A => Boolean) : Option[Zipper[N, A]] = 
+//     (new NatCaseSplit {
+
+//       type Out[N <: Nat] = Zipper[N, A] => Option[Zipper[N, A]]
+
+//       def caseZero : Out[_0] = 
+//         zp => None
+
+//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+//         case (fcs, Nil) => None
+//         case (fcs, (a, deriv) :: cs) => {
+//           val parent : Zipper[S[P], A] = (Node(a, plug(p)(deriv, fcs)), cs)
+//           if (f(a)) Some(parent) else parentWhich(S(p))(parent)(f)
+//         }
+//       }
+
+//     })(n)(zp)
 
 }
 
-trait TestTrait {
-
-  def plug[A, N <: Nat](n: N)(deriv: Derivative[A, N], a: A) : Tree[A, N] = ???
-
-//   def plug[N <: Nat, A](n : N)(deriv : Derivative[N, A], a : A) : Tree[N, A] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = Derivative[N, A] => Tree[N, A]
-
-//       def caseZero : Derivative[_0, A] => Tree[_0, A] = {
-//         _ => Pt(a)
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Derivative[S[P], A] => Tree[S[P], A] = {
-//         case (sh, cntxt) => close(S(p))(cntxt, Node(a, sh))
-//       }
-
-//     })(n)(deriv)
-
-
-//   def close[N <: Nat, A](n : N)(cntxt : Context[N, A], tr : Tree[N, A]) : Tree[N, A] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = (Context[N, A], Tree[N, A]) => Tree[N, A]
-
-//       def caseZero : (Context[_0, A], Tree[_0, A]) => Tree[_0, A] = {
-//         case (cntxt0, tr0) => tr0
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : (Context[S[P], A], Tree[S[P], A]) => Tree[S[P], A] = {
-//         case (Nil, trS) => trS
-//         case ((a, d) :: cs, trS) => close(S(p))(cs, Node(a, plug(p)(d, trS)))
-//       }
-
-//     })(n)(cntxt, tr)
-
-}
+object Zipper extends ZipperFunctions

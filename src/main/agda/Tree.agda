@@ -46,6 +46,52 @@ module Tree where
     _↓_ {n = suc n} [] t = t
     _↓_ {n = suc n} ((a , d) ∷ c) t = c ↓ node a (d ← t)
 
+    visit : {A : Set} → {M : Set → Set} → {n : ℕ} → MonadError M → Address n → Zipper A (suc n) → M (Zipper A (suc n))
+    visit {n = zero} isE tt (leaf , cntxt) = let open MonadError isE in failWith "Visit fail"
+    visit {n = zero} isE tt (node hd (pt tl) , cntxt) = let open MonadError isE in η (tl , ((hd , tt) ∷ cntxt))
+    visit {n = suc n} isE d (leaf , cntxt) = let open MonadError isE in failWith "Visit fail"
+    visit {n = suc n} isE d (node a sh , cntxt) = 
+      let open MonadError isE 
+      in seek isE d (sh , []) 
+         >>= (λ { (leaf , cntxt₀) → failWith "Visit fail" ; 
+                  (node tr hsh , cntxt₀) → η (tr , (a , hsh , cntxt₀) ∷ cntxt) })
+
+    seek : {A : Set} → {M : Set → Set} → {n : ℕ} → MonadError M → Address (suc n) → Zipper A (suc n) → M (Zipper A (suc n))
+    seek isE [] z = let open MonadError isE in η z
+    seek isE (d ∷ ds) z = let open MonadError isE in seek isE ds z >>= visit isE d
+
+    -- parent : {n : ℕ} → {A : Set} → Zipper n A → Maybe (Zipper n A)
+    -- parent {zero} z = nothing
+    -- parent {suc n} (fcs , []) = nothing
+    -- parent {suc n} (fcs , (a , ∂) ∷ cs) = just (node a (∂ ← fcs) , cs)
+
+    -- parentWhich : {n : ℕ} → {A : Set} → (A → Bool) → Zipper n A → Maybe (Zipper n A)
+    -- parentWhich {zero} p z = nothing
+    -- parentWhich {suc n} p (fcs , []) = nothing
+    -- parentWhich {suc n} p (fcs , (a , ∂) ∷ cs) = 
+    --   let parent = (node a (∂ ← fcs) , cs) in
+    --     if p a then 
+    --       just parent
+    --     else 
+    --       parentWhich p parent
+
+  -- globDeriv : (n : ℕ) → (B : Set) → Derivative n B
+  -- globDeriv zero B = tt
+  -- globDeriv (suc n) B = (globDeriv n (Tree (suc n) B) ← leaf) , []
+
+  seekTo : {A : Set} → {M : Set → Set} → {n : ℕ} → MonadError M → Tree A n → Address n → M (Zipper A n)
+  seekTo {n = zero} isE tr tt = let open MonadError isE in η (tr , tt)
+  seekTo {n = suc n} isE tr addr = let open MonadError in seek isE addr (tr , [])
+
+  rootValue : {A : Set} → {M : Set → Set} → {n : ℕ} → MonadError M → Tree A n → M A
+  rootValue isE (pt a) = let open MonadError isE in η a
+  rootValue isE leaf = let open MonadError isE in failWith "Root exception"
+  rootValue isE (node a sh) = let open MonadError isE in η a
+
+  valueAt : {A : Set} → {M : Set → Set} → {n : ℕ} → MonadError M → Tree A n → Address n → M A
+  valueAt isE tr addr = 
+    let open MonadError isE 
+    in seekTo isE tr addr >>= (λ z → rootValue isE (proj₁ z))
 
   traverseTree : {A B : Set} → {G : Set → Set} → {n : ℕ} → Applicative G → Tree A n → (A → G B) → G (Tree B n)
   traverseTree apG (pt a) f = let open Applicative apG in pure pt ⊛ f a
@@ -120,7 +166,7 @@ module Tree where
 
   module GraftRec {A B : Set} {M : Set → Set} (isE : MonadError M) where
 
-    open MonadError isE
+    open MonadError isE public
 
     apM : Applicative M
     apM = monadIsApp isMonad
@@ -169,129 +215,15 @@ module Tree where
       where open PositiveDim ν-rec λ-rec
 
 
-  join = {!!}
+  graft : {A : Set} → {M : Set → Set} → {n : ℕ} → MonadError M → Tree A (suc n) → Tree (Tree A (suc n)) n → M (Tree A (suc n))
+  graft {A} {M} {n} isE tr brs = graftRec (λ a sh → η (node a sh)) (valueAt isE brs) tr
+    where open GraftRec {A} {Tree A (suc n)} isE
 
+  join isE (pt (pt a)) = let open MonadError isE in η (pt a)
+  join isE leaf = let open MonadError isE in η leaf
+  join isE (node tr trSh) = traverseTree (monadIsApp isMonad) trSh (join isE) >>= graft isE tr
+    where open MonadError isE
 
-  --   graftRecCont : {n : ℕ} → {A B : Set} → (A → Tree (suc n) B → Maybe B) → (Address (suc n) → Maybe B) →
-  --                  Tree n (Address (suc n) × Derivative n (Address (suc n)) × Tree (suc n) (Tree (suc (suc n)) A)) → Maybe (Tree n (Tree (suc n) B) × Tree n (Address (suc n)))
-  --   graftRecCont {n} ndRec lfRec hsh = 
-  --     traverseTree maybeA (graftRecHoriz ndRec lfRec) hsh 
-  --     >>= (λ trRes → let (bSh , adrJnSh) = unzip trRes in join adrJnSh 
-  --     >>= (λ adSh → just (bSh , adSh))) 
-
-
-  --   graftRecStart : {n : ℕ} → {A B : Set} → (A → Tree (suc n) B → Maybe B) → (Address (suc n) → Maybe B) →
-  --                  Tree (suc (suc n)) A → A → Tree n (Tree (suc n) (Tree (suc (suc n)) A)) → Maybe (B × Tree n (Address (suc n)))
-  --   graftRecStart ndRec lfRec leaf a hsh                    = graftRecChain ndRec lfRec a hsh (lfRec [] >>= (λ b → just (b , mapWithAddress (λ dir _ → dir ∷ []) hsh)))
-  --   graftRecStart ndRec lfRec (node a₀ leaf) a hsh          = graftRecChain ndRec lfRec a hsh (ndRec a leaf >>= (λ b → just (b , mapWithAddress (λ _ _ → []) hsh)))
-  --   graftRecStart ndRec lfRec (node a₀ (node v hsh₀)) a hsh = graftRecChain ndRec lfRec a hsh (graftRecStart ndRec lfRec v a₀ hsh₀)
-
-
-  --   graftRec {zero} ndRec lfRec leaf = lfRec []
-  --   graftRec {zero} ndRec lfRec (node hd (pt tl)) = 
-  --     graftRec ndRec lfRec tl >>= (λ b → ndRec hd (pt b))
-  --   graftRec {suc n} ndRec lfRec leaf = lfRec []
-  --   graftRec {suc n} ndRec lfRec (node a leaf) = ndRec a leaf
-  --   graftRec {suc n} ndRec lfRec (node a (node v hsh)) = 
-  --     graftRecStart ndRec lfRec v a hsh >>= (λ { (b , _) → just b })
-
-
-  --   graft : {n : ℕ} → {A : Set} → Tree (suc n) A → Tree n (Tree (suc n) A) → Maybe (Tree (suc n) A)
-  --   graft {n} tr brs = graftRec (λ a sh → just (node a sh)) (λ addr → brs valueAt addr) tr
-
-  -- zip : {n : ℕ} → {A B : Set} → Tree n A → Tree n B → Tree n (A × B)
-  -- zip {zero} (pt a) (pt b) = pt (a , b)
-  -- zip {suc n} leaf leaf = leaf
-  -- zip {suc n} leaf (node a shB) = leaf
-  -- zip {suc n} (node a shA) leaf = leaf
-  -- zip {suc n} (node a shA) (node b shB) = 
-  --   node (a , b) (mapTree (uncurry zip) (zip shA shB))
-
-  -- treeRecWithPrefix : {n : ℕ} → {A B : Set} → 
-  --                     (Address (suc n) → A → Tree n B → B) → 
-  --                     (Address (suc n) → B) → Address (suc n) → Tree (suc n) A → B
-
-  -- treeRecWithPrefix ndRec lfRec ds leaf = lfRec ds
-  -- treeRecWithPrefix ndRec lfRec ds (node a sh) = 
-  --   ndRec ds a (mapWithAddress (λ d b → treeRecWithPrefix ndRec lfRec (d ∷ ds) b) sh)
-
-  -- treeRecWithAddr : {n : ℕ} → {A B : Set} → 
-  --                   (Address (suc n) → A → Tree n B → B) → 
-  --                   (Address (suc n) → B) → Tree (suc n) A → B
-  -- treeRecWithAddr ndRec lfRec tr = treeRecWithPrefix ndRec lfRec [] tr
-
-  -- mutual
-
-  --   Derivative : (n : ℕ) → Set → Set
-  --   Derivative zero A = ⊤
-  --   Derivative (suc n) A = Tree n (Tree (suc n) A) × Context (suc n) A
-
-  --   Context : (n : ℕ) → Set → Set
-  --   Context zero A = ⊤
-  --   Context (suc n) A = List (A × Derivative n (Tree (suc n) A))
-
-  --   Zipper : (n : ℕ) → Set → Set
-  --   Zipper n A = Tree n A × Context n A
-  
-  --   _←_ : {n : ℕ} → {A : Set} → Derivative n A → A → Tree n A
-  --   _←_ {zero} tt a = pt a
-  --   _←_ {suc n} (sh , context) a = context ↓ node a sh
-
-  --   _↓_ : {n : ℕ} → {A : Set} → Context n A → Tree n A → Tree n A
-  --   _↓_ {zero} tt t = t
-  --   _↓_ {suc n} [] t = t
-  --   _↓_ {suc n} ((a , d) ∷ c) t = c ↓ node a (d ← t)
-
-  --   visit : {n : ℕ} → {A : Set} → Direction n → Zipper n A → Maybe (Zipper n A)
-  --   visit {zero} () z
-  --   visit {suc zero} [] (leaf , c) = nothing
-  --   visit {suc zero} [] (node head (pt tail) , c) = just (tail , (head , tt) ∷ c)
-  --   visit {suc zero} (() ∷ d) z
-  --   visit {suc (suc n)} d (leaf , c) = nothing
-  --   visit {suc (suc n)} d (node a sh , c) = 
-  --     seek d (sh , []) 
-  --     >>= (λ { (leaf , c₀) → nothing ; 
-  --              (node tr hsh , c₀) → just (tr , (a , hsh , c₀) ∷ c) })
-
-  --   seek : {n : ℕ} → {A : Set} → Address n → Zipper n A → Maybe (Zipper n A)
-  --   seek [] z = just z
-  --   seek (d ∷ ds) z = seek ds z >>= visit d 
-
-  -- parent : {n : ℕ} → {A : Set} → Zipper n A → Maybe (Zipper n A)
-  -- parent {zero} z = nothing
-  -- parent {suc n} (fcs , []) = nothing
-  -- parent {suc n} (fcs , (a , ∂) ∷ cs) = just (node a (∂ ← fcs) , cs)
-
-  -- parentWhich : {n : ℕ} → {A : Set} → (A → Bool) → Zipper n A → Maybe (Zipper n A)
-  -- parentWhich {zero} p z = nothing
-  -- parentWhich {suc n} p (fcs , []) = nothing
-  -- parentWhich {suc n} p (fcs , (a , ∂) ∷ cs) = 
-  --   let parent = (node a (∂ ← fcs) , cs) in
-  --     if p a then 
-  --       just parent
-  --     else 
-  --       parentWhich p parent
-
-  -- seekTo : {n : ℕ} → {A : Set} → Address n → Tree n A → Maybe (Zipper n A)
-  -- seekTo {zero} addr tr = seek addr (tr , tt)
-  -- seekTo {suc n} addr tr = seek addr (tr , [])
-
-  -- globDeriv : (n : ℕ) → (B : Set) → Derivative n B
-  -- globDeriv zero B = tt
-  -- globDeriv (suc n) B = (globDeriv n (Tree (suc n) B) ← leaf) , []
-
-  -- rootValue : {n : ℕ} → {A : Set} → Tree n A → Maybe A
-  -- rootValue {zero} (pt a) = just a
-  -- rootValue {suc n} leaf = nothing
-  -- rootValue {suc n} (node a sh) = just a
-
-  -- _valueAt_ : {n : ℕ} → {A : Set} → Tree n A → Address n → Maybe A
-  -- tr valueAt addr = seekTo addr tr >>= (λ z → rootValue (proj₁ z))
-
-  -- zipWithDeriv : {n : ℕ} → {A B : Set} → Tree n A → Tree n (Derivative n B × A)
-  -- zipWithDeriv (pt a) = pt (tt , a)
-  -- zipWithDeriv leaf = leaf
-  -- zipWithDeriv (node a sh) = node ((const leaf sh , []) , a) (mapTree zipWithDeriv sh)
 
   -- extentsData : {n : ℕ} → {A : Set} → Tree n A → Tree n (Address n × Derivative n (Address (suc n)) × A)
   -- extentsData {zero} (pt a) = pt ([] , tt , a)
@@ -314,10 +246,6 @@ module Tree where
   --   node ((mapTree (λ _ → leaf ) sh , []) , a) 
   --        (mapTree corollaSetup sh)
 
-  --   join : {n : ℕ} → {A : Set} → Tree n (Tree n A) → Maybe (Tree n A)
-  --   join {zero} (pt (pt a)) = just (pt a)
-  --   join {suc n} leaf = just leaf
-  --   join {suc n} (node tr tsh) = traverseTree maybeA join tsh >>= graft tr
 
   --   shellExtents : {n : ℕ} → {A : Set} → Tree n (Tree (suc n) A) → Maybe (Tree n (Address (suc n)))
   --   shellExtents {n} {A} sh = shellExtents₀ [] sh

@@ -91,6 +91,21 @@ trait NatCaseSplit1 {
     }
 }
 
+trait NatCaseSplit2 {
+
+  type Out[N <: Nat, A, B]
+
+  def caseZero[A, B] : Out[Z.type, A, B]
+  def caseSucc[P <: Nat, A, B](p : P) : Out[S[P], A, B]
+
+  def apply[N <: Nat, A, B](n : N) : Out[N, A, B] = 
+    n match {
+      case Z => caseZero[A, B].asInstanceOf[Out[N, A, B]]
+      case S(p) => caseSucc[Nat, A, B](p).asInstanceOf[Out[N, A, B]]
+    }
+
+}
+
 trait NatCaseSplitWithOne extends NatCaseSplit0 { sp => 
 
   type Out[N <: Nat]
