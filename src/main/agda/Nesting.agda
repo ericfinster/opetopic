@@ -75,64 +75,75 @@ module Nesting where
   --   >>= (λ { (fcs , cntxt) → replace fcs msk (λ canopy → int a canopy) 
   --   >>= (λ newFcs → just (cntxt ↓ newFcs)) })
 
-  mutual
+  ContextNst : Set → ℕ → Set
+  ContextNst A n = List (A × Derivative (Nesting A n) n)
 
-    DerivativeNst : Set → ℕ → Set
-    DerivativeNst A n = Tree (Nesting A n) n × ContextNst A n
+  DerivativeNst : Set → ℕ → Set
+  DerivativeNst A n = Tree (Nesting A n) n × ContextNst A n
 
-    ContextNst : Set → ℕ → Set
-    ContextNst A n = List (A × Derivative (Nesting A n) n)
+  ZipperNst : Set → ℕ → Set
+  ZipperNst A n = Nesting A n × ContextNst A n
 
-    ZipperNst : Set → ℕ → Set
-    ZipperNst A n = Nesting A n × ContextNst A n
+  closeNesting : {A : Set} → {n : ℕ} → ContextNst A n → Nesting A n → Nesting A n
+  closeNesting [] nst = nst
+  closeNesting ((a , d) ∷ ds) nst = closeNesting ds (box a (d ← nst))
 
-  --   plug : {n : ℕ} → {A : Set} → DerivativeNst n A → A → Nesting n A
-  --   plug (t , c) a = close c (int a t)
+  plugNesting : {A : Set} → {n : ℕ} → DerivativeNst A n → A → Nesting A n
+  plugNesting (t , c) a = closeNesting c (box a t)
 
-  --   close : {n : ℕ} → {A : Set} → ContextNst n A → Nesting n A → Nesting n A
-  --   close [] nst = nst
-  --   close ((a , d) ∷ ds) nst = close ds (int a (d ← nst))
+  --
+  --  You might want to put all this in a module and open the error monad once and forall ...
+  --
 
-  --   visitNesting : {n : ℕ} → {A : Set} → Address n → ZipperNst n A → Maybe (ZipperNst n A)
-  --   visitNesting addr (obj a , cntxt) = nothing
-  --   visitNesting addr (ext a , cntxt) = nothing
-  --   visitNesting {zero} [] (int h (pt t) , cntxt) = just (t , (h , tt) ∷ cntxt)
-  --   visitNesting {zero} (() ∷ addr) (int a sh , cntxt)
-  --   visitNesting {suc n} addr (int a sh , cntxt) = 
-  --     seek addr (sh , []) 
-  --     >>= (λ { (leaf , c) → nothing ; 
-  --              (node pd hsh , c) → just (pd , ((a , (hsh , c)) ∷ cntxt)) 
-  --            })
+  visitNesting : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → ZipperNst A n → Address n → M (ZipperNst A n)
+  visitNesting (obj a , cntxt) addr = let open MonadError ⦃ ... ⦄ in failWith "Nesting visit fail"
+  visitNesting (dot a , cntxt) addr = let open MonadError ⦃ ... ⦄ in failWith "Nesting visit fail"
+  visitNesting {n = zero} (box a (pt as) , cntxt) tt = η (as , ((a , tt) ∷ cntxt))
+    where open MonadError ⦃ ... ⦄
+  visitNesting {n = suc n} (box a cn , cntxt) addr = 
+    seek (cn , []) addr 
+    >>= (λ { (leaf , cntxt₀) → failWith "Nesting visit fail" ; 
+             (node nst vsh , cntxt₀) → η (nst , ((a , (vsh , cntxt₀)) ∷ cntxt)) })
 
-  --   seekNesting : {n : ℕ} → {A : Set} → Address (suc n) → ZipperNst n A → Maybe (ZipperNst n A)
-  --   seekNesting [] z = just z
-  --   seekNesting (d ∷ ds) z = seekNesting ds z >>= visitNesting d
+    where open MonadError ⦃ ... ⦄ 
 
-  -- sibling : {n : ℕ} → {A : Set} → Address n → ZipperNst (suc n) A → Maybe (ZipperNst (suc n) A)
-  -- sibling dir (fcs , []) = nothing
-  -- sibling {zero} dir (fcs , (a , pt leaf , hcn) ∷ cn) = nothing
-  -- sibling {zero} dir (fcs , (a , pt (node nfcs shell) , hcn) ∷ cn) = 
-  --   just (nfcs , ((a , (shell , ((fcs , tt) ∷ hcn))) ∷ cn))
-  -- sibling {suc n} dir (fcs , (a , verts , hcn) ∷ cn) = 
-  --   seek dir (verts , []) 
-  --   >>= (λ { (leaf , vcn) → nothing ; 
-  --            (node leaf shell , vcn) → nothing ; 
-  --            (node (node nfcs vrem) hmask , vcn) → 
-  --              just (nfcs , (a , (vrem , (fcs , (hmask , vcn)) ∷ hcn)) ∷ cn) })
+  seekNesting : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → ZipperNst A n → Address (suc n) → M (ZipperNst A n)
+  seekNesting z [] = let open MonadError ⦃ ... ⦄ in η z
+  seekNesting z (d ∷ ds) = seekNesting z ds >>= (λ z₀ → visitNesting z₀ d)
+    where open MonadError ⦃ ... ⦄
 
-  -- predecessor : {n : ℕ} → {A : Set} → ZipperNst n A → Maybe (ZipperNst n A)
-  -- predecessor {zero} _ = nothing
-  -- predecessor {suc n} (fcs , []) = nothing
-  -- predecessor {suc n} (fcs , (a , verts , []) ∷ cs) = nothing
-  -- predecessor {suc n} (fcs , (a , verts , (pred , ∂) ∷ vs) ∷ cs) = just (pred , (a , ∂ ← node fcs verts , vs) ∷ cs)
+  sibling : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → ZipperNst A (suc n) → Address n → M (ZipperNst A (suc n))
+  sibling (fcs , []) dir = let open MonadError ⦃ ... ⦄ in failWith "Sibling error"
+  sibling {n = zero} (fcs , (a , pt leaf , cntxt₀) ∷ cntxt) dir = failWith "Sibling error"
+    where open MonadError ⦃ ... ⦄
+  sibling {n = zero} (fcs , (a , pt (node nfcs sh) , cntxt₀) ∷ cntxt) dir = 
+    η (nfcs , (a , sh , (fcs , tt) ∷ cntxt₀) ∷ cntxt)
+    where open MonadError ⦃ ... ⦄
+  sibling {n = suc n} (fcs , (a , verts , hcn) ∷ cntxt) dir = 
+    seek (verts , []) dir 
+    >>= (λ { (leaf , _) → failWith "Sibling error" ; 
+             (node leaf _ , _) → failWith "Sibling error" ; 
+             (node (node nfcs vrem) hmask , vcn) → 
+               η (nfcs , (a , vrem , (fcs , hmask , vcn) ∷ hcn) ∷ cntxt) })
+    where open MonadError ⦃ ... ⦄
 
-  -- predecessorWhich : {n : ℕ} → {A : Set} → (A → Bool) → ZipperNst n A → Maybe (ZipperNst n A)
-  -- predecessorWhich {zero} p z = if p (baseValue (proj₁ z)) then just z else nothing
-  -- predecessorWhich {suc n} p z = 
-  --   if p (baseValue (proj₁ z)) 
-  --   then just z 
-  --   else (predecessor z >>= (λ pred → predecessorWhich p pred))
+  predecessor : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → ZipperNst A n → M (ZipperNst A n)
+  predecessor {n = zero} _ = let open MonadError ⦃ ... ⦄ in failWith "No predecessor in nesting"
+  predecessor {n = suc n} (fcs , []) = let open MonadError ⦃ ... ⦄ in failWith "No predecessor in nesting"
+  predecessor {n = suc n} (fcs , (a , verts , []) ∷ cs) = let open MonadError ⦃ ... ⦄ in failWith "No predecessor in nesting"
+  predecessor {n = suc n} (fcs , (a , verts , (pred , ∂) ∷ vs) ∷ cs) = η (pred , (a , ∂ ← node fcs verts , vs) ∷ cs)
+    where open MonadError ⦃ ... ⦄
 
-  -- seekToNesting : {n : ℕ} → {A : Set} → Address (suc n) → Nesting n A → Maybe (ZipperNst n A)
-  -- seekToNesting addr nst = seekNesting addr (nst , [])
+  predecessorWhich : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → ZipperNst A n → (A → Bool) → M (ZipperNst A n)
+  predecessorWhich {n = zero} z p = if p (baseValue (proj₁ z)) then η z else failWith "Predecessor fail on object"
+    where open MonadError ⦃ ... ⦄
+  predecessorWhich {n = suc n} z p = 
+    if p (baseValue (proj₁ z)) 
+    then η z 
+    else (predecessor z >>= (λ pred → predecessorWhich pred p))
+    where open MonadError ⦃ ... ⦄
+
+  seekToNesting : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Nesting A n → Address (suc n) → M (ZipperNst A n)
+  seekToNesting nst addr = seekNesting (nst , []) addr
+
 

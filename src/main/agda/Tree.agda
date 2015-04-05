@@ -52,13 +52,13 @@ module Tree where
     visit {n = suc n} d (leaf , cntxt) = let open MonadError ⦃ ... ⦄ in failWith "Visit fail"
     visit {n = suc n} d (node a sh , cntxt) = 
       let open MonadError ⦃ ... ⦄ 
-      in seek d (sh , []) 
+      in seek (sh , []) d
          >>= (λ { (leaf , cntxt₀) → failWith "Visit fail" ; 
                   (node tr hsh , cntxt₀) → η (tr , (a , hsh , cntxt₀) ∷ cntxt) })
 
-    seek : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Address (suc n) → Zipper A (suc n) → M (Zipper A (suc n))
-    seek [] z = let open MonadError ⦃ ... ⦄ in η z
-    seek (d ∷ ds) z = let open MonadError ⦃ ... ⦄ in seek ds z >>= visit d
+    seek : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Zipper A (suc n) → Address (suc n) → M (Zipper A (suc n))
+    seek z [] = let open MonadError ⦃ ... ⦄ in η z
+    seek z (d ∷ ds) = let open MonadError ⦃ ... ⦄ in seek z ds >>= visit d
 
     -- parent : {n : ℕ} → {A : Set} → Zipper n A → Maybe (Zipper n A)
     -- parent {zero} z = nothing
@@ -81,7 +81,7 @@ module Tree where
 
   seekTo : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Tree A n → Address n → M (Zipper A n)
   seekTo {n = zero} tr tt = let open MonadError ⦃ ... ⦄ in η (tr , tt)
-  seekTo {n = suc n} tr addr = let open MonadError ⦃ ... ⦄ in seek addr (tr , [])
+  seekTo {n = suc n} tr addr = let open MonadError ⦃ ... ⦄ in seek (tr , []) addr 
 
   rootValue : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Tree A n → M A
   rootValue (pt a) = let open MonadError ⦃ ... ⦄ in η a
