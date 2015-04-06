@@ -159,7 +159,7 @@ module Tree where
     matchWithDerivative φ (node a shA) (node b shB) = 
       pure node ⊛ φ a b (const shB leaf , []) ⊛ match (matchWithDerivative φ) shA shB
 
-  open Matching
+  open Matching public
 
   join : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Tree (Tree A n) n → M (Tree A n)
 
@@ -221,20 +221,17 @@ module Tree where
   join (node tr trSh) = traverseTree ⦃ monadIsApp isMonad ⦄ trSh join >>= graft tr
     where open MonadError ⦃ ... ⦄
 
+  shellExtents : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Tree (Tree A (suc n)) n → M (Tree (Address (suc n)) n)
+  shellExtents {M} {A} {n} sh = shellExtents₀ sh []
 
-  -- extentsData : {n : ℕ} → {A : Set} → Tree n A → Tree n (Address n × Derivative n (Address (suc n)) × A)
-  -- extentsData {zero} (pt a) = pt ([] , tt , a)
-  -- extentsData {suc n} t = 
-  --   treeRecWithAddr 
-  --     (λ addr a sh → node (addr , (const leaf sh , []) , a) sh)
-  --     (λ addr → leaf) t
+    where open MonadError ⦃ ... ⦄
 
-  -- localData : {n : ℕ} → {A B : Set} → Tree n A → Tree n (Address n × Derivative n B × A)
-  -- localData {zero} (pt a) = pt ([] , tt , a)
-  -- localData {suc n} tr = treeRecWithAddr (λ addr a sh → node (addr , (const leaf sh , []) , a) sh) (λ addr → leaf) tr
-
-  -- ∇ : {n : ℕ} → {A : Set} → Tree n A → Tree n (Tree n A)
-  -- ∇ {n} {A} tr = mapTree (λ { (_ , ∂ , a) → ∂ ← a }) (localData {B = A} tr)
+          shellExtents₀ : Tree (Tree A (suc n)) n → Address (suc n) → M (Tree (Address (suc n)) n)
+          shellExtents₀ sh ds = 
+            traverseWithLocalData {{monadIsApp isMonad}} sh 
+              (λ { leaf d ∂ → η (∂ ← (d ∷ ds)) ; 
+                   (node _ sh₀) d ∂ → shellExtents₀ sh₀ (d ∷ ds) }) 
+            >>= join
 
   -- corollaSetup : {n : ℕ} → {A : Set} → Tree n A → Tree n (Derivative n (Address n) × A)
   -- corollaSetup {zero} (pt a) = pt (tt , a)

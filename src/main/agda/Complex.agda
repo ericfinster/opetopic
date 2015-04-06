@@ -8,154 +8,154 @@ open import Prelude
 open import Mtl
 open import Tree
 open import Nesting
--- open import Suite
+open import Suite
 
 module Complex where
 
-  -- Complex : Set → ℕ → Set
-  -- Complex A n = Suite (λ k → Nesting k A) (suc n)
+  Complex : (ℕ → Set) → ℕ → Set
+  Complex A n = Suite (λ k → Nesting (A k) k) (suc n)
 
-  -- ComplexZipper : Set → ℕ → Set
-  -- ComplexZipper A n = Suite (λ k → ZipperNst k A) (suc n)
+  ComplexZipper : (ℕ → Set) → ℕ → Set
+  ComplexZipper A n = Suite (λ k → ZipperNst (A k) k) (suc n)
 
-  -- NComplex : Set → Set
-  -- NComplex A = Σ[ n ∈ ℕ ] Complex A n
+  complexToZipper : {A : ℕ → Set} → {n : ℕ} → Complex A n → ComplexZipper A n
+  complexToZipper c = mapSuite c (λ k nst → nst , [])
 
-  -- toZipper : {n : ℕ} → {A : Set} → Complex A n → ComplexZipper A n
-  -- toZipper {zero} (∥ ▶ bs) = ∥ ▶ (bs , [])
-  -- toZipper {suc n} (tl ▶ hd) = toZipper tl ▶ (hd , [])
+  seal : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Complex A n
+  seal z = mapSuite z (λ k nz → closeNesting (proj₂ nz) (proj₁ nz))
 
-  -- seal : {n : ℕ} → {A : Set} → ComplexZipper A n → Complex A n
-  -- seal {zero} (∥ ▶ (nst , cntx)) = ∥ ▶ (close cntx nst)
-  -- seal {suc n} (cz ▶ (nst , cntx)) = seal cz ▶ close cntx nst
+  updateFocus : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Nesting (A n) n → ComplexZipper A n
+  updateFocus (tl ▶ hd) nst = tl ▶ (nst , proj₂ hd)
 
-  -- updateFocus : {n : ℕ} → {A : Set} → ComplexZipper A n → Nesting n A → ComplexZipper A n
-  -- updateFocus {zero} (∥ ▶ (_ , cntx)) nst = ∥ ▶ (nst , cntx)
-  -- updateFocus {suc n} (c ▶ (_ , cntx)) nst = c ▶ (nst , cntx) 
+  focusOf : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Nesting (A n) n
+  focusOf c = proj₁ (head c)
 
-  -- focusValue : {n : ℕ} → {A : Set} → ComplexZipper A n → A
-  -- focusValue c = baseValue (proj₁ (head c))
+  contextOf : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → ContextNst (A n) n
+  contextOf c = proj₂ (head c)
 
-  -- focusDeriv : {n : ℕ} → {A : Set} → ComplexZipper A n → Maybe (Derivative (suc n) A)
-  -- focusDeriv (zc ▶ (obj a , cntxt)) = just (pt leaf , [])
-  -- focusDeriv (zc ▶ (ext a , cntxt)) = nothing
-  -- focusDeriv (zc ▶ (int a cn , cntxt)) = just (const leaf cn , [])
+  focusValue : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → A n
+  focusValue c = baseValue (focusOf c)
 
-  -- focusSpine : {n : ℕ} → {A : Set} → ComplexZipper A n → Maybe (Tree n A)
-  -- focusSpine (∥ ▶ (obj a , cntx)) = just (pt a)
-  -- focusSpine (zc ▶ (ext a , cntx)) = focusDeriv zc >>= (λ ∂ → just (∂ ← a))
-  -- focusSpine (zc ▶ (int a cn , cntx)) = spineFromCanopy cn
+  module SourceCalculation {M : Set → Set} ⦃ isE : MonadError M ⦄ where
 
-  -- focusCanopy : {n : ℕ} → {A : Set} → ComplexZipper A n → Maybe (Tree n (Address n))
-  -- focusCanopy {zero} (∥ ▶ _) = just (pt [])
-  -- focusCanopy {suc n} (zc ▶ (ext a , cntx)) = nothing
-  -- focusCanopy {suc n} (zc ▶ (int a cn , cntx)) = just (addrTree cn)
+    open MonadError ⦃ ... ⦄
+    
+    focusDeriv : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → M (Derivative (A (suc n)) (suc n))
+    focusDeriv (z ▶ (obj a , cntxt)) = η (pt leaf , [])
+    focusDeriv (z ▶ (dot a , cntxt)) = failWith "Focus Derivative fail"
+    focusDeriv (z ▶ (box a cn , cntxt)) = η (const cn leaf , [])
 
-  -- focusUnit : {n : ℕ} → {A : Set} → ComplexZipper A n → Maybe (Tree n (Nesting n A))
-  -- focusUnit {zero} zc = just (pt (proj₁ (head zc)))
-  -- focusUnit {suc n} zc = 
-  --   let fcs = proj₁ (head zc) in 
-  --   focusSpine zc 
-  --   >>= (λ { leaf → focusUnit (tail zc) >>= (λ u → just (node (proj₁ (head zc)) (const leaf u))) ; 
-  --            (node a sh) → shellExtents sh >>= (λ extents → just (node fcs (const leaf extents))) })
+    focusSpine : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → M (Tree (A n) n)
+    focusSpine (z ▶ (obj a , cntxt)) = η (pt a)
+    focusSpine (z ▶ (dot a , cntxt)) = focusDeriv z >>= (λ ∂ → η (∂ ← a))
+    focusSpine (z ▶ (box a cn , cntxt)) = spineFromCanopy cn
 
-  -- mutual
+    focusCanopy : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → M (Tree (Address n) n)
+    focusCanopy (z ▶ (obj a , cntxt)) = η (pt tt)
+    focusCanopy (z ▶ (dot a , cntxt)) = failWith "No canopy for dot"
+    focusCanopy (z ▶ (box a cn , cntxt)) = η (mapWithAddress cn (λ _ addr → addr))
 
-  --   visitComplex : {n : ℕ} → {A : Set} → ComplexZipper A n → Address n → Maybe (ComplexZipper A n)
-  --   visitComplex {zero} (∥ ▶ bs) addr = visitNesting addr bs >>= (λ r → just (∥ ▶ r))
-  --   visitComplex {suc n} (tl ▶ hd) [] = visitNesting [] hd >>= (λ r → just (tl ▶ r))
-  --   visitComplex {suc n} zc (d ∷ ds) =
-  --     visitComplex {suc n} zc ds 
-  --     >>= (λ zp → sibling d (head zp) 
-  --     >>= (λ sz → focusSpine zp 
-  --     >>= (λ { leaf → just (tail zp ▶ sz) ;   -- The recusive call has left us on a drop.  The lower dimensions should already be set.
-  --              (node a sh) → shellExtents sh  -- The extents give us all the options for where we might have to go ...
-  --                            >>= (λ extents → extents valueAt d  -- ... and we choose the one for the direction we want
-  --                            >>= (λ recAddr → seekComplex {n} (tail zp) recAddr 
-  --                            >>= (λ rz → just (rz ▶ sz)))) 
-  --            })))
+    focusUnit : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → M (Tree (Nesting (A n) n) n)
+    focusUnit {n = zero} z = η (pt (proj₁ (head z)))
+    focusUnit {n = suc n} z = 
+      focusSpine z >>= (λ { leaf → focusUnit (tail z) >>= (λ u → η (node (focusOf z) (const u leaf))) ; 
+                            (node a sh) → shellExtents sh >>= (λ extents → η (node (focusOf z) (const extents leaf))) 
+                          })
 
-  --   seekComplex : {n : ℕ} → {A : Set} → ComplexZipper A n → Address (suc n) → Maybe (ComplexZipper A n)
-  --   seekComplex {n} zc [] = just zc
-  --   seekComplex {n} zc (d ∷ ds) = seekComplex {n} zc ds >>= (λ zc₀ → visitComplex {n} zc₀ d)
+    mutual
 
-  -- SourceM : (n : ℕ) → Set → Set → Set
-  -- SourceM n A = StateT Maybe (Complex A n)
+      visitComplex : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Address n → M (ComplexZipper A n)
+      visitComplex {n = zero} (∥ ▶ nst) tt = visitNesting nst tt >>= (λ z → η (∥ ▶ z))
+      visitComplex {n = suc n} c [] = visitNesting (head c) [] >>= (λ z → η (tail c ▶ z))
+      visitComplex {n = suc n} c (d ∷ ds) = 
+        visitComplex c ds 
+        >>= (λ z → sibling (head z) d 
+        >>= (λ z₀ → focusSpine z 
+        >>= (λ { leaf → η (tail z ▶ z₀) ;         -- The recusive call has left us on a drop.  The lower dimensions should already be set.
+                 (node a sh) → shellExtents sh    -- The extents give us all the options for where we might have to go ...
+                               >>= (λ extents → valueAt extents d  -- ... and we choose the one for the direction we want
+                               >>= (λ recAddr → seekComplex (tail z) recAddr 
+                               >>= (λ tl → η (tl ▶ z₀)))) })))
+ 
+      seekComplex : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Address (suc n) → M (ComplexZipper A n)
+      seekComplex z [] = η z
+      seekComplex z (d ∷ ds) = 
+        seekComplex z ds >>= (λ z₀ → visitComplex z₀ d)
 
-  -- SourceMN : (n : ℕ) → (A : Set) → Monad (SourceM n A)
-  -- SourceMN n A = stateTM maybeM
 
-  -- SourceMS : (n : ℕ) → (A : Set) → MonadState (SourceM n A) (Complex A n)
-  -- SourceMS n A = stateTS maybeM
+    SourceM : (ℕ → Set) → ℕ → Set → Set
+    SourceM A n = StateT M (Complex A n)
 
-  -- SourceAP : (n : ℕ) → (A : Set) → Applicative (SourceM n A)
-  -- SourceAP n A = monadIsApp (SourceMN n A)
+    SourceMN : (A : ℕ → Set) → (n : ℕ) → Monad (SourceM A n)
+    SourceMN A n = stateTM isMonad
 
-  -- liftS : {n : ℕ} → {A : Set} → {B : Set} → Maybe B → SourceM n A B
-  -- liftS nothing = toS (λ c → nothing)
-  -- liftS (just b) = toS (λ c → just (c , b))
+    SourceMS : (A : ℕ → Set) → (n : ℕ) → MonadState (SourceM A n) (Complex A n)
+    SourceMS A n = stateTS isMonad
 
-  -- mutual
+    SourceAP : (A : ℕ → Set) → (n : ℕ) → Applicative (SourceM A n)
+    SourceAP A n = monadIsApp (SourceMN A n)
 
-  --   sourceAt : {n : ℕ} → {A : Set} → Complex A n → Address (suc n) → Maybe (Complex A n)
-  --   sourceAt {n} c addr = restrictAt {n} c addr >>= (λ c₀ → contractAt {n} c₀ [])
+    liftS : {A : ℕ → Set} → {n : ℕ} → {B : Set} → M B → SourceM A n B
+    liftS mb = toS (λ c → mb >>= (λ b → η (c , b)))
 
-  --   restrictAt : {n : ℕ} → {A : Set} → Complex A n → Address (suc n) → Maybe (Complex A n)
-  --   restrictAt {n} c addr = 
-  --     seekComplex {n} (toZipper {n} c) addr 
-  --     >>= (λ zc → restrictFocus {n} zc 
-  --     >>= (λ zc₀ → just (seal {n} zc₀)))
+    mutual
 
-  --   contractAt : {n : ℕ} → {A : Set} → Complex A n → Address (suc n) → Maybe (Complex A n)
-  --   contractAt {n} c addr =
-  --     seekComplex {n} (toZipper {n} c) addr 
-  --     >>= (λ zc → contractFocus {n} zc 
-  --     >>= (λ zc₀ → just (seal {n} zc₀)))
+      sourceAt : {A : ℕ → Set} → {n : ℕ} → Complex A n → Address (suc n) → M (Complex A n)
+      sourceAt c addr = restrictAt c addr >>= (λ c₀ → contractAt c₀ [])
 
-  --   restrictFocus : {n : ℕ} → {A : Set} → ComplexZipper A n → Maybe (ComplexZipper A n)
-  --   restrictFocus {zero} (∥ ▶ (pd , cn)) = just (∥ ▶ (pd , []))
-  --   restrictFocus {suc n} zc = 
-  --     focusSpine zc            
-  --     >>= (λ fpd → restrictFocus {n} (tail zc)
-  --     >>= (λ zc₀ → eval-stateT maybeF (seal {n} zc₀) (exciseLocal [] fpd) 
-  --     >>= (λ nc → just (toZipper {n} nc ▶ (proj₁ (head zc) , [])) )))
+      restrictAt : {A : ℕ → Set} → {n : ℕ} → Complex A n → Address (suc n) → M (Complex A n)
+      restrictAt c addr = 
+        seekComplex (complexToZipper c) addr 
+        >>= (λ z → restrictFocus z 
+        >>= (λ z₀ → η (seal z₀)))
 
-  --   contractFocus : {n : ℕ} → {A : Set} → ComplexZipper A n → Maybe (ComplexZipper A n)
-  --   contractFocus {zero} (∥ ▶ (pd , cn)) = just (∥ ▶ (obj (baseValue pd) , cn))
-  --   contractFocus {suc n} zc = 
-  --     focusSpine zc
-  --     >>= (λ fpd → compressFocus (tail zc) fpd 
-  --     >>= (λ zc₀ → just (zc₀ ▶ (ext (baseValue (proj₁ (head zc))) , (proj₂ (head zc))))) )
+      contractAt : {A : ℕ → Set} → {n : ℕ} → Complex A n → Address (suc n) → M (Complex A n)
+      contractAt c addr = 
+        seekComplex (complexToZipper c) addr 
+        >>= (λ z → contractFocus z 
+        >>= (λ z₀ → η (seal z₀)))
 
-  --   compressFocus : {n : ℕ} → {A : Set} → ComplexZipper A n → Tree (suc n) A → Maybe (ComplexZipper A n)
-  --   compressFocus {n} zc tr = compressLocal {n} zc tr >>= (λ pd → just (updateFocus {n} zc (int (focusValue {n} zc) pd)))
+      restrictFocus : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → M (ComplexZipper A n)
+      restrictFocus {n = zero} z = η (∥ ▶ (focusOf z , []))
+      restrictFocus {n = suc n} z = 
+        focusSpine z 
+        >>= (λ tr → restrictFocus (tail z) 
+        >>= (λ tl → eval-stateT isFunctor (seal tl) (exciseLocal [] tr) 
+        >>= (λ c → η (complexToZipper c ▶ (focusOf z , [])))))
 
-  --   compressLocal : {n : ℕ} → {A : Set} → ComplexZipper A n → Tree (suc n) A → Maybe (Tree n (Nesting n A))
-  --   compressLocal {n} zc leaf = focusUnit zc
-  --   compressLocal {n} zc (node a sh) = 
-  --     focusCanopy {n} zc 
-  --     >>= (λ cp → zipComplete cp sh
-  --     >>= (λ zsh → traverseTree maybeA 
-  --            (λ { (d , tr) → visitComplex {n} zc d 
-  --                            >>= (λ zc₀ → compressLocal zc₀ tr) 
-  --            }) zsh >>= join))
+      contractFocus : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → M (ComplexZipper A n)
+      contractFocus {n = zero} (∥ ▶ (fcs , cntxt)) = η (∥ ▶ (obj (baseValue fcs) , cntxt))
+      contractFocus {n = suc n} z = 
+        focusSpine z 
+        >>= (λ tr → compressFocus (tail z) tr 
+        >>= (λ tl → η (tl ▶ (dot (focusValue z) , contextOf z))))
 
-  --   exciseLocal : {n : ℕ} → {A : Set} → Address (suc n) → Tree (suc n) A → SourceM n A ⊤
-  --   exciseLocal {n} {A} addr leaf = 
-  --     get >>=ₛ (λ c → liftS {n} (contractAt {n} c addr) >>=ₛ put) 
-  --     where open MonadState (SourceMS n A) renaming (_>>=_ to _>>=ₛ_)
-  --   exciseLocal {n} {A} addr (node a shell) =
-  --     traverseTree (SourceAP n A) (λ { (d , t) → exciseLocal (d ∷ addr) t }) (zipWithAddress shell)
-  --     >>=ₛ (λ _ → η tt)
-  --     where open MonadState (SourceMS n A) renaming (_>>=_ to _>>=ₛ_) 
+      compressFocus : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Tree (A (suc n)) (suc n) → M (ComplexZipper A n)
+      compressFocus z tr = compressLocal z tr >>= (λ cn → η (updateFocus z (box (focusValue z) cn)))
 
-  -- -- comultiply : {n : ℕ} → {A : Set} → Complex A n → Maybe (Complex (NComplex A) n)
-  -- -- comultiply {zero} (∥ ▶ (obj ob)) = just (∥ ▶ (obj (0 , (∥ ▶ (obj ob)))))
-  -- -- comultiply {zero} (∥ ▶ (int a (pt nst))) = 
-  -- --   comultiply (∥ ▶ nst) >>= (λ { (∥ ▶ res) → just (∥ ▶ (int (0 , (∥ ▶ (obj a))) (pt res))) }) 
-  -- -- comultiply {suc n} (ic ▶ nst) = 
-  -- --   traverseNesting maybeA (λ { (_ , addr) → (sourceAt (ic ▶ nst) addr >>= (λ cm → just (suc n , cm))) }) (nestingWithAddr nst) 
-  -- --   >>= (λ hd → comultiply ic 
-  -- --   >>= (λ tl → just (tl ▶ hd) )) 
+      compressLocal : {A : ℕ → Set} → {n : ℕ} → ComplexZipper A n → Tree (A (suc n)) (suc n) → M (Tree (Nesting (A n) n) n)
+      compressLocal z leaf = focusUnit z
+      compressLocal z (node a sh) = 
+        focusCanopy z 
+        >>= (λ cn → match (λ d tr → visitComplex z d >>= (λ z₀ → compressLocal z₀ tr)) cn sh 
+        >>= join)
+
+      exciseLocal : {A : ℕ → Set} → {n : ℕ} → Address (suc n) → Tree (A (suc n)) (suc n) → SourceM A n ⊤
+      exciseLocal {A} {n} addr leaf = 
+        get >>=ₛ (λ c → liftS (contractAt c addr) >>=ₛ put)
+        where open MonadState (SourceMS A n) renaming (_>>=_ to _>>=ₛ_)
+      exciseLocal {A} {n} addr (node _ sh) = 
+        traverseWithAddress {{SourceAP A n}} sh (λ t d → exciseLocal (d ∷ addr) t) >>=ₛ (λ _ → ηₛ tt)
+        where open MonadState (SourceMS A n) renaming (_>>=_ to _>>=ₛ_ ; η to ηₛ)
+
+    comultiply : {A : ℕ → Set} → {n : ℕ} → Complex A n → M (Complex (Complex A) n)
+    comultiply {n = zero} (∥ ▶ obj a) = η (∥ ▶ (obj (∥ ▶ (obj a))))
+    comultiply {n = zero} (∥ ▶ box a (pt nst)) = 
+      comultiply (∥ ▶ nst) >>= (λ { (∥ ▶ res) → η (∥ ▶ box (∥ ▶ obj a) (pt res)) })
+    comultiply {n = suc n} c = 
+      traverseNestingWithAddr {{monadIsApp isMonad}} (head c) (λ _ addr → sourceAt c addr)
+      >>= (λ hd → comultiply (tail c) 
+      >>= (λ tl → η (tl ▶ hd)))
+
 
 
