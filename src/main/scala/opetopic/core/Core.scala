@@ -42,6 +42,9 @@ package object core
   type DerivSucc[+A, P <: Nat] = (Tree[Tree[A, S[P]], P], List[(A, Derivative[Tree[A, S[P]], P])])
   type DerivDblSucc[+A, P <: Nat] = (Tree[Tree[A, S[S[P]]], S[P]], List[(A, DerivSucc[Tree[A, S[S[P]]], P])])
 
+  type NestingDerivative[+A, N <: Nat] = 
+    (Tree[Nesting[A, N], N], NestingContext[A, N])
+
   //============================================================================================
   // CONTEXTS
   //
@@ -59,6 +62,9 @@ package object core
   type CntxtSucc[+A, P <: Nat] = List[(A, Derivative[Tree[A, S[P]], P])]
   type CntxtDblSucc[+A, P <: Nat] = List[(A, DerivSucc[Tree[A, S[S[P]]], P])]
 
+  type NestingContext[+A, N <: Nat] = 
+    List[(A, Derivative[Nesting[A, N], N])]
+
   //============================================================================================
   // ZIPPERS
   //
@@ -68,6 +74,11 @@ package object core
   type ZipperSucc[+A, P <: Nat] = (Tree[A, S[P]], CntxtSucc[A, P])
   type ZipperDblSucc[+A, P <: Nat] = (Tree[A, S[S[P]]], CntxtDblSucc[A, P])
 
+  type NestingZipper[+A, N <: Nat] = 
+    (Nesting[A, N], NestingContext[A, N])
+
+  type NestingZipperDblSucc[+A, P <: Nat] =
+    (Nesting[A, S[S[P]]], List[(A, DerivDblSucc[Nesting[A, S[S[P]]], P])])
 
 }
 

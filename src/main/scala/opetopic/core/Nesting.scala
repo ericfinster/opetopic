@@ -11,6 +11,7 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Applicative
+import scalaz.syntax.monad._
 
 sealed abstract class Nesting[+A, N <: Nat] { def dim : N }
 case class Obj[+A](a : A) extends Nesting[A, _0] { def dim = Z }
@@ -86,6 +87,167 @@ trait NestingFunctions {
     }
   }
 
+  //============================================================================================
+  // BASE VALUE
+  //
+
+  def baseValue[A, N <: Nat](nst: Nesting[A, N]) : A = 
+    nst match {
+      case Obj(a) => a
+      case Dot(a, _) => a
+      case Box(a, _) => a
+    }
+
+  //============================================================================================
+  // TO TREE
+  //
+
+  def toTree[A, N <: Nat](nst: Nesting[A, N]) : Tree[A, S[N]] = 
+    nst match {
+      case Obj(a) => Leaf(__1)
+      case Dot(a, d) => Leaf(S(d))
+      case Box(a, cn) => Node(a, Tree.map(cn)(toTree(_)))
+    }
+
+  //============================================================================================
+  // SPINE FROM CANOPY
+  //
+
+  def spineFromCanopy[M[+_], A, N <: Nat](cn : Tree[Nesting[A, N], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, N]] = 
+    for {
+      toJoin <- Tree.traverseWithLocalData(cn)({
+        case (nst, _, deriv) => spineFromDerivative(nst, deriv)
+      })
+      result <- Tree.join(toJoin)
+    } yield result
+
+  //============================================================================================
+  // SPINE FROM DERIVATIVE
+  //
+
+  def spineFromDerivative[M[+_], A, N <: Nat](nst : Nesting[A, N], deriv : Derivative[A, N])(implicit sm: ShapeMonad[M]) : M[Tree[A, N]] = 
+    nst match {
+      case Obj(a) => sm.pure(Pt(a))
+      case Dot(a, d) => sm.pure(Zipper.plug(d)(deriv, a))
+      case Box(a, cn) => spineFromCanopy(cn)
+    }
+
+  //============================================================================================
+  // NESTING ZIPPER OPS
+  //
+
+  def plugNesting[A, N <: Nat](n: N)(deriv: NestingDerivative[A, N], a: A) : Nesting[A, N] = 
+    closeNesting(n)(deriv._2, Box(a, deriv._1))
+
+  def closeNesting[A, N <: Nat](n: N)(cntxt: NestingContext[A, N], nst: Nesting[A, N]) : Nesting[A, N] = 
+    cntxt match {
+      case Nil => nst
+      case (a, d) :: cs => closeNesting(n)(cs, Box(a, Zipper.plug(n)(d, nst)))
+    }
+
+  def visitNesting[M[+_], A, N <: Nat](n : N)(zipper: NestingZipper[A, N], dir: Address[N])(implicit sm : ShapeMonad[M]) : M[NestingZipper[A, N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = (Address[N], NestingZipper[A, N]) => M[NestingZipper[A, N]]
+
+      def caseZero : Out[_0] = {
+        case (d, (Obj(_), cntxt)) => sm.failWith(new ShapeLookupError)
+        case (d, (Box(a, Pt(int)), cntxt)) => 
+          sm.pure(int, (a, ()) :: cntxt)
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (d, (Dot(_, _), cntxt)) => sm.failWith(new ShapeLookupError)
+        case (d, (Box(a, canopy), cntxt)) => 
+          for {
+            loc <- Tree.seekTo(canopy, d)
+            res <- (
+              loc._1 match {
+                case Leaf(_) => sm.failWith(new ShapeLookupError)
+                case Node(nst, hsh) => 
+                  sm.pure((nst, (a, (hsh, loc._2)) :: cntxt))
+              }
+            )
+          } yield res
+      }
+
+    })(n)(dir, zipper)
+
+  def seekNesting[M[+_], A, N <: Nat](n: N)(z: NestingZipper[A, N], addr: Address[S[N]])(implicit sm: ShapeMonad[M]) : M[NestingZipper[A, N]] = 
+    addr match {
+      case Nil => sm.pure(z)
+      case (d :: ds) =>
+        for {
+          zp <- seekNesting(n)(z, ds)
+          zr <- visitNesting(n)(zp, d)
+        } yield zr
+    }
+
+  def sibling[M[+_], A, N <: Nat](n : N)(z: NestingZipper[A, S[N]], addr: Address[N])(implicit sm: ShapeMonad[M]) : M[NestingZipper[A, S[N]]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = (NestingZipper[A, S[N]], Address[N]) => M[NestingZipper[A, S[N]]]
+
+      def caseZero : Out[_0] = {
+        case ((nst, Nil), addr) => sm.failWith(new ShapeLookupError)
+        case ((nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt), addr) => sm.failWith(new ShapeLookupError)
+        case ((nst, (a, (Pt(Node(nfcs, sh)), hcn)) :: cntxt), addr) =>
+          sm.pure(nfcs, (a, (sh, (nst, ()) :: hcn)) :: cntxt)
+      }
+
+      def caseSucc[P <: Nat](p : P) : (NestingZipperDblSucc[A, P], Address[S[P]]) => M[NestingZipperDblSucc[A, P]] = {
+        case ((nst, Nil), addr) => sm.failWith(new ShapeLookupError)
+        case ((nst, (a, (verts, hcn)) :: cntxt), addr) => 
+          for {
+            vzip <- Tree.seekTo(verts, addr)
+            res <- (
+              vzip._1 match {
+                case Leaf(_) => sm.failWith(new ShapeLookupError)
+                case Node(Leaf(_), _) => sm.failWith(new ShapeLookupError)
+                case Node(Node(nfcs, vrem), hmask) => 
+                  sm.pure((nfcs, (a, (vrem, (nst, (hmask, vzip._2)) :: hcn)) :: cntxt))
+              }
+            )
+          } yield res
+      }
+
+    })(n)(z, addr)
+
+//   def predecessor[N <: Nat, A](nz : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
+//     (new NatCaseSplit {
+
+//       type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
+
+//       def caseZero : Out[_0] = 
+//         nz => None
+
+//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+//         case (fcs, Nil) => None
+//         case (fcs, (a, (verts, Nil)) :: cs) => None
+//         case (fcs, (a, (verts, (pred, deriv) :: vs)) :: cs) => {
+//           Some(pred, (a, (plug(p)(deriv, Node(fcs, verts)), vs)) :: cs)
+//         }
+//       }
+
+//     })(nz._1.dim)(nz)
+
+//   def predecessorWhich[N <: Nat, A](nz : NestingZipper[N, A])(f : A => Boolean) : Option[NestingZipper[N, A]] = 
+//     (new NatCaseSplit {
+
+//       type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
+
+//       def caseZero : Out[_0] = 
+//         nz => if (f(nz._1.baseValue)) Some(nz) else None
+
+//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+//         nz => if (f(nz._1.baseValue)) Some(nz) else 
+//           for {
+//             pred <- predecessor(nz)
+//             res <- predecessorWhich(pred)(f)
+//           } yield res
+
+//     })(nz._1.dim)(nz)
+
 //   //============================================================================================
 //   // CASE SPLITTING
 //   //
@@ -125,28 +287,6 @@ trait NestingFunctions {
 //     }
 
 //   //============================================================================================
-//   // BASE VALUE
-//   //
-
-//   def baseValue[N <: Nat, A](nst : Nesting[N, A]) : A =
-//     nst match {
-//       case Obj(a) => a
-//       case Dot(a, _) => a
-//       case Box(a, _) => a
-//     }
-
-//   //============================================================================================
-//   // TO TREE
-//   //
-
-//   def toTree[N <: Nat, A](nst : Nesting[N, A]) : Tree[S[N], A] = 
-//     nst match {
-//       case Obj(a) => Leaf(__1)
-//       case Dot(a, d) => Leaf(S(d))
-//       case Box(a, canopy) => Node(a, map(canopy)(toTree(_)))
-//     }
-
-//   //============================================================================================
 //   // EXTEND NESTING
 //   //
 
@@ -172,73 +312,6 @@ trait NestingFunctions {
 //     extendNesting(nst, rootAddr(S(nst.dim)))(f)
 
 //   //============================================================================================
-//   // SPINE FROM CANOPY
-//   //
-
-//   def spineFromCanopy[N <: Nat, A](canopy : Tree[N, Nesting[N, A]]) : Option[Tree[N, A]] =
-//     for {
-//       toJoin <- canopy.zipWithDerivative[A].traverse({
-//         case (deriv, nst) => spineFromDerivative(deriv, nst)
-//       })
-//       result <- join(toJoin)
-//     } yield result
-
-//   //============================================================================================
-//   // SPINE FROM DERIVATIVE
-//   //
-
-//   def spineFromDerivative[N <: Nat, A](d : Derivative[N, A], nst : Nesting[N, A]) : Option[Tree[N, A]] = 
-//     (new NestingCaseSplit[A] {
-
-//       type Out[N <: Nat, +U <: Nesting[N, A]] = Derivative[N, A] => Option[Tree[N, A]]
-
-//       def caseObj(a : A) : Out[_0, Obj[A]] = 
-//         deriv => Some(Pt(a))
-
-//       def caseDot[P <: Nat](a : A, d : S[P]) : Out[S[P], Dot[P, A]] = 
-//         deriv => Some(plug(d)(deriv, a))
-
-//       def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]] = 
-//         deriv => spineFromCanopy(c)
-
-//     })(nst)(d)
-
-//   //============================================================================================
-//   // ZIP COMPLETE
-//   //
-
-//   def zipCompleteNesting[N <: Nat, A, B](nstA : Nesting[N, A], nstB : Nesting[N, B]) : Option[Nesting[N, (A, B)]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = (Nesting[N, A], Nesting[N, B]) => Option[Nesting[N, (A, B)]]
-
-//       def caseZero : Out[_0] = {
-//         case (Obj(a), Obj(b)) => Some(Obj((a, b)))
-//         case (Box(a, cpA), Box(b, cpB)) =>
-//           for {
-//             cpAB <- cpA matchWith cpB
-//             cpRes <- cpAB traverse {
-//               case (nA, nB) => caseZero(nA, nB)
-//             }
-//           } yield Box((a, b), cpRes)
-//         case _ => None
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (Dot(a, d), Dot(b, _)) => Some(Dot((a, b), d))
-//         case (Box(a, cpA), Box(b, cpB)) =>
-//           for {
-//             cpAB <- cpA matchWith cpB
-//             cpRes <- cpAB traverse {
-//               case (nA, nB) => zipCompleteNesting(nA, nB)
-//             }
-//           } yield Box((a, b), cpRes)
-//         case _ => None
-//       }
-
-//     })(nstA.dim)(nstA, nstB)
-
-//   //============================================================================================
 //   // EXTRUDE NESTING
 //   //
 
@@ -260,134 +333,6 @@ trait NestingFunctions {
 //       }
 
 //     })(tr.dim)(addr, tr, msk)
-
-//   //============================================================================================
-//   // NESTING ZIPPERS
-//   //
-
-//   type NestingDerivative[N <: Nat, +A] = 
-//     (Tree[N, Nesting[N, A]], NestingContext[N, A])
-
-//   type NestingContext[N <: Nat, +A] = 
-//     List[(A, Derivative[N, Nesting[N, A]])]
-
-//   type NestingZipper[N <: Nat, +A] = 
-//     (Nesting[N, A], NestingContext[N, A])
-
-//   def plugNesting[N <: Nat, A](n : N)(deriv : NestingDerivative[N, A], a : A) : Nesting[N, A] = 
-//     closeNesting(n)(deriv._2, Box(a, deriv._1))
-
-//   def closeNesting[N <: Nat, A](n : N)(cntxt : NestingContext[N, A], nst : Nesting[N, A]) : Nesting[N, A] = 
-//     cntxt match {
-//       case Nil => nst
-//       case (a, d) :: cs => closeNesting(n)(cs, Box(a, plug(n)(d, nst)))
-//     }
-
-//   def visitNesting[N <: Nat, A](dir : Address[N], zipper : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = (Address[N], NestingZipper[N, A]) => Option[NestingZipper[N, A]]
-
-//       def caseZero : Out[_0] = {
-//         case (d, (Obj(_), cntxt)) => None
-//         case (d, (Box(a, Pt(int)), cntxt)) => 
-//           Some(int, (a, ()) :: cntxt)
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (d, (Dot(_, _), cntxt)) => None
-//         case (d, (Box(a, canopy), cntxt)) => 
-//           for {
-//             loc <- canopy seekTo d
-//             res <- (
-//               loc.focus match {
-//                 case Leaf(_) => None
-//                 case Node(nst, hsh) => 
-//                   Some(nst, (a, (hsh, loc.context)) :: cntxt)
-//               }
-//             )
-//           } yield res
-//       }
-
-//     })(zipper._1.dim)(dir, zipper)
-
-//   def seekNesting[N <: Nat, A](addr : Address[S[N]], nz : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
-//     addr match {
-//       case Nil => Some(nz)
-//       case (d :: ds) =>
-//         for {
-//           zp <- seekNesting(ds, nz)
-//           zr <- visitNesting(d, zp)
-//         } yield zr
-//     }
-
-//   def sibling[N <: Nat, A](addr : Address[N], nz : NestingZipper[S[N], A]) : Option[NestingZipper[S[N], A]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = (Address[N], NestingZipper[S[N], A]) => Option[NestingZipper[S[N], A]]
-
-//       def caseZero : Out[_0] = {
-//         case (addr, (nst, Nil)) => None
-//         case (addr, (nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt)) => None
-//         case (addr, (nst, (a, (Pt(Node(nfcs, sh)), hcn)) :: cntxt)) => 
-//           Some(nfcs, (a, (sh, (nst, ()) :: hcn)) :: cntxt)
-//       }
-
-//       type UnfoldedZipper[P <: Nat] = 
-//         (Nesting[S[S[P]], A], List[(A, DerivDblSucc[P, Nesting[S[S[P]], A]])])
-
-//       def caseSucc[P <: Nat](p : P) : (Address[S[P]], UnfoldedZipper[P]) => Option[UnfoldedZipper[P]] = {
-//         case (addr, (nst, Nil)) => None
-//         case (addr, (nst, (a, (verts, hcn)) :: cntxt)) => 
-//           for {
-//             vzip <- verts seekTo addr
-//             res <- (
-//               vzip.focus match {
-//                 case Leaf(_) => None
-//                 case Node(Leaf(_), _) => None
-//                 case Node(Node(nfcs, vrem), hmask) => 
-//                   Some(nfcs, (a, (vrem, (nst, (hmask, vzip.context)) :: hcn)) :: cntxt)
-//               }
-//             )
-//           } yield res
-//       }
-
-//     })(nz._1.dim.pred)(addr, nz)
-
-//   def predecessor[N <: Nat, A](nz : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
-
-//       def caseZero : Out[_0] = 
-//         nz => None
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (fcs, Nil) => None
-//         case (fcs, (a, (verts, Nil)) :: cs) => None
-//         case (fcs, (a, (verts, (pred, deriv) :: vs)) :: cs) => {
-//           Some(pred, (a, (plug(p)(deriv, Node(fcs, verts)), vs)) :: cs)
-//         }
-//       }
-
-//     })(nz._1.dim)(nz)
-
-//   def predecessorWhich[N <: Nat, A](nz : NestingZipper[N, A])(f : A => Boolean) : Option[NestingZipper[N, A]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
-
-//       def caseZero : Out[_0] = 
-//         nz => if (f(nz._1.baseValue)) Some(nz) else None
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
-//         nz => if (f(nz._1.baseValue)) Some(nz) else 
-//           for {
-//             pred <- predecessor(nz)
-//             res <- predecessorWhich(pred)(f)
-//           } yield res
-
-//     })(nz._1.dim)(nz)
 
 }
 
