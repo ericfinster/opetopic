@@ -301,6 +301,24 @@ trait TreeFunctions { tfns =>
 
 
   //============================================================================================
+  // SHELL EXTENTS
+  //
+
+
+  def shellExtents[M[+_], A, N <: Nat](sh: Tree[Tree[A, S[N]], N], base: Address[S[N]])(implicit sm: ShapeMonad[M]) : M[Tree[Address[S[N]], N]] = 
+    for {
+      jnSh <- traverseWithLocalData(sh)({ 
+        case (Leaf(d), dir, deriv) => 
+          sm.pure(Zipper.plug(d.pred)(deriv, dir :: base))
+        case (Node(_, sh0), dir, deriv) => shellExtents(sh0, dir :: base)
+      })
+      res <- join(jnSh)
+    } yield res
+
+  def shellExtents[M[+_], A, N <: Nat](sh: Tree[Tree[A, S[N]], N])(implicit sm: ShapeMonad[M]) : M[Tree[Address[S[N]], N]] = 
+    shellExtents(sh, Nil)
+
+  //============================================================================================
   // SPLIT WITH
   //
 

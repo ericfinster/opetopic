@@ -80,5 +80,21 @@ package object core
   type NestingZipperDblSucc[+A, P <: Nat] =
     (Nesting[A, S[S[P]]], List[(A, DerivDblSucc[Nesting[A, S[S[P]]], P])])
 
+  //============================================================================================
+  // COMPLEXES
+  //
+
+  type Complex[A[_ <: Nat], N <: Nat] = 
+    Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, S[N]]
+
+  def |:|[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, _0] = 
+    SNil[({ type L[K <: Nat] = Nesting[A[K], K] })#L]()
+
+  type ComplexZipper[A[_ <: Nat], N <: Nat] = 
+    Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]
+
+  def |::|[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, _0] = 
+    SNil[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L]()
+
 }
 

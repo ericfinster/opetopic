@@ -248,29 +248,26 @@ trait NestingFunctions {
 
 //     })(nz._1.dim)(nz)
 
-//   //============================================================================================
-//   // CASE SPLITTING
-//   //
+  //============================================================================================
+  // CASE SPLITTING
+  //
 
-//   trait NestingCaseSplit[A] {
+  trait NestingCaseSplit {
 
-//     type Out[N <: Nat, +U <: Nesting[N, A]]
+    type Out[A, N <: Nat]
 
-//     def caseObj(a : A) : Out[_0, Obj[A]]
-//     def caseDot[P <: Nat](a : A, d : S[P]) : Out[S[P], Dot[P, A]]
-//     def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]]
+    def caseObj[A](a : A) : Out[A, _0]
+    def caseDot[A, P <: Nat](a : A, d : S[P]) : Out[A, S[P]]
+    def caseBox[A, N <: Nat](a : A, c : Tree[Nesting[A, N], N]) : Out[A, N]
 
-//     def apply[N <: Nat](nst : Nesting[N, A]) : Out[N, Nesting[N, A]] = 
-//       caseSplit(nst)(this)
+    def apply[A, N <: Nat](nst : Nesting[A, N]) : Out[A, N] = 
+      nst match {
+        case Obj(a) => caseObj(a)
+        case Dot(a, d) => caseDot(a, d)
+        case Box(a, c) => caseBox(a, c)
+      }
 
-//   }
-
-//   def caseSplit[N <: Nat, A](nst : Nesting[N, A])(sp : NestingCaseSplit[A]) : sp.Out[N, Nesting[N, A]] = 
-//     nst match {
-//       case Obj(a) => sp.caseObj(a)
-//       case Dot(a, d) => sp.caseDot(a, d)
-//       case Box(a, c) => sp.caseBox(a, c)
-//     }
+  }
 
 //   //============================================================================================
 //   // FOREACH
@@ -391,5 +388,5 @@ trait NestingFunctions {
 
 // }
 
-// object Nesting extends NestingFunctions
+object Nesting extends NestingFunctions
 //     with NestingImplicits
