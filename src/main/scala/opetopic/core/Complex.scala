@@ -66,6 +66,15 @@ trait ComplexFunctions {
     Suite.head[IdxdZip, N](z)._2
   }
 
+  def updateFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], nst: Nesting[A[N], N])(
+    implicit types: IndexedTypes[A]
+  ) : ComplexZipper[A, N] = {
+    import types._
+    z match {
+      case ComplexZipper(tl, hd) => tl >> (nst, hd._2)
+    }
+  }
+
   def focusValue[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(implicit types: IndexedTypes[A]) : A[N] = {
     Nesting.baseValue(focusOf(z))
   }
@@ -223,6 +232,142 @@ trait ComplexFunctions {
         } yield z1
     }
 
+  abstract class SourceRoutines[M[+_]](implicit sm: ShapeMonad[M]) {
+
+    import scalaz.StateT 
+    import scalaz.MonadState 
+    import scalaz.Applicative
+
+    type SourceM[A[_ <: Nat], N <: Nat, R] = StateT[M, Complex[A, N], R]
+
+    def liftS[A[_ <: Nat], N <: Nat, R](mr : M[R]) : SourceM[A, N, R] = 
+      StateT((cmplx : Complex[A, N]) => for { r <- mr } yield (cmplx, r))
+
+    def sourceAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]])(
+      implicit types: IndexedTypes[A]
+    ): M[Complex[A, N]] =
+      for {
+        c0 <- restrictAt(c, addr)
+        res <- contractAt(c0, Nil)
+      } yield res
+
+    def restrictAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]])(
+      implicit types: IndexedTypes[A]
+    ) : M[Complex[A, N]] =
+      for {
+        z <- seekComplex(complexToZipper(c), addr)
+        z0 <- restrictFocus(z)
+      } yield seal(z)
+
+    def contractAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]])(
+      implicit types: IndexedTypes[A]
+    ) : M[Complex[A, N]] =
+      for {
+        z <- seekComplex(complexToZipper(c), addr)
+        z0 <- contractFocus(z)
+      } yield seal(z0)
+
+    def restrictFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(
+      implicit types: IndexedTypes[A]
+    ) : M[ComplexZipper[A, N]] = 
+      (new NatCaseSplit0 {
+
+        import types._
+
+        type Out[N <: Nat] = ComplexZipper[A, N] => M[ComplexZipper[A, N]]
+
+        def caseZero : Out[_0] = { z =>
+          sm.pure(ComplexZipper() >> (focusOf(z), Nil))
+        }
+
+        def caseSucc[P <: Nat](p: P) : Out[S[P]] = { z =>
+          for {
+            tr <- focusSpine(z)
+            tl <- restrictFocus(Suite.tail[IdxdZip, S[P]](z))
+            c <- exciseLocal(Nil, tr).exec(seal(tl))
+          } yield complexToZipper(c) >> (focusOf(z), Nil)
+
+        }
+
+      })(z.length.pred)(z)
+
+    def contractFocus[A[_ <: Nat], N <: Nat](z:  ComplexZipper[A, N])(
+      implicit types: IndexedTypes[A]
+    ) : M[ComplexZipper[A, N]] = 
+      (new NatCaseSplit0 {
+
+        import types._
+
+        type Out[N <: Nat] = ComplexZipper[A, N] => M[ComplexZipper[A, N]]
+
+        def caseZero : Out[_0] = { z => 
+          sm.pure(updateFocus(z, Obj(focusValue(z))))
+        }
+
+        def caseSucc[P <: Nat](p: P) : Out[S[P]] = { z => 
+          for {
+            tr <- focusSpine(z)
+            tl <- compressFocus(Suite.tail[IdxdZip, S[P]](z), tr)
+          } yield tl >> (Dot(focusValue(z), S(p)), contextOf(z))
+        }
+
+      })(z.length.pred)(z)
+
+    def compressFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], tr: Tree[A[S[N]], S[N]])(
+      implicit types: IndexedTypes[A]
+    ) : M[ComplexZipper[A, N]] = 
+      for {
+        cn <- compressLocal(z, tr)
+      } yield updateFocus(z, Box(focusValue(z), cn))
+
+    def compressLocal[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], tr: Tree[A[S[N]], S[N]])(
+      implicit types: IndexedTypes[A]
+    ) : M[Tree[Nesting[A[N], N], N]] =
+      tr match {
+        case Leaf(_) => focusUnit(z)
+        case Node(a, sh) =>
+          for {
+            cn <- focusCanopy(z)
+            toJn <- Tree.matchTraverse(cn, sh)({ 
+              case (d, tr) => 
+                for {
+                  z0 <- visitComplex(z, d)
+                  r <- compressLocal(z0, tr)
+                } yield r
+            })
+            res <- Tree.join(toJn)
+          } yield res
+      }
+
+    def exciseLocal[A[_ <: Nat], N <: Nat](addr: Address[S[N]], tr: Tree[A[S[N]], S[N]])(
+      implicit types: IndexedTypes[A]
+    ) : SourceM[A, N, Unit] = {
+
+      type SrcM[R] = SourceM[A, N, R]
+      type SrcS[S, R] = StateT[M, S, R]
+
+      val MS = MonadState[SrcS, Complex[A, N]]
+      import MS._
+
+      tr match {
+        case Leaf(_) =>
+          for {
+            complex <- get
+            contractResult <- liftS(contractAt(complex, addr))
+            _ <- put(contractResult)
+          } yield ()
+        case Node(a, sh) => 
+          for {
+           _ <- Tree.traverseWithAddress[SrcM, Tree[A[S[N]], S[N]], Unit, N](sh)({ 
+             case (t, d) => exciseLocal(d :: addr, t)
+           })(implicitly[Applicative[SrcM]])
+          } yield ()
+      }
+
+    }
+
+  }
+
 }
 
 
@@ -303,26 +448,6 @@ trait ComplexFunctions {
 
 //   import ComplexZipper._
 
-//   def sourceAt[N <: Nat, A](cmplx : Complex[N, A], addr : Address[S[N]]) : Option[Complex[N, A]] = 
-//     for {
-//       c0 <- restrictAt(cmplx, addr)
-//       c1 <- contractAt(c0, rootAddr(cmplx.length))
-//     } yield c1
-
-
-//   def restrictAt[N <: Nat, A](cmplx : Complex[N, A], addr : Address[S[N]]) : Option[Complex[N, A]] = {
-//     for {
-//       cz <- seekComplex(addr, fromComplex(cmplx))
-//       cz0 <- restrictFocus(cz)
-//     } yield seal(cz0)
-//   }
-
-//   def contractAt[N <: Nat, A](cmplx : Complex[N, A], addr : Address[S[N]]) : Option[Complex[N, A]] = {
-//     for {
-//       cz <- seekComplex(addr, fromComplex(cmplx))
-//       cz0 <- contractFocus(cz)
-//     } yield seal(cz0)
-//   }
 
 //   //============================================================================================
 //   // COMULTIPLY
@@ -354,39 +479,6 @@ trait ComplexFunctions {
 
 //     })(cmplx.dim)(cmplx)
 
-//   //============================================================================================
-//   // SOURCE CALCULATION MONAD
-//   //
-
-//   type SourceM[N <: Nat, A, R] = StateT[Option, Complex[N, A], R]
-
-//   def liftS[N <: Nat, A, R](opt : Option[R]) : SourceM[N, A, R] =
-//     StateT((cmplx : Complex[N, A]) => opt map (r => (cmplx, r)))
-
-//   def exciseLocal[N <: Nat, A](addr : Address[S[N]], tr : Tree[S[N], A]) : SourceM[N, A, Unit] = {
-
-//     type SrcM[R] = SourceM[N, A, R]
-//     type SrcS[S, R] = StateT[Option, S, R]
-
-//     val MS = MonadState[SrcS, Complex[N, A]]
-//     import MS._
-
-//     tr match {
-//       case Leaf(_) =>
-//         for {
-//           complex <- get
-//           contractResult <- liftS(contractAt(complex, addr))
-//           _ <- put(contractResult)
-//         } yield ()
-//       case Node(a, sh) =>
-//         for {  // A bit ugly ....
-//           _ <- Tree.traverse[N, SrcM, (Tree[S[N], A], Address[N]), Unit](sh.zipWithAddress)({ 
-//             case (t, d) => exciseLocal(d :: addr : Address[S[N]], t) 
-//           })(implicitly[Applicative[SrcM]])
-//         } yield ()
-//     }
-
-//   }
 
 // }
 
