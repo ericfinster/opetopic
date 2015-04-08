@@ -10,6 +10,8 @@ package opetopic.core
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Applicative
+
 sealed trait Suite[F[_ <: Nat], L <: Nat] {
 
   def >>(fl : F[L]) : Suite[F, S[L]] = 
@@ -45,6 +47,22 @@ object Suite {
     seq match {
       case SNil() => SNil()
       case tail >> hd => map(tail)(f) >> f(hd)
+    }
+
+  trait SuiteTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
+    def apply[N <: Nat](fn : F[N]) : T[G[N]]
+  }
+
+  def traverse[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: SuiteTraverse[T, F, G])(
+    implicit apT: Applicative[T]
+  ) : T[Suite[G, L]] = 
+    seq match {
+      case SNil() => apT.pure(SNil())
+      case tl >> hd => {
+        apT.ap2(traverse(tl)(trav), trav(hd))(apT.pure(
+          (newTl: Suite[G, Nat], newHd: G[Nat]) => newTl >> newHd
+        ))
+      }
     }
 
 //   class TypeSeqOps[F[_ <: Nat], L <: Nat](seq : TypeSeq[F, L]) {
