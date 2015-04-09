@@ -20,6 +20,13 @@ module Suite where
   mapSuite ∥ f = ∥
   mapSuite (tl ▶ hd) f = mapSuite tl f ▶ f _ hd
 
+  traverseSuite : {G : Set → Set} → ⦃ apG : Applicative G ⦄ → {P Q : ℕ → Set} → {n : ℕ} → 
+                  Suite P n → ((k : ℕ) → P k → G (Q k)) → G (Suite Q n)
+  traverseSuite ∥ f = pure ∥
+    where open Applicative ⦃ ... ⦄
+  traverseSuite (tl ▶ hd) f = (pure _▶_) ⊛ traverseSuite tl f ⊛ f _ hd
+    where open Applicative ⦃ ... ⦄
+
   drop : {P : ℕ → Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → Suite P n → Suite P (Δ k≤n)
   drop .0 z≤n s = s
   drop .(suc k) (s≤s {k} {n} k≤n) (tl ▶ hd) = drop k k≤n tl 

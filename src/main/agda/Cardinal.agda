@@ -56,8 +56,12 @@ module Cardinal where
   CardinalNesting : Set → ℕ → Set
   CardinalNesting A n = CardinalTree (Nesting A n) n 
 
-  Cardinal : ℕ → Set → Set
-  Cardinal n A = Suite (λ k → CardinalNesting A k) (suc n)
+  Cardinal : Set → ℕ → Set
+  Cardinal A n = Suite (λ k → CardinalNesting A k) (suc n)
+
+  seqLeaf : {A : Set} → {n k : ℕ} → TreeSeq A (suc n) k
+  seqLeaf {k = zero} = leaf
+  seqLeaf {k = suc k} = leaf
 
   -- topZipper : {n : ℕ} → {A : Set} → CardinalDerivative (suc n) A → Zipper (suc n) A
   -- topZipper (_ , (sh , cntxt)) = leaf , cntxt
@@ -122,11 +126,6 @@ module Cardinal where
   -- objectCardinal : {A : Set} → A → Cardinal 0 A
   -- objectCardinal a = ∥ ▶ (pt (obj a))
 
-  data Polarity (A : Set) : Set where
-    pos : Polarity A
-    neg : Polarity A
-    neutral : A → Polarity A
-
   -- extend : {n : ℕ} → {A : Set} → A → Cardinal n A → Cardinal (suc n) A
   -- extend {n} a (tl ▶ hd) = tl ▶ hd ▶ (map-cardinal-tree {n} (extendNesting a) hd)
 
@@ -136,9 +135,27 @@ module Cardinal where
   --   where shell : Tree n (Tree (suc n) (Nesting (suc n) (Polarity A)))
   --         shell = toShell {n} (map-cardinal-nesting {suc n} neutral hd)
 
-  seqLeaf : {A : Set} → {n k : ℕ} → TreeSeq A (suc n) k
-  seqLeaf {k = zero} = leaf
-  seqLeaf {k = suc k} = leaf
+  data Polarity (A : Set) : Set where
+    pos : Polarity A
+    neg : Polarity A
+    neutral : A → Polarity A
+
+  data CardinalDimFlag : ℕ → ℕ → Set where
+    dimEq : {k : ℕ} → CardinalDimFlag k k 
+    dimSucc : {k : ℕ} → CardinalDimFlag (suc k) k
+    dimLt : {n k : ℕ} → suc n ≤ k → CardinalDimFlag n k
+    dimDblSucc : {n k : ℕ} → suc (suc k) ≤ n → CardinalDimFlag n k
+
+  getFlag : (n : ℕ) → (k : ℕ) → CardinalDimFlag n k
+  getFlag zero zero = dimEq
+  getFlag zero (suc k) = dimLt (s≤s z≤n)
+  getFlag (suc zero) zero = dimSucc
+  getFlag (suc (suc n)) zero = dimDblSucc (s≤s (s≤s z≤n))
+  getFlag (suc n) (suc k) with getFlag n k
+  getFlag (suc n) (suc .n) | dimEq = dimEq
+  getFlag (suc .(suc k)) (suc k) | dimSucc = dimSucc
+  getFlag (suc n) (suc k) | dimLt sn≤k = dimLt (s≤s sn≤k)
+  getFlag (suc n) (suc k) | dimDblSucc ssk≤n = dimDblSucc (s≤s ssk≤n)
 
   module Extrusion {M : Set → Set} ⦃ isE : MonadError M ⦄ where
 
@@ -218,39 +235,22 @@ module Cardinal where
             Q : ℕ → Set
             Q m = Tree (Tree (P m) (suc k)) k 
 
-  data CardinalDimFlag : ℕ → ℕ → Set where
-    dimEq : {k : ℕ} → CardinalDimFlag k k 
-    dimSucc : {k : ℕ} → CardinalDimFlag (suc k) k
-    dimLt : {n k : ℕ} → suc n ≤ k → CardinalDimFlag n k
-    dimDblSucc : {n k : ℕ} → suc (suc k) ≤ n → CardinalDimFlag n k
+    extrudeDispatch : {A B : Set} → {n k : ℕ} → A → A → Tree B k → CardinalAddress k → CardinalDimFlag n k → CardinalNesting A n → M (CardinalNesting A n)
+    extrudeDispatch a₀ a₁ msk ca dimEq cn = extrudeAt cn ca msk a₀
+    extrudeDispatch a₀ a₁ msk ca dimSucc cn = insertFillerAt cn ca msk a₁
+    extrudeDispatch a₀ a₁ msk ca (dimLt sn≤k) cn = η cn
+    extrudeDispatch a₀ a₁ msk ca (dimDblSucc 2pk≤n) cn = insertLeafAt 2pk≤n cn ca msk
 
-  getFlag : (n : ℕ) → (k : ℕ) → CardinalDimFlag n k
-  getFlag zero zero = dimEq
-  getFlag zero (suc k) = dimLt (s≤s z≤n)
-  getFlag (suc zero) zero = dimSucc
-  getFlag (suc (suc n)) zero = dimDblSucc (s≤s (s≤s z≤n))
-  getFlag (suc n) (suc k) with getFlag n k
-  getFlag (suc n) (suc .n) | dimEq = dimEq
-  getFlag (suc .(suc k)) (suc k) | dimSucc = dimSucc
-  getFlag (suc n) (suc k) | dimLt sn≤k = dimLt (s≤s sn≤k)
-  getFlag (suc n) (suc k) | dimDblSucc ssk≤n = dimDblSucc (s≤s ssk≤n)
+    dropDispatch : {A : Set} → {n k : ℕ} → A → A → CardinalAddress k → CardinalDimFlag n (suc k) → CardinalNesting A n → M (CardinalNesting A n)
+    dropDispatch a₀ a₁ ca dimEq cn = extrudeLoopAt cn ca a₀
+    dropDispatch a₀ a₁ ca dimSucc cn = extrudeDropAt cn ca a₁
+    dropDispatch a₀ a₁ ca (dimLt sn≤sk) cn = η cn
+    dropDispatch a₀ a₁ ca (dimDblSucc 3pk≤n) cn = padWithDropLeaf 3pk≤n cn ca
 
-  -- extrudeDispatch : {n k : ℕ} → {A B : Set} → A → A → Tree k B → CardinalAddress k → CardinalDimFlag n k → CardinalNesting n A → Maybe (CardinalNesting n A)
-  -- extrudeDispatch {k = zero} a₀ a₁ msk ca dimEq cn = just (pt (int a₀ cn))
-  -- extrudeDispatch {k = suc k} a₀ a₁ msk ca dimEq cn = extrudeNestingAt a₀ cn ca msk
-  -- extrudeDispatch a₀ a₁ msk ca dimSucc cn = doFiller a₁ cn ca msk
-  -- extrudeDispatch a₀ a₁ msk ca (dimLt sn≤k) cn = just cn
-  -- extrudeDispatch a₀ a₁ msk ca (dimDblSucc (s≤s (s≤s k≤n))) cn = doTail k≤n cn ca msk
-
-  -- dropDispatch : {n k : ℕ} → {A : Set} → A → A → CardinalAddress k → CardinalDimFlag n (suc k) → CardinalNesting n A → Maybe (CardinalNesting n A)
-  -- dropDispatch a₀ a₁ ca dimEq cn = {!!} -- extrudeLoopAt a₀ cn ca
-  -- dropDispatch a₀ a₁ ca dimSucc cn = extrudeDropAt a₁ cn ca
-  -- dropDispatch a₀ a₁ ca (dimLt sn≤sk) cn = just cn
-  -- dropDispatch a₀ a₁ ca (dimDblSucc 3pk≤n) cn = padWithDropLeaf 3pk≤n cn ca
-
-  -- traverseCardinal : {n : ℕ} → {A : Set} → ((m : ℕ) → CardinalNesting m A → Maybe (CardinalNesting m A)) → Cardinal n A → Maybe (Cardinal n A)
-  -- traverseCardinal {zero} f (∥ ▶ hd) = f 0 hd >>= (λ newHd → just (∥ ▶ newHd))
-  -- traverseCardinal {suc n} f (c ▶ hd) = traverseCardinal {n} f c >>= (λ newTl → f (suc n) hd >>= (λ newHd → just (newTl ▶ newHd)))
+    extrudeSelection : {A : Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → A → A → (A → Bool) → CardinalAddress (suc k) → Cardinal A (suc n) → M (Cardinal A (suc n))
+    extrudeSelection k k≤n a₀ a₁ p ca c = 
+      getSelection (getAt (suc k) (s≤s k≤n) c) ca p 
+      >>= (λ msk → traverseSuite ⦃ monadIsApp isMonad ⦄ c (λ m cn → extrudeDispatch a₀ a₁ msk ca (getFlag m (suc k)) cn))
 
   -- doExtrude : {n k : ℕ} → {A B : Set} → A → A → Tree k B → CardinalAddress k → Cardinal n A → Maybe (Cardinal n A)
   -- doExtrude {k = k} a₀ a₁ msk ca c = traverseCardinal (λ m → extrudeDispatch a₀ a₁ msk ca (getFlag m k)) c
@@ -265,8 +265,4 @@ module Cardinal where
   -- doTopRootExtrusion : {n : ℕ} → {A : Set} → A → A → Cardinal n A → Maybe (Cardinal (suc n) A)
   -- doTopRootExtrusion {n} a₀ a₁ c = doRootExtrusion n ≤-refl a₀ a₁ (extend a₁ c)
 
-  -- extrudeSelection : {n : ℕ} → {A : Set} → (k : ℕ) → (k≤n : k ≤ n) → A → A → (A → Bool) → CardinalAddress (suc k) → Cardinal (suc n) A → Maybe (Cardinal (suc n) A)
-  -- extrudeSelection k k≤n a₀ a₁ p ca c = 
-  --   findSelectionMask (getAt (suc k) (s≤s k≤n) c) ca p 
-  --   >>= (λ msk → doExtrude a₀ a₁ msk ca c)
 
