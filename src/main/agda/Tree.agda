@@ -60,24 +60,23 @@ module Tree where
     seek z [] = let open MonadError ⦃ ... ⦄ in η z
     seek z (d ∷ ds) = let open MonadError ⦃ ... ⦄ in seek z ds >>= visit d
 
-    -- parent : {n : ℕ} → {A : Set} → Zipper n A → Maybe (Zipper n A)
-    -- parent {zero} z = nothing
-    -- parent {suc n} (fcs , []) = nothing
-    -- parent {suc n} (fcs , (a , ∂) ∷ cs) = just (node a (∂ ← fcs) , cs)
+    parent : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Zipper A n → M (Zipper A n)
+    parent {n = zero} z = let open MonadError ⦃ ... ⦄ in failWith "No parent"
+    parent {n = suc n} (fcs , []) = let open MonadError ⦃ ... ⦄ in failWith "No parent"
+    parent {n = suc n} (fcs , (a , ∂) ∷ cs) = η (node a (∂ ← fcs) , cs)
+      where open MonadError ⦃ ... ⦄
 
-    -- parentWhich : {n : ℕ} → {A : Set} → (A → Bool) → Zipper n A → Maybe (Zipper n A)
-    -- parentWhich {zero} p z = nothing
-    -- parentWhich {suc n} p (fcs , []) = nothing
-    -- parentWhich {suc n} p (fcs , (a , ∂) ∷ cs) = 
-    --   let parent = (node a (∂ ← fcs) , cs) in
-    --     if p a then 
-    --       just parent
-    --     else 
-    --       parentWhich p parent
-
-  globDeriv : (A : Set) → (n : ℕ) → Derivative A n
-  globDeriv A zero = tt
-  globDeriv A (suc n) = (globDeriv (Tree A (suc n)) n ← leaf) , []
+    parentWhich : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Zipper A n → (A → Bool) → M (Zipper A n)
+    parentWhich {n = zero} z p = let open MonadError ⦃ ... ⦄ in failWith "No parent"
+    parentWhich {n = suc n} (fcs , []) p = let open MonadError ⦃ ... ⦄ in failWith "No parent"
+    parentWhich {n = suc n} (fcs , (a , ∂) ∷ cs) p = 
+      let parent = (node a (∂ ← fcs) , cs)
+      in if p a then η parent else parentWhich parent p
+      where open MonadError ⦃ ... ⦄
+  
+  globDerivative : (A : Set) → (n : ℕ) → Derivative A n
+  globDerivative A zero = tt
+  globDerivative A (suc n) = (globDerivative (Tree A (suc n)) n ← leaf) , []
 
   seekTo : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → Tree A n → Address n → M (Zipper A n)
   seekTo {n = zero} tr tt = let open MonadError ⦃ ... ⦄ in η (tr , tt)
@@ -233,76 +232,39 @@ module Tree where
                    (node _ sh₀) d ∂ → shellExtents₀ sh₀ (d ∷ ds) }) 
             >>= join
 
-  -- corollaSetup : {n : ℕ} → {A : Set} → Tree n A → Tree n (Derivative n (Address n) × A)
-  -- corollaSetup {zero} (pt a) = pt (tt , a)
-  -- corollaSetup {suc n} leaf  = leaf 
-  -- corollaSetup {suc n} (node a sh) = 
-  --   node ((mapTree (λ _ → leaf ) sh , []) , a) 
-  --        (mapTree corollaSetup sh)
 
+  exciseWithProp : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → 
+                         Tree A (suc n) → Derivative (Tree A (suc n)) n → (A → Bool) →
+                         M (Tree A (suc n) × Tree (Tree A (suc n)) n)
+  exciseWithProp leaf ∂ p = η (leaf , ∂ ← leaf)
+    where open MonadError ⦃ ... ⦄
+  exciseWithProp (node a sh) ∂ p = 
+    if p a then 
+      traverseWithLocalData {{monadIsApp isMonad}} sh
+        (λ b _ ∂₀ → exciseWithProp b ∂₀ p)
+        >>= (λ ztr → let (newSh , toJn) = unzip ztr
+                       in join toJn >>= (λ jnd → η (node a newSh , jnd))) 
+    else 
+      η (leaf , sh)
+    where open MonadError ⦃ ... ⦄
 
-  --   shellExtents : {n : ℕ} → {A : Set} → Tree n (Tree (suc n) A) → Maybe (Tree n (Address (suc n)))
-  --   shellExtents {n} {A} sh = shellExtents₀ [] sh
+  exciseWithMask₀ : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A B : Set} → {n : ℕ} →
+                   Tree A (suc n) → Derivative (Tree A (suc n)) n → Tree B (suc n) → 
+                   M (Tree A (suc n) × Tree (Tree A (suc n)) n)
+  exciseWithMask₀ tr ∂ leaf = η (leaf , ∂ ← tr)
+    where open MonadError ⦃ ... ⦄ 
+  exciseWithMask₀ leaf ∂ (node a msk) = failWith "Incorrect Mask"
+    where open MonadError ⦃ ... ⦄
+  exciseWithMask₀ (node a trSh) ∂ (node _ mskSh) = 
+    matchWithDerivative (λ t m₀ ∂₀ → exciseWithMask₀ t ∂₀ m₀) trSh mskSh
+    >>= (λ ztr → let (nsh , toJn) = unzip ztr in join toJn 
+    >>= (λ jn → η (node a nsh , jn)))
+    where open MonadError ⦃ ... ⦄
 
-  --     where shellExtents₀ : Address (suc n) → Tree n (Tree (suc n) A) → Maybe (Tree n (Address (suc n)))
-  --           shellExtents₀ ds sh₀ = traverseTree maybeA 
-  --                                    (λ { (d , ∂ , leaf) → just (∂ ← (d ∷ ds)) ; 
-  --                                         (d , _ , node _ s) → shellExtents₀ (d ∷ ds) s }) 
-  --                                    (extentsData sh) >>= join
+  exciseWithMask : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A B : Set} → {n : ℕ} → 
+                   Tree A (suc n) → Tree B (suc n) → M (Tree A (suc n) × Tree (Tree A (suc n)) n)
+  exciseWithMask tr msk = exciseWithMask₀ tr (globDerivative _ _) msk
 
-  --   flattenWithPrefix : {n : ℕ} → {A : Set} → Address (suc n) → Maybe (Derivative n (Address (suc n))) → Tree (suc n) A → Maybe (Tree n (Address (suc n)))
-  --   flattenWithPrefix {n} ds nothing leaf = just (globDeriv n (Address (suc n)) ← ds) 
-  --   flattenWithPrefix {n} ds (just ∂) leaf = just (∂ ← ds)
-  --   flattenWithPrefix {n} ds _ (node a sh) = 
-  --     traverseTree maybeA (λ { (d , ∂ , v) → flattenWithPrefix (d ∷ ds) (just ∂) v }) (localData {B = Address (suc n)} sh) 
-  --     >>= join
-
-  --   flatten : {n : ℕ} → {A : Set} → Tree (suc n) A → Maybe (Tree n (Address (suc n)))
-  --   flatten tr = flattenWithPrefix [] nothing tr
-
-  -- dejoin : {n : ℕ} → {A : Set} → Tree n A → (A → Bool) → Maybe (Tree n (A ⊎ Tree n A))
-  -- dejoin {zero} (pt a) p = just (if p a then pt (inj₂ (pt a)) else pt (inj₁ a))
-  -- dejoin {suc n} leaf p = just leaf
-  -- dejoin {suc n} {A} (node a tr) p = 
-  --   traverseTree maybeA (λ t → dejoin t p) tr 
-  --   >>= (λ sh → 
-  --     if p a then 
-  --       (let innerShell : Tree n (Tree (suc n) A)
-  --            innerShell = mapTree (λ { (_ , leaf) → leaf 
-  --                                    ; (addr , node (inj₁ a₀) t) → leaf 
-  --                                    ; (addr , node (inj₂ tr₀) t) → tr₀ }) (zipWithAddress sh) 
-  --            outerShell : Tree n (Tree n (Tree (suc n) (A ⊎ Tree (suc n) A)))
-  --            outerShell = mapTree (λ { (∂ , leaf) → ∂ ← leaf 
-  --                                    ; (∂ , node (inj₁ a₀) t) → ∂ ← node (inj₁ a₀) t 
-  --                                    ; (∂ , node (inj₂ tr) t) → t }) (zipWithDeriv sh)
-  --          in join outerShell >>= (λ r → just (node (inj₂ (node a innerShell)) r)))
-  --     else 
-  --       just (node (inj₁ a) sh))
-
-  -- -- Okay, the idea is that we can store the cardinal address of the root of the selection.  We then would like a routine
-  -- -- which traces the selection tree, generating the mask.  The result should be the tree consisting of all places where
-  -- -- the selection function returns true, and as soon as it returns false, we should cut.  Let's try this:
-  
-  -- takeWhile : {n : ℕ} → {A : Set} → Tree (suc n) A → (A → Bool) → Tree (suc n) A
-  -- takeWhile leaf p = leaf
-  -- takeWhile (node a sh) p = if p a then node a (mapTree (λ t → takeWhile t p) sh) else leaf
-
-  -- -- Great.  That was easy.  Now, can we apply this to a cardinal?
-
-  -- exciseDeriv : {n : ℕ} → {A B : Set} → Derivative n (Tree (suc n) A) → Tree (suc n) A → Tree (suc n) B → Maybe (Tree (suc n) A × Tree n (Tree (suc n) A))
-  -- exciseDeriv ∂ tr leaf = just (leaf , ∂ ← tr)
-  -- exciseDeriv ∂ leaf (node b msk) = nothing 
-  -- exciseDeriv {n} {A} ∂ (node a trSh) (node _ mskSh) = 
-  --   traverseTree maybeA (uncurry (uncurry exciseDeriv))
-  --     (zip (zipWithDeriv {B = Tree (suc n) A} trSh) mskSh)
-  --   >>= (λ zsh → let (nsh , crpJn) = unzip zsh in join crpJn >>= (λ crp → just (node a nsh , crp)))
-
-  -- excise : {n : ℕ} → {A B : Set} → Tree (suc n) A → Tree (suc n) B → Maybe (Tree (suc n) A × Tree n (Tree (suc n) A))
-  -- excise tr msk = exciseDeriv (globDeriv _ _) tr msk
-
-  -- replace : {n : ℕ} → {A B : Set} → Tree (suc n) A → Tree (suc n) B → (Tree (suc n) A → A) → Maybe (Tree (suc n) A)
-  -- replace tr msk rplfn = excise tr msk >>= (λ { (exTr , sh) → just (node (rplfn exTr) sh) })
-  
-  -- -- replaceAt : {n : ℕ} → {A B : Set} → Address (suc n) → Tree (suc n) A → Tree (suc n) B → (Tree (suc n) A → A) → Maybe (Tree (suc n) A)
-  -- -- replaceAt addr tr msk rplfn = seekTo addr tr >>= (λ { (fcs , cntxt)  → replace fcs msk rplfn >>= (λ res → just (cntxt ↓ res)) })
-
+  takeWhile : {A : Set} → {n : ℕ} → Tree A (suc n) → (A → Bool) → Tree A (suc n)
+  takeWhile leaf p = leaf
+  takeWhile (node a sh) p = if p a then node a (mapTree sh (λ t → takeWhile t p)) else leaf
