@@ -136,121 +136,104 @@ module Cardinal where
   --   where shell : Tree n (Tree (suc n) (Nesting (suc n) (Polarity A)))
   --         shell = toShell {n} (map-cardinal-nesting {suc n} neutral hd)
 
-  -- seqLeaf : {n k : ℕ} → {A : Set} → TreeSeq (suc n) k A
-  -- seqLeaf {k = zero} = leaf
-  -- seqLeaf {k = suc k} = leaf
+  seqLeaf : {A : Set} → {n k : ℕ} → TreeSeq A (suc n) k
+  seqLeaf {k = zero} = leaf
+  seqLeaf {k = suc k} = leaf
 
-  getSelection : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → 
-                 CardinalNesting A (suc n) → CardinalAddress (suc n) → (A → Bool) →
-                 M (Tree (Nesting A (suc n)) (suc n))
-  getSelection cn (tl ▶ hd) p = 
-    poke cn tl 
-    >>= (λ { (tr , ∂) → seekTo tr hd 
-    >>= (λ { (fcs , cntxt) → η (takeWhile fcs (λ nst → p (baseValue nst))) }) })
-    where open MonadError ⦃ ... ⦄
+  module Extrusion {M : Set → Set} ⦃ isE : MonadError M ⦄ where
 
-  -- extrudeSelection
-  -- extrudeNestingAt : {n : ℕ} → {A B : Set} → A → CardinalNesting (suc n) A → CardinalAddress (suc n) → Tree (suc n) B → Maybe (CardinalNesting (suc n) A)
-  -- extrudeNestingAt a cn (ca ▶ addr) msk = 
-  --   poke cn ca 
-  --   >>= (λ { (∂ , tr) → extrudeNesting a addr tr msk 
-  --   >>= (λ res → just (plug-cardinal ∂ res)) })
+    open MonadError ⦃ ... ⦄
 
-  -- encloseAt : {n : ℕ} → {A B : Set} → A → Address (suc n) → Tree (suc n) (Tree (suc (suc n)) A) → Tree (suc n) B → Maybe (Tree (suc n) (Tree (suc (suc n)) A))
-  -- encloseAt a addr tr msk = 
-  --   seekTo addr tr 
-  --   >>= (λ { (fcs , cntxt) → excise fcs msk 
-  --   >>= (λ { (cut , cutSh) → just (cntxt ↓ node (node a cut) cutSh) }) })
+    getSelection : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress (suc n) → (A → Bool) → M (Tree (Nesting A (suc n)) (suc n))
+    getSelection cn (tl ▶ hd) p = 
+      poke cn tl 
+      >>= (λ { (tr , ∂) → seekTo tr hd 
+      >>= (λ { (fcs , cntxt) → η (takeWhile fcs (λ nst → p (baseValue nst))) }) })
 
-  -- padWithLeaf : {n k : ℕ} → {A B : Set} → Address (suc n) → TreeSeq (suc n) (suc (suc k)) A → Tree (suc n) B → Maybe (TreeSeq (suc n) (suc (suc k)) A)
-  -- padWithLeaf {n} {k} addr seq msk = 
-  --   seekTo addr seq 
-  --   >>= (λ { (fcs , cntxt) → excise fcs msk 
-  --   >>= (λ { (cut , cutSh) → just (cntxt ↓ node (node (seqLeaf {2 + n} {k}) cut) cutSh) }) })
+    extrudeAt : {A B : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → Tree B n → A → M (CardinalNesting A n)
+    extrudeAt {n = zero} cn ca msk a = η (pt (box a cn))
+    extrudeAt {n = suc n} cn (tl ▶ hd) msk a = 
+      poke cn tl 
+      >>= (λ { (tr , ∂) → seekTo tr hd 
+      >>= (λ { (fcs , cntxt) → exciseWithMask tr msk 
+      >>= (λ { (cn , verts) → η (plugCardinal ∂ (cntxt ↓ node (box a cn) verts)) }) }) })
+
+    insertFillerAt : {A B : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress n → Tree B n → A → M (CardinalNesting A (suc n))
+    insertFillerAt {n = zero} cn (∥ ▶ hd) msk a = η (pt (node (dot a) cn))
+    insertFillerAt {n = suc n} cn (tl ▶ hd) msk a = 
+      poke cn tl 
+      >>= (λ { (tr , ∂) → seekTo tr hd 
+      >>= (λ { (fcs , cntxt) → exciseWithMask fcs msk 
+      >>= (λ { (cut , cutSh) → η (plugCardinal ∂ (cntxt ↓ node (node (dot a) cut) cutSh)) }) }) })
+
+    insertLeafAt : {A B : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress k → Tree B k → M (CardinalNesting A n)
+    insertLeafAt (s≤s (s≤s (z≤n {n}))) cn ca msk = 
+      tailDerivative {n = suc n} z≤n cn ca 
+      >>= (λ { (seq , ∂) → η (coe! (cardinalTreeAssoc (s≤s (z≤n {n}))) (plugCardinal ∂ (node (seqLeaf {_} {1} {n}) (pt seq)))) })
+    insertLeafAt {A} (s≤s (s≤s (s≤s {k} {n} k≤n))) cn (tl ▶ hd) msk = 
+      tailDerivative {n = suc (suc n)} {k = k} (≤-suc (≤-suc k≤n)) cn tl 
+      >>= (λ { (seq , ∂) → seekTo (transport P p seq) hd 
+      >>= (λ { (fcs , cntxt) → exciseWithMask fcs msk 
+      >>= (λ { (cut , cutSh) → η (coe! (cardinalTreeAssoc (≤-suc (≤-suc k≤n))) 
+                                       (plugCardinal ∂ (transport! P p (cntxt ↓ node (node (seqLeaf {_} {2 + k} {Δ k≤n}) cut) cutSh)))) 
+             }) }) })
+
+      where p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
+            p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
+
+            P : ℕ → Set
+            P m = TreeSeq (Nesting A (suc (suc (suc n)))) (suc k) m 
+
+            Q : ℕ → Set
+            Q m = CardinalTree (Nesting A (suc (suc (suc n)))) m 
 
 
-  -- -- Here are the three dropping routines.  Notice how completely uniform they are.  Should do something
-  -- -- similar for the extrusion routines ....
-  -- extrudeLoopAt : {n : ℕ} → {A : Set} → A → CardinalNesting (suc n) A → CardinalAddress n → Maybe (CardinalNesting (suc n) A)
-  -- extrudeLoopAt {zero} a cn ca = just (pt (node (int a leaf) cn))
-  -- extrudeLoopAt {suc n} a cn ca = 
-  --   poke cn ca >>= (λ { (∂ , tr) → just (plug-cardinal ∂ (node (int a leaf) (node tr (const leaf (proj₁ (proj₂ ∂)))))) })
+    extrudeLoopAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress n → A → M (CardinalNesting A (suc n))
+    extrudeLoopAt {n = zero} cn ca a = η (pt (node (box a leaf) cn))
+    extrudeLoopAt {n = suc n} cn ca a = 
+      poke cn ca >>= (λ { (tr , ∂) → η (plugCardinal ∂ (node (box a leaf) (node tr (const (proj₁ (proj₂ ∂)) leaf)))) })
 
-  -- extrudeDropAt : {n : ℕ} → {A : Set} → A → CardinalNesting (suc (suc n)) A → CardinalAddress n → Maybe (CardinalNesting (suc (suc n)) A)
-  -- extrudeDropAt {zero} a cn ca = just (pt (node (node (ext a) leaf) cn))
-  -- extrudeDropAt {suc n} a cn ca = 
-  --   poke cn ca >>= (λ { (∂ , tr) → just (plug-cardinal ∂ (node (node (ext a) leaf) (node tr (const leaf (proj₁ (proj₂ ∂)))))) })
+    extrudeDropAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc (suc n)) → CardinalAddress n → A → M (CardinalNesting A (suc (suc n)))
+    extrudeDropAt {n = zero} cn ca a = η (pt (node (node (dot a) leaf) cn))
+    extrudeDropAt {n = suc n} cn ca a = 
+      poke cn ca >>= (λ { (tr , ∂) → η (plugCardinal ∂ (node (node (dot a) leaf) (node tr (const (proj₁ (proj₂ ∂)) leaf)))) })
 
-  -- -- cardinalTreeAssoc : {n k : ℕ} → {A : Set} → (k≤n : k ≤ n) → CardinalTree (suc n) A == CardinalTree k (TreeSeq (suc k) (Δ k≤n) A)
-  -- -- plug-cardinal : {n : ℕ} → {A : Set} → CardinalDerivative n A → A → CardinalTree n A
-  -- -- tailDeriv : {n k : ℕ} → {A : Set} → (k≤n : k ≤ n) → CardinalTree (suc n) A → CardinalAddress k → 
-  -- --             Maybe (CardinalDerivative k (TreeSeq (suc k) (Δ k≤n) A) × (TreeSeq (suc k) (Δ k≤n) A))
+    padWithDropLeaf : {A : Set} → {n k : ℕ} → (3pk≤n : 3 + k ≤ n) → CardinalNesting A n → CardinalAddress k → M (CardinalNesting A n)
+    padWithDropLeaf {A} (s≤s (s≤s (s≤s (z≤n {n})))) cn ca = 
+      tailDerivative {n = suc (suc n)} {k = 0} z≤n cn ca 
+      >>= (λ { (seq , ∂) → η (coe! (cardinalTreeAssoc {Nesting A (3 + n)} {2 + n} {2} (s≤s (s≤s (z≤n {n})))) 
+          (plugCardinal {TreeSeq (Nesting A (3 + n)) 1 (2 + n)} {0} ∂ (node (node (seqLeaf {_} {2} {n}) leaf) (pt seq)))) })
+    padWithDropLeaf {A} (s≤s (s≤s (s≤s (s≤s {k} {n} k≤n)))) cn ca = 
+      tailDerivative {A = Nesting A (4 + n)} {n = suc (suc (suc n))} {k = suc k} (≤-suc (≤-suc (s≤s k≤n))) cn ca 
+      >>= (λ { (seq , ∂) → η (coe! (cardinalTreeAssoc {Nesting A (4 + n)} {3 + n} {1 + k}  (≤-suc (≤-suc (s≤s k≤n)))) 
+               (plugCardinal {TreeSeq (Nesting A (4 + n)) (2 + k) (Δ (≤-suc (≤-suc k≤n)))} {1 + k} ∂ (transport! P p (node (node (seqLeaf {_} {3 + k} {Δ k≤n}) (leaf {n = 1 + k})) 
+                                                    (node (transport P p seq) (const (transport Q p (proj₁ (proj₂ ∂))) leaf)))))) })
 
-  -- padWithDropLeaf : {n k : ℕ} → {A : Set} → (3pk≤n : 3 + k ≤ n) → CardinalNesting n A → CardinalAddress k → Maybe (CardinalNesting n A)
-  -- padWithDropLeaf {A = A} (s≤s (s≤s (s≤s (z≤n {n})))) cn ca = 
-  --   tailDeriv {suc (suc n)} {0} z≤n cn ca >>= (λ { (∂ , seq) → 
-  --     just (coe! (cardinalTreeAssoc {2 + n} {2} {Nesting (3 + n) A} (s≤s (s≤s (z≤n {n})))) 
-  --          (plug-cardinal {0} {TreeSeq 1 (2 + n) (Nesting (3 + n) A)} ∂ (node (node (seqLeaf {2} {n}) leaf) (pt seq)))) })
-  -- padWithDropLeaf {A = A} (s≤s (s≤s (s≤s (s≤s {k} {n} k≤n)))) cn ca = 
-  --   tailDeriv {suc (suc (suc n))} {suc k} {Nesting (4 + n) A} (≤-suc (≤-suc (s≤s k≤n))) cn ca 
-  --   >>= (λ { (∂ , seq) → 
-  --     just (coe! (cardinalTreeAssoc {3 + n} {1 + k} {Nesting (4 + n) A} (≤-suc (≤-suc (s≤s k≤n)))) 
-  --          (plug-cardinal {1 + k} {TreeSeq (2 + k) (Δ (≤-suc (≤-suc k≤n))) (Nesting (4 + n) A)} ∂ (transport! P p (node (node (seqLeaf {3 + k} {Δ k≤n}) (leaf {n = 1 + k})) 
-  --                                                 (node (transport P p seq) (const leaf (transport Q p (proj₁ (proj₂ ∂))))))))) })
+      where p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
+            p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
 
-  --   where p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
-  --         p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
+            P : ℕ → Set
+            P m = TreeSeq (Nesting A (4 + n)) (suc (suc k)) m 
 
-  --         P : ℕ → Set
-  --         P m = TreeSeq (suc (suc k)) m (Nesting (4 + n) A)
-  
-  --         Q : ℕ → Set
-  --         Q m = Tree k (Tree (suc k) (P m))
+            Q : ℕ → Set
+            Q m = Tree (Tree (P m) (suc k)) k 
 
-  -- doTail : {n k : ℕ} → {A B : Set} → (k≤n : k ≤ n) → CardinalNesting (2 + n) A → CardinalAddress k → Tree k B → Maybe (CardinalNesting (2 + n) A)
-  -- doTail (z≤n {n}) cn ca msk = 
-  --   tailDeriv {suc n} {0} z≤n cn ca 
-  --   >>= (λ { (∂ , seq) → just (coe! (cardinalTreeAssoc (s≤s (z≤n {n}))) (plug-cardinal ∂ (node (seqLeaf {1} {n}) (pt seq)))) })
-  -- doTail {A = A} (s≤s {k} {n} k≤n) cn (ca ▶ addr) msk = 
-  --   tailDeriv {suc (suc n)} {k} (≤-suc (≤-suc k≤n)) cn ca 
-  --   >>= (λ { (∂ , seq) → padWithLeaf {k = Δ k≤n} addr (transport P p seq) msk
-  --   >>= (λ res → just (coe! (cardinalTreeAssoc (≤-suc (≤-suc k≤n))) (plug-cardinal ∂ (transport! P p res)))) })
+  data CardinalDimFlag : ℕ → ℕ → Set where
+    dimEq : {k : ℕ} → CardinalDimFlag k k 
+    dimSucc : {k : ℕ} → CardinalDimFlag (suc k) k
+    dimLt : {n k : ℕ} → suc n ≤ k → CardinalDimFlag n k
+    dimDblSucc : {n k : ℕ} → suc (suc k) ≤ n → CardinalDimFlag n k
 
-  --   where p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
-  --         p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
-
-  --         P : ℕ → Set
-  --         P m = TreeSeq (suc k) m (Nesting (suc (suc (suc n))) A)
-
-  --         Q : ℕ → Set
-  --         Q m = CardinalTree m (Nesting (suc (suc (suc n))) A)
-
-  -- doFiller : {n : ℕ} → {A B : Set} → A → CardinalNesting (suc n) A → CardinalAddress n → Tree n B → Maybe (CardinalNesting (suc n) A)
-  -- doFiller {zero} a cn (∥ ▶ hdAddr) msk = just (pt (node (ext a) cn))
-  -- doFiller {suc n} {A} a cn (ca ▶ hdAddr) msk = 
-  --   tailDeriv {n} {n} ≤-refl cn ca 
-  --   >>= (λ { (∂ , seq) → encloseAt (ext a) hdAddr (transport P (Δ-refl-lem {n}) seq) msk
-  --   >>= (λ res → just (coe! (ap (λ A₁ → CardinalTree n A₁) (ap P (! (Δ-refl-lem {n})))) (plug-cardinal ∂ (transport! P (Δ-refl-lem {n}) res)))) })
-
-  --   where P : ℕ → Set
-  --         P m = TreeSeq (suc n) m (Tree (suc (suc n)) (Nesting (suc (suc n)) A))
-  
-  -- data CardinalDimFlag : ℕ → ℕ → Set where
-  --   dimEq : {k : ℕ} → CardinalDimFlag k k 
-  --   dimSucc : {k : ℕ} → CardinalDimFlag (suc k) k
-  --   dimLt : {n k : ℕ} → suc n ≤ k → CardinalDimFlag n k
-  --   dimDblSucc : {n k : ℕ} → suc (suc k) ≤ n → CardinalDimFlag n k
-
-  -- getFlag : (n : ℕ) → (k : ℕ) → CardinalDimFlag n k
-  -- getFlag zero zero = dimEq
-  -- getFlag zero (suc k) = dimLt (s≤s z≤n)
-  -- getFlag (suc zero) zero = dimSucc
-  -- getFlag (suc (suc n)) zero = dimDblSucc (s≤s (s≤s z≤n))
-  -- getFlag (suc n) (suc k) with getFlag n k
-  -- getFlag (suc n) (suc .n) | dimEq = dimEq
-  -- getFlag (suc .(suc k)) (suc k) | dimSucc = dimSucc
-  -- getFlag (suc n) (suc k) | dimLt sn≤k = dimLt (s≤s sn≤k)
-  -- getFlag (suc n) (suc k) | dimDblSucc ssk≤n = dimDblSucc (s≤s ssk≤n)
+  getFlag : (n : ℕ) → (k : ℕ) → CardinalDimFlag n k
+  getFlag zero zero = dimEq
+  getFlag zero (suc k) = dimLt (s≤s z≤n)
+  getFlag (suc zero) zero = dimSucc
+  getFlag (suc (suc n)) zero = dimDblSucc (s≤s (s≤s z≤n))
+  getFlag (suc n) (suc k) with getFlag n k
+  getFlag (suc n) (suc .n) | dimEq = dimEq
+  getFlag (suc .(suc k)) (suc k) | dimSucc = dimSucc
+  getFlag (suc n) (suc k) | dimLt sn≤k = dimLt (s≤s sn≤k)
+  getFlag (suc n) (suc k) | dimDblSucc ssk≤n = dimDblSucc (s≤s ssk≤n)
 
   -- extrudeDispatch : {n k : ℕ} → {A B : Set} → A → A → Tree k B → CardinalAddress k → CardinalDimFlag n k → CardinalNesting n A → Maybe (CardinalNesting n A)
   -- extrudeDispatch {k = zero} a₀ a₁ msk ca dimEq cn = just (pt (int a₀ cn))
