@@ -12,3 +12,4 @@ trait ShapeError
 class ShapeMatchError extends ShapeError
 class ShapeLookupError extends ShapeError
 class ShapeRootEmptyError extends ShapeError
+class ShapeSelectionError extends ShapeError

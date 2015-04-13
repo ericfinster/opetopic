@@ -108,13 +108,10 @@ trait NatCaseSplit2 {
 
 trait NatCaseSplitWithOne extends NatCaseSplit0 { sp => 
 
-  type Out[N <: Nat]
-
-  def caseZero : Out[Z.type]
   def caseOne : Out[S[Z.type]]
   def caseDblSucc[P <: Nat](p : P) : Out[S[S[P]]]
 
-  final def caseSucc[P <: Nat](p : P) : Out[S[P]] =
+  override final def caseSucc[P <: Nat](p : P) : Out[S[P]] =
     splitSucc(p)
 
   object splitSucc extends NatCaseSplit0 {
@@ -126,6 +123,28 @@ trait NatCaseSplitWithOne extends NatCaseSplit0 { sp =>
 
     def caseSucc[PP <: Nat](pp : PP) : Out[S[PP]] =
       sp.caseDblSucc(pp)
+
+  }
+
+}
+
+trait NatCaseSplitWithTwo extends NatCaseSplitWithOne { sp => 
+
+  def caseTwo : Out[S[S[Z.type]]]
+  def caseTrplSucc[P <: Nat](p : P) : Out[S[S[S[P]]]]
+
+  override final def caseDblSucc[P <: Nat](p : P) : Out[S[S[P]]] = 
+    splitDblSucc(p)
+
+  object splitDblSucc extends NatCaseSplit0 {
+
+    type Out[N <: Nat] = sp.Out[S[S[N]]]
+
+    def caseZero : Out[Z.type] = 
+      sp.caseTwo
+
+    def caseSucc[PPP <: Nat](ppp : PPP) : Out[S[PPP]] = 
+      sp.caseTrplSucc(ppp)
 
   }
 

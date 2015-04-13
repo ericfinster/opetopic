@@ -108,6 +108,18 @@ trait ZipperFunctions {
 
 //     })(n)(zp)
 
+  def globDerivative[A, N <: Nat](n : N) : Derivative[A, N] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = Derivative[A, N]
+
+      def caseZero : Out[_0] = ()
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+        (plug(p)(globDerivative(p), Leaf(S(p))), Nil)
+
+    })(n)
+
 }
 
 object Zipper extends ZipperFunctions

@@ -407,48 +407,43 @@ trait TreeFunctions { tfns =>
       v <- rootValue(zp._1)
     } yield v
 
-  // //============================================================================================
-  // // TAKE WHILE
-  // //
+  //============================================================================================
+  // TAKE WHILE
+  //
 
-  // def takeWhile[N <: Nat, A](tr : Tree[S[N], A])(p : A => Boolean) : Tree[S[N], A] = 
-  //   tr match {
-  //     case Leaf(d) => Leaf(d)
-  //     case Node(a, sh) => 
-  //       if (p(a)) {
-  //         Node(a, sh map (takeWhile(_)(p)))
-  //       } else {
-  //         Leaf(S(sh.dim))
-  //       }
-  //   }
+  def takeWhile[A, N <: Nat](tr : Tree[A, S[N]])(p : A => Boolean) : Tree[A, S[N]] = 
+    tr match {
+      case Leaf(d) => Leaf(d)
+      case Node(a, sh) => 
+        if (p(a)) {
+          Node(a, map(sh)(takeWhile(_)(p)))
+        } else {
+          Leaf(S(sh.dim))
+        }
+    }
 
-  // //============================================================================================
-  // // EXCISION
-  // //
+  //============================================================================================
+  // EXCISION
+  //
 
-  // def exciseDeriv[N <: Nat, A, B](deriv : Derivative[N, Tree[S[N], A]], tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
-  //   (tr, msk) match {
-  //     case (tr, Leaf(d)) => Some(Leaf(d), plug(d.pred)(deriv, tr))
-  //     case (Leaf(_), Node(_, _)) => None
-  //     case (Node(a, sh), Node(_, mskSh)) => 
-  //       for {
-  //         zpSh <- matchTree(sh.zipWithDerivative[Tree[S[N], A]], mskSh) 
-  //         zsh <- traverse(zpSh)({
-  //           case ((d, t), m) => exciseDeriv(d, t, m)
-  //         })
-  //         (nsh, crpJn) = unzip(zsh)
-  //         crp <- join(crpJn)
-  //       } yield (Node(a, nsh), crp)
-  //   }
+  def exciseWithMask[M[+_], A, B, N <: Nat](tr: Tree[A, S[N]], deriv: Derivative[Tree[A, S[N]], N], msk: Tree[B, S[N]])(
+    implicit sm: ShapeMonad[M]
+  ) : M[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] = 
+    (tr, msk) match {
+      case (tr, Leaf(d)) => sm.pure(Leaf(d), Zipper.plug(d.pred)(deriv, tr))
+      case (Leaf(_), Node(_, _)) => sm.failWith(new ShapeLookupError)
+      case (Node(a, sh), Node(_, mskSh)) =>
+        for {
+          ztr <- matchWithDerivative(sh, mskSh)({ case (t, m0, d0) => exciseWithMask(t, d0, m0) })
+          (nsh, crpJn) = unzip(ztr)
+          crp <- join(crpJn)
+        } yield (Node(a, nsh), crp)
+    }
 
-  // def excise[N <: Nat, A, B](tr : Tree[S[N], A], msk : Tree[S[N], B]) : Option[(Tree[S[N], A], Tree[N, Tree[S[N], A]])] =
-  //   exciseDeriv(globDerivative(tr.dim.pred), tr, msk)
-
-  // def replace[N <: Nat, A, B](tr : Tree[S[N], A], msk : Tree[S[N], B], rpl : Tree[S[N], A] => A) : Option[Tree[S[N], A]] = 
-  //   for {
-  //     exPr <- excise(tr, msk)
-  //     (exTr, exSh) = exPr
-  //   } yield Node(rpl(exTr), exSh)
+  def exciseWithMask[M[+_], A, B, N <: Nat](tr: Tree[A, S[N]], msk: Tree[B, S[N]])(
+    implicit sm: ShapeMonad[M]
+  ) : M[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] = 
+    exciseWithMask(tr, Zipper.globDerivative(tr.dim.pred), msk)
 
 }
 
