@@ -98,6 +98,9 @@ module Tree where
   traverseTree (node a sh) f = let open Applicative ⦃ ... ⦄ in 
     pure node ⊛ f a ⊛ traverseTree sh (λ b → traverseTree b f)
 
+  mapTree : {A B : Set} → {n : ℕ} → Tree A n → (A → B) → Tree B n
+  mapTree = traverseTree ⦃ idA ⦄ 
+
   traverseWithAddress : {G : Set → Set} → ⦃ isA : Applicative G ⦄ → {A B : Set} → {n : ℕ} → Tree A n → (A → Address n → G B) → G (Tree B n)
   traverseWithAddress {G = G} tr f = traverseWithAddress₀ tr (rootAddr _) f
 
@@ -109,11 +112,8 @@ module Tree where
           traverseWithAddress₀ (node a sh) base f = 
             pure node ⊛ f a base ⊛ traverseWithAddress sh (λ b d → traverseWithAddress₀ b (d ∷ base) f)
 
-  mapTree : {A B : Set} → {n : ℕ} → Tree A n → (A → B) → Tree B n
-  mapTree tr f = traverseTree ⦃ idA ⦄ tr f
-
   mapWithAddress : {A B : Set} → {n : ℕ} → Tree A n → (A → Address n → B) → Tree B n
-  mapWithAddress tr f = traverseWithAddress ⦃ idA ⦄ tr f
+  mapWithAddress = traverseWithAddress ⦃ idA ⦄
 
   const : {A B : Set} → {n : ℕ} → Tree A n → B → Tree B n
   const tr b = mapTree tr (λ _ → b)

@@ -5,11 +5,11 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 
-import opetopic.core._
+import TypeDefs._
 
 sealed trait Lte[M <: Nat, N <: Nat, D <: Nat] { 
   

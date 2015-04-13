@@ -5,13 +5,15 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Applicative
 import scalaz.syntax.monad._
+
+import TypeDefs._
 
 sealed abstract class Nesting[+A, N <: Nat] { def dim : N }
 case class Obj[+A](a : A) extends Nesting[A, _0] { def dim = Z }

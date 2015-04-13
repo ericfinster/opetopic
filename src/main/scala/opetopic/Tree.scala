@@ -5,16 +5,17 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
 import scalaz.Monad
-import scalaz.Traverse
 import scalaz.Applicative
 import scalaz.syntax.monad._
+
+import TypeDefs._
 
 sealed abstract class Tree[+A, N <: Nat] { def dim : N }
 case class Pt[+A](a : A) extends Tree[A, _0] { def dim = Z }
@@ -68,7 +69,7 @@ trait TreeFunctions { tfns =>
   }
 
   def traverseWithAddress[T[_], A, B, N <: Nat](tr : Tree[A, N])(f : (A, Address[N]) => T[B])(implicit apT : Applicative[T]) : T[Tree[B, N]] = 
-    traverseWithAddress(tr, rootAddr(tr.dim))(f)
+    traverseWithAddress(tr, Zipper.rootAddr(tr.dim))(f)
 
   //============================================================================================
   // TRAVERSE WITH LOCAL DATA
@@ -103,7 +104,7 @@ trait TreeFunctions { tfns =>
   }
 
   def traverseWithLocalData[T[_], A, B, C, N <: Nat](tr : Tree[A, N])(f : (A, Address[N], Derivative[B, N]) => T[C])(implicit apT : Applicative[T]) : T[Tree[C, N]] =
-    traverseWithLocalData(tr, rootAddr(tr.dim))(f)
+    traverseWithLocalData(tr, Zipper.rootAddr(tr.dim))(f)
 
   //============================================================================================
   // MATCH TRAVERSE
@@ -448,84 +449,6 @@ trait TreeFunctions { tfns =>
 
 }
 
-trait TreeImplicits {
-
-  implicit def treeIsTraverse[N <: Nat] : Traverse[({ type L[+A] = Tree[A, N] })#L] = 
-    new Traverse[({ type L[+A] = Tree[A, N] })#L] {
-
-      def traverseImpl[G[_], A, B](ta : Tree[A, N])(f : A => G[B])(implicit isA : Applicative[G]) : G[Tree[B, N]] = 
-        Tree.traverse(ta)(f)
-
-    }
-
-  import scalaz.syntax.TraverseOps
-  import scalaz.syntax.traverse._
-
-  implicit def treeToTraverseOps[A, N <: Nat](tr : Tree[A, N]) : TraverseOps[({ type L[+X] = Tree[X, N] })#L, A] = 
-    ToTraverseOps[({ type L[+X] = Tree[X, N] })#L, A](tr)
-
-  class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
-
-    val T = Traverse[({ type L[+A] = Tree[A, N] })#L]
-
-    def nodes : List[A] = T.toList(tr)
-    def nodeCount : Int = T.count(tr)
-    def zipWithIndex : (Int, Tree[(A, Int), N]) =
-      T.mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
-
-
-  //   def foreach(op : A => Unit) : Unit = 
-  //     Tree.foreach(tr)(op)
-
-  //   def mapWithAddress[B](f : (A, Address[N]) => B) : Tree[N, B] = 
-  //     Tree.mapWithAddress(tr)(f)
-
-  //   def zipWithDerivative[B] : Tree[N, (Derivative[N, B], A)] = 
-  //     Tree.zipWithDerivative[N, A, B](tr)
-
-  //   def zipWithAddress : Tree[N, (A, Address[N])] = 
-  //     Tree.mapWithAddress(tr)((_, _))
-
-  //   def addressTree : Tree[N, Address[N]] =
-  //     Tree.mapWithAddress(tr)({ case (_, addr) => addr })
-
-  //   def matchWith[B](trB : Tree[N, B]) : Option[Tree[N, (A, B)]] = 
-  //     Tree.matchTree(tr, trB)
-
-  //   def seekTo(addr : Address[N]) : Option[Zipper[N, A]] = 
-  //     (new NatCaseSplit {
-
-  //       type Out[N <: Nat] = (Address[N], Tree[N, A]) => Option[Zipper[N, A]]
-
-  //       def caseZero : (Address[_0], Tree[_0, A]) => Option[Zipper[_0, A]] = 
-  //         (addr, tr) => Some(tr, ())
-
-  //       def caseSucc[P <: Nat](p : P) : (Address[S[P]], Tree[S[P], A]) => Option[Zipper[S[P], A]] = 
-  //         (addr, tr) => Zippers.seek((tr, Nil : Context[S[P], A]), addr)
-
-  //     })(tr.dim)(addr, tr)
-
-  //   def rootOption : Option[A] = 
-  //     Tree.rootOption(tr)
-
-  //   def constWith[B](b : B) : Tree[N, B] = 
-  //     Tree.map(tr)(_ => b)
-
-  //   def valueAt(addr : Address[N]) : Option[A] = 
-  //     for {
-  //       zipper <- tr seekTo addr
-  //       a <- zipper.focus.rootOption
-  //     } yield a
-
-  }
-
-  implicit def treeToTreeOps[A, N <: Nat](tr : Tree[A, N]) : TreeOps[A, N] = 
-    new TreeOps[A, N](tr)
-
-}
-
 object Tree extends TreeFunctions 
-    with TreeImplicits
-
 
 

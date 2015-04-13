@@ -5,17 +5,19 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Leibniz
 import scalaz.Leibniz._
+import scalaz.Applicative
 
 import scalaz.syntax.monad._
 
-import opetopic.core._
+import TypeDefs._
+import Nats._
 
 trait CardinalFunctions {
 
@@ -112,6 +114,46 @@ trait CardinalFunctions {
   }
 
   //============================================================================================
+  // TRAVERSALS
+  //
+
+  def traverseCardinalTree[G[_], A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: A => G[B])(implicit apG: Applicative[G]) : G[CardinalTree[B, N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = CardinalTree[A, N] => G[CardinalTree[B, N]]
+
+      def caseZero : Out[_0] = {
+        case Pt(a) => apG.ap(f(a))(apG.pure(Pt(_)))
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case ct => traverseCardinalTree[G, Tree[A, S[P]], Tree[B, S[P]], P](p)(ct)(Tree.traverse(_)(f))
+      }
+
+    })(n)(ct)
+
+  def traverseCardinalTreeWithAddr[G[_], A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: (A, CardinalAddress[N]) => G[B])(
+    implicit apG: Applicative[G]
+  ) : G[CardinalTree[B, N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = (CardinalTree[A, N], (A, CardinalAddress[N]) => G[B]) => G[CardinalTree[B, N]]
+
+      def caseZero : Out[_0] = {  // Seriously, fix this notation
+        case (Pt(a), f) => apG.ap(f(a, SNil[Address]() >> (())))(apG.pure(Pt(_)))
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (ct, f) => traverseCardinalTreeWithAddr[G, Tree[A, S[P]], Tree[B, S[P]], P](p)(ct)({
+          case (tr, base) => Tree.traverseWithAddress(tr)({
+            case (a, addr) => f(a, base >> addr)
+          })
+        })
+      }
+
+    })(n)(ct, f)
+
+  //============================================================================================
   // SEQ LEAF
   //
 
@@ -124,6 +166,65 @@ trait CardinalFunctions {
       def caseSucc[P <: Nat](p : P) : TreeSeq[A, S[N], S[P]] = Leaf(S(n))
 
     })(k)
+
+  //============================================================================================
+  // COMPLETE WITH
+  //
+
+  def completeWith[A, N <: Nat](n : N)(ct: CardinalTree[A, N], a : A) : Tree[A, N] =
+    (new NatCaseSplit0 {
+      
+      type Out[N <: Nat] = CardinalTree[A, N] => Tree[A, N]
+
+      def caseZero : Out[_0] = {
+        ct => Pt(a)
+      }
+
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        ct => Node(a, completeWith[Tree[A, S[P]], P](p)(ct, Leaf(S(p))))
+      }
+
+    })(n)(ct)
+
+  def toShell[A, N <: Nat](n : N)(ct : CardinalTree[A, S[N]]) : Tree[Tree[A, S[N]], N] = 
+    completeWith[Tree[A, S[N]], N](n)(ct, Leaf(S(n)))
+
+  //============================================================================================
+  // TO COMPLEX
+  //
+
+//   sealed trait Polarity[A]
+//   sealed trait Polarization[A] extends Polarity[A]
+//   case class Positive[A]() extends Polarization[A] { override def toString = "+" }
+//   case class Negative[A]() extends Polarization[A] { override def toString = "-" }
+//   case class Neutral[A](a : A) extends Polarity[A] { override def toString = a.toString }
+
+//   trait CardinalCellGenerator[F[_], A] {
+
+//     def positive[N <: Nat](n : N) : F[A]
+//     def negative[N <: Nat](n : N) : F[A]
+
+//     def neutral[N <: Nat](a : A) : F[A]
+
+//   }
+
+//   def toComplex[F[_], N <: Nat, A](c : Cardinal[N, A])(gen : CardinalCellGenerator[F, A]) : Complex[N, F[A]] = 
+//     (new NatCaseSplit {
+
+//       type Out[N <: Nat] = Cardinal[N, A] => Complex[N, F[A]]
+
+//       def caseZero : Out[_0] = {
+//         case (_ >>> Pt(nst)) => CNil() >>> Box(gen.positive(Z), Pt(nst map (gen.neutral(_))))
+//       }
+
+//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+//         case (tl >>> hd) => {
+//           val shell = toShell(p)(mapCardinalNesting(S(p))(hd)(gen.neutral(_)))
+//           toComplex(tl)(gen) >>> Box(gen.positive(S(p)), Node(Dot(gen.negative(S(p)), S(p)), shell))
+//         }
+//       }
+
+//     })(c.dim)(c)
 
   //============================================================================================
   // POKE
@@ -578,96 +679,6 @@ trait CardinalFunctions {
 
 // object Cardinals {
 
-
-//   //============================================================================================
-//   // MAP IMPLEMENTATIONS
-//   //
-
-//   def mapCardinalTree[N <: Nat, A, B](n : N)(ct : CardinalTree[N, A])(f : A => B) : CardinalTree[N, B] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = CardinalTree[N, A] => CardinalTree[N, B]
-
-//       def caseZero : Out[_0] = {
-//         case Pt(a) => Pt(f(a))
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         cts => mapCardinalTree(p)(cts)(Tree.map(_)(f))
-//       }
-
-//     })(n)(ct)
-
-//   def mapCardinalTreeWithAddr[N <: Nat, A, B](n : N)(ct : CardinalTree[N, A])(f : (CardinalAddress[N], A) => B) : CardinalTree[N, B] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = (CardinalTree[N, A], (CardinalAddress[N], A) => B) => CardinalTree[N, B]
-
-//       def caseZero : Out[_0] = {
-//         case (Pt(a), f) => Pt(f(TNil[Address]() >> (()), a))
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (ct, f) => {
-//           mapCardinalTreeWithAddr(p)(ct)({
-//             case (ca, tr) => Tree.mapWithAddress(tr)({
-//               case (a, addr) => f(ca >> addr, a)
-//             })
-//           })
-//         }
-//       }
-
-//     })(n)(ct, f)
-
-//   def mapCardinalNesting[N <: Nat, A, B](n : N)(cn : CardinalNesting[N, A])(f : A => B) : CardinalNesting[N, B] = 
-//     mapCardinalTree(n)(cn)(Nesting.mapNesting(_)(f))
-
-//   def mapCardinalNestingWithAddr[N <: Nat, A, B](n : N)(cn : CardinalNesting[N, A])(f : (CardinalAddress[S[N]], A) => B) : CardinalNesting[N, B] = 
-//     mapCardinalTreeWithAddr(n)(cn)({
-//       (ca, nst) => nst.mapWithAddress({
-//         case (dir, a) => f(ca >> dir, a)
-//       })
-//     })
-
-//   def mapCardinal[N <: Nat, A, B](c : Cardinal[N, A])(f : A => B) : Cardinal[N, B] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = Cardinal[N, A] => Cardinal[N, B]
-
-//       def caseZero : Out[_0] = {
-//         case (_ >>> hd) => CNil() >>> mapCardinalNesting(Z)(hd)(f)
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (tl >>> hd) => mapCardinal(tl)(f) >>> mapCardinalNesting(S(p))(hd)(f)
-//       }
-
-//     })(c.dim)(c)
-
-//   //============================================================================================
-//   // COMPLETE WITH
-//   //
-
-//   def completeWith[N <: Nat, A](n : N)(a : A, ct : CardinalTree[N, A]) : Tree[N, A] =
-//     (new NatCaseSplit {
-      
-//       type Out[N <: Nat] = CardinalTree[N, A] => Tree[N, A]
-
-//       def caseZero : Out[_0] = {
-//         ct => ct
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         ct => Node(a, completeWith(p)(Leaf(S(p)), ct))
-//       }
-
-//     })(n)(ct)
-
-//   def toShell[N <: Nat, A](n : N)(ct : CardinalTree[S[N], A]) : Tree[N, Tree[S[N], A]] = 
-//     completeWith(n)(Leaf(S(n)), ct)
-
-
-
 //   //============================================================================================
 //   // EXTEND
 //   //
@@ -714,42 +725,6 @@ trait CardinalFunctions {
 
 //   }
 
-//   //============================================================================================
-//   // TO COMPLEX
-//   //
-
-//   sealed trait Polarity[A]
-//   sealed trait Polarization[A] extends Polarity[A]
-//   case class Positive[A]() extends Polarization[A] { override def toString = "+" }
-//   case class Negative[A]() extends Polarization[A] { override def toString = "-" }
-//   case class Neutral[A](a : A) extends Polarity[A] { override def toString = a.toString }
-
-//   trait CardinalCellGenerator[F[_], A] {
-
-//     def positive[N <: Nat](n : N) : F[A]
-//     def negative[N <: Nat](n : N) : F[A]
-
-//     def neutral[N <: Nat](a : A) : F[A]
-
-//   }
-
-//   def toComplex[F[_], N <: Nat, A](c : Cardinal[N, A])(gen : CardinalCellGenerator[F, A]) : Complex[N, F[A]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = Cardinal[N, A] => Complex[N, F[A]]
-
-//       def caseZero : Out[_0] = {
-//         case (_ >>> Pt(nst)) => CNil() >>> Box(gen.positive(Z), Pt(nst map (gen.neutral(_))))
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (tl >>> hd) => {
-//           val shell = toShell(p)(mapCardinalNesting(S(p))(hd)(gen.neutral(_)))
-//           toComplex(tl)(gen) >>> Box(gen.positive(S(p)), Node(Dot(gen.negative(S(p)), S(p)), shell))
-//         }
-//       }
-
-//     })(c.dim)(c)
 
 //   //============================================================================================
 //   // SEQ LEAF

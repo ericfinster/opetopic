@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 
@@ -150,7 +150,9 @@ trait NatCaseSplitWithTwo extends NatCaseSplitWithOne { sp =>
 
 }
 
-trait NatLemmas { this : NatConstants => 
+trait NatLemmas {
+
+  import TypeDefs._
 
   type =::=[N <: Nat, M <: Nat] = Leibniz[Nothing, Nat, N, M]
 
@@ -259,7 +261,5 @@ trait NatConstants {
 
 }
 
-trait NatExports 
-    extends NatConstants
-    with NatImplicits 
+object Nats extends NatImplicits
     with NatLemmas

@@ -63,25 +63,6 @@ module Cardinal where
   Cardinal : (ℕ → Set) → ℕ → Set
   Cardinal A n = Suite (λ k → CardinalNesting (A k) k) (suc n)
 
-  -- topZipper : {n : ℕ} → {A : Set} → CardinalDerivative (suc n) A → Zipper (suc n) A
-  -- topZipper (_ , (sh , cntxt)) = leaf , cntxt
-
-  -- completeWith : {n : ℕ} → {A : Set} → CardinalTree n A → A → Tree n A
-  -- completeWith {zero} ct _ = ct
-  -- completeWith {suc n} ct a = node a (completeWith {n} ct leaf)
-
-  -- toShell : {n : ℕ} → {A : Set} → CardinalTree (suc n) A → Tree n (Tree (suc n) A)
-  -- toShell ct = completeWith ct leaf 
-
-  -- valueAtAddress : {n : ℕ} → {A : Set} → CardinalTree n A → CardinalAddress n → Maybe A
-  -- valueAtAddress {zero} (pt a) ca = just a
-  -- valueAtAddress {suc n} ct (tl ▶ hd) = 
-  --   valueAtAddress {n} ct tl 
-  --   >>= (λ t → t valueAt hd )
-
-  -- shellAtAddress : {n : ℕ} → {A : Set} → CardinalTree (suc n) A → CardinalAddress n → Maybe (Tree (suc n) A)
-  -- shellAtAddress {n} ct ca = valueAtAddress {n} ct ca
-
   poke : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n : ℕ} → CardinalTree A n → CardinalAddress n → M (A × CardinalDerivative A n)
   poke {n = zero} (pt a) ca = η (a , tt)
     where open MonadError ⦃ ... ⦄
@@ -100,6 +81,24 @@ module Cardinal where
   plugCardinal : {A : Set} → {n : ℕ} → CardinalDerivative A n → A → CardinalTree A n
   plugCardinal {n = zero} cd a = pt a
   plugCardinal {n = suc n} (cd , ∂) a = plugCardinal cd (∂ ← a)
+
+  traverseCardinalTree : {G : Set → Set} → ⦃ isA : Applicative G ⦄ → {A B : Set} → {n : ℕ} → CardinalTree A n → (A → G B) → G (CardinalTree B n)
+  traverseCardinalTree {n = zero} (pt a) f = pure pt ⊛ f a
+    where open Applicative ⦃ ... ⦄
+  traverseCardinalTree {n = suc n} ct f = 
+    traverseCardinalTree {n = n} ct (λ tr → traverseTree tr f)
+
+  mapCardinalTree : {A B : Set} → {n : ℕ} → CardinalTree A n → (A → B) → CardinalTree B n
+  mapCardinalTree {n = n} = traverseCardinalTree ⦃ idA ⦄ {n = n}
+
+  traverseCardinalTreeWithAddr : {G : Set → Set} → ⦃ isA : Applicative G ⦄ → {A B : Set} → {n : ℕ} → 
+                                 CardinalTree A n → (A → CardinalAddress n → G B) → G (CardinalTree B n)
+  traverseCardinalTreeWithAddr {n = zero} (pt a) f = pure pt ⊛ f a (∥ ▶ tt)
+    where open Applicative ⦃ ... ⦄ 
+  traverseCardinalTreeWithAddr {n = suc n} ct f = 
+    traverseCardinalTreeWithAddr {n = n} ct (λ tr ca → 
+      traverseWithAddress tr (λ a addr → f a (ca ▶ addr))
+    )
 
   -- plug-tree : {n : ℕ} → {A : Set} → CardinalDerivative (suc n) A → Tree (suc n) A → CardinalTree (suc n) A
   -- plug-tree {n} (cd , ∂) tr = plug-cardinal cd tr
@@ -129,16 +128,24 @@ module Cardinal where
   -- extend : {n : ℕ} → {A : Set} → A → Cardinal n A → Cardinal (suc n) A
   -- extend {n} a (tl ▶ hd) = tl ▶ hd ▶ (map-cardinal-tree {n} (extendNesting a) hd)
 
-  -- toComplex : {n : ℕ} → {A : Set} → Cardinal n A → Complex (Polarity A) n
-  -- toComplex {zero} (∥ ▶ (pt cnst)) = ∥ ▶ (int pos (pt (mapNesting neutral cnst)))
-  -- toComplex {suc n} {A} (tl ▶ hd) = toComplex tl ▶ int pos (node (ext neg) shell)
-  --   where shell : Tree n (Tree (suc n) (Nesting (suc n) (Polarity A)))
-  --         shell = toShell {n} (map-cardinal-nesting {suc n} neutral hd)
 
   data Polarity (A : Set) : Set where
     pos : Polarity A
     neg : Polarity A
     neutral : A → Polarity A
+
+  completeWith : {A : Set} → {n : ℕ} → CardinalTree A n → A → Tree A n
+  completeWith {n = zero} ct a = pt a
+  completeWith {n = suc n} ct a = node a (completeWith {n = n} ct leaf)
+
+  toShell : {A : Set} → {n : ℕ} → CardinalTree A (suc n) → Tree (Tree A (suc n)) n
+  toShell ct = completeWith ct leaf
+
+  toComplex : {A : ℕ → Set} → {n : ℕ} → Cardinal A n → Complex (λ k → Polarity (A k)) n
+  toComplex {n = zero} (∥ ▶ pt (nst)) = ∥ ▶ (box pos (pt (mapNesting nst neutral)))
+  toComplex {A} {n = suc n} (tl ▶ hd) = toComplex tl ▶ box pos (node (dot neg) shell)
+    where shell : Tree (Tree (Nesting (Polarity (A (suc n))) (suc n)) (suc n)) n
+          shell = toShell {n = n} (mapCardinalTree {n = suc n} hd (λ nst → mapNesting nst neutral))
 
   data CardinalDimFlag : ℕ → ℕ → Set where
     dimEq : {k : ℕ} → CardinalDimFlag k k 

@@ -5,14 +5,25 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.syntax.monad._
 
+import TypeDefs._
+
 trait ZipperFunctions {
+
+  object rootAddr extends NatCaseSplit0 {
+
+    type Out[N <: Nat] = Address[N]
+
+    def caseZero : Address[_0] = ()
+    def caseSucc[P <: Nat](p : P) : Address[S[P]] = Nil
+
+  }
 
   object plug extends NatCaseSplit1 {
 

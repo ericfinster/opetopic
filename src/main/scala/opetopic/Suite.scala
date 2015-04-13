@@ -5,12 +5,14 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Applicative
+
+import TypeDefs._
 
 sealed trait Suite[F[_ <: Nat], L <: Nat] {
 

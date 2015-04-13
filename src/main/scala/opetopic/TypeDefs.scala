@@ -1,5 +1,5 @@
 /**
-  * Core.scala - Package Object for Core Package
+  * TypeDefs.scala - Type Definitions
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -9,20 +9,21 @@ package opetopic
 
 import scala.language.higherKinds
 
-import scalaz.Monad
-
-package object core 
-    extends NatExports
-    with AddressExports {
+object TypeDefs extends NatConstants {
 
   //============================================================================================
-  // SHAPE MONAD
+  // ADDRESSES
   //
 
-  trait ShapeMonad[M[+_]] extends Monad[M] {
-    def failWith[A](se : ShapeError) : M[A]
+  trait AddressRec extends NatTypeRec[Any] {
+
+    type OnZero = Unit
+    type OnSucc[P <: Nat, T <: Any] = List[T]
+
   }
-    
+
+  type Address[N <: Nat] = N#TypeRec[Any, AddressRec]
+
   //============================================================================================
   // DERIVATIVES
   //
@@ -161,4 +162,3 @@ package object core
   type CardinalDerivative[+A, N <: Nat] = N#ConsRec[Any, CardinalDerivRec, A]
 
 }
-

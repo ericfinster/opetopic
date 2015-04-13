@@ -5,14 +5,14 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.syntax.monad._
 
-import opetopic.core._
+import TypeDefs._
 
 trait ComplexFunctions {
 

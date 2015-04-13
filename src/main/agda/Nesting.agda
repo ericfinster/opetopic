@@ -23,6 +23,9 @@ module Nesting where
   traverseNesting (box a cn) f = pure box ⊛ f a ⊛ traverseTree cn (λ n → traverseNesting n f)
     where open Applicative ⦃ ... ⦄ 
 
+  mapNesting : {A B : Set} → {n : ℕ} → Nesting A n → (A → B) → Nesting B n
+  mapNesting = traverseNesting ⦃ idA ⦄ 
+
   traverseNestingWithAddr : {G : Set → Set} → ⦃ isA : Applicative G ⦄ → {A B : Set} → {n : ℕ} → Nesting A n → (A → Address (suc n) → G B) → G (Nesting B n)
   traverseNestingWithAddr {G = G} nst f = traverseWithAddr₀ nst [] f
 
@@ -32,6 +35,9 @@ module Nesting where
           traverseWithAddr₀ (obj a) base f = pure obj ⊛ f a base
           traverseWithAddr₀ (dot a) base f = pure dot ⊛ f a base
           traverseWithAddr₀ (box a cn) base f = pure box ⊛ f a base ⊛ traverseWithAddress cn (λ n d → traverseWithAddr₀ n (d ∷ base) f)
+
+  mapNestingWithAddr : {A B : Set} → {n : ℕ} → Nesting A n → (A → Address (suc n) → B) → Nesting B n
+  mapNestingWithAddr = traverseNestingWithAddr ⦃ idA ⦄ 
 
   baseValue : {A : Set} → {n : ℕ} → Nesting A n → A
   baseValue (obj a) = a

@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 trait ShapeError
 

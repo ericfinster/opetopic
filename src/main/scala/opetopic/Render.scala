@@ -5,11 +5,14 @@
   * @version 0.1 
   */
 
-package opetopic.core
+package opetopic
 
 import scala.language.higherKinds
 
 import scalaz.syntax.monad._
+
+import TypeDefs._
+import syntax.tree._
 
 trait Renderer[M[+_], U]  {
 
