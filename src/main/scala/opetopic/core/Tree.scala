@@ -11,8 +11,9 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
-import scalaz.Applicative
 import scalaz.Monad
+import scalaz.Traverse
+import scalaz.Applicative
 import scalaz.syntax.monad._
 
 sealed abstract class Tree[+A, N <: Nat] { def dim : N }
@@ -449,32 +450,29 @@ trait TreeFunctions { tfns =>
 
 trait TreeImplicits {
 
-  // implicit def treeIsTraverse[N <: Nat] : Traverse[({ type L[+A] = Tree[N, A] })#L] = 
-  //   new Traverse[({ type L[+A] = Tree[N, A] })#L] {
+  implicit def treeIsTraverse[N <: Nat] : Traverse[({ type L[+A] = Tree[A, N] })#L] = 
+    new Traverse[({ type L[+A] = Tree[A, N] })#L] {
 
-  //     override def map[A, B](ta : Tree[N, A])(f : A => B) : Tree[N, B] = 
-  //       Tree.map(ta)(f)
+      def traverseImpl[G[_], A, B](ta : Tree[A, N])(f : A => G[B])(implicit isA : Applicative[G]) : G[Tree[B, N]] = 
+        Tree.traverse(ta)(f)
 
-  //     def traverseImpl[G[_], A, B](ta : Tree[N, A])(f : A => G[B])(implicit isA : Applicative[G]) : G[Tree[N, B]] = 
-  //       Tree.traverse(ta)(f)
+    }
 
-  //   }
+  import scalaz.syntax.TraverseOps
+  import scalaz.syntax.traverse._
 
-  // import scalaz.syntax.FunctorOps
-  // import scalaz.syntax.functor._
+  implicit def treeToTraverseOps[A, N <: Nat](tr : Tree[A, N]) : TraverseOps[({ type L[+X] = Tree[X, N] })#L, A] = 
+    ToTraverseOps[({ type L[+X] = Tree[X, N] })#L, A](tr)
 
-  // implicit def treeToFunctorOps[N <: Nat, A](tr : Tree[N, A]) : FunctorOps[({ type L[+X] = Tree[N, X] })#L, A] = 
-  //   ToFunctorOps[({ type L[+X] = Tree[N, X] })#L, A](tr)
+  class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
 
-  // import scalaz.syntax.TraverseOps
-  // import scalaz.syntax.traverse._
+    val T = Traverse[({ type L[+A] = Tree[A, N] })#L]
 
-  // implicit def treeToTraverseOps[N <: Nat, A](tr : Tree[N, A]) : TraverseOps[({ type L[+X] = Tree[N, X] })#L, A] = 
-  //   ToTraverseOps[({ type L[+X] = Tree[N, X] })#L, A](tr)
+    def nodes : List[A] = T.toList(tr)
+    def nodeCount : Int = T.count(tr)
+    def zipWithIndex : (Int, Tree[(A, Int), N]) =
+      T.mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
 
-  // class TreeOps[N <: Nat, A](tr : Tree[N, A]) {
-
-  //   val T = Traverse[({ type L[+A] = Tree[N, A] })#L]
 
   //   def foreach(op : A => Unit) : Unit = 
   //     Tree.foreach(tr)(op)
@@ -513,21 +511,16 @@ trait TreeImplicits {
   //   def constWith[B](b : B) : Tree[N, B] = 
   //     Tree.map(tr)(_ => b)
 
-  //   def nodes : List[A] = T.toList(tr)
-  //   def nodeCount : Int = T.count(tr)
-  //   def zipWithIndex : (Int, Tree[N, (A, Int)]) = 
-  //     T.mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
-
   //   def valueAt(addr : Address[N]) : Option[A] = 
   //     for {
   //       zipper <- tr seekTo addr
   //       a <- zipper.focus.rootOption
   //     } yield a
 
-  // }
+  }
 
-  // implicit def treeToTreeOps[N <: Nat, A](tr : Tree[N, A]) : TreeOps[N, A] = 
-  //   new TreeOps[N, A](tr)
+  implicit def treeToTreeOps[A, N <: Nat](tr : Tree[A, N]) : TreeOps[A, N] = 
+    new TreeOps[A, N](tr)
 
 }
 

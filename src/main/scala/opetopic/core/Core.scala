@@ -22,7 +22,7 @@ package object core
   trait ShapeMonad[M[+_]] extends Monad[M] {
     def failWith[A](se : ShapeError) : M[A]
   }
-
+    
   //============================================================================================
   // DERIVATIVES
   //
