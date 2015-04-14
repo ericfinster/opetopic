@@ -67,3 +67,4 @@ object Suite {
       }
     }
 
+}

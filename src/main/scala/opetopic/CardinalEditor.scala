@@ -10,6 +10,8 @@ package opetopic
 import scala.language.higherKinds
 import scala.collection.mutable.ListBuffer
 
+import scalaz.syntax.monad._
+
 import TypeDefs._
 import Cardinal._
 
@@ -29,15 +31,25 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
 
     type Dim <: Nat
 
-    val cardinal : Cardinal[CardinalMarker, Dim]
+    val dim : Dim
+
+    val cardinal : Cardinal[NeutralMarker, Dim]
     val canvases : List[CardinalCanvas]
     val polarizedMarkers : Suite[PolarizedPair, Dim]
 
-    // implicit object MarkerGenerator extends CardinalCellGenerator[ConstMarker, NeutralMarker] {
-    //   def positive[N <: Nat](n : N) : CardinalMarker = polarizedMarkers(natToInt(n))._1
-    //   def negative[N <: Nat](n : N) : CardinalMarker = polarizedMarkers(natToInt(n))._2
-    //   def neutral[N <: Nat](m : NeutralMarker) : CardinalMarker = m
-    // }
+    implicit object MarkerGenerator extends CardinalCellGenerator[M, NeutralMarker, CardinalMarker] {
+
+      def positive[N <: Nat](n: N) : M[CardinalMarker[N]] = 
+        for {
+          ev <- Lte.getLte(n, dim)
+        } yield ???
+
+      def negative[N <: Nat](n: N) : M[CardinalMarker[N]] = ???
+
+      def neutral[N <: Nat](n: N)(m : NeutralMarker[N]) : M[CardinalMarker[N]] =
+        isShapeMonad.pure(m)
+
+    }
 
     // Okay, things are starting to look kind of right.  The point is going to be that this
     // guy controls the linkages between the dimensions as he is build and that we just instantiate
@@ -45,6 +57,9 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
 
     // Anyway, this will act as a kind of control object, and is probably what you have in 
     // mind for the stateful cardinal editor monad that you've had in mind.
+
+    // Oh shit!  And what's pretty cool about this is that you'll get an automatic undo system
+    // by just off the stack of editor states ....
 
     def extendWith(cn: CardinalNesting[A[S[Dim]], S[Dim]]) : EditorStateAux[S[Dim]] = {
 
@@ -88,6 +103,10 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
   }
 
   abstract class PolarizedMarker[N <: Nat] extends CardinalMarker[N]
+
+  def createNeutralMarker[N <: Nat](a: A[N], isExternal: Boolean) : NeutralMarker[N]
+  def createPositiveMarker[N <: Nat] : PolarizedMarker[N]
+  def createNegativeMarker[N <: Nat] : PolarizedMarker[N]
 
   //============================================================================================
   // INITIALIZATION

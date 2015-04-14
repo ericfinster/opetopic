@@ -99,30 +99,55 @@ object Lte extends LteImplicits {
 
     })(lte)
 
-  // type Aux[M <: Nat, N <: Nat] = SigmaT[({ type L[D <: Nat] = Lte[M, N, D] })#L]
+  trait Diff[K <: Nat, N <: Nat] {
 
-  // def getLte[M <: Nat, N <: Nat](m : M, n : N) : Option[Aux[M, N]] = 
-  //   (new NatCaseSplit0 {
+    type D <: Nat
+    val lte : Lte[K, N, D]
 
-  //     type Out[M0 <: Nat] = Option[Aux[M0, N]]
+  }
 
-  //     def caseZero : Out[_0] = Some(SigmaT[({ type L[D <: Nat] = Lte[_0, N, D] })#L, N](n)(ZeroLte(n) : Lte[_0, N, N]))
+  def getLte[M[+_], K <: Nat, N <: Nat](k: K, n: N)(implicit sm: ShapeMonad[M]) : M[Diff[K, N]] = 
+    (new NatCaseSplit0 {
 
-  //     def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
-  //       (new NatCaseSplit0 {
+      type Out[K <: Nat] = M[Diff[K, N]]
 
-  //         type Out[N0 <: Nat] = Option[Aux[S[P], N0]]
+      def caseZero : Out[_0] = 
+        sm.pure(new Diff[_0, N] {
 
-  //         def caseZero : Out[_0] = None
+          type D = N
+          val lte : Lte[_0, N, N] = 
+            ZeroLte(n)
 
-  //         def caseSucc[Q <: Nat](q : Q) : Out[S[Q]] = 
-  //           for {
-  //             sigLte <- getLte(p, q)
-  //           } yield SigmaT[({ type L[D <: Nat] = Lte[S[P], S[Q], D] })#L,sigLte.N](sigLte.n)(SuccLte(sigLte.value) : Lte[S[P], S[Q], sigLte.N])
+        })
 
-  //       })(n)
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+        (new NatCaseSplit0 {
 
-  //   })(m)
+          type Out[N <: Nat] = M[Diff[S[P], N]]
+
+          def caseZero : Out[_0] = 
+            sm.failWith(new ShapeLteError)
+
+          def caseSucc[Q <: Nat](q: Q) : Out[S[Q]] = {
+
+            import scalaz.syntax.monad._
+
+            for {
+              diff <- getLte(p, q)
+            } yield {
+              new Diff[S[P], S[Q]] {
+
+                type D = diff.D
+                val lte : Lte[S[P], S[Q], diff.D] = 
+                  SuccLte(diff.lte)
+
+              }
+            }
+          }
+
+        })(n)
+
+    })(k)
 
 }
 

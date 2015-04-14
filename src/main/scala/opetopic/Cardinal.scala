@@ -21,21 +21,6 @@ import Nats._
 
 trait CardinalFunctions {
 
-  trait CardinalIndexing[A[_ <: Nat]] {
-
-    type IdxdNst[K <: Nat] = CardinalNesting[A[K], K]
-
-    object CardinalMatch {
-
-      def unapply[N <: Nat](suite : Suite[IdxdNst, S[N]]) : Option[(Suite[IdxdNst, N], IdxdNst[N])] = 
-        suite match {
-          case tl >> hd => Some(tl, hd)
-        }
-
-    }
-
-  }
-
   //============================================================================================
   // TYPE EQUALITY LEMMAS
   //
@@ -214,38 +199,38 @@ trait CardinalFunctions {
   case class Negative[A]() extends Polarization[A] { override def toString = "-" }
   case class Neutral[A](a : A) extends Polarity[A] { override def toString = a.toString }
 
-  trait CardinalCellGenerator[A[_ <: Nat], B[_ <: Nat]] {
+  trait CardinalCellGenerator[M[+_], A[_ <: Nat], B[_ <: Nat]] {
 
-    def positive[N <: Nat](n: N) : B[N]
-    def negative[N <: Nat](n: N) : B[N]
+    def positive[N <: Nat](n: N) : M[B[N]]
+    def negative[N <: Nat](n: N) : M[B[N]]
 
-    def neutral[N <: Nat](n: N)(a: A[N]) : B[N]
+    def neutral[N <: Nat](n: N)(a: A[N]) : M[B[N]]
 
   }
 
-  def toComplex[A[_ <: Nat], B[_ <: Nat], N <: Nat](c: Cardinal[A, N])(
-    implicit gen: CardinalCellGenerator[A, B], types: CardinalIndexing[A]
-  ) : Complex[B, N] = 
-    (new NatCaseSplit0 {
+  // def toComplex[A[_ <: Nat], B[_ <: Nat], N <: Nat](c: Cardinal[A, N])(
+  //   implicit gen: CardinalCellGenerator[A, B], types: CardinalIndexing[A]
+  // ) : Complex[B, N] = 
+  //   (new NatCaseSplit0 {
 
-      import types._
+  //     import types._
 
-      type Out[N <: Nat] = Cardinal[A, N] => Complex[B, N]
+  //     type Out[N <: Nat] = Cardinal[A, N] => Complex[B, N]
 
-      def caseZero : Out[_0] = {
-        case CardinalMatch(_, Pt(nst)) => {
+  //     def caseZero : Out[_0] = {
+  //       case CardinalMatch(_, Pt(nst)) => {
 
-          val test = |:|[B] >> Box(gen.positive(Z), Pt(???))
+  //         val test = |:|[B] >> Box(gen.positive(Z), Pt(???))
 
-          ???
-        }
-      }
+  //         ???
+  //       }
+  //     }
 
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case CardinalMatch(tl, hd) => ???
-      }
+  //     def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+  //       case CardinalMatch(tl, hd) => ???
+  //     }
 
-    })(c.length.pred)(c)
+  //   })(c.length.pred)(c)
 
 
 //   def toComplex[F[_], N <: Nat, A](c : Cardinal[N, A])(gen : CardinalCellGenerator[F, A]) : Complex[N, F[A]] = 
