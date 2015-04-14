@@ -91,6 +91,16 @@ object TypeDefs extends NatConstants {
   def |::|[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, _0] = 
     SNil[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L]()
 
+  object ComplexZipper {
+
+    def unapply[A[_ <: Nat], N <: Nat](suite : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]) 
+        : Option[(Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, N], NestingZipper[A[N], N])] = {
+      type IdxdNesting[K <: Nat] = NestingZipper[A[K], K]
+      Some((Suite.tail[IdxdNesting, N](suite), Suite.head[IdxdNesting, N](suite)))
+    }
+
+  }
+
   //============================================================================================
   // TREE SEQUENCES
   //

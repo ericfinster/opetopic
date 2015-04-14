@@ -17,9 +17,9 @@ import syntax.tree._
 trait Renderer[M[+_], U]  {
 
   implicit val isShapeMonad : ShapeMonad[M]
-  import isShapeMonad._
-
   implicit val isNumeric : Numeric[U]
+
+  import isShapeMonad._
   import isNumeric._
 
   //============================================================================================

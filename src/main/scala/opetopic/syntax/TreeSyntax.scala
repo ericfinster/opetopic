@@ -68,12 +68,15 @@ trait ToTreeOps {
 
     }
 
+  import scalaz.syntax.FunctorOps
   import scalaz.syntax.TraverseOps
   import scalaz.syntax.traverse._
 
   implicit def treeToTraverseOps[A, N <: Nat](tr : Tree[A, N]) : TraverseOps[({ type L[+X] = Tree[X, N] })#L, A] = 
     ToTraverseOps[({ type L[+X] = Tree[X, N] })#L, A](tr)
 
+  implicit def treeToFunctorOps[A, N <: Nat](tr : Tree[A, N]) : FunctorOps[({ type L[+X] = Tree[X, N] })#L, A] =
+    ToFunctorOps[({ type L[+X] = Tree[X, N] })#L, A](tr)
 
   implicit def treeToTreeOps[A, N <: Nat](tr : Tree[A, N]) : TreeOps[A, N] = 
     new TreeOps[A, N](tr)

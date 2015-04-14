@@ -16,29 +16,10 @@ import TypeDefs._
 
 trait ComplexFunctions {
 
-  class IndexedTypes[A[_ <: Nat]] {
+  def complexToZipper[A[_ <: Nat], N <: Nat](c: Complex[A, N]) : ComplexZipper[A, N] = {
 
     type IdxdNst[K <: Nat] = Nesting[A[K], K]
     type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
-    type IdxdCntxt[K <: Nat] = NestingContext[A[K], K]
-
-    object ComplexZipper {
-
-      def unapply[N <: Nat](suite : Suite[IdxdZip, S[N]]) : Option[(Suite[IdxdZip, N], IdxdZip[N])] =
-        suite match {
-          case tl >> hd => Some(tl, hd)
-        }
-
-      def apply() : Suite[IdxdZip, _0] = ???
-
-    }
-
-  }
-
-
-  def complexToZipper[A[_ <: Nat], N <: Nat](c: Complex[A, N])(implicit types: IndexedTypes[A]) : ComplexZipper[A, N] = {
-
-    import types._
 
     Suite.map[IdxdNst, IdxdZip, S[N]](c)(new ~~>[IdxdNst, IdxdZip] {
       def apply[K <: Nat](nst : IdxdNst[K]) : IdxdZip[K] = (nst, Nil)
@@ -46,9 +27,10 @@ trait ComplexFunctions {
 
   }
 
-  def seal[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(implicit types: IndexedTypes[A]) : Complex[A, N] = {
+  def seal[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N]) : Complex[A, N] = {
 
-    import types._
+    type IdxdNst[K <: Nat] = Nesting[A[K], K]
+    type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
     Suite.map[IdxdZip, IdxdNst, S[N]](z)(new ~~>[IdxdZip, IdxdNst] {
       def apply[K <: Nat](zp : IdxdZip[K]) : IdxdNst[K] = Nesting.closeNesting(zp._1.dim)(zp._2, zp._1)
@@ -56,35 +38,26 @@ trait ComplexFunctions {
 
   }
 
-  def focusOf[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(implicit types: IndexedTypes[A]) : Nesting[A[N], N] = {
-    import types._
-    Suite.head[IdxdZip, N](z)._1
-  }
-
-  def contextOf[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(implicit types: IndexedTypes[A]) : NestingContext[A[N], N] = {
-    import types._
-    Suite.head[IdxdZip, N](z)._2
-  }
-
-  def updateFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], nst: Nesting[A[N], N])(
-    implicit types: IndexedTypes[A]
-  ) : ComplexZipper[A, N] = {
-    import types._
+  def focusOf[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N]) : Nesting[A[N], N] = 
     z match {
-      case ComplexZipper(tl, hd) => tl >> (nst, hd._2)
+      case ComplexZipper(_, (fcs, _)) => fcs
     }
-  }
 
-  def focusValue[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(implicit types: IndexedTypes[A]) : A[N] = {
+  def contextOf[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N]) : NestingContext[A[N], N] = 
+    z match {
+      case ComplexZipper(_, (_, cntxt)) => cntxt
+    }
+
+  def updateFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], nst: Nesting[A[N], N]) : ComplexZipper[A, N] = 
+    z match {
+      case ComplexZipper(tl, (_, cntxt)) => tl >> (nst, cntxt)
+    }
+
+  def focusValue[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N]) : A[N] =
     Nesting.baseValue(focusOf(z))
-  }
 
-  def focusDeriv[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(
-    implicit sm: ShapeMonad[M], types: IndexedTypes[A]
-  ) : M[Derivative[A[S[N]], S[N]]] = 
+  def focusDeriv[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(implicit sm: ShapeMonad[M]) : M[Derivative[A[S[N]], S[N]]] =
     (new NatCaseSplit0 {
-
-      import types._
 
       type Out[N <: Nat] = ComplexZipper[A, N] => M[Derivative[A[S[N]], S[N]]]
 
@@ -100,12 +73,8 @@ trait ComplexFunctions {
 
     })(z.length.pred)(z)
 
-  def focusSpine[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(
-    implicit sm: ShapeMonad[M], types: IndexedTypes[A]
-  ) : M[Tree[A[N], N]] = 
+  def focusSpine[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(implicit sm: ShapeMonad[M]) : M[Tree[A[N], N]] =
     (new NatCaseSplit0 {
-
-      import types._
 
       type Out[N <: Nat] = ComplexZipper[A, N] => M[Tree[A[N], N]]
 
@@ -115,18 +84,14 @@ trait ComplexFunctions {
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case ComplexZipper(z, (Dot(a, d), cntxt)) => for { deriv <- focusDeriv(z) } yield ???
+        case ComplexZipper(z, (Dot(a, d), cntxt)) => for { deriv <- focusDeriv(z) } yield { Zipper.plug(S(p))(deriv, a) }
         case ComplexZipper(z, (Box(a, cn), cntxt)) => Nesting.spineFromCanopy(cn)
       }
 
     })(z.length.pred)(z)
 
-  def focusCanopy[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(
-    implicit sm: ShapeMonad[M], types: IndexedTypes[A]
-  ) : M[Tree[Address[N], N]] =
+  def focusCanopy[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(implicit sm: ShapeMonad[M]) : M[Tree[Address[N], N]] =
     (new NatCaseSplit0 {
-
-      import types._
 
       type Out[N <: Nat] = ComplexZipper[A, N] => M[Tree[Address[N], N]]
 
@@ -143,14 +108,11 @@ trait ComplexFunctions {
 
     })(z.length.pred)(z)
 
-  def focusUnit[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(
-    implicit sm: ShapeMonad[M], types: IndexedTypes[A]
-  ) : M[Tree[Nesting[A[N], N], N]] = 
+  def focusUnit[M[+_], A[_ <: Nat], N <: Nat](z : ComplexZipper[A, N])(implicit sm: ShapeMonad[M]) : M[Tree[Nesting[A[N], N], N]] =
     (new NatCaseSplit0 {
 
-      import types._
-
       type Out[N <: Nat] = ComplexZipper[A, N] => M[Tree[Nesting[A[N], N], N]]
+      type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
       def caseZero : Out[_0] = { z => 
         sm.pure(Pt(focusOf(z)))
@@ -177,20 +139,17 @@ trait ComplexFunctions {
     })(z.length.pred)(z)
 
 
-  def visitComplex[M[+_], A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], dir: Address[N])(
-    implicit sm: ShapeMonad[M], types: IndexedTypes[A]
-  ) : M[ComplexZipper[A, N]] = 
+  def visitComplex[M[+_], A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], dir: Address[N])(implicit sm: ShapeMonad[M]) : M[ComplexZipper[A, N]] =
     (new NatCaseSplit0 {
 
-      import types._
-
       type Out[N <: Nat] = (ComplexZipper[A, N], Address[N]) => M[ComplexZipper[A, N]]
+      type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
       def caseZero : Out[_0] = {
         case (ComplexZipper(_, nst), _) => 
           for {
             z0 <- Nesting.visitNesting(__0)(nst, ())
-          } yield ComplexZipper() >> z0
+          } yield |::| >> z0
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
@@ -220,9 +179,7 @@ trait ComplexFunctions {
 
     })(z.length.pred)(z, dir)
  
-  def seekComplex[M[+_], A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], addr: Address[S[N]])(
-    implicit sm: ShapeMonad[M], types: IndexedTypes[A]
-  ) : M[ComplexZipper[A, N]] = 
+  def seekComplex[M[+_], A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], addr: Address[S[N]])(implicit sm: ShapeMonad[M]) : M[ComplexZipper[A, N]] =
     addr match {
       case Nil => sm.pure(z)
       case (d :: ds) => 
@@ -243,41 +200,32 @@ trait ComplexFunctions {
     def liftS[A[_ <: Nat], N <: Nat, R](mr : M[R]) : SourceM[A, N, R] = 
       StateT((cmplx : Complex[A, N]) => for { r <- mr } yield (cmplx, r))
 
-    def sourceAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]])(
-      implicit types: IndexedTypes[A]
-    ): M[Complex[A, N]] =
+    def sourceAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]]): M[Complex[A, N]] =
       for {
         c0 <- restrictAt(c, addr)
         res <- contractAt(c0, Nil)
       } yield res
 
-    def restrictAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]])(
-      implicit types: IndexedTypes[A]
-    ) : M[Complex[A, N]] =
+    def restrictAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]]) : M[Complex[A, N]] =
       for {
         z <- seekComplex(complexToZipper(c), addr)
         z0 <- restrictFocus(z)
       } yield seal(z)
 
-    def contractAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]])(
-      implicit types: IndexedTypes[A]
-    ) : M[Complex[A, N]] =
+    def contractAt[A[_ <: Nat], N <: Nat](c: Complex[A, N], addr: Address[S[N]]) : M[Complex[A, N]] =
       for {
         z <- seekComplex(complexToZipper(c), addr)
         z0 <- contractFocus(z)
       } yield seal(z0)
 
-    def restrictFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N])(
-      implicit types: IndexedTypes[A]
-    ) : M[ComplexZipper[A, N]] = 
+    def restrictFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N]) : M[ComplexZipper[A, N]] =
       (new NatCaseSplit0 {
 
-        import types._
-
         type Out[N <: Nat] = ComplexZipper[A, N] => M[ComplexZipper[A, N]]
+        type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
         def caseZero : Out[_0] = { z =>
-          sm.pure(ComplexZipper() >> (focusOf(z), Nil))
+          sm.pure(|::| >> (focusOf(z), Nil))
         }
 
         def caseSucc[P <: Nat](p: P) : Out[S[P]] = { z =>
@@ -291,14 +239,11 @@ trait ComplexFunctions {
 
       })(z.length.pred)(z)
 
-    def contractFocus[A[_ <: Nat], N <: Nat](z:  ComplexZipper[A, N])(
-      implicit types: IndexedTypes[A]
-    ) : M[ComplexZipper[A, N]] = 
+    def contractFocus[A[_ <: Nat], N <: Nat](z:  ComplexZipper[A, N]) : M[ComplexZipper[A, N]] =
       (new NatCaseSplit0 {
 
-        import types._
-
         type Out[N <: Nat] = ComplexZipper[A, N] => M[ComplexZipper[A, N]]
+        type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
         def caseZero : Out[_0] = { z => 
           sm.pure(updateFocus(z, Obj(focusValue(z))))
@@ -313,16 +258,12 @@ trait ComplexFunctions {
 
       })(z.length.pred)(z)
 
-    def compressFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], tr: Tree[A[S[N]], S[N]])(
-      implicit types: IndexedTypes[A]
-    ) : M[ComplexZipper[A, N]] = 
+    def compressFocus[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], tr: Tree[A[S[N]], S[N]]) : M[ComplexZipper[A, N]] =
       for {
         cn <- compressLocal(z, tr)
       } yield updateFocus(z, Box(focusValue(z), cn))
 
-    def compressLocal[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], tr: Tree[A[S[N]], S[N]])(
-      implicit types: IndexedTypes[A]
-    ) : M[Tree[Nesting[A[N], N], N]] =
+    def compressLocal[A[_ <: Nat], N <: Nat](z: ComplexZipper[A, N], tr: Tree[A[S[N]], S[N]]) : M[Tree[Nesting[A[N], N], N]] =
       tr match {
         case Leaf(_) => focusUnit(z)
         case Node(a, sh) =>
@@ -339,9 +280,7 @@ trait ComplexFunctions {
           } yield res
       }
 
-    def exciseLocal[A[_ <: Nat], N <: Nat](addr: Address[S[N]], tr: Tree[A[S[N]], S[N]])(
-      implicit types: IndexedTypes[A]
-    ) : SourceM[A, N, Unit] = {
+    def exciseLocal[A[_ <: Nat], N <: Nat](addr: Address[S[N]], tr: Tree[A[S[N]], S[N]]) : SourceM[A, N, Unit] = {
 
       type SrcM[R] = SourceM[A, N, R]
       type SrcS[S, R] = StateT[M, S, R]
@@ -370,6 +309,18 @@ trait ComplexFunctions {
 
 }
 
+object Complex extends ComplexFunctions {
+
+  def unapply[A[_ <: Nat], N <: Nat](suite : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, S[N]])
+      : Option[(Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, N], Nesting[A[N], N])] = {
+    type IdxdNesting[K <: Nat] = Nesting[A[K], K]
+    Some((Suite.tail[IdxdNesting, N](suite), Suite.head[IdxdNesting, N](suite)))
+  }
+
+  def apply[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, _0] = 
+    SNil[({ type L[K <: Nat] = Nesting[A[K], K] })#L]()
+
+}
 
 // trait ComplexFunctions { self : ComplexImplicits => 
 
@@ -538,6 +489,5 @@ trait ComplexFunctions {
 
 // }
 
-// object Complex extends ComplexFunctions 
-//     with ComplexImplicits
+
 

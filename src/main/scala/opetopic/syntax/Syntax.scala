@@ -11,4 +11,6 @@ trait Syntax {
 
   object tree extends ToTreeOps
 
+  object complex extends ToComplexOps
+
 }
