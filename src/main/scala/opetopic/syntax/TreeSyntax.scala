@@ -11,6 +11,7 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
+import scalaz.Monad
 import scalaz.Traverse
 import scalaz.Applicative
 
@@ -34,9 +35,9 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
   def foreach(op : A => Unit) : Unit =
     Tree.foreach(tr)(op)
 
-  def mapWith[M[+_], B, C](trB : Tree[B, N])(f: (A, B) => C)(implicit sm: ShapeMonad[M]) : M[Tree[C, N]] = 
-    Tree.matchTraverse[M, A, B, C, N](tr, trB)({
-      case (a, b) => sm.pure(f(a, b))
+  def mapWith[B, C](trB : Tree[B, N])(f: (A, B) => C) : ShapeM[Tree[C, N]] = 
+    Tree.matchTraverse[A, B, C, N](tr, trB)({
+      case (a, b) => Monad[ShapeM].pure(f(a, b))
     })
 
   //   def seekTo(addr : Address[N]) : Option[Zipper[N, A]] =

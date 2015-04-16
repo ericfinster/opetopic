@@ -20,7 +20,7 @@ import syntax.complex._
 import syntax.nesting._
 import syntax.cardinal._
 
-abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { thisEditor : Renderer[M, U] => 
+abstract class CardinalEditor[A[_ <: Nat], U] extends Viewer[U] { thisEditor : Renderer[U] => 
 
   type LabelType[N <: Nat] <: Polarity[Option[A[N]]]
   type MarkerType[N <: Nat] <: CardinalMarker[N]
@@ -153,15 +153,15 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
 
       val newComplex : Complex[CardinalMarker, S[es.Dim]] = newState.complex
 
-      neutralBox traverseWithAddress {
-        case (mk, addr) => 
-          for {
-            fc <- newComplex sourceAt addr
-          } yield {
-            mk.faceComplex = Some(fc)
-            ()
-          }
-      }
+      // neutralBox traverseWithAddress {
+      //   case (mk, addr) => 
+      //     for {
+      //       fc <- newComplex sourceAt addr
+      //     } yield {
+      //       mk.faceComplex = Some(fc)
+      //       ()
+      //     }
+      // }
 
       newState
     }

@@ -10,6 +10,7 @@ package opetopic
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Monad
 import scalaz.Applicative
 import scalaz.syntax.monad._
 
@@ -70,13 +71,11 @@ trait NestingFunctions {
   // MATCH TRAVERSE
   //
 
-  def matchTraverse[M[+_], A, B, C, N <: Nat](
+  def matchTraverse[A, B, C, N <: Nat](
     nstA : Nesting[A, N], nstB : Nesting[B, N]
-  )(f : (A, B) => M[C])(implicit sm : ShapeMonad[M]) : M[Nesting[C, N]] = {
+  )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {
 
-    import sm.failWith
-
-    val apM = Applicative[M]
+    val apM = Applicative[ShapeM]
     import apM.{pure, ap, ap2}
 
     (nstA, nstB) match {
@@ -90,7 +89,7 @@ trait NestingFunctions {
 
         ap2(f(a, b), cn)(pure(Box(_, _)))
       }
-      case _ => failWith(new ShapeMatchError())
+      case _ => fail(new ShapeError("Match failed"))
     }
   }
 
@@ -120,7 +119,7 @@ trait NestingFunctions {
   // SPINE FROM CANOPY
   //
 
-  def spineFromCanopy[M[+_], A, N <: Nat](cn : Tree[Nesting[A, N], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, N]] = 
+  def spineFromCanopy[A, N <: Nat](cn : Tree[Nesting[A, N], N]) : ShapeM[Tree[A, N]] = 
     for {
       toJoin <- Tree.traverseWithLocalData(cn)({
         case (nst, _, deriv) => spineFromDerivative(nst, deriv)
@@ -132,10 +131,10 @@ trait NestingFunctions {
   // SPINE FROM DERIVATIVE
   //
 
-  def spineFromDerivative[M[+_], A, N <: Nat](nst : Nesting[A, N], deriv : Derivative[A, N])(implicit sm: ShapeMonad[M]) : M[Tree[A, N]] = 
+  def spineFromDerivative[A, N <: Nat](nst : Nesting[A, N], deriv : Derivative[A, N]) : ShapeM[Tree[A, N]] = 
     nst match {
-      case Obj(a) => sm.pure(Pt(a))
-      case Dot(a, d) => sm.pure(Zipper.plug(d)(deriv, a))
+      case Obj(a) => Monad[ShapeM].pure(Pt(a))
+      case Dot(a, d) => Monad[ShapeM].pure(Zipper.plug(d)(deriv, a))
       case Box(a, cn) => spineFromCanopy(cn)
     }
 
@@ -152,27 +151,27 @@ trait NestingFunctions {
       case (a, d) :: cs => closeNesting(n)(cs, Box(a, Zipper.plug(n)(d, nst)))
     }
 
-  def visitNesting[M[+_], A, N <: Nat](n : N)(zipper: NestingZipper[A, N], dir: Address[N])(implicit sm : ShapeMonad[M]) : M[NestingZipper[A, N]] = 
+  def visitNesting[A, N <: Nat](n : N)(zipper: NestingZipper[A, N], dir: Address[N]) : ShapeM[NestingZipper[A, N]] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (Address[N], NestingZipper[A, N]) => M[NestingZipper[A, N]]
+      type Out[N <: Nat] = (Address[N], NestingZipper[A, N]) => ShapeM[NestingZipper[A, N]]
 
       def caseZero : Out[_0] = {
-        case (d, (Obj(_), cntxt)) => sm.failWith(new ShapeLookupError)
+        case (d, (Obj(_), cntxt)) => fail(new ShapeError("Cannot visit and object"))
         case (d, (Box(a, Pt(int)), cntxt)) => 
-          sm.pure(int, (a, ()) :: cntxt)
+          Monad[ShapeM].pure(int, (a, ()) :: cntxt)
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (d, (Dot(_, _), cntxt)) => sm.failWith(new ShapeLookupError)
+        case (d, (Dot(_, _), cntxt)) => fail(new ShapeError("Cannot visit a dot"))
         case (d, (Box(a, canopy), cntxt)) => 
           for {
             loc <- Tree.seekTo(canopy, d)
             res <- (
               loc._1 match {
-                case Leaf(_) => sm.failWith(new ShapeLookupError)
+                case Leaf(_) => fail(new ShapeError("Ran out of room in canopy"))
                 case Node(nst, hsh) => 
-                  sm.pure((nst, (a, (hsh, loc._2)) :: cntxt))
+                  Monad[ShapeM].pure((nst, (a, (hsh, loc._2)) :: cntxt))
               }
             )
           } yield res
@@ -180,9 +179,9 @@ trait NestingFunctions {
 
     })(n)(dir, zipper)
 
-  def seekNesting[M[+_], A, N <: Nat](n: N)(z: NestingZipper[A, N], addr: Address[S[N]])(implicit sm: ShapeMonad[M]) : M[NestingZipper[A, N]] = 
+  def seekNesting[A, N <: Nat](n: N)(z: NestingZipper[A, N], addr: Address[S[N]]) : ShapeM[NestingZipper[A, N]] = 
     addr match {
-      case Nil => sm.pure(z)
+      case Nil => Monad[ShapeM].pure(z)
       case (d :: ds) =>
         for {
           zp <- seekNesting(n)(z, ds)
@@ -190,29 +189,29 @@ trait NestingFunctions {
         } yield zr
     }
 
-  def sibling[M[+_], A, N <: Nat](n : N)(z: NestingZipper[A, S[N]], addr: Address[N])(implicit sm: ShapeMonad[M]) : M[NestingZipper[A, S[N]]] = 
+  def sibling[A, N <: Nat](n : N)(z: NestingZipper[A, S[N]], addr: Address[N]) : ShapeM[NestingZipper[A, S[N]]] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (NestingZipper[A, S[N]], Address[N]) => M[NestingZipper[A, S[N]]]
+      type Out[N <: Nat] = (NestingZipper[A, S[N]], Address[N]) => ShapeM[NestingZipper[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case ((nst, Nil), addr) => sm.failWith(new ShapeLookupError)
-        case ((nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt), addr) => sm.failWith(new ShapeLookupError)
+        case ((nst, Nil), addr) => fail(new ShapeError("Sibling error"))
+        case ((nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt), addr) => fail(new ShapeError("Sibiling error"))
         case ((nst, (a, (Pt(Node(nfcs, sh)), hcn)) :: cntxt), addr) =>
-          sm.pure(nfcs, (a, (sh, (nst, ()) :: hcn)) :: cntxt)
+          Monad[ShapeM].pure(nfcs, (a, (sh, (nst, ()) :: hcn)) :: cntxt)
       }
 
-      def caseSucc[P <: Nat](p : P) : (NestingZipperDblSucc[A, P], Address[S[P]]) => M[NestingZipperDblSucc[A, P]] = {
-        case ((nst, Nil), addr) => sm.failWith(new ShapeLookupError)
+      def caseSucc[P <: Nat](p : P) : (NestingZipperDblSucc[A, P], Address[S[P]]) => ShapeM[NestingZipperDblSucc[A, P]] = {
+        case ((nst, Nil), addr) => fail(new ShapeError("Sibling Error"))
         case ((nst, (a, (verts, hcn)) :: cntxt), addr) => 
           for {
             vzip <- Tree.seekTo(verts, addr)
             res <- (
               vzip._1 match {
-                case Leaf(_) => sm.failWith(new ShapeLookupError)
-                case Node(Leaf(_), _) => sm.failWith(new ShapeLookupError)
+                case Leaf(_) => fail(new ShapeError("Sibling Error"))
+                case Node(Leaf(_), _) => fail(new ShapeError("Sibling Error"))
                 case Node(Node(nfcs, vrem), hmask) => 
-                  sm.pure((nfcs, (a, (vrem, (nst, (hmask, vzip._2)) :: hcn)) :: cntxt))
+                  Monad[ShapeM].pure((nfcs, (a, (vrem, (nst, (hmask, vzip._2)) :: hcn)) :: cntxt))
               }
             )
           } yield res

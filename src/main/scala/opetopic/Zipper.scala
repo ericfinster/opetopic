@@ -10,6 +10,7 @@ package opetopic
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Monad
 import scalaz.syntax.monad._
 
 import TypeDefs._
@@ -54,25 +55,25 @@ trait ZipperFunctions {
 
   }
 
-  def visit[M[+_], A, N <: Nat](n : N)(zp : Zipper[A, S[N]], dir : Address[N])(implicit sm : ShapeMonad[M]) : M[Zipper[A, S[N]]] = 
+  def visit[A, N <: Nat](n : N)(zp : Zipper[A, S[N]], dir : Address[N]) : ShapeM[Zipper[A, S[N]]] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (Zipper[A, S[N]], Address[N]) => M[Zipper[A, S[N]]]
+      type Out[N <: Nat] = (Zipper[A, S[N]], Address[N]) => ShapeM[Zipper[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case ((Leaf(_), _), ()) => sm.failWith(new ShapeLookupError)
-        case ((Node(hd, Pt(tl)), c), ()) => sm.pure((tl, (hd, ()) :: c))
+        case ((Leaf(_), _), ()) => fail(new ShapeError("Cannot visit a leaf"))
+        case ((Node(hd, Pt(tl)), c), ()) => Monad[ShapeM].pure((tl, (hd, ()) :: c))
       }
 
-      def caseSucc[P <: Nat](p : P) : (ZipperDblSucc[A, P], Address[S[P]]) => M[ZipperDblSucc[A, P]] = {
-        case ((Leaf(_), _), _) => sm.failWith(new ShapeLookupError)
+      def caseSucc[P <: Nat](p : P) : (ZipperDblSucc[A, P], Address[S[P]]) => ShapeM[ZipperDblSucc[A, P]] = {
+        case ((Leaf(_), _), _) => fail(new ShapeError("Cannot visit a leaf"))
         case ((Node(a, sh), c), d) => 
           for {
-            shZp <- seek[M, Tree[A, S[S[P]]], S[P]](S(p))((sh, Nil), d)
+            shZp <- seek[Tree[A, S[S[P]]], S[P]](S(p))((sh, Nil), d)
             res <- (
               shZp match {
-                case (Leaf(_), _) => sm.failWith(new ShapeLookupError)
-                case (Node(tr, hsh), c0) => sm.pure((tr, (a, (hsh, c0)) :: c))
+                case (Leaf(_), _) => fail(new ShapeError("Ran out of room in shell"))
+                case (Node(tr, hsh), c0) => Monad[ShapeM].pure((tr, (a, (hsh, c0)) :: c))
               }
             )
           } yield res
@@ -81,17 +82,17 @@ trait ZipperFunctions {
 
     })(n)(zp, dir)
 
-  def seek[M[+_], A, N <: Nat](n : N)(zp : Zipper[A, N], addr : Address[N])(implicit sm : ShapeMonad[M]) : M[Zipper[A, N]] = 
+  def seek[A, N <: Nat](n : N)(zp : Zipper[A, N], addr : Address[N]) : ShapeM[Zipper[A, N]] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (Zipper[A, N], Address[N]) => M[Zipper[A, N]]
+      type Out[N <: Nat] = (Zipper[A, N], Address[N]) => ShapeM[Zipper[A, N]]
 
       def caseZero : Out[_0] = {
-        case (zp, ()) => sm.pure(zp)
+        case (zp, ()) => Monad[ShapeM].pure(zp)
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (zp, Nil) => sm.pure(zp)
+        case (zp, Nil) => Monad[ShapeM].pure(zp)
         case (zp, d :: ds) =>
           for {
             zpP <- caseSucc(p)(zp, ds)

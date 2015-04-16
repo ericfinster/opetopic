@@ -11,6 +11,7 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
+import scalaz.Monad
 import scalaz.Leibniz
 import scalaz.Leibniz._
 import scalaz.Applicative
@@ -240,25 +241,25 @@ trait CardinalFunctions {
   // POKE
   //
 
-  def poke[M[+_], A, N <: Nat](ct : CardinalTree[A, N], ca : CardinalAddress[N])(implicit sm: ShapeMonad[M]) : M[(A, CardinalDerivative[A, N])] =
+  def poke[A, N <: Nat](ct : CardinalTree[A, N], ca : CardinalAddress[N]) : ShapeM[(A, CardinalDerivative[A, N])] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (CardinalTree[A,  N], CardinalAddress[N]) => M[(A, CardinalDerivative[A, N])]
+      type Out[N <: Nat] = (CardinalTree[A,  N], CardinalAddress[N]) => ShapeM[(A, CardinalDerivative[A, N])]
 
       def caseZero : Out[_0] = {
-        case (Pt(a), _) => sm.pure(a, ())
+        case (Pt(a), _) => Monad[ShapeM].pure(a, ())
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
         case (ct, tl >> hd) =>
           for {
-            res <- poke[M, Tree[A, S[P]], P](ct, tl)
+            res <- poke[Tree[A, S[P]], P](ct, tl)
             (tr, deriv) = res
             plc <- Tree.seekTo(tr, hd)
             res <- (
               plc._1 match {
-                case Leaf(_) => sm.failWith(new ShapeLookupError)
-                case Node(a, sh) => sm.pure(a, (deriv, (sh, plc._2)))
+                case Leaf(_) => fail(new ShapeError)
+                case Node(a, sh) => Monad[ShapeM].pure(a, (deriv, (sh, plc._2)))
               }
             )
           } yield res
@@ -270,9 +271,9 @@ trait CardinalFunctions {
   // TAIL WITH DERIVATIVE
   //
 
-  def tailWithDerivative[M[+_], A, K <: Nat, N <: Nat, D <: Nat](ct : CardinalTree[A, S[N]], ca : CardinalAddress[K])(
-    implicit lte : Lte[K, N, D], sm: ShapeMonad[M]
-  ) : M[(TreeSeq[A, S[K], D], CardinalDerivative[TreeSeq[A, S[K], D], K])] =
+  def tailWithDerivative[A, K <: Nat, N <: Nat, D <: Nat](ct : CardinalTree[A, S[N]], ca : CardinalAddress[K])(
+    implicit lte : Lte[K, N, D]
+  ) : ShapeM[(TreeSeq[A, S[K], D], CardinalDerivative[TreeSeq[A, S[K], D], K])] =
     poke(cardinalTreeAssoc(lte)(ct), ca)
 
   //============================================================================================
@@ -293,19 +294,17 @@ trait CardinalFunctions {
     })(n)(cd)
 
 
-  def getSelection[M[+_], A, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N])(sel: A => Boolean)(
-    implicit sm: ShapeMonad[M]
-  ) : M[Tree[Nesting[A, N], N]] =
+  def getSelection[A, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N])(sel: A => Boolean) : ShapeM[Tree[Nesting[A, N], N]] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[N]) => M[Tree[Nesting[A, N], N]]
+      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[N]) => ShapeM[Tree[Nesting[A, N], N]]
 
       def caseZero : Out[_0] = {
         case (Pt(nst), ca) =>
           if (sel(Nesting.baseValue(nst))) {
-            sm.pure(Pt(nst))
+            Monad[ShapeM].pure(Pt(nst))
           } else {
-            sm.failWith(new ShapeSelectionError)
+            fail(new ShapeError)
           }
       }
 
@@ -320,15 +319,13 @@ trait CardinalFunctions {
 
     })(n)(cn, ca)
 
-  def extrudeAt[M[+_], A, B, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N], msk: Tree[B, N], a: A)(
-    implicit sm: ShapeMonad[M]
-  ) : M[CardinalNesting[A, N]] =
+  def extrudeAt[A, B, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N], msk: Tree[B, N], a: A) : ShapeM[CardinalNesting[A, N]] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[N], Tree[B, N]) => M[CardinalNesting[A, N]]
+      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[N], Tree[B, N]) => ShapeM[CardinalNesting[A, N]]
 
       def caseZero : Out[_0] = {
-        case (cn, ca, msk) => sm.pure(Pt(Box(a, cn)))
+        case (cn, ca, msk) => Monad[ShapeM].pure(Pt(Box(a, cn)))
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
@@ -346,18 +343,16 @@ trait CardinalFunctions {
 
     })(n)(cn, ca, msk)
 
-  def extrudeFillerAt[M[+_], A, B, N <: Nat](n: N)(cn: CardinalNesting[A, S[N]], ca: CardinalAddress[N], msk: Tree[B, N], a: A)(
-    implicit sm: ShapeMonad[M]
-  ) : M[CardinalNesting[A, S[N]]] =
+  def extrudeFillerAt[A, B, N <: Nat](n: N)(cn: CardinalNesting[A, S[N]], ca: CardinalAddress[N], msk: Tree[B, N], a: A) : ShapeM[CardinalNesting[A, S[N]]] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (CardinalNesting[A, S[N]], CardinalAddress[N], Tree[B, N]) => M[CardinalNesting[A, S[N]]]
+      type Out[N <: Nat] = (CardinalNesting[A, S[N]], CardinalAddress[N], Tree[B, N]) => ShapeM[CardinalNesting[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case (cn, ca, msk) => sm.pure(Pt(Node(Dot(a, __1), cn)))
+        case (cn, ca, msk) => Monad[ShapeM].pure(Pt(Node(Dot(a, __1), cn)))
       }
 
-      def caseSucc[P <: Nat](p : P) : (CardinalNestingDblSucc[A, P], CardinalAddress[S[P]], Tree[B, S[P]]) => M[CardinalNestingDblSucc[A, P]] = {
+      def caseSucc[P <: Nat](p : P) : (CardinalNestingDblSucc[A, P], CardinalAddress[S[P]], Tree[B, S[P]]) => ShapeM[CardinalNestingDblSucc[A, P]] = {
         case (cn, tl >> hd, msk) =>
           for {
             pr0 <- poke(cn, tl)
@@ -372,25 +367,25 @@ trait CardinalFunctions {
 
     })(n)(cn, ca, msk)
 
-  def extrudeLeafAt[M[+_], A, B, K <: Nat, N <: Nat, D <: Nat](cn: CardinalNesting[A, N], ca: CardinalAddress[K], msk: Tree[B, K])(
-    implicit lte : Lte[S[S[K]], N, D], sm: ShapeMonad[M]
-  ) : M[CardinalNesting[A, N]] =
+  def extrudeLeafAt[A, B, K <: Nat, N <: Nat, D <: Nat](cn: CardinalNesting[A, N], ca: CardinalAddress[K], msk: Tree[B, K])(
+    implicit lte : Lte[S[S[K]], N, D]
+  ) : ShapeM[CardinalNesting[A, N]] =
     (new NatCaseSplitWithOne { sp =>
 
-      type Out[N <: Nat] = (Lte[S[S[K]], N, D], CardinalNesting[A, N], CardinalAddress[K]) => M[CardinalNesting[A, N]]
+      type Out[N <: Nat] = (Lte[S[S[K]], N, D], CardinalNesting[A, N], CardinalAddress[K]) => ShapeM[CardinalNesting[A, N]]
 
       def caseZero : Out[_0] = throw new IllegalArgumentException("Unreachable case")
       def caseOne : Out[_1] = throw new IllegalArgumentException("Unreachable case")
 
-      def caseDblSucc[P <: Nat](p : P) : (Lte[S[S[K]], S[S[P]], D], CardinalNestingDblSucc[A, P], CardinalAddress[K]) => M[CardinalNestingDblSucc[A, P]] = {
+      def caseDblSucc[P <: Nat](p : P) : (Lte[S[S[K]], S[S[P]], D], CardinalNestingDblSucc[A, P], CardinalAddress[K]) => ShapeM[CardinalNestingDblSucc[A, P]] = {
         case (SuccLte(SuccLte(plte)), cn, ca) => (new LteCaseSplit {
 
-          type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingDblSucc[A, N], CardinalAddress[K], Tree[B, K]) => M[CardinalNestingDblSucc[A, N]]
+          type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingDblSucc[A, N], CardinalAddress[K], Tree[B, K]) => ShapeM[CardinalNestingDblSucc[A, N]]
 
           def caseZero[N <: Nat](n : N) : Out[_0, N, N] = {
             case (cn, ca, msk) => {
               for {
-                pr <- tailWithDerivative[M, Nesting[A, S[S[N]]], _0, S[N], S[N]](cn, ca)(ZeroLte(S(n)), sm)
+                pr <- tailWithDerivative[Nesting[A, S[S[N]]], _0, S[N], S[N]](cn, ca)(ZeroLte(S(n)))
               } yield {
                 symm[Nothing, Any, CardinalNestingDblSucc[A, N], TreeSeqDblSucc[Nesting[A, S[S[N]]], _0, N]](
                   cardinalTreeAssoc(SuccLte(ZeroLte(n)))
@@ -409,7 +404,7 @@ trait CardinalFunctions {
               val ev : Lte[K, S[S[N]], S[S[D]]] = Lte.lteSucc(Lte.lteSucc(plte))
 
               for {
-                pr0 <- tailWithDerivative[M, Nesting[A, S[S[S[N]]]], K, S[S[N]], S[S[D]]](cn, tl)(ev, sm)
+                pr0 <- tailWithDerivative[Nesting[A, S[S[S[N]]]], K, S[S[N]], S[S[D]]](cn, tl)(ev)
                 pr1 <- Tree.seekTo(pr0._1, hd)
                 pr2 <- Tree.exciseWithMask(pr1._1, msk)
               } yield {
@@ -429,21 +424,19 @@ trait CardinalFunctions {
 
     })(lte.upper)(lte, cn, ca)
 
-  def extrudeLoopAt[M[+_], A, N <: Nat](n: N)(cn: CardinalNesting[A, S[N]], ca: CardinalAddress[N], a: A)(
-    implicit sm: ShapeMonad[M]
-  ) : M[CardinalNesting[A, S[N]]] =
+  def extrudeLoopAt[A, N <: Nat](n: N)(cn: CardinalNesting[A, S[N]], ca: CardinalAddress[N], a: A) : ShapeM[CardinalNesting[A, S[N]]] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (CardinalNesting[A, S[N]], CardinalAddress[N]) => M[CardinalNesting[A, S[N]]]
+      type Out[N <: Nat] = (CardinalNesting[A, S[N]], CardinalAddress[N]) => ShapeM[CardinalNesting[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case (cn, ca) => sm.pure(Pt(Node(Box(a, Leaf(__1)), cn)))
+        case (cn, ca) => Monad[ShapeM].pure(Pt(Node(Box(a, Leaf(__1)), cn)))
       }
 
-      def caseSucc[P <: Nat](p : P) : (CardinalNestingDblSucc[A, P], CardinalAddress[S[P]]) => M[CardinalNestingDblSucc[A, P]] = {
+      def caseSucc[P <: Nat](p : P) : (CardinalNestingDblSucc[A, P], CardinalAddress[S[P]]) => ShapeM[CardinalNestingDblSucc[A, P]] = {
         case (cn, ca) =>
           for {
-            pr <- poke[M, Tree[Nesting[A, S[S[P]]], S[S[P]]], S[P]](cn, ca)
+            pr <- poke[Tree[Nesting[A, S[S[P]]], S[S[P]]], S[P]](cn, ca)
           } yield {
             plugCardinal[Tree[Nesting[A, S[S[P]]], S[S[P]]], S[P]](S(p))(pr._2,
               Node(Box(a, Leaf(S(S(p)))), Node(pr._1, Tree.const(pr._2._2._1, Leaf(S(p)))))
@@ -453,21 +446,19 @@ trait CardinalFunctions {
 
     })(n)(cn, ca)
 
-  def extrudeDropAt[M[+_], A, N <: Nat](n: N)(cn: CardinalNestingDblSucc[A, N], ca: CardinalAddress[N], a: A)(
-    implicit sm: ShapeMonad[M]
-  ) : M[CardinalNestingDblSucc[A, N]] =
+  def extrudeDropAt[A, N <: Nat](n: N)(cn: CardinalNestingDblSucc[A, N], ca: CardinalAddress[N], a: A) : ShapeM[CardinalNestingDblSucc[A, N]] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (CardinalNestingDblSucc[A, N], CardinalAddress[N]) => M[CardinalNestingDblSucc[A, N]]
+      type Out[N <: Nat] = (CardinalNestingDblSucc[A, N], CardinalAddress[N]) => ShapeM[CardinalNestingDblSucc[A, N]]
 
       def caseZero : Out[_0] = {
-        case (cn, ca) => sm.pure(Pt(Node(Node(Dot(a, __2), Leaf(__1)), cn)))
+        case (cn, ca) => Monad[ShapeM].pure(Pt(Node(Node(Dot(a, __2), Leaf(__1)), cn)))
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
         case (cn, ca) =>
           for {
-            pr <- poke[M, Tree[Tree[Nesting[A, S[S[S[P]]]], S[S[S[P]]]], S[S[P]]], S[P]](cn, ca)
+            pr <- poke[Tree[Tree[Nesting[A, S[S[S[P]]]], S[S[S[P]]]], S[S[P]]], S[P]](cn, ca)
           } yield {
             plugCardinal[Tree[Tree[Nesting[A, S[S[S[P]]]], S[S[S[P]]]], S[S[P]]], S[P]](S(p))(pr._2,
               Node(Node(Dot(a, S(S(S(p)))), Leaf(S(S(p)))), Node(pr._1, Tree.const(pr._2._2._1, Leaf(S(p)))))
@@ -477,27 +468,27 @@ trait CardinalFunctions {
 
     })(n)(cn, ca)
 
-  def extrudeDropLeafAt[M[+_], A, K <: Nat, N <: Nat, D <: Nat](cn: CardinalNesting[A, N], ca: CardinalAddress[K])(
-    implicit lte: Lte[S[S[S[K]]], N, D], sm: ShapeMonad[M]
-  ) : M[CardinalNesting[A, N]] =
+  def extrudeDropLeafAt[A, K <: Nat, N <: Nat, D <: Nat](cn: CardinalNesting[A, N], ca: CardinalAddress[K])(
+    implicit lte: Lte[S[S[S[K]]], N, D]
+  ) : ShapeM[CardinalNesting[A, N]] =
     (new NatCaseSplitWithTwo {
 
-      type Out[N <: Nat] = (Lte[S[S[S[K]]], N, D], CardinalNesting[A, N], CardinalAddress[K]) => M[CardinalNesting[A, N]]
+      type Out[N <: Nat] = (Lte[S[S[S[K]]], N, D], CardinalNesting[A, N], CardinalAddress[K]) => ShapeM[CardinalNesting[A, N]]
 
       def caseZero : Out[_0] = throw new IllegalArgumentException("Unreachable case")
       def caseOne : Out[_1] = throw new IllegalArgumentException("Unreachable case")
       def caseTwo : Out[_2] = throw new IllegalArgumentException("Unreachable case")
 
-      def caseTrplSucc[P <: Nat](p: P) : (Lte[S[S[S[K]]], S[S[S[P]]], D], CardinalNestingTrplSucc[A, P], CardinalAddress[K]) => M[CardinalNestingTrplSucc[A, P]] = {
+      def caseTrplSucc[P <: Nat](p: P) : (Lte[S[S[S[K]]], S[S[S[P]]], D], CardinalNestingTrplSucc[A, P], CardinalAddress[K]) => ShapeM[CardinalNestingTrplSucc[A, P]] = {
         case (SuccLte(SuccLte(SuccLte(lte))), cn, ca) =>
           (new LteCaseSplit {
 
-            type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingTrplSucc[A, N], CardinalAddress[K]) => M[CardinalNestingTrplSucc[A, N]]
+            type Out[K <: Nat, N <: Nat, D <: Nat] = (CardinalNestingTrplSucc[A, N], CardinalAddress[K]) => ShapeM[CardinalNestingTrplSucc[A, N]]
 
             def caseZero[N <: Nat](n: N) : Out[_0, N, N] = {
               case (cn, ca) =>
                 for {
-                  pr <- tailWithDerivative[M, Nesting[A, S[S[S[N]]]], _0, S[S[N]], S[S[N]]](cn, ca)(ZeroLte(S(S(n))), sm)
+                  pr <- tailWithDerivative[Nesting[A, S[S[S[N]]]], _0, S[S[N]], S[S[N]]](cn, ca)(ZeroLte(S(S(n))))
                 } yield {
                   symm[Nothing, Any, CardinalNestingTrplSucc[A, N], TreeSeqTrplSucc[Nesting[A, S[S[S[N]]]], _0, N]](
                     cardinalTreeAssoc[Nesting[A, S[S[S[N]]]], _2, S[S[N]], N](SuccLte(SuccLte(ZeroLte(n))))
@@ -519,7 +510,7 @@ trait CardinalFunctions {
                 val ev : Lte[S[K], S[S[S[N]]], S[S[D]]] = lteSucc(lteSucc(SuccLte(plte)))
 
                 for {
-                  pr <- tailWithDerivative[M, Nesting[A, S[S[S[S[N]]]]], S[K], S[S[S[N]]], S[S[D]]](cn, ca)(ev, sm)
+                  pr <- tailWithDerivative[Nesting[A, S[S[S[S[N]]]]], S[K], S[S[S[N]]], S[S[D]]](cn, ca)(ev)
                 } yield {
                   symm[Nothing, Any, CardinalNestingQuadSucc[A, N], CardinalTree[TreeSeq[Nesting[A, S[S[S[S[N]]]]], S[S[K]], S[S[D]]], S[K]]](
                     cardinalTreeAssoc[Nesting[A, S[S[S[S[N]]]]], S[K], S[S[S[N]]], S[S[D]]](ev)
@@ -615,19 +606,19 @@ trait CardinalFunctions {
   // EXTRUDE DISPATCH
   //
 
-  def extrudeDispatch[M[+_], A, B, K <: Nat, N <: Nat](
+  def extrudeDispatch[A, B, K <: Nat, N <: Nat](
     cn : CardinalNesting[A, N],
     ca : CardinalAddress[K],
     a0 : A, a1 : A,
     msk : Tree[B, K],
     flag : CardinalDimFlag[N, K]
-  )(implicit sm: ShapeMonad[M]) : M[CardinalNesting[A, N]] =
+  ) : ShapeM[CardinalNesting[A, N]] =
     (new DimDispatcher[K] {
 
-      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[K], Tree[B, K]) => M[CardinalNesting[A, N]]
+      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[K], Tree[B, K]) => ShapeM[CardinalNesting[A, N]]
 
       def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], K, D]) : Out[N] = { 
-        case (cn, ca, msk) => sm.pure(cn) 
+        case (cn, ca, msk) => Monad[ShapeM].pure(cn) 
       }
 
       def caseEq(k : K) : Out[K] = { 
@@ -639,7 +630,7 @@ trait CardinalFunctions {
       }
 
       def caseDblSucc[N <: Nat, D <: Nat](sslte : Lte[S[S[K]], N, D]) : Out[N] = { 
-        case (cn, ca, msk) => extrudeLeafAt(cn, ca, msk)(sslte, sm) 
+        case (cn, ca, msk) => extrudeLeafAt(cn, ca, msk)(sslte) 
       }
 
     })(flag)(cn, ca, msk)
@@ -648,30 +639,30 @@ trait CardinalFunctions {
   // DROP DISPATCH
   //
 
-  def dropDispatch[M[+_], N <: Nat, K <: Nat, A](
+  def dropDispatch[N <: Nat, K <: Nat, A](
     cn : CardinalNesting[A, N],
     ca : CardinalAddress[K],
     a0 : A, a1 : A,
     flag : CardinalDimFlag[N, S[K]]
-  )(implicit sm: ShapeMonad[M]) : M[CardinalNesting[A, N]] = 
+  ) : ShapeM[CardinalNesting[A, N]] = 
     (new DimDispatcher[S[K]] {
 
-      type Out[N <: Nat] = CardinalNesting[A, N] => M[CardinalNesting[A, N]]
+      type Out[N <: Nat] = CardinalNesting[A, N] => ShapeM[CardinalNesting[A, N]]
 
       def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], S[K], D]) : Out[N] = { 
-        cn => sm.pure(cn) 
+        cn => Monad[ShapeM].pure(cn) 
       }
 
       def caseEq(sk : S[K]) : Out[S[K]] = { 
         cn => extrudeLoopAt(sk.pred)(cn, ca, a0) 
       }
 
-      def caseSucc(sk : S[K]) : CardinalNestingDblSucc[A, K] => M[CardinalNestingDblSucc[A, K]] = {
+      def caseSucc(sk : S[K]) : CardinalNestingDblSucc[A, K] => ShapeM[CardinalNestingDblSucc[A, K]] = {
         cn => extrudeDropAt(sk.pred)(cn, ca, a1)
       }
 
       def caseDblSucc[N <: Nat, D <: Nat](sslte : Lte[S[S[S[K]]], N, D]) : Out[N] = {
-        cn => extrudeDropLeafAt(cn, ca)(sslte, sm)
+        cn => extrudeDropLeafAt(cn, ca)(sslte)
       }
 
     })(flag)(cn)

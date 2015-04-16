@@ -14,12 +14,9 @@ import scalaz.syntax.monad._
 import TypeDefs._
 import syntax.tree._
 
-trait Renderer[M[+_], U]  {
+trait Renderer[U]  {
 
-  implicit val isShapeMonad : ShapeMonad[M]
   implicit val isNumeric : Numeric[U]
-
-  import isShapeMonad._
   import isNumeric._
 
   //============================================================================================
@@ -297,7 +294,7 @@ trait Renderer[M[+_], U]  {
   // RENDER NESTING
   //
 
-  def renderNesting[N <: Nat](nst : Nesting[RenderMarker, S[N]], lvs : Tree[LayoutMarker, N]) : M[LayoutMarker] = 
+  def renderNesting[N <: Nat](nst : Nesting[RenderMarker, S[N]], lvs : Tree[LayoutMarker, N]) : ShapeM[LayoutMarker] = 
     nst match {
       case Dot(rm, d) => 
         for {
@@ -487,8 +484,8 @@ trait Renderer[M[+_], U]  {
 
         val (leafCount : Int, leavesWithIndices : Tree[(LayoutMarker, Int), N]) = lvs.zipWithIndex
 
-        def verticalPass(tr : Tree[Nesting[RenderMarker, S[N]], S[N]]) : M[LayoutMarker] = 
-          Tree.graftRec[M, Nesting[RenderMarker, S[N]], LayoutMarker, N](tr)({
+        def verticalPass(tr : Tree[Nesting[RenderMarker, S[N]], S[N]]) : ShapeM[LayoutMarker] = 
+          Tree.graftRec[Nesting[RenderMarker, S[N]], LayoutMarker, N](tr)({
             case addr => 
               for {
                 leafMarkerWithIndex <- Tree.valueAt(leavesWithIndices, addr)

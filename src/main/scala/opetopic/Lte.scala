@@ -136,7 +136,7 @@ object Lte extends LteImplicits {
           type Out[N <: Nat] = M[Diff[S[P], N]]
 
           def caseZero : Out[_0] = 
-            sm.failWith(new ShapeLteError)
+            sm.failWith(new ShapeError)
 
           def caseSucc[Q <: Nat](q: Q) : Out[S[Q]] = {
 

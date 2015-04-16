@@ -110,13 +110,11 @@ trait TreeFunctions { tfns =>
   // MATCH TRAVERSE
   //
 
-  def matchTraverse[M[+_], A, B, C, N <: Nat](
+  def matchTraverse[A, B, C, N <: Nat](
     trA : Tree[A, N], trB : Tree[B, N]
-  )(f : (A, B) => M[C])(implicit sm : ShapeMonad[M]) : M[Tree[C, N]] = {
+  )(f : (A, B) => ShapeM[C]) : ShapeM[Tree[C, N]] = {
 
-    import sm.failWith
-
-    val apM = Applicative[M]
+    val apM = Applicative[ShapeM]
     import apM.{pure, ap, ap2}
 
     (trA, trB) match {
@@ -132,7 +130,7 @@ trait TreeFunctions { tfns =>
         ap2(f(a, b), matchedShell)(pure(Node(_, _)))
 
       }
-      case _ => failWith(new ShapeMatchError)
+      case _ => fail(new ShapeError("Match failed"))
     }
 
   }
@@ -141,13 +139,11 @@ trait TreeFunctions { tfns =>
   // MATCH WITH DERIVATIVE
   //
 
-  def matchWithDerivative[M[+_], A, B, C, D, N <: Nat](
+  def matchWithDerivative[A, B, C, D, N <: Nat](
     trA : Tree[A, N], trB : Tree[B, N]
-  )(f : (A, B, Derivative[C, N]) => M[D])(implicit sm : ShapeMonad[M]) : M[Tree[D, N]] = {
+  )(f : (A, B, Derivative[C, N]) => ShapeM[D]) : ShapeM[Tree[D, N]] = {
 
-    import sm.failWith
-
-    val apM = Applicative[M]
+    val apM = Applicative[ShapeM]
     import apM.{pure, ap, ap2}
 
     (trA, trB) match {
@@ -166,7 +162,7 @@ trait TreeFunctions { tfns =>
         ap2(f(a, b, deriv), matchedShell)(pure(Node(_, _)))
 
       }
-      case _ => failWith(new ShapeMatchError)
+      case _ => fail(new ShapeError("Match failed"))
     }
   }
 
@@ -174,28 +170,28 @@ trait TreeFunctions { tfns =>
   // GRAFTING
   //
 
-  abstract class GraftRecursor[M[+_], A, B, P <: Nat](implicit sm : ShapeMonad[M]) {
+  abstract class GraftRecursor[A, B, P <: Nat] {
 
-    def caseLeaf(addr: Address[S[P]]) : M[B]
-    def caseNode(a: A, sh: Tree[B, S[P]]) : M[B]
+    def caseLeaf(addr: Address[S[P]]) : ShapeM[B]
+    def caseNode(a: A, sh: Tree[B, S[P]]) : ShapeM[B]
 
-    def unzipAndJoin(zt: Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P]) : M[(Tree[Tree[B, S[P]], P], Tree[Address[S[P]], P])] = {
+    def unzipAndJoin(zt: Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P]) : ShapeM[(Tree[Tree[B, S[P]], P], Tree[Address[S[P]], P])] = {
       val (bSh, adJnSh) = unzip(zt)
       for {
         adTr <- join(adJnSh)
       } yield (bSh, adTr)
     }
 
-    def unzipJoinAndAppend(zt : Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P], mb : M[B]) : M[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
+    def unzipJoinAndAppend(zt : Tree[(Tree[B, S[P]], Tree[Address[S[P]], P]), P], mb : ShapeM[B]) : ShapeM[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
       for {
         pr <- unzipAndJoin(zt)
         (bSh, adTr) = pr
         b <- mb
       } yield (Node(b, bSh), adTr)
 
-    def horizontalPass(base: Address[S[P]], hbr: Tree[Tree[A, S[S[P]]], S[P]], deriv : Derivative[Address[S[P]], P]) : M[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
+    def horizontalPass(base: Address[S[P]], hbr: Tree[Tree[A, S[S[P]]], S[P]], deriv : Derivative[Address[S[P]], P]) : ShapeM[(Tree[B, S[P]], Tree[Address[S[P]], P])] = 
       hbr match {
-        case Leaf(sp) => sm.point((Leaf(sp), Zipper.plug(sp.pred)(deriv, base)))
+        case Leaf(sp) => Monad[ShapeM].point((Leaf(sp), Zipper.plug(sp.pred)(deriv, base)))
         case Node(Leaf(ssp), hsh) => 
           for {
             hres <- traverseWithLocalData(hsh)({
@@ -212,7 +208,7 @@ trait TreeFunctions { tfns =>
           } yield res
       }
 
-    def initHorizontal(a: A, hsh: Tree[Tree[Tree[A, S[S[P]]], S[P]], P])(m: M[(B, Tree[Address[S[P]], P])]) : M[(B, Tree[Address[S[P]], P])] = 
+    def initHorizontal(a: A, hsh: Tree[Tree[Tree[A, S[S[P]]], S[P]], P])(m: ShapeM[(B, Tree[Address[S[P]], P])]) : ShapeM[(B, Tree[Address[S[P]], P])] = 
       for {
         pr0 <- m
         (b0, adTr0) = pr0
@@ -222,7 +218,7 @@ trait TreeFunctions { tfns =>
         b <- caseNode(a, Node(b0, bSh))
       } yield (b, adTr)
 
-    def initVertical(a0: A, v: Tree[A, S[S[P]]], hsh0: Tree[Tree[Tree[A, S[S[P]]], S[P]], P]) : M[(B, Tree[Address[S[P]], P])] = 
+    def initVertical(a0: A, v: Tree[A, S[S[P]]], hsh0: Tree[Tree[Tree[A, S[S[P]]], S[P]], P]) : ShapeM[(B, Tree[Address[S[P]], P])] = 
       v match {
         case Leaf(ssp) => initHorizontal(a0, hsh0)(
           for { 
@@ -240,10 +236,10 @@ trait TreeFunctions { tfns =>
 
   }
 
-  def graftRec[M[+_], A, B, N <: Nat](tr : Tree[A, S[N]])(leafRec : Address[N] => M[B])(nodeRec : (A, Tree[B, N]) => M[B])(implicit sm : ShapeMonad[M]) : M[B] = 
+  def graftRec[A, B, N <: Nat](tr : Tree[A, S[N]])(leafRec : Address[N] => ShapeM[B])(nodeRec : (A, Tree[B, N]) => ShapeM[B]) : ShapeM[B] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (Tree[A, S[N]], Address[N] => M[B], (A, Tree[B, N]) => M[B]) => M[B]
+      type Out[N <: Nat] = (Tree[A, S[N]], Address[N] => ShapeM[B], (A, Tree[B, N]) => ShapeM[B]) => ShapeM[B]
 
       def caseZero : Out[_0] = {
         case (Leaf(_), lfR, ndR) => lfR(())
@@ -259,10 +255,10 @@ trait TreeFunctions { tfns =>
         case (Node(a, Leaf(d)), lfR, ndR) => ndR(a, Leaf(d))
         case (Node(a, Node(v, hsh)), lfR, ndR) => {
 
-          val recursor = new GraftRecursor[M, A, B, P] { 
+          val recursor = new GraftRecursor[A, B, P] { 
 
-            def caseLeaf(addr: Address[S[P]]) : M[B] = lfR(addr)
-            def caseNode(a: A, sh: Tree[B, S[P]]) : M[B] = ndR(a, sh)
+            def caseLeaf(addr: Address[S[P]]) : ShapeM[B] = lfR(addr)
+            def caseNode(a: A, sh: Tree[B, S[P]]) : ShapeM[B] = ndR(a, sh)
 
           }
 
@@ -274,24 +270,24 @@ trait TreeFunctions { tfns =>
 
     })(tr.dim.pred)(tr, leafRec, nodeRec)
 
-  def graft[M[+_], A, N <: Nat](tr : Tree[A, S[N]])(brs : Tree[Tree[A, S[N]], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, S[N]]] = 
-    graftRec(tr)(addr => valueAt(brs, addr))({ case (a, sh) => sm.pure(Node(a, sh)) })
+  def graft[A, N <: Nat](tr : Tree[A, S[N]])(brs : Tree[Tree[A, S[N]], N]) : ShapeM[Tree[A, S[N]]] = 
+    graftRec(tr)(addr => valueAt(brs, addr))({ case (a, sh) => Monad[ShapeM].pure(Node(a, sh)) })
 
   //============================================================================================
   // JOIN
   //
 
-  def join[M[+_], A, N <: Nat](tr : Tree[Tree[A, N], N])(implicit sm : ShapeMonad[M]) : M[Tree[A, N]] = 
+  def join[A, N <: Nat](tr : Tree[Tree[A, N], N]) : ShapeM[Tree[A, N]] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = Tree[Tree[A, N], N] => M[Tree[A, N]]
+      type Out[N <: Nat] = Tree[Tree[A, N], N] => ShapeM[Tree[A, N]]
 
       def caseZero : Out[_0] = {
-        case Pt(t) => sm.pure(t)
+        case Pt(t) => Monad[ShapeM].pure(t)
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case Leaf(d) => sm.pure(Leaf(d))
+        case Leaf(d) => Monad[ShapeM].pure(Leaf(d))
         case Node(t, tsh) => 
           for {
             gsh <- traverse(tsh)(join(_))
@@ -307,17 +303,17 @@ trait TreeFunctions { tfns =>
   //
 
 
-  def shellExtents[M[+_], A, N <: Nat](sh: Tree[Tree[A, S[N]], N], base: Address[S[N]])(implicit sm: ShapeMonad[M]) : M[Tree[Address[S[N]], N]] = 
+  def shellExtents[A, N <: Nat](sh: Tree[Tree[A, S[N]], N], base: Address[S[N]]) : ShapeM[Tree[Address[S[N]], N]] = 
     for {
       jnSh <- traverseWithLocalData(sh)({ 
         case (Leaf(d), dir, deriv) => 
-          sm.pure(Zipper.plug(d.pred)(deriv, dir :: base))
+          Monad[ShapeM].pure(Zipper.plug(d.pred)(deriv, dir :: base))
         case (Node(_, sh0), dir, deriv) => shellExtents(sh0, dir :: base)
       })
       res <- join(jnSh)
     } yield res
 
-  def shellExtents[M[+_], A, N <: Nat](sh: Tree[Tree[A, S[N]], N])(implicit sm: ShapeMonad[M]) : M[Tree[Address[S[N]], N]] = 
+  def shellExtents[A, N <: Nat](sh: Tree[Tree[A, S[N]], N]) : ShapeM[Tree[Address[S[N]], N]] = 
     shellExtents(sh, Nil)
 
   //============================================================================================
@@ -363,11 +359,11 @@ trait TreeFunctions { tfns =>
   // ROOT VALUE
   //
 
-  def rootValue[M[+_], A, N <: Nat](tr : Tree[A, N])(implicit sm : ShapeMonad[M]) : M[A] =
+  def rootValue[A, N <: Nat](tr : Tree[A, N]) : ShapeM[A] =
     tr match {
-      case Pt(a) => sm.pure(a)
-      case Leaf(_) => sm.failWith(new ShapeRootEmptyError)
-      case Node(a, _) => sm.pure(a)
+      case Pt(a) => Monad[ShapeM].pure(a)
+      case Leaf(_) => fail(new ShapeError("No root value"))
+      case Node(a, _) => Monad[ShapeM].pure(a)
     }
 
   //============================================================================================
@@ -387,13 +383,13 @@ trait TreeFunctions { tfns =>
   // SEEK TO
   //
 
-  def seekTo[M[+_], A, N <: Nat](tr : Tree[A, N], addr : Address[N])(implicit sm : ShapeMonad[M]) : M[Zipper[A, N]] = 
+  def seekTo[A, N <: Nat](tr : Tree[A, N], addr : Address[N]) : ShapeM[Zipper[A, N]] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = (Tree[A, N], Address[N]) => M[Zipper[A, N]]
+      type Out[N <: Nat] = (Tree[A, N], Address[N]) => ShapeM[Zipper[A, N]]
 
       def caseZero : Out[_0] = {
-        case (tr, addr) => sm.pure((tr, ()))
+        case (tr, addr) => Monad[ShapeM].pure((tr, ()))
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
@@ -403,7 +399,7 @@ trait TreeFunctions { tfns =>
     })(tr.dim)(tr, addr)
 
 
-  def valueAt[M[+_], A, N <: Nat](tr : Tree[A, N], addr : Address[N])(implicit sm : ShapeMonad[M]) : M[A] = 
+  def valueAt[A, N <: Nat](tr : Tree[A, N], addr : Address[N]) : ShapeM[A] = 
     for {
       zp <- seekTo(tr, addr)
       v <- rootValue(zp._1)
@@ -428,12 +424,10 @@ trait TreeFunctions { tfns =>
   // EXCISION
   //
 
-  def exciseWithMask[M[+_], A, B, N <: Nat](tr: Tree[A, S[N]], deriv: Derivative[Tree[A, S[N]], N], msk: Tree[B, S[N]])(
-    implicit sm: ShapeMonad[M]
-  ) : M[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] = 
+  def exciseWithMask[A, B, N <: Nat](tr: Tree[A, S[N]], deriv: Derivative[Tree[A, S[N]], N], msk: Tree[B, S[N]]) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
     (tr, msk) match {
-      case (tr, Leaf(d)) => sm.pure(Leaf(d), Zipper.plug(d.pred)(deriv, tr))
-      case (Leaf(_), Node(_, _)) => sm.failWith(new ShapeLookupError)
+      case (tr, Leaf(d)) => Monad[ShapeM].pure(Leaf(d), Zipper.plug(d.pred)(deriv, tr))
+      case (Leaf(_), Node(_, _)) => fail(new ShapeError("Excision error"))
       case (Node(a, sh), Node(_, mskSh)) =>
         for {
           ztr <- matchWithDerivative(sh, mskSh)({ case (t, m0, d0) => exciseWithMask(t, d0, m0) })
@@ -442,9 +436,7 @@ trait TreeFunctions { tfns =>
         } yield (Node(a, nsh), crp)
     }
 
-  def exciseWithMask[M[+_], A, B, N <: Nat](tr: Tree[A, S[N]], msk: Tree[B, S[N]])(
-    implicit sm: ShapeMonad[M]
-  ) : M[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] = 
+  def exciseWithMask[A, B, N <: Nat](tr: Tree[A, S[N]], msk: Tree[B, S[N]]) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
     exciseWithMask(tr, Zipper.globDerivative(tr.dim.pred), msk)
 
 }

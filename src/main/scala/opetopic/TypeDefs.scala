@@ -9,7 +9,26 @@ package opetopic
 
 import scala.language.higherKinds
 
+import scalaz.\/
+import scalaz.-\/
+import scalaz.\/-
+
 object TypeDefs extends NatConstants {
+
+  //============================================================================================
+  // SHAPE MONAD
+  //
+
+  type ShapeM[+A] = \/[ShapeError, A]
+
+  def fail[A](se: ShapeError) : ShapeM[A] = 
+    -\/(se)
+
+  def fromOpt[A](opt: Option[A]) : ShapeM[A] = 
+    opt match {
+      case None => fail(new ShapeError("Option was none"))
+      case Some(a) => \/-(a)
+    }
 
   //============================================================================================
   // ADDRESSES

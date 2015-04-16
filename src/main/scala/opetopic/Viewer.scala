@@ -16,7 +16,7 @@ import TypeDefs._
 import syntax.tree._
 import syntax.complex._
 
-abstract class Viewer[M[+_], U] { thisViewer : Renderer[M, U] =>
+abstract class Viewer[U] { thisViewer : Renderer[U] =>
 
   type BoxType <: ViewerBox
   type EdgeType <: ViewerEdge
