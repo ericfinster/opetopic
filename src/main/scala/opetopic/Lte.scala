@@ -106,6 +106,16 @@ object Lte extends LteImplicits {
 
   }
 
+  object Diff {
+
+    def apply[K0 <: Nat, N0 <: Nat, D0 <: Nat](l: Lte[K0, N0, D0]) : Diff[K0, N0] = 
+      new Diff[K0, N0] {
+        type D = D0
+        val lte = l
+      }
+
+  }
+
   def getLte[M[+_], K <: Nat, N <: Nat](k: K, n: N)(implicit sm: ShapeMonad[M]) : M[Diff[K, N]] = 
     (new NatCaseSplit0 {
 

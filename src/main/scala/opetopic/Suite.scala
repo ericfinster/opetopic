@@ -51,6 +51,50 @@ object Suite {
       case tail >> hd => map(tail)(f) >> f(hd)
     }
 
+  def drop[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](suite : Suite[F, N])(implicit lte : Lte[K, N, D]) : Suite[F, D] = 
+    (new LteCaseSplit {
+
+      type Out[K <: Nat, N <: Nat, D <: Nat] = Suite[F, N] => Suite[F, D]
+
+      def caseZero[N <: Nat](n: N) : Out[_0, N, N] = 
+        cs => cs
+
+      def caseSucc[K <: Nat, N <: Nat, D <: Nat](plte: Lte[K, N, D]) : Out[S[K], S[N], D] = {
+        case (tl >> hd) => drop(tl)(plte)
+      }
+
+    })(lte)(suite)
+
+
+  def getAt[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](suite : Suite[F, S[N]])(implicit lte: Lte[K, N, D]) : F[K] =
+    head(drop(suite)(Lte.lteSucc(Lte.lteInvert(lte))))
+
+  trait IndexedOp[A[_ <: Nat]] {
+    def apply[N <: Nat](an : A[N]) : Unit
+  }
+
+  def foreach[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : Unit = 
+    suite match {
+      case SNil() => ()
+      case (tl >> hd) => {
+        foreach(tl)(op)
+        op(hd)
+      }
+    }
+
+  trait SuiteFold[F[_ <: Nat], A] {
+
+    def caseZero : A
+    def caseSucc[P <: Nat](fp: F[P], a: A) : A
+
+  }
+
+  def fold[F[_ <: Nat], A, N <: Nat](suite: Suite[F, N])(implicit fld: SuiteFold[F, A]) : A = 
+    suite match {
+      case SNil() => fld.caseZero
+      case tl >> hd => fld.caseSucc(hd, fold(tl))
+    }
+
   trait SuiteTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
     def apply[N <: Nat](fn : F[N]) : T[G[N]]
   }
@@ -68,3 +112,4 @@ object Suite {
     }
 
 }
+

@@ -82,16 +82,13 @@ object TypeDefs extends NatConstants {
   type Complex[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, S[N]]
 
-  def |:|[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, _0] = 
-    SNil[({ type L[K <: Nat] = Nesting[A[K], K] })#L]()
-
   type ComplexZipper[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]
 
-  def |::|[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, _0] = 
-    SNil[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L]()
-
   object ComplexZipper {
+
+    def apply[A[_ <: Nat]]() : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, _0] = 
+      SNil[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L]()
 
     def unapply[A[_ <: Nat], N <: Nat](suite : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]) 
         : Option[(Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, N], NestingZipper[A[N], N])] = {
@@ -155,12 +152,38 @@ object TypeDefs extends NatConstants {
   type Cardinal[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = CardinalNesting[A[K], K] })#L, S[N]]
 
+  type PolaritySuite[A[_ <: Nat], N <: Nat] = 
+    Suite[({ type L[K <: Nat] = (A[K], A[K]) })#L, S[N]]
+
+  object PolaritySuite {
+
+    def apply[A[_ <: Nat]]() : Suite[({ type L[K <: Nat] = (A[K], A[K]) })#L, _0] = 
+      SNil[({ type L[K <: Nat] = (A[K], A[K]) })#L]()
+
+    def unapply[A[_ <: Nat], N <: Nat](suite : PolaritySuite[A, N])
+        : Option[(Suite[({ type L[K <: Nat] = (A[K], A[K]) })#L, N], (A[N], A[N]))] = {
+      type APair[K <: Nat] = (A[K], A[K])
+      Some((Suite.tail[APair, N](suite), Suite.head[APair, N](suite)))
+    }
+
+    def head[A[_ <: Nat], N <: Nat](suite: PolaritySuite[A, N]) : (A[N], A[N]) = 
+      Suite.head[({ type L[K <: Nat] = (A[K], A[K]) })#L, N](suite)
+
+  }
+
   //============================================================================================
   // CARDINAL ADDRESSES AND DERIVATIVES
   //
 
   type CardinalAddress[N <: Nat] = 
     Suite[Address, S[N]]
+
+  object CardinalAddress {
+
+    def apply() : CardinalAddress[_0] = 
+      SNil[Address]() >> (())
+
+  }
 
   trait CardinalDerivRec extends NatConsRec[Any] {
     type OnZero[+A] = Unit

@@ -10,26 +10,34 @@ package opetopic.syntax
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Id._
 import scalaz.Traverse
 import scalaz.Applicative
 
 import opetopic._
+import TypeDefs._
+
 import syntax.tree._
 
 final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
 
   val T = Traverse[({ type L[+A] = Tree[A, N] })#L]
 
+  def mapWithAddress[B](f : (A, Address[N]) => B) : Tree[B, N] =
+    Tree.mapWithAddress(tr)(f)
+
   def nodes : List[A] = T.toList(tr)
   def nodeCount : Int = T.count(tr)
   def zipWithIndex : (Int, Tree[(A, Int), N]) =
     T.mapAccumL(tr, 0)((i : Int, a : A) => (i + 1, (a, i)))
 
-  //   def foreach(op : A => Unit) : Unit =
-  //     Tree.foreach(tr)(op)
+  def foreach(op : A => Unit) : Unit =
+    Tree.foreach(tr)(op)
 
-  //   def mapWithAddress[B](f : (A, Address[N]) => B) : Tree[N, B] =
-  //     Tree.mapWithAddress(tr)(f)
+  def mapWith[M[+_], B, C](trB : Tree[B, N])(f: (A, B) => C)(implicit sm: ShapeMonad[M]) : M[Tree[C, N]] = 
+    Tree.matchTraverse[M, A, B, C, N](tr, trB)({
+      case (a, b) => sm.pure(f(a, b))
+    })
 
   //   def seekTo(addr : Address[N]) : Option[Zipper[N, A]] =
   //     (new NatCaseSplit {

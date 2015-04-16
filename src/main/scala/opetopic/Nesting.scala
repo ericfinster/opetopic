@@ -61,6 +61,11 @@ trait NestingFunctions {
 
   }
 
+  def traverseWithAddress[T[_], A, B, N <: Nat](nst : Nesting[A, N])(
+    f : (A, Address[S[N]]) => T[B]
+  )(implicit apT : Applicative[T]) : T[Nesting[B, N]] =
+    traverseWithAddress(nst, Nil)(f)
+
   //============================================================================================
   // MATCH TRAVERSE
   //
@@ -271,19 +276,19 @@ trait NestingFunctions {
 
   }
 
-//   //============================================================================================
-//   // FOREACH
-//   //
+  //============================================================================================
+  // FOREACH
+  //
 
-//   def foreach[N <: Nat, A](nst : Nesting[N, A])(op : A => Unit) : Unit = 
-//     nst match {
-//       case Obj(a) => op(a)
-//       case Dot(a, _) => op(a)
-//       case Box(a, cn) => {
-//         for { n <- cn } { foreach(n)(op) }
-//         op(a)
-//       }
-//     }
+  def foreach[A, N <: Nat](nst: Nesting[A, N])(op: A => Unit) : Unit = 
+    nst match {
+      case Obj(a) => op(a)
+      case Dot(a, _) => op(a)
+      case Box(a, cn) => {
+        Tree.foreach(cn)(foreach(_)(op))
+        op(a)
+      }
+    }
 
 //   //============================================================================================
 //   // EXTEND NESTING

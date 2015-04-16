@@ -11,12 +11,40 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import opetopic._
+
 import TypeDefs._
+import Complex._
 
 final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
 
-  def headSpine[M[+_]](implicit sm: ShapeMonad[M]) : M[Tree[A[N], N]] = ???
-    // focusSpine(complexToZipper(cmplx))
+  import Suite._
+
+  type INst[K <: Nat] = Nesting[A[K], K]
+
+  def head : Nesting[A[N], N] =
+    Suite.head[INst, N](cmplx)
+
+  def headSpine[M[+_]](implicit sm: ShapeMonad[M]) : M[Tree[A[N], N]] = 
+    focusSpine(complexToZipper(cmplx))
+
+  def foreach(op: IndexedOp[A]) : Unit = {
+    Suite.foreach[INst, S[N]](cmplx)(new IndexedOp[INst] {
+      def apply[P <: Nat](nst: Nesting[A[P], P]) : Unit = {
+        Nesting.foreach(nst)(op(_))
+      }
+    })
+  }
+
+  def foreach(op: A[_] => Unit) : Unit = 
+    foreach(new IndexedOp[A] {
+      def apply[N <: Nat](an : A[N]) : Unit = 
+        op(an)
+    })
+
+  def sourceAt[M[+_]](addr: Address[S[N]])(implicit sm: ShapeMonad[M]) : M[Complex[A, N]] = {
+    val srcRoutines = new Complex.SourceRoutines() { }
+    srcRoutines.sourceAt(cmplx, addr)
+  }
 
 }
 

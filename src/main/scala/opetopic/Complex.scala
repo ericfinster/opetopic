@@ -149,7 +149,7 @@ trait ComplexFunctions {
         case (ComplexZipper(_, nst), _) => 
           for {
             z0 <- Nesting.visitNesting(__0)(nst, ())
-          } yield |::| >> z0
+          } yield ComplexZipper[A]() >> z0
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
@@ -225,7 +225,7 @@ trait ComplexFunctions {
         type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
         def caseZero : Out[_0] = { z =>
-          sm.pure(|::| >> (focusOf(z), Nil))
+          sm.pure(ComplexZipper[A]() >> (focusOf(z), Nil))
         }
 
         def caseSucc[P <: Nat](p: P) : Out[S[P]] = { z =>
@@ -311,14 +311,14 @@ trait ComplexFunctions {
 
 object Complex extends ComplexFunctions {
 
+  def apply[A[_ <: Nat]]() : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, _0] = 
+    SNil[({ type L[K <: Nat] = Nesting[A[K], K] })#L]()
+
   def unapply[A[_ <: Nat], N <: Nat](suite : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, S[N]])
       : Option[(Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, N], Nesting[A[N], N])] = {
     type IdxdNesting[K <: Nat] = Nesting[A[K], K]
     Some((Suite.tail[IdxdNesting, N](suite), Suite.head[IdxdNesting, N](suite)))
   }
-
-  def apply[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, _0] = 
-    SNil[({ type L[K <: Nat] = Nesting[A[K], K] })#L]()
 
 }
 

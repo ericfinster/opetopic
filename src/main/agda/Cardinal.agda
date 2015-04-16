@@ -147,6 +147,11 @@ module Cardinal where
     where shell : Tree (Tree (Nesting (Polarity (A (suc n))) (suc n)) (suc n)) n
           shell = toShell {n = n} (mapCardinalTree {n = suc n} hd (λ nst → mapNesting nst neutral))
 
+  completeToComplex : {A : ℕ → Set} → {n : ℕ} → Cardinal A n → Suite (λ k → (A k × A k)) (suc n) → Complex A n
+  completeToComplex {n = zero} (∥ ▶ hd) (∥ ▶ (_ , a₊)) = ∥ ▶ (box a₊ hd)
+  completeToComplex {n = suc n} (tl ▶ hd) (ps ▶ (a₋ , a₊)) = 
+    completeToComplex tl ps ▶ box a₊ (node (dot a₋) (toShell {n = n} hd))
+
   data CardinalDimFlag : ℕ → ℕ → Set where
     dimEq : {k : ℕ} → CardinalDimFlag k k 
     dimSucc : {k : ℕ} → CardinalDimFlag (suc k) k

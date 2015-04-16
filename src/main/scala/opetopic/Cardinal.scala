@@ -10,6 +10,7 @@ package opetopic
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Id._
 import scalaz.Leibniz
 import scalaz.Leibniz._
 import scalaz.Applicative
@@ -132,6 +133,9 @@ trait CardinalFunctions {
 
     })(n)(ct)
 
+  def mapCardinalTree[A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: A => B) : CardinalTree[B, N] = 
+    traverseCardinalTree[Id, A, B, N](n)(ct)(f)
+
   def traverseCardinalTreeWithAddr[G[_], A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: (A, CardinalAddress[N]) => G[B])(
     implicit apG: Applicative[G]
   ) : G[CardinalTree[B, N]] = 
@@ -152,6 +156,9 @@ trait CardinalFunctions {
       }
 
     })(n)(ct, f)
+
+  def mapCardinalTreeWithAddr[A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: (A, CardinalAddress[N]) => B) : CardinalTree[B, N] = 
+    traverseCardinalTreeWithAddr[Id, A, B, N](n)(ct)(f)
 
   //============================================================================================
   // SEQ LEAF
@@ -199,57 +206,35 @@ trait CardinalFunctions {
   case class Negative[A]() extends Polarization[A] { override def toString = "-" }
   case class Neutral[A](a : A) extends Polarity[A] { override def toString = a.toString }
 
-  trait CardinalCellGenerator[M[+_], A[_ <: Nat], B[_ <: Nat]] {
+  trait CardinalCellGenerator[D <: Nat, A[_ <: Nat], B[_ <: Nat]] {
 
-    def positive[N <: Nat](n: N) : M[B[N]]
-    def negative[N <: Nat](n: N) : M[B[N]]
+    def positive[N <: Nat](n: N)(diff: Lte.Diff[N, D]) : B[N]
+    def negative[N <: Nat](n: N)(diff: Lte.Diff[N, D]) : B[N]
 
-    def neutral[N <: Nat](n: N)(a: A[N]) : M[B[N]]
+    def neutral[N <: Nat](n: N)(a: A[N])(diff: Lte.Diff[N, D]) : B[N]
 
   }
 
-  // def toComplex[A[_ <: Nat], B[_ <: Nat], N <: Nat](c: Cardinal[A, N])(
-  //   implicit gen: CardinalCellGenerator[A, B], types: CardinalIndexing[A]
-  // ) : Complex[B, N] = 
-  //   (new NatCaseSplit0 {
+  def completeToComplex[A[_ <: Nat], B[K <: Nat] <: A[K], C[K <: Nat] <: A[K], N <: Nat](n: N)(
+    c: Cardinal[B, N], p: PolaritySuite[C, N]
+  ) : Complex[A, N] =
+    (new NatCaseSplit0 {
 
-  //     import types._
+      type Out[N <: Nat] = (Cardinal[B, N], PolaritySuite[C, N]) => Complex[A, N]
 
-  //     type Out[N <: Nat] = Cardinal[A, N] => Complex[B, N]
+      def caseZero : Out[_0] = {
+        case (Cardinal(_, hd), PolaritySuite(_, (_, pa))) => {
+          Complex[A]() >> Box(pa, hd)
+        }
+      }
 
-  //     def caseZero : Out[_0] = {
-  //       case CardinalMatch(_, Pt(nst)) => {
+      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
+        case (Cardinal(tl, hd), PolaritySuite(ps, (na, pa))) => {
+          completeToComplex[A, B, C, P](p)(tl, ps) >> Box(pa, Node(Dot(na, S(p)), toShell(p)(hd)))
+        }
+      }
 
-  //         val test = |:|[B] >> Box(gen.positive(Z), Pt(???))
-
-  //         ???
-  //       }
-  //     }
-
-  //     def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-  //       case CardinalMatch(tl, hd) => ???
-  //     }
-
-  //   })(c.length.pred)(c)
-
-
-//   def toComplex[F[_], N <: Nat, A](c : Cardinal[N, A])(gen : CardinalCellGenerator[F, A]) : Complex[N, F[A]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = Cardinal[N, A] => Complex[N, F[A]]
-
-//       def caseZero : Out[_0] = {
-//         case (_ >>> Pt(nst)) => CNil() >>> Box(gen.positive(Z), Pt(nst map (gen.neutral(_))))
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (tl >>> hd) => {
-//           val shell = toShell(p)(mapCardinalNesting(S(p))(hd)(gen.neutral(_)))
-//           toComplex(tl)(gen) >>> Box(gen.positive(S(p)), Node(Dot(gen.negative(S(p)), S(p)), shell))
-//         }
-//       }
-
-//     })(c.dim)(c)
+    })(n)(c, p)
 
   //============================================================================================
   // POKE
@@ -704,7 +689,7 @@ trait CardinalFunctions {
 
 object Cardinal extends CardinalFunctions {
 
-  def apply[A[_ <: Nat]] : Suite[({ type L[K <: Nat] = CardinalNesting[A[K], K] })#L, _0] = 
+  def apply[A[_ <: Nat]]() : Suite[({ type L[K <: Nat] = CardinalNesting[A[K], K] })#L, _0] = 
     SNil[({ type L[K <: Nat] = CardinalNesting[A[K], K] })#L]()
 
   def unapply[A[_ <: Nat], N <: Nat](suite : Suite[({ type L[K <: Nat] = CardinalNesting[A[K], K] })#L, S[N]])

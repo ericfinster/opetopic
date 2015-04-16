@@ -15,17 +15,17 @@ import scalaz.syntax.monad._
 import TypeDefs._
 import Cardinal._
 
+import syntax.tree._
+import syntax.complex._
+import syntax.nesting._
+import syntax.cardinal._
+
 abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { thisEditor : Renderer[M, U] => 
 
   type LabelType[N <: Nat] <: Polarity[Option[A[N]]]
   type MarkerType[N <: Nat] <: CardinalMarker[N]
 
-  type PolarizedPair[N <: Nat] = 
-    (PolarizedMarker[N], PolarizedMarker[N])
-
   var editorState : EditorState
-
-  type EditorStateAux[N <: Nat] = EditorState { type Dim = N }
 
   trait EditorState { thisState => 
 
@@ -34,52 +34,137 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
     val dim : Dim
 
     val cardinal : Cardinal[NeutralMarker, Dim]
+    val polarizedMarkers : PolaritySuite[PolarizedMarker, Dim]
+
     val canvases : List[CardinalCanvas]
-    val polarizedMarkers : Suite[PolarizedPair, Dim]
+    val nextCanvas : CardinalCanvas
 
-    implicit object MarkerGenerator extends CardinalCellGenerator[M, NeutralMarker, CardinalMarker] {
-
-      def positive[N <: Nat](n: N) : M[CardinalMarker[N]] = 
-        for {
-          ev <- Lte.getLte(n, dim)
-        } yield ???
-
-      def negative[N <: Nat](n: N) : M[CardinalMarker[N]] = ???
-
-      def neutral[N <: Nat](n: N)(m : NeutralMarker[N]) : M[CardinalMarker[N]] =
-        isShapeMonad.pure(m)
-
-    }
-
-    // Okay, things are starting to look kind of right.  The point is going to be that this
-    // guy controls the linkages between the dimensions as he is build and that we just instantiate
-    // new versions by calling with the next entry in the cardinal, spawning the generation routine.
-
-    // Anyway, this will act as a kind of control object, and is probably what you have in 
-    // mind for the stateful cardinal editor monad that you've had in mind.
-
-    // Oh shit!  And what's pretty cool about this is that you'll get an automatic undo system
-    // by just off the stack of editor states ....
-
-    def extendWith(cn: CardinalNesting[A[S[Dim]], S[Dim]]) : EditorStateAux[S[Dim]] = {
-
-      // Generate some polarized markers and whatnot and attach them to the state ....
-
-      // new EditorState {
-
-      //   type Dim = S[thisState.Dim]
-
-      //   val cardinal = thisState.cardinal >> cn
-
-      // }
-      ???
-    }
+    def complex : Complex[CardinalMarker, Dim] = 
+      cardinal.toComplexWith(polarizedMarkers)
 
   }
 
   object EditorState {
 
-    def apply(nst : Nesting[A[_0], _0]) : EditorStateAux[_0] = ???
+    type EditorStateAux[N <: Nat] = EditorState { type Dim = N }
+
+    def apply(nst : Nesting[A[_0], _0]) : EditorStateAux[_0] = {
+
+      val objCanvas = createCanvas
+      val edgeCanvas = createCanvas
+
+      val posMarker : PolarizedMarker[_0] = 
+        createPositiveMarker[_0](objCanvas, edgeCanvas)
+
+      def genObjData(nst: Nesting[A[_0], _0], base: Address[_1]) : Nesting[NeutralMarker[_0], _0] = 
+        nst match {
+          case Obj(a) => 
+            Obj(createNeutralMarker(a, CardinalAddress() >> base, true, objCanvas, edgeCanvas))
+          case Box(a, Pt(n)) =>
+            Box(createNeutralMarker(a, CardinalAddress() >> base, false, objCanvas, edgeCanvas), 
+              Pt(genObjData(n, () :: base)))
+        }
+
+      new EditorState {
+
+        type Dim = _0
+
+        val dim : Dim = Z
+
+        val cardinal : Cardinal[NeutralMarker, Dim] = 
+          Cardinal[NeutralMarker]() >> Pt(genObjData(nst, Nil))
+
+        val polarizedMarkers : PolaritySuite[PolarizedMarker, Dim] = 
+          PolaritySuite[PolarizedMarker]() >> (posMarker, posMarker)
+
+        val canvases : List[CardinalCanvas] = List(objCanvas)
+        val nextCanvas : CardinalCanvas = edgeCanvas
+
+      }
+
+    }
+
+    def apply[N <: Nat](es: EditorStateAux[N], cn: CardinalNesting[A[S[N]], S[N]]) : EditorStateAux[S[N]] = {
+
+      val nextDim = S(es.dim)
+
+      val objCanvas = es.nextCanvas
+      val edgeCanvas = createCanvas
+
+      val posMarker : PolarizedMarker[S[N]] = createPositiveMarker[S[N]](objCanvas, edgeCanvas)
+      val negMarker : PolarizedMarker[S[N]] = createNegativeMarker[S[N]](objCanvas, edgeCanvas)
+
+      // I think this will be taken care of below ...
+      // negMarker.outgoingEdgeMarker = 
+      //   Some(PolaritySuite.head(es.polarizedMarkers)._2)
+
+      def genNstData(nst: Nesting[A[S[N]], S[N]], pref: CardinalAddress[S[N]], base: Address[S[S[N]]]) : Nesting[NeutralMarker[S[N]], S[N]] = 
+        nst match {
+          case Dot(a, d) => 
+            Dot(createNeutralMarker(a, pref >> base, true, objCanvas, edgeCanvas), d)
+          case Box(a, cn) => 
+            Box(createNeutralMarker(a, pref >> base, false, objCanvas, edgeCanvas), 
+              cn mapWithAddress {
+                case (nst, dir) => genNstData(nst, pref, dir :: base)
+              }
+            )
+        }
+
+      val neutralNesting = mapCardinalTreeWithAddr(nextDim)(cn)({
+        case (nst, pref) => genNstData(nst, pref, Nil)
+      })
+
+      val neutralCanopy = Node(Dot(negMarker, nextDim), toShell(es.dim)(neutralNesting))
+      val neutralBox = Box(posMarker, neutralCanopy)
+
+      for {
+        dots <- Nesting.spineFromCanopy(neutralCanopy)
+        edges = es.complex.head.toTree
+        _ <- dots.mapWith(edges)({
+          case (dotMarker, edgeMarker) => {
+            dotMarker.outgoingEdgeMarker = Some(edgeMarker)
+          }
+        })
+      } yield ()
+
+      val newState = 
+        new EditorState {
+
+          type Dim = S[es.Dim]
+
+          val dim = nextDim
+
+          val cardinal : Cardinal[NeutralMarker, Dim] =
+            es.cardinal >> neutralNesting
+
+          val polarizedMarkers : PolaritySuite[PolarizedMarker, Dim] =
+            es.polarizedMarkers >> (negMarker, posMarker)
+
+          val canvases : List[CardinalCanvas] =
+            es.canvases :+ objCanvas
+
+          val nextCanvas : CardinalCanvas =
+            edgeCanvas
+
+        }
+
+      // So here we simply perform the inductive step of comultiplication
+      // in the cardinal ....
+
+      val newComplex : Complex[CardinalMarker, S[es.Dim]] = newState.complex
+
+      neutralBox traverseWithAddress {
+        case (mk, addr) => 
+          for {
+            fc <- newComplex sourceAt addr
+          } yield {
+            mk.faceComplex = Some(fc)
+            ()
+          }
+      }
+
+      newState
+    }
 
   }
 
@@ -89,11 +174,17 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
 
   abstract class CardinalCanvas extends ViewerCanvas
 
+  def createCanvas : CardinalCanvas
+
   //============================================================================================
   // CARDINAL MARKERS
   //
 
-  abstract class CardinalMarker[N <: Nat] extends ViewerMarker[N]
+  abstract class CardinalMarker[N <: Nat] extends ViewerMarker[N] {
+
+    var faceComplex : Option[Complex[CardinalMarker, N]]
+
+  }
 
   abstract class NeutralMarker[N <: Nat] extends CardinalMarker[N] {
 
@@ -104,18 +195,31 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
 
   abstract class PolarizedMarker[N <: Nat] extends CardinalMarker[N]
 
-  def createNeutralMarker[N <: Nat](a: A[N], isExternal: Boolean) : NeutralMarker[N]
-  def createPositiveMarker[N <: Nat] : PolarizedMarker[N]
-  def createNegativeMarker[N <: Nat] : PolarizedMarker[N]
+  def createNeutralMarker[N <: Nat](
+    a: A[N], addr: CardinalAddress[S[N]], 
+    isExternal: Boolean,
+    objCanvas: CardinalCanvas, 
+    edgeCanvas: CardinalCanvas
+  ) : NeutralMarker[N]
+
+  def createPositiveMarker[N <: Nat](
+    objCanvas: CardinalCanvas, 
+    edgeCanvas: CardinalCanvas
+  ) : PolarizedMarker[N]
+
+  def createNegativeMarker[N <: Nat](
+    objCanvas: CardinalCanvas, 
+    edgeCanvas: CardinalCanvas
+  ) : PolarizedMarker[N]
 
   //============================================================================================
   // INITIALIZATION
   //
 
-  def initializeEditor[N <: Nat](cardinal : Cardinal[A, N]) : EditorStateAux[N] = 
+  def initializeEditor[N <: Nat](cardinal : Cardinal[A, N]) : EditorState.EditorStateAux[N] = 
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = Cardinal[A, N] => EditorStateAux[N]
+      type Out[N <: Nat] = Cardinal[A, N] => EditorState.EditorStateAux[N]
 
       def caseZero : Out[_0] = {
         case Cardinal(_, Pt(nst)) => 
@@ -124,7 +228,7 @@ abstract class CardinalEditor[M[+_], A[_ <: Nat], U] extends Viewer[M, U] { this
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
         case Cardinal(tl, hd) => 
-          initializeEditor(tl).extendWith(hd)
+          EditorState(initializeEditor(tl), hd)
       }
 
     })(cardinal.length.pred)(cardinal)

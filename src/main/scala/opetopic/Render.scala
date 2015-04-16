@@ -172,7 +172,7 @@ trait Renderer[M[+_], U]  {
     var edgeEndX : U = zero
     var edgeEndY : U = zero
 
-    def outgoingEdgeMarker : M[RenderMarker]
+    var outgoingEdgeMarker : Option[RenderMarker]
 
     def clear : Unit = {
       rootX = zero
@@ -301,7 +301,9 @@ trait Renderer[M[+_], U]  {
     nst match {
       case Dot(rm, d) => 
         for {
-          outgoingEdge <- rm.outgoingEdgeMarker
+          outgoingEdge <- fromOpt(
+            rm.outgoingEdgeMarker
+          )
         } yield {
 
           rm.clear
