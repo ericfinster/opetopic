@@ -16,7 +16,7 @@ import TypeDefs._
 import syntax.tree._
 import syntax.complex._
 
-abstract class Viewer[U] { thisViewer : Renderer[U] =>
+trait Viewer[U] extends Renderer[U] { 
 
   type BoxType <: ViewerBox
   type EdgeType <: ViewerEdge
@@ -25,11 +25,12 @@ abstract class Viewer[U] { thisViewer : Renderer[U] =>
   type LabelType[N <: Nat] 
   type MarkerType[N <: Nat] <: ViewerMarker[N]
 
+
   //============================================================================================
   // VIEWER CLASSES
   //
 
-  abstract class ViewerMarker[N <: Nat] extends RenderMarker {
+  trait ViewerMarker[N <: Nat] extends RenderMarker {
 
     val label : LabelType[N]
 
@@ -39,25 +40,30 @@ abstract class Viewer[U] { thisViewer : Renderer[U] =>
     def box : BoxType 
     def edge : EdgeType
 
+    var faceComplex : Option[Complex[MarkerType, N]]
+
   }
 
-  abstract class ViewerBox {
+  trait ViewerBox {
 
     type Dim <: Nat
 
-    def marker : ViewerMarker[Dim]
+    def marker : MarkerType[Dim]
 
   }
 
-  abstract class ViewerEdge {
+  trait ViewerEdge {
 
     type Dim <: Nat
 
-    def marker : ViewerMarker[Dim]
+    def marker : MarkerType[Dim]
 
   }
 
-  abstract class ViewerCanvas
+  trait ViewerCanvas
+
+  def createCanvas : CanvasType
+  def displayCanvas(canvas : CanvasType) : Unit
 
   //============================================================================================
   // RENDER COMPLEX
@@ -70,6 +76,7 @@ abstract class Viewer[U] { thisViewer : Renderer[U] =>
 
       def caseZero : Out[_0] = {
         case Complex(_, hd) => {
+          println("========= Dimension 0 =========")
           renderObjectNesting(hd)
         }
       }
@@ -78,6 +85,8 @@ abstract class Viewer[U] { thisViewer : Renderer[U] =>
         case Complex(tl, hd) => {
 
           renderComplex(tl)
+
+          println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
 
           for {
             spine <- tl.headSpine
