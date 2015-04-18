@@ -8,6 +8,7 @@
 package opetopic
 
 import scala.language.higherKinds
+import scala.collection.mutable.Seq
 
 import scalaz.syntax.monad._
 
@@ -15,16 +16,17 @@ import TypeDefs._
 
 import syntax.tree._
 import syntax.complex._
+import syntax.nesting._
 
-trait Viewer[U] extends Renderer[U] { 
+trait Viewer[A[_ <: Nat], U] extends Renderer[U] { 
+
+  type MarkerType[N <: Nat] <: ViewerMarker[N]
 
   type BoxType <: ViewerBox
   type EdgeType <: ViewerEdge
   type CanvasType <: ViewerCanvas
 
-  type LabelType[N <: Nat] 
-  type MarkerType[N <: Nat] <: ViewerMarker[N]
-
+  def complex : FiniteComplex[MarkerType]
 
   //============================================================================================
   // VIEWER CLASSES
@@ -32,7 +34,9 @@ trait Viewer[U] extends Renderer[U] {
 
   trait ViewerMarker[N <: Nat] extends RenderMarker {
 
-    val label : LabelType[N]
+    val dim : N
+
+    val label : A[N]
 
     val objectCanvas : CanvasType
     val edgeCanvas : CanvasType
@@ -40,30 +44,101 @@ trait Viewer[U] extends Renderer[U] {
     def box : BoxType 
     def edge : EdgeType
 
-    var faceComplex : Option[Complex[MarkerType, N]]
+    var nestingAddress : Address[S[N]] = Nil
+    var faceComplex : Option[Complex[MarkerType, N]] = None
+
+    def isSelectable : Boolean
+
+    var isSelected : Boolean
+    var isSelectionFace : Boolean
+
+    def select : Unit = 
+      if (isSelectable) {
+        for {
+          fc <- faceComplex
+          mk <- fc
+        } {
+          mk.isSelectionFace = true
+          mk.box.doSelectedStyle
+        }
+        isSelected = true
+      }
+
+    def deselect : Unit = 
+      if (isSelectable) {
+        for {
+          fc <- faceComplex
+          mk <- fc
+        } {
+          mk.isSelectionFace = false
+          mk.box.doUnselectedStyle
+        }
+        isSelected = false
+      }
+
+    def hover : Unit = 
+      for {
+        fc <- faceComplex
+        mk <- fc
+      } {
+        if (! mk.isSelectionFace)
+          mk.box.doHoverStyle
+      }
+
+    def unhover : Unit = 
+      for {
+        fc <- faceComplex
+        mk <- fc
+      } {
+        if (! mk.isSelectionFace)
+          mk.box.doUnhoverStyle
+      }
 
   }
 
-  trait ViewerBox {
+  trait ViewerElement {
 
     type Dim <: Nat
 
+    def render : Unit
     def marker : MarkerType[Dim]
+
+    def doHoverStyle : Unit
+    def doUnhoverStyle : Unit
+    def doSelectedStyle : Unit
+    def doUnselectedStyle : Unit
 
   }
 
-  trait ViewerEdge {
-
-    type Dim <: Nat
-
-    def marker : MarkerType[Dim]
-
-  }
-
+  trait ViewerBox extends ViewerElement
+  trait ViewerEdge extends ViewerElement
   trait ViewerCanvas
 
   def createCanvas : CanvasType
   def displayCanvas(canvas : CanvasType) : Unit
+
+  //============================================================================================
+  // RENDER VIEWER
+  //
+
+  def render : Unit = {
+    val cmplx = complex
+
+    println("About to render complex: " ++ cmplx.value.toString)
+
+    renderComplex[cmplx.N](cmplx.value)
+
+    println("Finished completx render ...")
+
+    for {
+      mk <- cmplx
+    } {
+      println("Passing marker " ++ mk.toString)
+      mk.box.render
+      mk.edge.render
+    }
+
+  }
 
   //============================================================================================
   // RENDER COMPLEX
@@ -91,6 +166,8 @@ trait Viewer[U] extends Renderer[U] {
           for {
             spine <- tl.headSpine
 
+            _ = println("Got spine in this dimension")
+
             leaves = spine map (rm => 
               new LayoutMarker {
 
@@ -109,10 +186,18 @@ trait Viewer[U] extends Renderer[U] {
 
           } yield {
 
+            println("This dimension finished")
+
             import isNumeric._
 
-            // This should probably be a foreach ....
-            spine map (rm => { rm.edgeStartY = baseLayout.y - (fromInt(2) * externalPadding) })
+            // Set the positions of incoming edges
+
+            for { rm <- spine } {
+              rm.edgeStartY = baseLayout.y - (fromInt(2) * externalPadding)
+            }
+
+            // Set the position of the outgoing edge
+
             totalLayout.rootEdgeMarker.edgeEndY = baseLayout.rootY + (fromInt(2) * externalPadding)
 
           }
@@ -120,5 +205,100 @@ trait Viewer[U] extends Renderer[U] {
       }
 
     })(cmplx.length.pred)(cmplx)
+
+  //============================================================================================
+  // SELECTION ROTUINES
+  //
+
+  sealed trait Selection {
+    type Dim <: Nat
+    val dim : Dim
+    val root : MarkerType[Dim]
+    val companions : Seq[MarkerType[Dim]]
+  }
+
+  object Selection {
+
+    def apply[N <: Nat](mk: MarkerType[N]) : Selection = 
+      new Selection {
+        type Dim = N
+        val dim = mk.dim
+        val root = mk
+        val companions = Seq.empty[MarkerType[Dim]]
+      }
+
+  }
+
+  var selection : Option[Selection] = None
+
+  def deselectAll : Unit = {
+    for {
+      sel <- selection
+      _ = sel.root.deselect
+      marker <- sel.companions
+    } {
+      marker.deselect
+    }
+
+    selection = None
+  }
+
+  def selectAsRoot[N <: Nat](marker : MarkerType[N]) : Unit = {
+    deselectAll
+    marker.select
+    selection = Some(Selection(marker))
+  }
+
+  def select[N <: Nat](marker : MarkerType[N]) : Unit =
+    if (marker.isSelectable) {
+      selection match {
+        case None => selectAsRoot(marker)
+        case Some(sel) => {
+
+          import Nats._
+          import Lte._
+
+          matchNatPair(marker.dim, sel.dim) match {
+            case None => selectAsRoot(marker)
+            case Some(ev) => {
+
+              val curComplex = complex
+
+              for {
+                diff <- fromOpt(
+                  diffOpt(marker.dim, curComplex.n)
+                )
+                nst = curComplex.getNesting(diff)
+                zipper <- nst seekTo marker.nestingAddress
+              } yield {
+
+                import scalaz.-\/
+                import scalaz.\/-
+
+                import scala.collection.mutable.ListBuffer
+
+                val candidates : ListBuffer[MarkerType[N]] = 
+                  ListBuffer()
+
+                Nesting.predecessorWhich(zipper)(mk => { 
+                  candidates += mk
+                  mk.isSelected 
+                }) match {
+                  case -\/(_) => selectAsRoot(marker)
+                  case \/-((fcs, _)) => {
+                    for {
+                      mk <- candidates
+                    } {
+                      mk.select
+                      sel.companions :+ mk
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
 }

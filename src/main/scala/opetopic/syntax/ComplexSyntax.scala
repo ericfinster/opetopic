@@ -29,20 +29,25 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
 
   def foreach(op: IndexedOp[A]) : Unit = {
     Suite.foreach[INst, S[N]](cmplx)(new IndexedOp[INst] {
-      def apply[P <: Nat](nst: Nesting[A[P], P]) : Unit = {
-        Nesting.foreach(nst)(op(_))
+      def apply[P <: Nat](p: P)(nst: Nesting[A[P], P]) : Unit = {
+        Nesting.foreach(nst)(op(p)(_))
       }
     })
   }
 
   def foreach(op: A[_] => Unit) : Unit = 
     foreach(new IndexedOp[A] {
-      def apply[N <: Nat](an : A[N]) : Unit = 
-        op(an)
+      def apply[N <: Nat](n: N)(an : A[N]) : Unit = op(an)
     })
 
   def sourceAt(addr: Address[S[N]]) : ShapeM[Complex[A, N]] =
     Complex.sourceAt(cmplx, addr)
+
+  def getNesting[K <: Nat](diff : Lte.Diff[K, N]) : Nesting[A[K], K] = 
+    Suite.getAt[INst, K, N, diff.D](cmplx)(diff.lte)
+
+  def comultiply : ShapeM[DblComplex[A, N]] = 
+    Complex.comultiply(cmplx)
 
 }
 
@@ -51,11 +56,20 @@ trait ToComplexOps {
   implicit def complexToOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) : ComplexOps[A, N] = 
     new ComplexOps(cmplx)
 
-  // object ComplexTypes {
+  implicit def finiteComplexToOps[A[_ <: Nat]](fc: FiniteComplex[A]) : ComplexOps[A, fc.N] = 
+    new ComplexOps[A, fc.N](fc.value)
 
-  //   def apply[A[_ <: Nat]] : ComplexTypes[A] = 
-  //     new ComplexTypes[A]
+  implicit def doubleComplexToOps[A[_ <: Nat], N <: Nat](dc: DblComplex[A, N]) 
+      : ComplexOps[({ type L[K <: Nat] = Complex[A, K] })#L, N] =
+    new ComplexOps[({ type L[K <: Nat] = Complex[A, K] })#L, N](dc)
 
-  // }
+  implicit def complexToFiniteComplex[A[_ <: Nat], D <: Nat](cmplx: Complex[A, D]) : FiniteComplex[A] = 
+    new Sigma[({ type L[K <: Nat] = Complex[A, K] })#L] {
+
+      type N = D
+      val n = cmplx.length.pred
+      val value = cmplx
+
+    }
 
 }

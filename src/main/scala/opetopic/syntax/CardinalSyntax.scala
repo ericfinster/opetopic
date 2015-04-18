@@ -18,6 +18,11 @@ import TypeDefs._
 
 final class CardinalOps[A[_ <: Nat], N <: Nat](cardinal : Cardinal[A, N]) {
 
+  type INst[K <: Nat] = CardinalNesting[A[K], K]
+
+  def head : CardinalNesting[A[N], N] = 
+    Suite.head[INst, N](cardinal)
+
   def toComplexWith[B[K <: Nat] >: A[K], C[K <: Nat] <: B[K]](p: PolaritySuite[C, N]) : Complex[B, N] = 
     Cardinal.completeToComplex(cardinal.length.pred)(cardinal, p)
   

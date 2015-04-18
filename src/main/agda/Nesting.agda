@@ -66,21 +66,6 @@ module Nesting where
     spineFromDeriv (dot a) ∂ = let open MonadError ⦃ ... ⦄ in η (∂ ← a)
     spineFromDeriv (box a cn) ∂ = spineFromCanopy cn
 
-  -- -- extrude : {n : ℕ} → {A : Set} → Tree n (Nesting n A) → (A → Bool) → A → Maybe (Tree n (Nesting n A))
-  -- -- extrude tr p dflt = 
-  -- --   dejoin tr (λ nst → p (baseValue nst)) 
-  -- --   >>= (λ tr₀ → just (mapTree (λ { (inj₁ nst) → nst 
-  -- --                                 ; (inj₂ tr₁) → int dflt tr₁ }) tr₀))
-
-  -- -- Right-o.  That looks pretty good actually.  Now, what's next?
-
-  -- extrudeNesting : {n : ℕ} → {A B : Set} → A → Address n → Tree n (Nesting n A) → Tree n B → Maybe (Tree n (Nesting n A))
-  -- extrudeNesting {zero} a addr tr msk = just (pt (int a tr))
-  -- extrudeNesting {suc n} a addr tr msk = 
-  --   seekTo addr tr 
-  --   >>= (λ { (fcs , cntxt) → replace fcs msk (λ canopy → int a canopy) 
-  --   >>= (λ newFcs → just (cntxt ↓ newFcs)) })
-
   ContextNst : Set → ℕ → Set
   ContextNst A n = List (A × Derivative (Nesting A n) n)
 

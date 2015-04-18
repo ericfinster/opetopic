@@ -31,6 +31,12 @@ final class NestingOps[A, N <: Nat](nst: Nesting[A, N]) {
   def mapWithAddress[B](f: (A, Address[S[N]]) => B) : Nesting[B, N] =
     Nesting.traverseWithAddress[Id, A, B, N](nst)(f)
 
+  def seekTo(addr: Address[S[N]]) : ShapeM[NestingZipper[A, N]] = 
+    Nesting.seekNesting(nst.dim)((nst, Nil), addr)
+
+  def baseValue : A = 
+    Nesting.baseValue(nst)
+
 }
 
 trait ToNestingOps {

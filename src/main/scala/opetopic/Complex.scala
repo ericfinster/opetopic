@@ -313,6 +313,42 @@ trait ComplexFunctions {
 
   }
 
+  //============================================================================================
+  // COMULTIPLY
+  //
+
+  def comultiply[A[_ <: Nat], N <: Nat](cmplx: Complex[A, N]) : ShapeM[DblComplex[A, N]] = 
+    (new NatCaseSplit0 {
+
+      type AComplex[K <: Nat] = Complex[A, K]
+
+      type Out[N <: Nat] = Complex[A, N] => ShapeM[DblComplex[A, N]]
+
+      def caseZero : Out[_0] = {
+        case cm @ Complex(_, hd) => {
+
+          val newNesting : Nesting[Complex[A, _0], _0] = 
+            Nesting.map(hd)({ 
+              case a => Complex() >> Obj(a)
+            })
+
+          Monad[ShapeM].pure(Complex[AComplex]() >> newNesting)
+
+        }
+      }
+
+      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
+        case cm @ Complex(tl, hd) => {
+          for {
+            newTail <- this(p)(tl)
+            newHead <- Nesting.traverseWithAddress(hd)({ 
+              case (_, addr) => sourceAt(cm, addr)
+            })
+          } yield newTail >> newHead
+        }
+      }
+
+    })(cmplx.length.pred)(cmplx)
 
 }
 
@@ -439,62 +475,4 @@ object Complex extends ComplexFunctions {
 
 
 // }
-
-// trait ComplexImplicits { self : ComplexFunctions => 
-
-//   implicit def complexIsTraverse[N <: Nat] : Traverse[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L] = 
-//     new Traverse[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L] {
-
-//       override def map[A, B](cmplx : Complex[N, A])(f : A => B) : Complex[N, B] = 
-//         mapComplex(cmplx)(f)
-
-//       override def traverseImpl[G[_], A, B](cmplx : Complex[N, A])(f : A => G[B])(implicit isA : Applicative[G]) : G[Complex[N, B]] = 
-//         traverseComplex(cmplx)(f)
-
-//     }
-
-//   import scalaz.syntax.FunctorOps
-//   import scalaz.syntax.functor._
-
-//   implicit def complexToFunctorOps[N <: Nat, A](cmplx : ConsSeq[Nesting, S[N], A]) : FunctorOps[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L, A] = 
-//     ToFunctorOps[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L, A](cmplx)
-
-//   import scalaz.syntax.TraverseOps
-//   import scalaz.syntax.traverse._
-
-//   implicit def complexToTraverseOps[N <: Nat, A](cmplx : ConsSeq[Nesting, S[N], A]) : TraverseOps[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L, A] = 
-//     ToTraverseOps[({ type L[+A] = ConsSeq[Nesting, S[N], A] })#L, A](cmplx)
-
-
-//   implicit def complexToSigma[M <: Nat, A](cmplx : Complex[M, A]) : Sigma[Complex, A] =
-//     new Sigma[Complex, A] {
-//       type N = M
-//       val n = cmplx.dim
-//       val value = cmplx
-//     }
-
-//   implicit def complexFromSigma[A](cmplx : Sigma[Complex, A]) : Complex[cmplx.N, A] = 
-//     cmplx.value
-
-//   class ComplexOps[N <: Nat, A](cmplx : Complex[N, A]) {
-
-//     def dim : N = cmplx.length.pred
-
-//     def matchWith[B](cmplxB : Complex[N, B]) : Option[Complex[N, (A, B)]] = 
-//       zipComplex(cmplx, cmplxB)
-
-//     def foreach(op : A => Unit) : Unit = 
-//       Complex.foreach(cmplx)(op)
-
-//   }
-
-//   implicit def complexToComplexOps[N <: Nat, A](cmplx : Complex[N, A]) : ComplexOps[N, A] = 
-//     new ComplexOps(cmplx)
-
-//   implicit def complexSigmaToComplexOps[A](cmplx : Sigma[Complex, A]) : ComplexOps[cmplx.N, A] = 
-//     new ComplexOps(cmplx.value)
-
-// }
-
-
 

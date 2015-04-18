@@ -53,6 +53,10 @@ module Cardinal where
   CardinalAddress : ℕ → Set
   CardinalAddress n = Suite Address (suc n)
 
+  cardinalAddressComplete : {n : ℕ} → CardinalAddress n → Address (suc n)
+  cardinalAddressComplete {zero} (∥ ▶ tt) = tt ∷ []
+  cardinalAddressComplete {suc n} (tl ▶ hd) = cardinalAddressComplete tl ∷ hd ∷ [] 
+
   CardinalDerivative : Set → ℕ → Set
   CardinalDerivative A zero = ⊤
   CardinalDerivative A (suc n) = CardinalDerivative (Tree A (suc n)) n × Derivative A (suc n)
@@ -135,7 +139,7 @@ module Cardinal where
     neutral : A → Polarity A
 
   completeWith : {A : Set} → {n : ℕ} → CardinalTree A n → A → Tree A n
-  completeWith {n = zero} ct a = pt a
+  completeWith {n = zero} ct a = ct
   completeWith {n = suc n} ct a = node a (completeWith {n = n} ct leaf)
 
   toShell : {A : Set} → {n : ℕ} → CardinalTree A (suc n) → Tree (Tree A (suc n)) n

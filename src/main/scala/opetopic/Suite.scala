@@ -70,17 +70,20 @@ object Suite {
     head(drop(suite)(Lte.lteSucc(Lte.lteInvert(lte))))
 
   trait IndexedOp[A[_ <: Nat]] {
-    def apply[N <: Nat](an : A[N]) : Unit
+    def apply[N <: Nat](n: N)(an : A[N]) : Unit
   }
 
-  def foreach[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : Unit = 
+  def foreachWithCount[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : (Unit, N) = 
     suite match {
-      case SNil() => ()
+      case SNil() => ((), Z)
       case (tl >> hd) => {
-        foreach(tl)(op)
-        op(hd)
+        val (u, l) = foreachWithCount(tl)(op)
+        (op(l)(hd), S(l))
       }
     }
+
+  def foreach[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : Unit = 
+    foreachWithCount(suite)(op)._1
 
   trait SuiteFold[F[_ <: Nat], A] {
 
@@ -96,20 +99,25 @@ object Suite {
     }
 
   trait SuiteTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
-    def apply[N <: Nat](fn : F[N]) : T[G[N]]
+    def apply[N <: Nat](n: N)(fn : F[N]) : T[G[N]]
   }
+
+  def traverseWithCount[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: SuiteTraverse[T, F, G])(
+    implicit apT: Applicative[T]
+  ) : (T[Suite[G, L]], L) = 
+    seq match {
+      case SNil() => (apT.pure(SNil()), Z)
+      case tl >> hd => {
+        val (t, l) = traverseWithCount(tl)(trav)
+        (apT.ap2(t, trav(l)(hd))(apT.pure(
+          (newTl: Suite[G, Nat], newHd: G[Nat]) => newTl >> newHd
+        )), S(l))
+      }
+    }
 
   def traverse[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: SuiteTraverse[T, F, G])(
     implicit apT: Applicative[T]
-  ) : T[Suite[G, L]] = 
-    seq match {
-      case SNil() => apT.pure(SNil())
-      case tl >> hd => {
-        apT.ap2(traverse(tl)(trav), trav(hd))(apT.pure(
-          (newTl: Suite[G, Nat], newHd: G[Nat]) => newTl >> newHd
-        ))
-      }
-    }
+  ) : T[Suite[G, L]] = traverseWithCount[T, F, G, L](seq)(trav)._1
 
 }
 

@@ -11,7 +11,7 @@ import scala.language.higherKinds
 
 import scalaz.Monad
 
-class ShapeError(str: String) {
+case class ShapeError(str: String) {
 
   def this() = this("Unknown Shape Error")
 

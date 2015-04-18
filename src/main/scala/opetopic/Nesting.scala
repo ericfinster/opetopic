@@ -10,6 +10,7 @@ package opetopic
 import scala.language.higherKinds
 import scala.language.implicitConversions
 
+import scalaz.Id._
 import scalaz.Monad
 import scalaz.Applicative
 import scalaz.syntax.monad._
@@ -38,6 +39,9 @@ trait NestingFunctions {
     }
 
   }
+
+  def map[A, B, N <: Nat](nst: Nesting[A, N])(f: A => B) : Nesting[B, N] = 
+    traverse[Id, A, B, N](nst)(f)
 
   //============================================================================================
   // TRAVERSE WITH ADDRESS
@@ -195,21 +199,21 @@ trait NestingFunctions {
       type Out[N <: Nat] = (NestingZipper[A, S[N]], Address[N]) => ShapeM[NestingZipper[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case ((nst, Nil), addr) => fail(new ShapeError("Sibling error"))
-        case ((nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt), addr) => fail(new ShapeError("Sibiling error"))
+        case ((nst, Nil), addr) => fail(new ShapeError("First Sibling error"))
+        case ((nst, (a, (Pt(Leaf(d)), hcn)) :: cntxt), addr) => fail(new ShapeError("Second Sibling error"))
         case ((nst, (a, (Pt(Node(nfcs, sh)), hcn)) :: cntxt), addr) =>
           Monad[ShapeM].pure(nfcs, (a, (sh, (nst, ()) :: hcn)) :: cntxt)
       }
 
       def caseSucc[P <: Nat](p : P) : (NestingZipperDblSucc[A, P], Address[S[P]]) => ShapeM[NestingZipperDblSucc[A, P]] = {
-        case ((nst, Nil), addr) => fail(new ShapeError("Sibling Error"))
+        case ((nst, Nil), addr) => fail(new ShapeError("Third Sibling Error"))
         case ((nst, (a, (verts, hcn)) :: cntxt), addr) => 
           for {
             vzip <- Tree.seekTo(verts, addr)
             res <- (
               vzip._1 match {
-                case Leaf(_) => fail(new ShapeError("Sibling Error"))
-                case Node(Leaf(_), _) => fail(new ShapeError("Sibling Error"))
+                case Leaf(_) => fail(new ShapeError("Fourth Sibling Error"))
+                case Node(Leaf(_), _) => fail(new ShapeError("Fifth Sibling Error"))
                 case Node(Node(nfcs, vrem), hmask) => 
                   Monad[ShapeM].pure((nfcs, (a, (vrem, (nst, (hmask, vzip._2)) :: hcn)) :: cntxt))
               }
@@ -219,40 +223,43 @@ trait NestingFunctions {
 
     })(n)(z, addr)
 
-//   def predecessor[N <: Nat, A](nz : NestingZipper[N, A]) : Option[NestingZipper[N, A]] = 
-//     (new NatCaseSplit {
+  def predecessor[A, N <: Nat](nz: NestingZipper[A, N]) : ShapeM[NestingZipper[A, N]] = 
+    (new NatCaseSplit0 {
 
-//       type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
+      type Out[N <: Nat] = NestingZipper[A, N] => ShapeM[NestingZipper[A, N]]
 
-//       def caseZero : Out[_0] = 
-//         nz => None
+      def caseZero : Out[_0] = {
+        nz => fail(new ShapeError("No predecessor for object"))
+      }
 
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (fcs, Nil) => None
-//         case (fcs, (a, (verts, Nil)) :: cs) => None
-//         case (fcs, (a, (verts, (pred, deriv) :: vs)) :: cs) => {
-//           Some(pred, (a, (plug(p)(deriv, Node(fcs, verts)), vs)) :: cs)
-//         }
-//       }
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+        case (fcs, Nil) => fail(new ShapeError("No predecessor"))
+        case (fcs, (a, (verts, Nil)) :: cs) => fail(new ShapeError("No predecessor"))
+        case (fcs, (a, (verts, (pred, deriv) :: vs)) :: cs) => {
+          Monad[ShapeM].pure(pred, (a, (Zipper.plug(p)(deriv, Node(fcs, verts)), vs)) :: cs)
+        }
+      }
 
-//     })(nz._1.dim)(nz)
+    })(nz._1.dim)(nz)
 
-//   def predecessorWhich[N <: Nat, A](nz : NestingZipper[N, A])(f : A => Boolean) : Option[NestingZipper[N, A]] = 
-//     (new NatCaseSplit {
+  def predecessorWhich[A, N <: Nat](nz: NestingZipper[A, N])(f: A => Boolean) : ShapeM[NestingZipper[A, N]] = 
+    (new NatCaseSplit0 {
 
-//       type Out[N <: Nat] = NestingZipper[N, A] => Option[NestingZipper[N, A]]
+      type Out[N <: Nat] = NestingZipper[A, N] => ShapeM[NestingZipper[A, N]]
 
-//       def caseZero : Out[_0] = 
-//         nz => if (f(nz._1.baseValue)) Some(nz) else None
+      def caseZero : Out[_0] = { 
+        nz => if (f(baseValue(nz._1))) Monad[ShapeM].pure(nz) else 
+          fail(new ShapeError("No predecessor"))
+      }
 
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
-//         nz => if (f(nz._1.baseValue)) Some(nz) else 
-//           for {
-//             pred <- predecessor(nz)
-//             res <- predecessorWhich(pred)(f)
-//           } yield res
+      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
+        nz => if (f(baseValue(nz._1))) Monad[ShapeM].pure(nz) else 
+          for {
+            pred <- predecessor(nz)
+            res <- predecessorWhich(pred)(f)
+          } yield res
 
-//     })(nz._1.dim)(nz)
+    })(nz._1.dim)(nz)
 
   //============================================================================================
   // CASE SPLITTING
@@ -289,110 +296,25 @@ trait NestingFunctions {
       }
     }
 
-//   //============================================================================================
-//   // EXTEND NESTING
-//   //
+  //============================================================================================
+  // EXTEND NESTING
+  //
 
-//   def extendNesting[N <: Nat, A](nst : Nesting[N, A], addr : Address[S[N]])(f : Address[S[N]] => A) : Tree[S[N], Nesting[S[N], A]] = 
-//     (new NestingCaseSplit[A] {
+  def extendNesting[A, B, N <: Nat](nst : Nesting[A, N], addr : Address[S[N]])(f : Address[S[N]] => B) : Tree[Nesting[B, S[N]], S[N]] = 
+    nst match {
+      case Obj(a) => Leaf(__1)
+      case Dot(a, d) => Leaf(S(d))
+      case Box(a, cn) => {
+        Node(Dot(f(addr), S(cn.dim)), Tree.mapWithAddress(cn)({
+          case (n, dir) => extendNesting(n, dir :: addr)(f)
+        }))
+      }
+    }
 
-//       type Out[N <: Nat, +U <: Nesting[N, A]] = (Address[S[N]], (Address[S[N]] => A)) => Tree[S[N], Nesting[S[N], A]]
-
-//       def caseObj(a : A) : Out[_0, Obj[A]] = 
-//         (addr, f) => Leaf(__1)
-
-//       def caseDot[P <: Nat](a : A, d : S[P]) : Out[S[P], Dot[P, A]] = 
-//         (addr, f) => Leaf(S(d))
-
-//       def caseBox[N <: Nat](a : A, c : Tree[N, Nesting[N, A]]) : Out[N, Box[N, A]] = 
-//         (addr, f) => Node(Dot(f(addr), S(c.dim)), c.mapWithAddress({
-//           (n, dir) => extendNesting(n, dir :: addr)(f)
-//         }))
-
-//     })(nst)(addr, f)
-
-//   def newNestingExtend[N <: Nat, A](nst : Nesting[N, A])(f : Address[S[N]] => A) : Tree[S[N], Nesting[S[N], A]] = 
-//     extendNesting(nst, rootAddr(S(nst.dim)))(f)
-
-//   //============================================================================================
-//   // EXTRUDE NESTING
-//   //
-
-//   def extrudeNesting[N <: Nat, A, B](a : A, addr : Address[N], tr : Tree[N, Nesting[N, A]], msk : Tree[N, B]) : Option[Tree[N, Nesting[N, A]]] = 
-//     (new NatCaseSplit {
-
-//       type Out[N <: Nat] = (Address[N], Tree[N, Nesting[N, A]], Tree[N, B]) => Option[Tree[N, Nesting[N, A]]]
-
-//       def caseZero : Out[_0] = {
-//         case (addr, cnpy, msk) => Some(Pt(Box(a, cnpy)))
-//       }
-
-//       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-//         case (addr, cnpy, msk) => 
-//           for {
-//             zipper <- cnpy seekTo addr 
-//             newFcs <- replace(zipper.focus, msk, (c : Tree[S[P], Nesting[S[P], A]]) => Box(a, c))
-//           } yield close(S(p))(zipper.context, newFcs)
-//       }
-
-//     })(tr.dim)(addr, tr, msk)
+  def extendNesting[A, B, N <: Nat](nst : Nesting[A, N])(f : Address[S[N]] => B) : Tree[Nesting[B, S[N]], S[N]] = 
+    extendNesting(nst, Nil)(f)
 
 }
 
-// trait NestingImplicits {
-
-//   implicit def nestingIsTraverse[N <: Nat] : Traverse[({ type L[+A] = Nesting[N, A] })#L] = 
-//     new Traverse[({ type L[+A] = Nesting[N, A] })#L] {
-
-//       override def map[A, B](na : Nesting[N, A])(f : A => B) : Nesting[N, B] = 
-//         Nesting.mapNesting(na)(f)
-
-//       def traverseImpl[G[_], A, B](na : Nesting[N, A])(f : A => G[B])(implicit isA : Applicative[G]) : G[Nesting[N, B]] = 
-//         Nesting.traverseNesting(na)(f)
-
-//     }
-
-//   import scalaz.syntax.FunctorOps
-//   import scalaz.syntax.functor._
-
-//   implicit def nestingToFunctorOps[N <: Nat, A](nst : Nesting[N, A]) : FunctorOps[({ type L[+X] = Nesting[N, X] })#L, A] = 
-//     ToFunctorOps[({ type L[+X] = Nesting[N, X] })#L, A](nst)
-
-//   import scalaz.syntax.TraverseOps
-//   import scalaz.syntax.traverse._
-
-//   implicit def nestingToTraverseOps[N <: Nat, A](nst : Nesting[N, A]) : TraverseOps[({ type L[+X] = Nesting[N, X] })#L, A] = 
-//     ToTraverseOps[({ type L[+X] = Nesting[N, X] })#L, A](nst)
-
-//   class NestingOps[N <: Nat, A](nst : Nesting[N, A]) {
-
-//     def zipWithAddress : Nesting[N, (A, Address[S[N]])] = 
-//       Nesting.mapNestingWithAddress(nst)((addr, a) => (a, addr))
-
-//     def mapWithAddress[B](f : (Address[S[N]], A) => B) : Nesting[N, B] = 
-//       Nesting.mapNestingWithAddress(nst)(f)
-
-//     def matchWith[B](nstB : Nesting[N, B]) : Option[Nesting[N, (A, B)]] = 
-//       Nesting.zipCompleteNesting(nst, nstB)
-
-//     def toTree : Tree[S[N], A] = 
-//       Nesting.toTree(nst)
-
-//     def baseValue : A = 
-//       Nesting.baseValue(nst)
-
-//     def foreach(op : A => Unit) : Unit = 
-//       Nesting.foreach(nst)(op)
-
-//     def seekTo(addr : Address[S[N]]) = 
-//       Nesting.seekNesting(addr, (nst, Nil))
-
-//   }
-
-//   implicit def nestingToNestingOps[N <: Nat, A](nst : Nesting[N, A]) : NestingOps[N, A] = 
-//     new NestingOps[N, A](nst)
-
-// }
-
 object Nesting extends NestingFunctions
-//     with NestingImplicits
+

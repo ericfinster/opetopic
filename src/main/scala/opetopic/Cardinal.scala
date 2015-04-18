@@ -184,9 +184,7 @@ trait CardinalFunctions {
       
       type Out[N <: Nat] = CardinalTree[A, N] => Tree[A, N]
 
-      def caseZero : Out[_0] = {
-        ct => Pt(a)
-      }
+      def caseZero : Out[_0] = { ct => ct }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
         ct => Node(a, completeWith[Tree[A, S[P]], P](p)(ct, Leaf(S(p))))
@@ -196,6 +194,25 @@ trait CardinalFunctions {
 
   def toShell[A, N <: Nat](n : N)(ct : CardinalTree[A, S[N]]) : Tree[Tree[A, S[N]], N] = 
     completeWith[Tree[A, S[N]], N](n)(ct, Leaf(S(n)))
+
+  //============================================================================================
+  // CARDINAL ADDRESS COMPlETE
+  //
+
+  def cardinalAddressComplete[N <: Nat](n: N)(ca: CardinalAddress[N]) : Address[S[N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = CardinalAddress[N] => Address[S[N]] 
+
+      def caseZero : Out[_0] = {
+        case (_ >> hd) => () :: Nil
+      }
+
+      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
+        case (tl >> hd) => this(p)(tl) :: hd :: Nil
+      }
+
+    })(n)(ca)
 
   //============================================================================================
   // TO COMPLEX
@@ -231,7 +248,7 @@ trait CardinalFunctions {
 
       def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
         case (Cardinal(tl, hd), PolaritySuite(ps, (na, pa))) => {
-          completeToComplex[A, B, C, P](p)(tl, ps) >> Box(pa, Node(Dot(na, S(p)), toShell(p)(hd)))
+          this(p)(tl, ps) >> Box(pa, Node(Dot(na, S(p)), toShell(p)(hd)))
         }
       }
 
@@ -304,6 +321,7 @@ trait CardinalFunctions {
           if (sel(Nesting.baseValue(nst))) {
             Monad[ShapeM].pure(Pt(nst))
           } else {
+            println("Object was not selected ...")
             fail(new ShapeError)
           }
       }
@@ -349,7 +367,10 @@ trait CardinalFunctions {
       type Out[N <: Nat] = (CardinalNesting[A, S[N]], CardinalAddress[N], Tree[B, N]) => ShapeM[CardinalNesting[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case (cn, ca, msk) => Monad[ShapeM].pure(Pt(Node(Dot(a, __1), cn)))
+        case (cn, ca, msk) => {
+          println("Insering a filler in dim 1")
+          Monad[ShapeM].pure(Pt(Node(Dot(a, __1), cn)))
+        }
       }
 
       def caseSucc[P <: Nat](p : P) : (CardinalNestingDblSucc[A, P], CardinalAddress[S[P]], Tree[B, S[P]]) => ShapeM[CardinalNestingDblSucc[A, P]] = {
@@ -606,16 +627,16 @@ trait CardinalFunctions {
   // EXTRUDE DISPATCH
   //
 
-  def extrudeDispatch[A, B, K <: Nat, N <: Nat](
-    cn : CardinalNesting[A, N],
+  def extrudeDispatch[A[_ <: Nat], B, K <: Nat, N <: Nat](
+    cn : CardinalNesting[A[N], N],
     ca : CardinalAddress[K],
-    a0 : A, a1 : A,
+    a0 : A[K], a1 : A[S[K]],
     msk : Tree[B, K],
     flag : CardinalDimFlag[N, K]
-  ) : ShapeM[CardinalNesting[A, N]] =
+  ) : ShapeM[CardinalNesting[A[N], N]] =
     (new DimDispatcher[K] {
 
-      type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[K], Tree[B, K]) => ShapeM[CardinalNesting[A, N]]
+      type Out[N <: Nat] = (CardinalNesting[A[N], N], CardinalAddress[K], Tree[B, K]) => ShapeM[CardinalNesting[A[N], N]]
 
       def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], K, D]) : Out[N] = { 
         case (cn, ca, msk) => Monad[ShapeM].pure(cn) 
@@ -639,15 +660,15 @@ trait CardinalFunctions {
   // DROP DISPATCH
   //
 
-  def dropDispatch[N <: Nat, K <: Nat, A](
-    cn : CardinalNesting[A, N],
+  def dropDispatch[A[_ <: Nat], N <: Nat, K <: Nat](
+    cn : CardinalNesting[A[N], N],
     ca : CardinalAddress[K],
-    a0 : A, a1 : A,
+    a0 : A[S[K]], a1 : A[S[S[K]]],
     flag : CardinalDimFlag[N, S[K]]
-  ) : ShapeM[CardinalNesting[A, N]] = 
+  ) : ShapeM[CardinalNesting[A[N], N]] = 
     (new DimDispatcher[S[K]] {
 
-      type Out[N <: Nat] = CardinalNesting[A, N] => ShapeM[CardinalNesting[A, N]]
+      type Out[N <: Nat] = CardinalNesting[A[N], N] => ShapeM[CardinalNesting[A[N], N]]
 
       def caseLt[N <: Nat, D <: Nat](slte : Lte[S[N], S[K], D]) : Out[N] = { 
         cn => Monad[ShapeM].pure(cn) 
@@ -657,7 +678,7 @@ trait CardinalFunctions {
         cn => extrudeLoopAt(sk.pred)(cn, ca, a0) 
       }
 
-      def caseSucc(sk : S[K]) : CardinalNestingDblSucc[A, K] => ShapeM[CardinalNestingDblSucc[A, K]] = {
+      def caseSucc(sk : S[K]) : CardinalNestingDblSucc[A[S[S[K]]], K] => ShapeM[CardinalNestingDblSucc[A[S[S[K]]], K]] = {
         cn => extrudeDropAt(sk.pred)(cn, ca, a1)
       }
 
@@ -667,14 +688,28 @@ trait CardinalFunctions {
 
     })(flag)(cn)
 
-    // extrudeSelection : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → 
-    //                    A k → A (1 + k) → (A k → Bool) → k ≤ n → M (Cardinal A n)
-    // extrudeSelection c ca a₀ a₁ p k≤n = 
-    //   getSelection (getAt _ k≤n c) ca p 
-    //   >>= (λ msk → traverseSuite {{monadIsApp isMonad}} c (λ m cn → extrudeDispatch cn ca a₀ a₁ msk (getFlag m _)))
+  def extrudeSelection[A[_ <: Nat], N <: Nat, K <: Nat](
+    c: Cardinal[A, N], ca: CardinalAddress[K],
+    a0 : A[K], a1 : A[S[K]])(p: A[K] => Boolean
+  )(implicit diff: Lte.Diff[K, N]) : ShapeM[Cardinal[A, N]] = {
 
-    // dropAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → A (1 + k) → A (2 + k) → (k≤n : k ≤ n) → M (Cardinal A n)
-    // dropAtAddress {A} c ca a₀ a₁ k≤n = traverseSuite {{monadIsApp isMonad}} c (λ m cn → dropDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
+    type KNesting[K <: Nat] = CardinalNesting[A[K], K]
+
+    val lte = diff.lte
+
+    for {
+      msk <- getSelection(lte.lower)(Suite.getAt[KNesting, K, N, diff.D](c)(lte), ca)(p)
+      res <- Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new Suite.SuiteTraverse[ShapeM, KNesting, KNesting] {
+        def apply[M <: Nat](m: M)(cn: KNesting[M]) : ShapeM[KNesting[M]] = {
+          println("Passing dimension " ++ natToInt(m).toString)
+          extrudeDispatch[A, Nesting[A[K], K], K, M](cn, ca, a0, a1, msk, getFlag(m, lte.lower))
+        }
+      })
+    } yield res
+  }
+
+  // dropAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → A (1 + k) → A (2 + k) → (k≤n : k ≤ n) → M (Cardinal A n)
+  // dropAtAddress {A} c ca a₀ a₁ k≤n = traverseSuite {{monadIsApp isMonad}} c (λ m cn → dropDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
 
 }
 

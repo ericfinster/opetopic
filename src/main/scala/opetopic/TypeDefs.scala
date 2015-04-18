@@ -101,6 +101,12 @@ object TypeDefs extends NatConstants {
   type Complex[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, S[N]]
 
+  type FiniteComplex[A[_ <: Nat]] = 
+    Sigma[({ type L[K <: Nat] = Complex[A, K] })#L]
+
+  type DblComplex[A[_ <: Nat], N <: Nat] = 
+    Complex[({ type L[K <: Nat] = Complex[A, K] })#L, N]
+
   type ComplexZipper[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]
 

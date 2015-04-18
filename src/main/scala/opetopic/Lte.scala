@@ -116,13 +116,13 @@ object Lte extends LteImplicits {
 
   }
 
-  def getLte[M[+_], K <: Nat, N <: Nat](k: K, n: N)(implicit sm: ShapeMonad[M]) : M[Diff[K, N]] = 
+  def diffOpt[M[+_], K <: Nat, N <: Nat](k: K, n: N) : Option[Diff[K, N]] = 
     (new NatCaseSplit0 {
 
-      type Out[K <: Nat] = M[Diff[K, N]]
+      type Out[K <: Nat] = Option[Diff[K, N]]
 
       def caseZero : Out[_0] = 
-        sm.pure(new Diff[_0, N] {
+        Some(new Diff[_0, N] {
 
           type D = N
           val lte : Lte[_0, N, N] = 
@@ -133,17 +133,16 @@ object Lte extends LteImplicits {
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
         (new NatCaseSplit0 {
 
-          type Out[N <: Nat] = M[Diff[S[P], N]]
+          type Out[N <: Nat] = Option[Diff[S[P], N]]
 
-          def caseZero : Out[_0] = 
-            sm.failWith(new ShapeError)
+          def caseZero : Out[_0] = None
 
           def caseSucc[Q <: Nat](q: Q) : Out[S[Q]] = {
 
             import scalaz.syntax.monad._
 
             for {
-              diff <- getLte(p, q)
+              diff <- diffOpt(p, q)
             } yield {
               new Diff[S[P], S[Q]] {
 
