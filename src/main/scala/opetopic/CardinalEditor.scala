@@ -32,6 +32,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
   def complex : FiniteComplex[MarkerType] = 
     complexToFiniteComplex(editorState.complex)
 
+  def debugGen[N <: Nat] : A[N]
+
   //============================================================================================
   // EDITOR STATE
   //
@@ -95,6 +97,7 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
       for {
         dblcmplx <- complex.comultiply
       } {
+        println("Comultiplication success")
         dblcmplx.foreach(new Suite.IndexedOp[MarkerComplex] {
           def apply[N <: Nat](n: N)(mc: MarkerComplex[N]) : Unit = {
             mc.head.baseValue.faceComplex = Some(mc)
@@ -365,8 +368,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
           for {
             diff <- fromOpt(Lte.diffOpt(sel.dim, extrusionState.dim))
             ca <- fromOpt(sel.root.cardinalAddress)
-            mk0 = createNeutralMarker(sel.dim)(None, ca, false, targetCanvas, fillerCanvas)
-            mk1 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
+            mk0 = createNeutralMarker(sel.dim)(Some(debugGen), ca, false, targetCanvas, fillerCanvas)
+            mk1 = createNeutralMarker(S(sel.dim))(Some(debugGen), ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
             _ = mk1.outgoingEdgeMarker = Some(mk0) // This should be the only change to these, no?
             newCardinal <- Cardinal.extrudeSelection(extrusionState.cardinal, Suite.tail(ca), mk0, mk1)(
               mk => mk.isSelected
@@ -375,8 +378,12 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
 
             deselectAll
 
+            println("Completed cardinal: " ++ newCardinal.toString)
+
             val newComplex : Complex[MarkerType, extrusionState.Dim] = 
               completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
+
+            println("Completed complex: " ++ newComplex.toString)
 
             editorState = new EditorState {
 
@@ -435,8 +442,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
           for {
             diff <- fromOpt(Lte.diffOpt(sel.dim, extrusionState.dim))
             ca <- fromOpt(sel.root.cardinalAddress)
-            mk0 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, false, targetCanvas, fillerCanvas)
-            mk1 = createNeutralMarker(S(S(sel.dim)))(None, ca >> Nil >> Nil, true, fillerCanvas, fillerEdgeCanvas)
+            mk0 = createNeutralMarker(S(sel.dim))(Some(debugGen), ca >> Nil, false, targetCanvas, fillerCanvas)
+            mk1 = createNeutralMarker(S(S(sel.dim)))(Some(debugGen), ca >> Nil >> Nil, true, fillerCanvas, fillerEdgeCanvas)
             _ = mk1.outgoingEdgeMarker = Some(mk0) 
             newCardinal <- Cardinal.dropAtAddress(extrusionState.cardinal, Suite.tail(ca), mk0, mk1)(diff)
           } yield {

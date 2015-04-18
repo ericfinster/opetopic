@@ -84,7 +84,7 @@ trait Renderer[U]  {
     def rootY_=(u : U) : Unit = 
       rm.edgeStartY = u
 
-    override def toString = "Edge(" ++ rm.toString ++ ")"
+    override def toString = rm.toString // "Edge(" ++ rm.toString ++ ")"
 
   }
 
@@ -303,6 +303,8 @@ trait Renderer[U]  {
           )
         } yield {
 
+          println("Entering dot " ++ rm.toString)
+
           rm.clear
 
           val newEdgeMarker = new EdgeStartMarker(outgoingEdge)
@@ -473,12 +475,14 @@ trait Renderer[U]  {
 
             }
 
-          // println("Rendered dot: " ++ rm.toString)
+          println("Finished dot " ++ rm.toString)
 
           marker
         }
 
       case Box(rm, cn) => {
+
+        println("Entering box " ++ rm.toString)
 
         rm.clear
 
@@ -511,16 +515,21 @@ trait Renderer[U]  {
                 localLayout <- renderNesting(sn, layoutTree)
               } yield {
 
+                println("Local layout element is: " ++ localLayout.element.toString)
+
                 val descendantMarkers : List[LayoutMarker] = layoutTree.nodes
 
                 val (leftMostChild, rightMostChild, heightOfChildren) =
                   (descendantMarkers foldLeft (localLayout, localLayout, zero))({
                     case ((lcMarker, rcMarker, ht), thisMarker) => {
 
+                      println("Passing descendant: " ++ thisMarker.element.toString)
+
                       if (! thisMarker.external) {
                         // println("Shifting " ++ thisMarker.element.owner.toString ++ " up by " ++ (localLayout.height + externalPadding).toString)
                         thisMarker.element.shiftUp(localLayout.height + externalPadding)
                         localLayout.element.verticalDependants :+= thisMarker.element
+                        println("Making (1) " ++ thisMarker.element.toString ++ " v-dependent on " ++ localLayout.element.toString)
                       }
 
                       val newLeftChild = if (thisMarker.leftEdge < lcMarker.leftEdge) thisMarker else lcMarker
@@ -573,6 +582,7 @@ trait Renderer[U]  {
           if (! layout.external) {
             layout.element.shiftUp(strokeWidth + rm.labelContainerHeight)
             rm.verticalDependants :+= layout.element
+            println("Making (2) " ++ layout.element.toString ++ " v-dependent on " ++ rm.toString)
           }
 
           // Setup and return an appropriate marker
@@ -588,7 +598,7 @@ trait Renderer[U]  {
 
           }
 
-          // println("Rendered box: " ++ rm.toString)
+          println("Finished box " ++ rm.toString)
 
           marker
 

@@ -19,7 +19,7 @@ import TypeDefs._
 
 sealed abstract class Tree[+A, N <: Nat] { def dim : N }
 case class Pt[+A](a : A) extends Tree[A, _0] { def dim = Z }
-case class Leaf[N <: Nat](d : S[N]) extends Tree[Nothing, S[N]] { def dim = d ; override def toString = "Leaf" }
+case class Leaf[N <: Nat](d : S[N]) extends Tree[Nothing, S[N]] { def dim = d ; override def toString = "Leaf(__" ++ natToInt(d).toString ++ ")" }
 case class Node[+A, N <: Nat](a : A, shell : Tree[Tree[A, S[N]], N]) extends Tree[A, S[N]] { def dim = S(shell.dim) }
 
 trait TreeFunctions { tfns => 

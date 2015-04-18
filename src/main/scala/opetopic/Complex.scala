@@ -400,4 +400,28 @@ object Complex extends ComplexFunctions {
   val fiveSource : ShapeM[IntComplex[_1]] = 
     sourceAt(testCmplx, fiveAddr)
 
+  val bigguy : IntComplex[_3] = 
+    Complex[ConstInt]() >> 
+      Box(100,Pt(Obj(0))) >> 
+      Box(101,Node(Dot(102, __1),Pt(Node(Box(5,Node(Box(3,Leaf(__1)),Pt(Node(Box(1,Leaf(__1)),Pt(Leaf(__1)))))),Pt(Leaf(__1)))))) >>
+      Box(103,Node(Dot(104, __2),Node(Leaf(__2),Pt(Node(Node(Box(7,Node(Dot(6, __2),Node(Node(Dot(4, __2),Leaf(__1)),Pt(Node(Node(Dot(2, __2),Leaf(__1)),Pt(Leaf(__1))))))),Leaf(__1)),Pt(Leaf(__1))))))) >> 
+      Box(105,Node(Dot(106, __3),Node(Leaf(__3),Node(Leaf(__2),Pt(Node(Node(Node(Dot(8, __3),Node(Leaf(__3),Node(Node(Leaf(__3),Leaf(__1)),Pt(Node(Node(Leaf(__3),Leaf(__1)),Pt(Leaf(__1))))))),Leaf(__1)),Pt(Leaf(__1))))))))
+
+  val eep : Tree[Nesting[Int, _2], _2] = 
+    Node(Dot(6, __2),Node(Node(Dot(4, __2),Leaf(__1)),Pt(Node(Node(Dot(2, __2),Leaf(__1)),Pt(Leaf(__1))))))
+
+  val result = Tree.graftRec(eep)({
+    addr => {
+      println("Address is: " ++ addr.toString)
+      Monad[ShapeM].pure(())
+    }
+  })({
+    case (a, res) => {
+      println("Passing " ++ a.toString)
+      Monad[ShapeM].pure(())
+    }
+  })
+
+  val afterGraft = Tree.graft(eep)(Leaf(__1))
+
 }

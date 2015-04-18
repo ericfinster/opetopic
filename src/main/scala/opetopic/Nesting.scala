@@ -19,7 +19,7 @@ import TypeDefs._
 
 sealed abstract class Nesting[+A, N <: Nat] { def dim : N }
 case class Obj[+A](a : A) extends Nesting[A, _0] { def dim = Z }
-case class Dot[+A, P <: Nat](a : A, d : S[P]) extends Nesting[A, S[P]] { def dim = d }
+case class Dot[+A, P <: Nat](a : A, d : S[P]) extends Nesting[A, S[P]] { def dim = d ; override def toString = "Dot(" ++ a.toString ++ ", __" ++ natToInt(d).toString ++ ")" }
 case class Box[+A, N <: Nat](a : A, c : Tree[Nesting[A, N], N]) extends Nesting[A, N] { def dim = c.dim }
 
 trait NestingFunctions {

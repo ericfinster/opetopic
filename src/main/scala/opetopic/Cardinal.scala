@@ -218,11 +218,11 @@ trait CardinalFunctions {
   // TO COMPLEX
   //
 
-  sealed trait Polarity[A]
-  sealed trait Polarization[A] extends Polarity[A]
-  case class Positive[A]() extends Polarization[A] { override def toString = "+" }
-  case class Negative[A]() extends Polarization[A] { override def toString = "-" }
-  case class Neutral[A](a : A) extends Polarity[A] { override def toString = a.toString }
+  sealed trait Polarity[+A]
+  sealed trait Polarization[+A] extends Polarity[A]
+  case class Positive[+A]() extends Polarization[A] { override def toString = "+" }
+  case class Negative[+A]() extends Polarization[A] { override def toString = "-" }
+  case class Neutral[+A](a : A) extends Polarity[A] { override def toString = a.toString }
 
   trait CardinalCellGenerator[D <: Nat, A[_ <: Nat], B[_ <: Nat]] {
 

@@ -169,3 +169,8 @@ module Complex where
   testSource = sourceAt testComplex ((tt ∷ []) ∷ [])
     where open SourceCalculation ⦃ maybeE ⦄
     
+  testCanopy : Tree (Nesting ℕ 2) 2
+  testCanopy = node (dot 6) (node (node (dot 4) leaf) (pt (node (node (dot 2) leaf) (pt leaf))))
+
+  testGraft : Maybe (Tree (Nesting ℕ 2) 2)
+  testGraft = graft ⦃ maybeE ⦄ testCanopy leaf
