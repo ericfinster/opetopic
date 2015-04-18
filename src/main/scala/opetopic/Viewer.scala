@@ -146,7 +146,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
 
       def caseZero : Out[_0] = {
         case Complex(_, hd) => {
-          println("========= Dimension 0 =========")
+          // println("========= Dimension 0 =========")
           renderObjectNesting(hd)
         }
       }
@@ -156,7 +156,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
 
           renderComplex(tl)
 
-          println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
+          // println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
 
           for {
             spine <- tl.headSpine

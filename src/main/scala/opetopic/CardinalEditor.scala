@@ -97,7 +97,6 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
       for {
         dblcmplx <- complex.comultiply
       } {
-        println("Comultiplication success")
         dblcmplx.foreach(new Suite.IndexedOp[MarkerComplex] {
           def apply[N <: Nat](n: N)(mc: MarkerComplex[N]) : Unit = {
             mc.head.baseValue.faceComplex = Some(mc)
@@ -378,12 +377,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
 
             deselectAll
 
-            println("Completed cardinal: " ++ newCardinal.toString)
-
             val newComplex : Complex[MarkerType, extrusionState.Dim] = 
               completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
-
-            println("Completed complex: " ++ newComplex.toString)
 
             editorState = new EditorState {
 
