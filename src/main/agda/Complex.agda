@@ -158,4 +158,14 @@ module Complex where
       >>= (λ tl → η (tl ▶ hd)))
 
 
+  testComplex : Complex (λ k → ℕ) 1
+  testComplex = ∥ ▶ box 0 (pt (box 1 (pt (obj 2)))) ▶ box 3 (node (dot 4) (pt (node (dot 5) (pt leaf))))
 
+  testSeek : Maybe (ComplexZipper (λ k → ℕ) 1)
+  testSeek = seekComplex (complexToZipper testComplex) ((tt ∷ []) ∷ [])
+    where open SourceCalculation ⦃ maybeE ⦄
+
+  testSource : Maybe (Complex (λ k → ℕ) 1)
+  testSource = sourceAt testComplex ((tt ∷ []) ∷ [])
+    where open SourceCalculation ⦃ maybeE ⦄
+    

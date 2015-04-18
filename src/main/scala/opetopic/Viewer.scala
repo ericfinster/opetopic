@@ -241,13 +241,15 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     }
 
     selection = None
+
   }
 
-  def selectAsRoot[N <: Nat](marker : MarkerType[N]) : Unit = {
-    deselectAll
-    marker.select
-    selection = Some(Selection(marker))
-  }
+  def selectAsRoot[N <: Nat](marker : MarkerType[N]) : Unit = 
+    if (marker.isSelectable) {
+      deselectAll
+      marker.select
+      selection = Some(Selection(marker))
+    }
 
   def select[N <: Nat](marker : MarkerType[N]) : Unit =
     if (marker.isSelectable) {

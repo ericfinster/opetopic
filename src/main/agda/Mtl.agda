@@ -190,6 +190,9 @@ module Mtl where
   maybeA : Applicative Maybe
   maybeA = monadIsApp maybeM
 
+  maybeE : MonadError Maybe
+  maybeE = record { isMonad = maybeM ; failWith = λ str → nothing }
+
   --
   --  Maybe Transformer
   --

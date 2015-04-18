@@ -320,10 +320,7 @@ trait CardinalFunctions {
         case (Pt(nst), ca) =>
           if (sel(Nesting.baseValue(nst))) {
             Monad[ShapeM].pure(Pt(nst))
-          } else {
-            println("Object was not selected ...")
-            fail(new ShapeError)
-          }
+          } else fail(new ShapeError)
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
@@ -367,10 +364,7 @@ trait CardinalFunctions {
       type Out[N <: Nat] = (CardinalNesting[A, S[N]], CardinalAddress[N], Tree[B, N]) => ShapeM[CardinalNesting[A, S[N]]]
 
       def caseZero : Out[_0] = {
-        case (cn, ca, msk) => {
-          println("Insering a filler in dim 1")
-          Monad[ShapeM].pure(Pt(Node(Dot(a, __1), cn)))
-        }
+        case (cn, ca, msk) => Monad[ShapeM].pure(Pt(Node(Dot(a, __1), cn)))
       }
 
       def caseSucc[P <: Nat](p : P) : (CardinalNestingDblSucc[A, P], CardinalAddress[S[P]], Tree[B, S[P]]) => ShapeM[CardinalNestingDblSucc[A, P]] = {
@@ -701,15 +695,23 @@ trait CardinalFunctions {
       msk <- getSelection(lte.lower)(Suite.getAt[KNesting, K, N, diff.D](c)(lte), ca)(p)
       res <- Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new Suite.SuiteTraverse[ShapeM, KNesting, KNesting] {
         def apply[M <: Nat](m: M)(cn: KNesting[M]) : ShapeM[KNesting[M]] = {
-          println("Passing dimension " ++ natToInt(m).toString)
           extrudeDispatch[A, Nesting[A[K], K], K, M](cn, ca, a0, a1, msk, getFlag(m, lte.lower))
         }
       })
     } yield res
   }
 
-  // dropAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → A (1 + k) → A (2 + k) → (k≤n : k ≤ n) → M (Cardinal A n)
-  // dropAtAddress {A} c ca a₀ a₁ k≤n = traverseSuite {{monadIsApp isMonad}} c (λ m cn → dropDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
+  def dropAtAddress[A[_ <: Nat], N <: Nat, K <: Nat](
+    c: Cardinal[A, N], ca: CardinalAddress[K],
+    a0: A[S[K]], a1: A[S[S[K]]]
+  )(implicit diff: Lte.Diff[K, N]) : ShapeM[Cardinal[A, N]] = {
+    type KNesting[K <: Nat] = CardinalNesting[A[K], K]
+    Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new Suite.SuiteTraverse[ShapeM, KNesting, KNesting] {
+      def apply[M <: Nat](m: M)(cn: KNesting[M]) : ShapeM[KNesting[M]] = {
+        dropDispatch(cn, ca, a0, a1, getFlag(m, S(diff.lte.lower)))
+      }
+    })
+  }
 
 }
 
