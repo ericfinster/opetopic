@@ -373,6 +373,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             )(diff)
           } yield {
 
+            deselectAll
+
             val newComplex : Complex[MarkerType, extrusionState.Dim] = 
               completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
 
@@ -391,8 +393,6 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             editorState.refreshCardinalAddresses
             editorState.refreshComplexAddresses
             editorState.refreshFaceComplexes
-
-            deselectAll
 
             render
 
@@ -441,6 +441,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             newCardinal <- Cardinal.dropAtAddress(extrusionState.cardinal, Suite.tail(ca), mk0, mk1)(diff)
           } yield {
 
+            deselectAll
+
             val newComplex : Complex[MarkerType, extrusionState.Dim] = 
               completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
 
@@ -459,8 +461,6 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             editorState.refreshCardinalAddresses
             editorState.refreshComplexAddresses
             editorState.refreshFaceComplexes
-
-            deselectAll
 
             render
 

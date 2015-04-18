@@ -8,7 +8,7 @@
 package opetopic
 
 import scala.language.higherKinds
-import scala.collection.mutable.Seq
+import scala.collection.mutable.ListBuffer
 
 import scalaz.syntax.monad._
 
@@ -124,16 +124,11 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   def render : Unit = {
     val cmplx = complex
 
-    println("About to render complex: " ++ cmplx.value.toString)
-
     renderComplex[cmplx.N](cmplx.value)
-
-    println("Finished completx render ...")
 
     for {
       mk <- cmplx
     } {
-      println("Passing marker " ++ mk.toString)
       mk.box.render
       mk.edge.render
     }
@@ -166,8 +161,6 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
           for {
             spine <- tl.headSpine
 
-            _ = println("Got spine in this dimension")
-
             leaves = spine map (rm => 
               new LayoutMarker {
 
@@ -185,8 +178,6 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
             baseLayout = Nesting.baseValue(hd)
 
           } yield {
-
-            println("This dimension finished")
 
             import isNumeric._
 
@@ -214,7 +205,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     type Dim <: Nat
     val dim : Dim
     val root : MarkerType[Dim]
-    val companions : Seq[MarkerType[Dim]]
+    val companions : ListBuffer[MarkerType[Dim]]
   }
 
   object Selection {
@@ -224,7 +215,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
         type Dim = N
         val dim = mk.dim
         val root = mk
-        val companions = Seq.empty[MarkerType[Dim]]
+        val companions = ListBuffer.empty[MarkerType[Dim]]
       }
 
   }
@@ -241,7 +232,6 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     }
 
     selection = None
-
   }
 
   def selectAsRoot[N <: Nat](marker : MarkerType[N]) : Unit = 
@@ -289,10 +279,10 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
                   case -\/(_) => selectAsRoot(marker)
                   case \/-((fcs, _)) => {
                     for {
-                      mk <- candidates
+                      mk <- candidates.init
                     } {
                       mk.select
-                      sel.companions :+ mk
+                      sel.companions += rewriteNatIn(ev)(mk)
                     }
                   }
                 }
