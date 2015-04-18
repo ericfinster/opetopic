@@ -227,7 +227,7 @@ trait TreeFunctions { tfns =>
         )
         case Node(a1, Leaf(sp)) => initHorizontal(a0, hsh0)(
           for { 
-            b <- caseNode(a0, Leaf(sp)) 
+            b <- caseNode(a1, Leaf(sp)) 
           } yield (b, const(hsh0, Nil))
         )
         case Node(a1, Node(v, hsh1)) => 
