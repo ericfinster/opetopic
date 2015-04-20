@@ -5,13 +5,14 @@
   * @version 0.1 
   */
 
-package opetopic
+package opetopic.ui
 
 import scala.language.higherKinds
 import scala.collection.mutable.ListBuffer
 
 import scalaz.syntax.monad._
 
+import opetopic._
 import TypeDefs._
 
 import syntax.tree._
