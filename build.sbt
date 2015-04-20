@@ -4,7 +4,8 @@ lazy val root = project.in(file(".")).
   aggregate(opetopicJS, opetopicJVM).
   settings(
     publish := {},
-    publishLocal := {}
+    publishLocal := {},
+    run in Compile <<= (run in Compile in opetopicJVM)
   )
 
 lazy val opetopic = crossProject.in(file(".")).
@@ -20,6 +21,7 @@ lazy val opetopic = crossProject.in(file(".")).
     libraryDependencies += "com.lihaoyi" %%% "scalatags" % "0.5.1"
   ).jvmSettings(
     fork := true,
+    mainClass := Some("FXEditor"),
     libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0",
     libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.40-R8"
   ).jsSettings(
