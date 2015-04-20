@@ -29,6 +29,12 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   def complex : FiniteComplex[MarkerType]
 
   //============================================================================================
+  // EVENT HANDLERS
+  //
+
+  var onSelectAsRoot : IndexedOp[MarkerType]
+
+  //============================================================================================
   // VIEWER CLASSES
   //
 
@@ -36,7 +42,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
 
     val dim : N
 
-    val label : A[N]
+    var label : A[N]
 
     val objectCanvas : CanvasType
     val edgeCanvas : CanvasType
@@ -45,7 +51,19 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     def edge : EdgeType
 
     var nestingAddress : Address[S[N]] = Nil
-    var faceComplex : Option[Complex[MarkerType, N]] = None
+
+    // The fact that this is an "option" is really detestable ...
+    var faceComplex : Option[Complex[MarkerType, N]] = None 
+
+    def labelComplex : Option[Complex[A, N]] = 
+      for {
+        fc <- faceComplex
+      } yield {
+        fc map (new ~~>[MarkerType, A] {
+          def apply[N <: Nat](mk: MarkerType[N]) : A[N] = 
+            mk.label
+        })
+      }
 
     def isSelectable : Boolean
 
@@ -238,6 +256,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     if (marker.isSelectable) {
       deselectAll
       marker.select
+      onSelectAsRoot(marker.dim)(marker)
       selection = Some(Selection(marker))
     }
 

@@ -40,6 +40,16 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
       def apply[N <: Nat](n: N)(an : A[N]) : Unit = op(an)
     })
 
+  def map[B[_ <: Nat]](f: A ~~> B) : Complex[B, N] = 
+    Suite.map[INst, ({ type L[K <: Nat] = Nesting[B[K], K] })#L, S[N]](cmplx)(
+      new ~~>[INst, ({ type L[K <: Nat] = Nesting[B[K], K] })#L] {
+        def apply[N <: Nat](nst: INst[N]) : Nesting[B[N], N] = {
+          import scalaz.Id._
+          Nesting.traverse[Id, A[N], B[N], N](nst)(f(_))
+        }
+      }
+    )
+
   def sourceAt(addr: Address[S[N]]) : ShapeM[Complex[A, N]] =
     Complex.sourceAt(cmplx, addr)
 

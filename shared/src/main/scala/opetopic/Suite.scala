@@ -69,10 +69,6 @@ object Suite {
   def getAt[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](suite : Suite[F, S[N]])(implicit lte: Lte[K, N, D]) : F[K] =
     head(drop(suite)(Lte.lteSucc(Lte.lteInvert(lte))))
 
-  trait IndexedOp[A[_ <: Nat]] {
-    def apply[N <: Nat](n: N)(an : A[N]) : Unit
-  }
-
   def foreachWithCount[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : (Unit, N) = 
     suite match {
       case SNil() => ((), Z)

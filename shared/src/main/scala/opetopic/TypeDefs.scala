@@ -31,6 +31,27 @@ object TypeDefs extends NatConstants {
     }
 
   //============================================================================================
+  // INDEXED OPERATIONS
+  //
+
+  type ConstInt[N <: Nat] = Int
+  type ConstString[N <: Nat] = String
+
+  trait IndexedOp[A[_ <: Nat]] {
+    def apply[N <: Nat](n: N)(an : A[N]) : Unit
+  }
+
+  //============================================================================================
+  // POLARITIES
+  //
+
+  sealed trait Polarity[+A]
+  sealed trait Polarization[+A] extends Polarity[A]
+  case class Positive[+A]() extends Polarization[A] { override def toString = "+" }
+  case class Negative[+A]() extends Polarization[A] { override def toString = "-" }
+  case class Neutral[+A](a : A) extends Polarity[A] { override def toString = a.toString }
+
+  //============================================================================================
   // ADDRESSES
   //
 
