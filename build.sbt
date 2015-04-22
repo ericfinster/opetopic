@@ -5,6 +5,7 @@ lazy val root = project.in(file(".")).
   settings(
     publish := {},
     publishLocal := {},
+    scalaVersion := "2.11.6",
     run in Compile <<= (run in Compile in opetopicJVM)
   )
 
@@ -22,7 +23,7 @@ lazy val opetopic = crossProject.in(file(".")).
   ).jvmSettings(
     fork := true,
     mainClass := Some("FXEditor"),
-    libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0",
+    libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.1",
     libraryDependencies += "org.scalafx" %% "scalafx" % "8.0.40-R8"
   ).jsSettings(
     libraryDependencies += "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.1-2"

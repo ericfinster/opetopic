@@ -24,6 +24,7 @@ import syntax.cardinal._
 
 trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polarity[Option[A[K]]] })#L, U] { 
 
+  type PolA[K <: Nat] = Polarity[Option[A[K]]]
   type OptA[K <: Nat] = Option[A[K]]
 
   type MarkerType[N <: Nat] <: CardinalMarker[N]
@@ -252,13 +253,25 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
 
   trait NeutralMarker[N <: Nat] extends CardinalMarker[N] {
 
-    def element : Option[A[N]]
-
     def isExtrudable : Boolean = 
       cardinalAddress match {
         case Some(_ >> Nil) => true
         case _ => false
       }
+
+    def neutralComplex : Option[Complex[OptA, N]] = {
+      import scalaz.std.option._
+      for {
+        fc <- faceComplex
+        res <- fc.traverse(new IndexedTraverse[Option, MarkerType, OptA] {
+          def apply[N <: Nat](n: N)(mk: MarkerType[N]) : Option[OptA[N]] = 
+            mk.label match {
+              case Neutral(optA) => Some(optA)
+              case _ => None
+            }
+        })
+      } yield res
+    }
 
   }
 

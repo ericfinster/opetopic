@@ -41,12 +41,12 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
 
   trait ViewerMarker[N <: Nat] extends RenderMarker {
 
-    val dim : N
+    def dim : N
 
-    var label : A[N]
+    def label : A[N]
 
-    val objectCanvas : CanvasType
-    val edgeCanvas : CanvasType
+    def objectCanvas : CanvasType
+    def edgeCanvas : CanvasType
 
     def box : BoxType 
     def edge : EdgeType

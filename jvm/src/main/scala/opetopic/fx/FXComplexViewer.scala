@@ -25,7 +25,7 @@ abstract class FXComplexViewer[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit fx
 
   type MarkerType[N <: Nat] = FXComplexMarker[N]
 
-  type BoxType = FXBox
+  type BoxType <: FXBox
   type EdgeType = FXEdge
   type CanvasType = FXCanvas
 
@@ -53,18 +53,13 @@ abstract class FXComplexViewer[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit fx
     val edgeCanvas: FXCanvas
   ) extends FXMarker[N] { thisMarker =>
 
-    var label : A[N] = lbl
+    def label : A[N] = lbl
 
     val dim = n
 
-    def box : BoxType = 
-      new FXBox {
-        type Dim = N
-        val marker = thisMarker
-        val label = fxRender.render(dim)(thisMarker.label)
-      }
+    val box : BoxType = createBox(thisMarker)
 
-    def edge : EdgeType = 
+    val edge : EdgeType = 
       new FXEdge {
         type Dim = N
         val marker = thisMarker
@@ -75,7 +70,12 @@ abstract class FXComplexViewer[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit fx
     var isSelected : Boolean = false
     var isSelectionFace : Boolean = false
 
+    objectCanvas.addBox(box)
+    edgeCanvas.addEdge(edge)
+
   }
+
+  def createBox[N <: Nat](mk: FXComplexMarker[N]) : BoxType 
 
   def createMarker[N <: Nat](n: N)(
     label: A[N], 
@@ -87,6 +87,10 @@ abstract class FXComplexViewer[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit fx
     new FXComplexMarker(n)(label, addr, isExternal, objCanvas, edgeCanvas)
 
 
-  def createCanvas : FXCanvas = new FXCanvas { }
+  def createCanvas : FXCanvas = {
+    val c = new FXCanvas { }
+    canvases += c
+    c
+  }
 
 }

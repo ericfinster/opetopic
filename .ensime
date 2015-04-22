@@ -6,19 +6,41 @@
  :java-flags ("-Xms1024m" "-Xmx1024m" "-XX:ReservedCodeCacheSize=128m" "-XX:MaxMetaspaceSize=256m")
  :reference-source-roots ("/usr/lib/jvm/java-8-oracle/src.zip")
  :scala-version "2.11.6"
- :compiler-args ("-feature" "-deprecation")
+ :compiler-args nil
  
  :subprojects ((
-   :name "opetopic"
-   :module-name "opetopic"
+   :name "root"
+   :module-name "root"
    :source-roots ("/home/ericfinster/Code/opetopic/src/main/scala" "/home/ericfinster/Code/opetopic/src/main/java" "/home/ericfinster/Code/opetopic/src/test/scala" "/home/ericfinster/Code/opetopic/src/test/java")
    :target "/home/ericfinster/Code/opetopic/target/scala-2.11/classes"
    :test-targets ("/home/ericfinster/Code/opetopic/target/scala-2.11/test-classes")
    :depends-on-modules nil
-   :compile-deps ("/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.11.6.jar" "/home/ericfinster/.ivy2/cache/org.scalaz/scalaz-core_2.11/bundles/scalaz-core_2.11-7.1.0.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/bundles/scala-parser-combinators_2.11-1.0.2.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/bundles/scala-xml_2.11-1.0.2.jar")
+   :compile-deps ("/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.11.6.jar")
    :runtime-deps nil
    :test-deps nil
-   :doc-jars ("/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/docs/scala-parser-combinators_2.11-1.0.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scalaz/scalaz-core_2.11/docs/scalaz-core_2.11-7.1.0-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/docs/scala-xml_2.11-1.0.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.11.6-javadoc.jar" "/home/ericfinster/Code/opetopic/target/scala-2.11/opetopic_2.11-0.1-SNAPSHOT-javadoc.jar")
-   :reference-source-roots ("/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.6-sources.jar" "/home/ericfinster/.ivy2/cache/org.scalaz/scalaz-core_2.11/srcs/scalaz-core_2.11-7.1.0-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/srcs/scala-parser-combinators_2.11-1.0.2-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/srcs/scala-xml_2.11-1.0.2-sources.jar")))
+   :doc-jars ("/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.11.6-javadoc.jar" "/home/ericfinster/Code/opetopic/target/scala-2.11/opetopic-root_2.11-0.1-SNAPSHOT-javadoc.jar")
+   :reference-source-roots ("/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.6-sources.jar")) (
+   :name "opetopicJS"
+   :module-name "opetopicJS"
+   :source-roots ("/home/ericfinster/Code/opetopic/js/src/main/java" "/home/ericfinster/Code/opetopic/js/src/test/java" "/home/ericfinster/Code/opetopic/js/src/main/scala" "/home/ericfinster/Code/opetopic/js/../shared/src/main/scala" "/home/ericfinster/Code/opetopic/js/src/test/scala" "/home/ericfinster/Code/opetopic/js/../shared/src/test/scala")
+   :target "/home/ericfinster/Code/opetopic/js/target/scala-2.11/classes"
+   :test-targets ("/home/ericfinster/Code/opetopic/js/target/scala-2.11/test-classes")
+   :depends-on-modules nil
+   :compile-deps ("/home/ericfinster/.ivy2/cache/com.github.japgolly.fork.scalaz/scalaz-core_sjs0.6_2.11/bundles/scalaz-core_sjs0.6_2.11-7.1.1-2.jar" "/home/ericfinster/.ivy2/cache/com.lihaoyi/scalatags_sjs0.6_2.11/jars/scalatags_sjs0.6_2.11-0.5.1.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/bundles/scala-parser-combinators_2.11-1.0.2.jar" "/home/ericfinster/.ivy2/cache/org.scala-js/scalajs-dom_sjs0.6_2.11/jars/scalajs-dom_sjs0.6_2.11-0.8.0.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/bundles/scala-xml_2.11-1.0.2.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.11.6.jar" "/home/ericfinster/.ivy2/cache/org.scala-js/scalajs-library_2.11/jars/scalajs-library_2.11-0.6.2.jar")
+   :runtime-deps nil
+   :test-deps nil
+   :doc-jars ("/home/ericfinster/Code/opetopic/js/target/scala-2.11/opetopic_sjs0.6_2.11-0.1-SNAPSHOT-javadoc.jar" "/home/ericfinster/.ivy2/cache/com.github.japgolly.fork.scalaz/scalaz-core_sjs0.6_2.11/docs/scalaz-core_sjs0.6_2.11-7.1.1-2-javadoc.jar" "/home/ericfinster/.ivy2/cache/com.lihaoyi/scalatags_sjs0.6_2.11/docs/scalatags_sjs0.6_2.11-0.5.1-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/docs/scala-parser-combinators_2.11-1.0.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-js/scalajs-dom_sjs0.6_2.11/docs/scalajs-dom_sjs0.6_2.11-0.8.0-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/docs/scala-xml_2.11-1.0.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-js/scalajs-library_2.11/docs/scalajs-library_2.11-0.6.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.11.6-javadoc.jar")
+   :reference-source-roots ("/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/srcs/scala-parser-combinators_2.11-1.0.2-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/srcs/scala-xml_2.11-1.0.2-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-js/scalajs-dom_sjs0.6_2.11/srcs/scalajs-dom_sjs0.6_2.11-0.8.0-sources.jar" "/home/ericfinster/.ivy2/cache/com.lihaoyi/scalatags_sjs0.6_2.11/srcs/scalatags_sjs0.6_2.11-0.5.1-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-js/scalajs-library_2.11/srcs/scalajs-library_2.11-0.6.2-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.6-sources.jar" "/home/ericfinster/.ivy2/cache/com.github.japgolly.fork.scalaz/scalaz-core_sjs0.6_2.11/srcs/scalaz-core_sjs0.6_2.11-7.1.1-2-sources.jar")) (
+   :name "opetopicJVM"
+   :module-name "opetopicJVM"
+   :source-roots ("/home/ericfinster/Code/opetopic/jvm/../shared/src/test/scala" "/home/ericfinster/Code/opetopic/jvm/src/test/scala" "/home/ericfinster/Code/opetopic/jvm/src/main/java" "/home/ericfinster/Code/opetopic/jvm/../shared/src/main/scala" "/home/ericfinster/Code/opetopic/jvm/src/main/scala" "/home/ericfinster/Code/opetopic/jvm/src/test/java")
+   :target "/home/ericfinster/Code/opetopic/jvm/target/scala-2.11/classes"
+   :test-targets ("/home/ericfinster/Code/opetopic/jvm/target/scala-2.11/test-classes")
+   :depends-on-modules nil
+   :compile-deps ("/home/ericfinster/.ivy2/cache/com.lihaoyi/scalatags_2.11/jars/scalatags_2.11-0.5.1.jar" "/home/ericfinster/.ivy2/cache/org.scalafx/scalafx_2.11/jars/scalafx_2.11-8.0.40-R8.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-reflect/jars/scala-reflect-2.11.6.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/bundles/scala-parser-combinators_2.11-1.0.2.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/bundles/scala-xml_2.11-1.0.2.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.11.6.jar" "/home/ericfinster/.ivy2/cache/org.scalaz/scalaz-core_2.11/bundles/scalaz-core_2.11-7.1.1.jar")
+   :runtime-deps nil
+   :test-deps nil
+   :doc-jars ("/home/ericfinster/.ivy2/cache/org.scala-lang/scala-reflect/docs/scala-reflect-2.11.6-javadoc.jar" "/home/ericfinster/.ivy2/cache/com.lihaoyi/scalatags_2.11/docs/scalatags_2.11-0.5.1-javadoc.jar" "/home/ericfinster/Code/opetopic/jvm/target/scala-2.11/opetopic_2.11-0.1-SNAPSHOT-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/docs/scala-parser-combinators_2.11-1.0.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/docs/scala-xml_2.11-1.0.2-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scalaz/scalaz-core_2.11/docs/scalaz-core_2.11-7.1.1-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scalafx/scalafx_2.11/docs/scalafx_2.11-8.0.40-R8-javadoc.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/docs/scala-library-2.11.6-javadoc.jar")
+   :reference-source-roots ("/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-parser-combinators_2.11/srcs/scala-parser-combinators_2.11-1.0.2-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/srcs/scala-xml_2.11-1.0.2-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-reflect/srcs/scala-reflect-2.11.6-sources.jar" "/home/ericfinster/.ivy2/cache/org.scalafx/scalafx_2.11/srcs/scalafx_2.11-8.0.40-R8-sources.jar" "/home/ericfinster/.ivy2/cache/com.lihaoyi/scalatags_2.11/srcs/scalatags_2.11-0.5.1-sources.jar" "/home/ericfinster/.ivy2/cache/org.scalaz/scalaz-core_2.11/srcs/scalaz-core_2.11-7.1.1-sources.jar" "/home/ericfinster/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.6-sources.jar")))
  
 )

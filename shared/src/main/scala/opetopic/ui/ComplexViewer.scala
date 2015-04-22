@@ -43,6 +43,8 @@ trait ComplexViewer[A[_ <: Nat], U] extends Viewer[A, U] {
           val objCanvas = createCanvas
           val edgeCanvas = createCanvas
 
+          displayCanvas(objCanvas)
+
           def genObjData(
             nst: Nesting[A[_0], _0],
             base: Address[_1],
@@ -72,6 +74,8 @@ trait ComplexViewer[A[_ <: Nat], U] extends Viewer[A, U] {
 
           val (newTl, objCanvas) = this(p)(tl)
           val edgeCanvas = createCanvas
+
+          displayCanvas(objCanvas)
 
           def genNestingData[N <: Nat](n: N)(
             nst: Nesting[A[S[N]], S[N]],

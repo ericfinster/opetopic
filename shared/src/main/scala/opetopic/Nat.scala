@@ -62,6 +62,10 @@ trait ~~>[F[_ <: Nat], G[_ <: Nat]] {
 
 }
 
+trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
+  def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
+}
+
 trait NatCaseSplit0 {
 
   type Out[N <: Nat]

@@ -10,6 +10,7 @@ package opetopic.fx
 import scala.language.higherKinds
 import scala.collection.mutable.ListBuffer
 
+import javafx.scene.Node
 import javafx.scene.text.Text
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
@@ -29,6 +30,8 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
   type BoxType = FXCardinalBox
   type EdgeType = FXEdge
   type CanvasType = FXCardinalCanvas
+
+  type NeutralBoxType[N <: Nat] <: FXNeutralBox[N]
 
   type MarkerType[N <: Nat] = FXCardinalMarker[N]
   type NeutralMarkerType[N <: Nat] = FXNeutralMarker[N]
@@ -62,17 +65,28 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
 
   class FXNeutralMarker[N <: Nat](
     val dim : N,
-    val element : Option[A[N]], 
+    val el : Option[A[N]], 
     val address : CardinalAddress[S[N]],
     val isExternal : Boolean,
     val objectCanvas : FXCardinalCanvas,
     val edgeCanvas : FXCardinalCanvas
   ) extends FXCardinalMarker[N] with NeutralMarker[N] {
 
-    var label : Polarity[Option[A[N]]] = 
-      Neutral(element)
+    private var markerElement : Option[A[N]] = el
 
-    val nbox : FXNeutralBox[N] = new FXNeutralBox(this)
+    def label : Polarity[Option[A[N]]] = 
+      Neutral(markerElement)
+
+    def element : Option[A[N]] = 
+      markerElement
+
+    def element_=(el: Option[A[N]]) : Unit = {
+      markerElement = el
+      box.refreshLabel
+    }
+
+    // Ugly ...
+    val nbox : FXNeutralBox[N] = createNeutralBox(this)
     val box : FXCardinalBox = nbox
   
     var isSelected = false
@@ -81,7 +95,7 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
 
     cardinalAddress = Some(address)
 
-  objectCanvas.addNeutralBox(nbox)
+    objectCanvas.addNeutralBox(nbox)
     edgeCanvas.addEdge(edge)
 
   }
@@ -94,8 +108,9 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
     val edgeCanvas : FXCardinalCanvas
   ) extends FXCardinalMarker[N] with PolarizedMarker[N] {
 
-    var label : Polarity[Option[A[N]]] = lbl
+    def label : Polarity[Option[A[N]]] = lbl
 
+    // Ugly
     val pbox : FXPolarizedBox[N] = new FXPolarizedBox(this)
     val box : FXCardinalBox = pbox
 
@@ -174,44 +189,45 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
 
   }
 
-  def createCanvas = new FXCardinalCanvas
+  def createCanvas = {
+    val c = new FXCardinalCanvas
+    canvases += c
+    c
+  }
 
   //============================================================================================
   // BOX IMPLEMENTATIONS
   //
 
-  abstract class FXCardinalBox extends FXBox
+  abstract class FXCardinalBox extends FXBox { 
 
-  class FXNeutralBox[N <: Nat](mk : FXNeutralMarker[N]) extends FXCardinalBox {
+    var boxLabel : Node = 
+      labelRenderer.render(marker.dim)(marker.label)
 
-    type Dim = N
+    def label : Node = 
+      boxLabel
 
-    def marker : MarkerType[Dim] = mk
-
-    val label = labelRenderer.render(mk.dim)(mk.label)
+    def refreshLabel : Unit = {
+      boxLabel = labelRenderer.render(marker.dim)(marker.label)
+      pane.getChildren.setAll(label)
+    }
 
     pane.getChildren.add(label)
 
-//     override def onClick = {
-//       println("Click received with address: " ++ mk.address.toString)
+  }
 
-// //       if (! isSelected) {
-// //         deselectAll
-// //         select(marker)
-// //       }
-//     }
+  def createNeutralBox[N <: Nat](mk : FXNeutralMarker[N]) : FXNeutralBox[N]
 
-//     override def onCtrlClick = {
-//       if (marker.isExtrudable)
-//         selectExtrudable(marker)
-//       else
-//         selectInternal(marker)
-//     }
+  abstract class FXNeutralBox[N <: Nat] extends FXCardinalBox { thisBox : NeutralBoxType[N] =>
+
+    type Dim = N
 
     override def doHoverStyle = setBackground(genBg(Color.CORNFLOWERBLUE))
     override def doUnhoverStyle = setBackground(genBg(Color.WHITE))
     override def doSelectedStyle = setBackground(genBg(Color.ROYALBLUE))
     override def doUnselectedStyle = setBackground(genBg(Color.WHITE))
+
+    // override def onClick = deselectAll
 
   }
 
@@ -220,18 +236,9 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
     type Dim = N
 
     def marker : MarkerType[Dim] = mk
-
     def isPositive : Boolean = mk.isPositive
 
-    val label = labelRenderer.render(mk.dim)(mk.label)
-    pane.getChildren.add(label)
-
-    setBackground(genBg(Color.GAINSBORO))
-
-    // override def onClick = {
-    //   println("Clicked a polarized box")
-    //   // deselectAll
-    // }
+    def color : Color = Color.GAINSBORO
 
   }
 

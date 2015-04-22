@@ -8,7 +8,7 @@
 package opetopic.fx
 
 import scala.language.higherKinds
-
+import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions._
 
 import javafx.scene.Node
@@ -22,6 +22,7 @@ import javafx.scene.shape.{Box => _, _}
 import javafx.scene.control.{ContextMenu, MenuItem, ColorPicker, TextField, Label}
 import javafx.geometry.Insets
 import javafx.geometry.Side
+import javafx.scene.transform.Scale
 import javafx.event.EventHandler
 import javafx.event.ActionEvent
 import javafx.scene.control.Dialog
@@ -50,12 +51,19 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   type CanvasType <: FXCanvas
   type MarkerType[N <: Nat] <: FXMarker[N]
 
+  val canvases : ListBuffer[CanvasType] = new ListBuffer()
+
   override def render : Unit = {
     super.render
-    setNeedsLayout(true)
+
+    for {
+      canvas <- canvases
+    } {
+      canvas.requestLayout()
+    }
   }
 
-  def parseStringInput[N <: Nat](str: String) : A[N]
+  // setStyle("-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: purple")
 
   //============================================================================================
   // RENDER MARKER IMPLEMENTATION
@@ -71,7 +79,7 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
     var rootX : Double = 0.0
     var rootY : Double = 0.0
 
-    override def toString = "Marker(" ++ label.toString ++ ")"
+    override def toString = "FXMarker(" ++ label.toString ++ ")"
 
   }
 
@@ -81,20 +89,74 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
 
   abstract class FXCanvas extends Region with ViewerCanvas { thisCanvas : CanvasType =>
 
-    val group = new Group
+    protected val group = new Group
+    protected val groupScale = new Scale(1.0, 1.0, 0.0, 0.0)
+
+    group.setManaged(false)
+    group.getTransforms() add groupScale
     getChildren add group
 
-    override def layoutChildren = {
-      group.autosize
-      group.relocate(getInsets.getLeft, getInsets.getTop)
-    }
+    // setStyle("-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: green")
 
-    def addBox(box : BoxType) : Unit =
+    def addBox(box : BoxType) : Unit = 
       group.getChildren add box
 
-    def addEdge(edge : EdgeType) : Unit =
+    def addEdge(edge : EdgeType) : Unit = 
       group.getChildren add edge
 
+    private var zoomFactor : Double = 1.0
+
+    def setZoomFactor(zf : Double) : Unit = {
+      zoomFactor = zf
+      requestLayout
+    }
+
+    override def layoutChildren = {
+      val bounds = group.getBoundsInParent()
+      val emptyX = getWidth() - getInsets.getLeft - getInsets.getRight - bounds.getWidth
+      val emptyY = getHeight() - getInsets.getTop - getInsets.getBottom - bounds.getHeight
+      group.relocate(getInsets.getLeft + (emptyX / 2), getInsets.getTop + (emptyY / 2))
+    }
+
+    override def computePrefWidth(height : Double) : Double = {
+      getInsets.getLeft + group.prefWidth(height) + getInsets.getRight
+    }
+
+    override def computePrefHeight(width : Double) : Double = {
+      getInsets.getTop + group.prefHeight(width) + getInsets.getBottom
+    }
+
+    override def resize(width : Double, height : Double) = {
+
+      val bounds = group.getLayoutBounds
+
+      groupScale.setPivotX(bounds.getMinX)
+      groupScale.setPivotY(bounds.getMinY)
+
+      val xfactor = (width - getInsets.getLeft - getInsets.getRight) / bounds.getWidth
+      val yfactor = (height - getInsets.getTop - getInsets.getBottom) / bounds.getHeight
+
+      if (xfactor < yfactor) {
+        if (xfactor <= 1.0) {
+          groupScale.setX(xfactor * zoomFactor)
+          groupScale.setY(xfactor * zoomFactor)
+        } else {
+          groupScale.setX(zoomFactor)
+          groupScale.setY(zoomFactor)
+        }
+      } else {
+        if (yfactor <= 1.0) {
+          groupScale.setX(yfactor * zoomFactor)
+          groupScale.setY(yfactor * zoomFactor)
+        } else {
+          groupScale.setX(zoomFactor)
+          groupScale.setY(zoomFactor)
+        }
+      }
+
+      super.resize(width, height)
+
+    }
   }
 
   def displayCanvas(canvas : CanvasType) : Unit = 
@@ -104,65 +166,65 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   // CONTEXT MENU
   //
 
-  val propertiesItem = new MenuItem("Properties")
-  val previewCellItem = new MenuItem("Preview Cell")
+  // val propertiesItem = new MenuItem("Properties")
+  // val previewCellItem = new MenuItem("Preview Cell")
 
-  val boxContextMenu = new ContextMenu
-  boxContextMenu.getItems.addAll(propertiesItem, previewCellItem)
+  // val boxContextMenu = new ContextMenu
+  // boxContextMenu.getItems.addAll(propertiesItem, previewCellItem)
 
   //============================================================================================
   // PROPERTIES DIALOG
   //
 
-  case class CellProperties(val label: String, val color: Color)
+  // case class CellProperties(val label: String, val color: Color)
 
-  class PropertiesDialog extends Dialog[CellProperties] {
+  // class PropertiesDialog extends Dialog[CellProperties] {
 
-    setTitle("Cell Properties")
-    setHeaderText("Cell Properties")
+  //   setTitle("Cell Properties")
+  //   setHeaderText("Cell Properties")
 
-    getDialogPane.getButtonTypes.addAll(ButtonType.OK, ButtonType.CANCEL)
+  //   getDialogPane.getButtonTypes.addAll(ButtonType.OK, ButtonType.CANCEL)
 
-    val cb = new Callback[ButtonType, CellProperties] { 
-      def call(bt: ButtonType) : CellProperties = 
-        bt match {
-          case ButtonType.OK => CellProperties(labelField.getText, colorPicker.getValue)
-          case ButtonType.CANCEL => CellProperties("", Color.WHITE)
-        }
-    }
+  //   val cb = new Callback[ButtonType, CellProperties] { 
+  //     def call(bt: ButtonType) : CellProperties = 
+  //       bt match {
+  //         case ButtonType.OK => CellProperties(labelField.getText, colorPicker.getValue)
+  //         case ButtonType.CANCEL => CellProperties("", Color.WHITE)
+  //       }
+  //   }
 
-    setResultConverter(cb)
+  //   setResultConverter(cb)
 
-    val grid = new GridPane
-    grid.setHgap(10)
-    grid.setVgap(10)
+  //   val grid = new GridPane
+  //   grid.setHgap(10)
+  //   grid.setVgap(10)
 
-    val labelField = new TextField
-    val colorPicker = new ColorPicker
+  //   val labelField = new TextField
+  //   val colorPicker = new ColorPicker
 
-    grid.add(new Label("Label: "), 0, 0)
-    grid.add(labelField, 1, 0)
-    grid.add(new Label("Color: "), 0, 1)
-    grid.add(colorPicker, 1, 1)
+  //   grid.add(new Label("Label: "), 0, 0)
+  //   grid.add(labelField, 1, 0)
+  //   grid.add(new Label("Color: "), 0, 1)
+  //   grid.add(colorPicker, 1, 1)
 
-    getDialogPane.setContent(grid)
+  //   getDialogPane.setContent(grid)
 
-  }
+  // }
 
-  def getCellProperties(box : FXBox) : Unit = {
+  // def getCellProperties(box : FXBox) : Unit = {
 
-    val dialog = new PropertiesDialog
+  //   val dialog = new PropertiesDialog
 
-    dialog.showAndWait.ifPresent(new Consumer[CellProperties] {
-      def accept(cp: CellProperties) = {
-        val newLabel = parseStringInput[box.Dim](cp.label)
-        box.setBackground(box.genBg(cp.color))
-        box.marker.label = newLabel
-        render
-      }
-    })
+  //   dialog.showAndWait.ifPresent(new Consumer[CellProperties] {
+  //     def accept(cp: CellProperties) = {
+  //       val newLabel = parseStringInput[box.Dim](cp.label)
+  //       box.setBackground(box.genBg(cp.color))
+  //       box.marker.label = newLabel
+  //       render
+  //     }
+  //   })
 
-  }
+  // }
 
   //============================================================================================
   // BOXES
@@ -171,6 +233,7 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   abstract class FXBox extends Region with ViewerBox { thisBox : BoxType => 
 
     def label : Node
+    def color : Color
 
     def genBg(color : Color) : Background = 
       new Background(
@@ -190,7 +253,6 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
       )
     )
 
-    setBackground(genBg(Color.WHITE))
     setBorder(border)
 
     val pane = new Pane
@@ -202,6 +264,7 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
     def doUnselectedStyle : Unit = ()
 
     def render : Unit = {
+      setBackground(genBg(color))
       relocate(marker.x, marker.y)
       setPrefWidth(marker.width)
       setPrefHeight(marker.height)
@@ -213,7 +276,7 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
           ev.getEventType match {
             case MouseEvent.MOUSE_ENTERED => marker.hover
             case MouseEvent.MOUSE_EXITED => marker.unhover
-            case MouseEvent.MOUSE_CLICKED => 
+            case MouseEvent.MOUSE_CLICKED => {
               ev.getButton match {
                 case MouseButton.PRIMARY => 
                   if (ev.isControlDown())
@@ -222,17 +285,20 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
                     selectAsRoot(marker)
                 case MouseButton.SECONDARY => {
 
-                  propertiesItem.setOnAction(new EventHandler[ActionEvent] {
-                    def handle(ev: ActionEvent) = getCellProperties(thisBox)
-                  })
+                  // propertiesItem.setOnAction(new EventHandler[ActionEvent] {
+                  //   def handle(ev: ActionEvent) = getCellProperties(thisBox)
+                  // })
 
-                  boxContextMenu.show(thisBox, Side.TOP, 
-                    labelXPos + marker.halfLabelWidth, 
-                    labelYPos + marker.halfLabelHeight
-                  )
+                  // boxContextMenu.show(thisBox, Side.TOP, 
+                  //   labelXPos + marker.halfLabelWidth, 
+                  //   labelYPos + marker.halfLabelHeight
+                  // )
+
+                  ()
                 }
                 case _ => ()
               }
+            }
             case _ => ()
           }
           ev.consume
@@ -282,6 +348,8 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
 
         getElements.setAll(List(startMove, vertLine, arcTo, horizLine))
       }
+
+      toFront
     }
 
     def doHoverStyle : Unit = ()
@@ -292,10 +360,27 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   }
 
   //============================================================================================
+  // EVENT HANDLING
+  //
+
+  addEventHandler(MouseEvent.ANY,
+    new EventHandler[MouseEvent] {
+      def handle(ev : MouseEvent) {
+        ev.getEventType match {
+          case MouseEvent.MOUSE_CLICKED => 
+            deselectAll
+          case _ => ()
+        }
+        ev.consume
+      }
+    }
+  )
+
+  //============================================================================================
   // LAYOUT ROUTINES
   //
 
-  var spacing : Double = 10.0
+  var spacing : Double = 25.0
   var maxHeight : Double = 0.0
 
   override def computePrefWidth(height : Double) : Double = {
@@ -317,10 +402,17 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   override def layoutChildren = {
     (getChildren foldLeft 0.0)({
       case (leftShift, child) => {
-        val childWidth = child.prefWidth(-1)
-        val childHeight = child.prefHeight(-1)
-        val heightOffset = (maxHeight - childHeight) / 2
-        child.resizeRelocate(leftShift, heightOffset, childWidth, childHeight)
+        val childWidth = child.prefWidth(0)
+        val childHeight = child.prefHeight(0)
+
+        val (heightOffset, childHSize) = 
+          if (childHeight > getHeight) {
+            (0.0, getHeight)
+          } else {
+            ((getHeight - childHeight) / 2, childHeight)
+          }
+
+        child.resizeRelocate(leftShift, heightOffset, childWidth, childHSize)
         leftShift + childWidth + spacing
       }
     })

@@ -13,12 +13,9 @@ import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.scene.Scene
 import scalafx.scene.input.{KeyEvent, KeyCode}
-import scalafx.scene.control.{Menu, MenuBar, MenuItem, Button, TabPane, SplitPane, Tab, ColorPicker}
-import scalafx.scene.layout.BorderPane
-import scalafx.scene.layout.HBox
-import scalafx.scene.layout.VBox
-import scalafx.scene.layout.Region
-import scalafx.scene.layout.StackPane
+import scalafx.scene.layout._
+import scalafx.scene.control._
+import scalafx.scene.paint.Color
 import scalafx.geometry._
 import scalafx.stage.PopupWindow
 
@@ -34,29 +31,56 @@ object FXEditor extends JFXApp {
 
   var tabCount : Int = 1
 
-  var activeEditor : Option[FXCardinalEditor[ConstString]] = None
+  var activeEditor : Option[LabeledCellEditor] = None
 
   def addTab : Unit = {
 
-    val editor = 
-      new FXCardinalEditor[ConstString] {
+    val editor = new LabeledCellEditor { thisEditor =>
 
-        def parseStringInput[N <: Nat](str: String) : Polarity[Option[ConstString[N]]] = 
-          Neutral(Some(str))
+      onSelectAsRoot = new IndexedOp[FXCardinalMarker] {
+        def apply[N <: Nat](n: N)(mk: FXCardinalMarker[N]) : Unit = {
 
-        onSelectAsRoot = new IndexedOp[FXCardinalMarker] {
-          def apply[N <: Nat](n: N)(mk: FXCardinalMarker[N]) : Unit = {
-            for {
-              cmplx <- mk.labelComplex
-            } {
-              // type IntOpt[K <: Nat] = Polarity[Option[Int]]
-              // val test : Complex[IntOpt, N] = cmplx
-              // val viewer = new JComplexViewer(cmplx)
-            }
+          val nm : FXNeutralMarker[N] = mk.asInstanceOf[FXNeutralMarker[N]]
+
+          propertiesPane.disable = false
+
+          nm.element match {
+            case None => labelField.text = ""
+            case Some(cl) => labelField.text = cl.label
           }
-        }
 
+          applyButton.onAction = () => {
+
+            val str = labelField.text()
+            val clr = colorPicker.value()
+
+            if (str == "") {
+              nm.element = None
+            } else {
+              println("Setting label to: " ++ str)
+              nm.element = Some(ColoredLabel(str, clr))
+            }
+
+            thisEditor.render
+            tabPane.requestFocus
+
+          }
+
+          for {
+            cmplx <- nm.neutralComplex
+          } {
+
+            val facePreview = new LabeledCellViewer(cmplx)
+            facePreview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
+            previewPane.children = facePreview
+            facePreview.render
+
+          }
+
+        }
       }
+
+    }
 
     editor.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
 
@@ -66,6 +90,7 @@ object FXEditor extends JFXApp {
 
       content = new StackPane {
         children = editor
+        style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: blue"
       }
 
       onSelectionChanged = () => {
@@ -91,45 +116,70 @@ object FXEditor extends JFXApp {
     }
   }
 
-  // val previewPane = new StackPane {
-  //   children = new ColorPicker
-  // }
+  val propertiesPane = new GridPane {
+    hgap = 10
+    vgap = 10
+    padding = Insets(10,10,10,10)
+    disable = true
+  }
 
-  // val verticalSplit = new SplitPane {
-  //   orientation = Orientation.VERTICAL
-  //   items ++= List(tabPane, previewPane)
-  //   dividerPositions = 0.9f
-  // }
+  val labelField = new TextField
+  val colorPicker = new ColorPicker
+  val applyButton = new Button("Apply")
 
-  stage = new PrimaryStage {
-    title = "FXEditor"
-    scene = new Scene {
-      root = new BorderPane {
-        top = new MenuBar {
-          useSystemMenuBar = true
-          menus = List(
-            new Menu("File") {
-              items = List(
-                new MenuItem("Exit") {
-                  onAction = () => {
-                    scalafx.application.Platform.exit
-                  }
-                }
-              )
+  propertiesPane.add(new Label("Label: "), 0, 0)
+  propertiesPane.add(labelField, 1, 0)
+  propertiesPane.add(new Label("Color: "), 0, 1)
+  propertiesPane.add(colorPicker, 1, 1)
+  propertiesPane.add(applyButton, 1, 2)
+
+  val previewPane = new StackPane {
+    // style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: red"
+    padding = Insets(10, 10, 10, 10)
+  }
+
+  val horizontalSplit = new SplitPane {
+    orientation = Orientation.HORIZONTAL
+    items ++= List(propertiesPane, previewPane)
+    dividerPositions = 0.25f
+  }
+
+  val verticalSplit = new SplitPane {
+    orientation = Orientation.VERTICAL
+    items ++= List(tabPane, horizontalSplit)
+    dividerPositions = 0.75f
+  }
+
+  val borderPane = new BorderPane {
+    top = new MenuBar {
+      useSystemMenuBar = true
+      menus = List(
+        new Menu("File") {
+          items = List(
+            new MenuItem("Exit") {
+              onAction = () => {
+                scalafx.application.Platform.exit
+              }
             }
           )
         }
-        center = tabPane
-      }
-      onKeyPressed = (ev : KeyEvent) => {
-        ev.code match {
-          case KeyCode.T => if (ev.isControlDown) addTab
-          case _ => ()
-        }
+      )
+    }
+    center = verticalSplit
+  }
+
+  val editorScene = new Scene(borderPane, 1300, 700) {
+    onKeyPressed = (ev : KeyEvent) => {
+      ev.code match {
+        case KeyCode.T => if (ev.isControlDown) addTab
+        case _ => ()
       }
     }
-    width = 1300
-    height = 700
+  }
+
+  stage = new PrimaryStage {
+    title = "FXEditor"
+    scene = editorScene
     onShown = () => {
       addTab
     }
