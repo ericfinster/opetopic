@@ -224,7 +224,9 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
     type Dim = N
 
     override def doHoverStyle = {
-      val hoverColor = color.deriveColor(0, 1.0, .90, 1.0)
+      val hoverColor = 
+        color.deriveColor(0, 1.0, .90, 1.0)
+        //color.interpolate(Color.BLUE, 0.3)
       setBackground(genBg(hoverColor))
     }
 
@@ -233,7 +235,9 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
     }
 
     override def doSelectedStyle = {
-      val selectedColor = color.deriveColor(0, 1.0, .80, 1.0)
+      val selectedColor = 
+        color.deriveColor(0, 1.0, .80, 1.0)
+        //color.interpolate(Color.BLUE, 0.5)
       setBackground(genBg(selectedColor))
     }
 
