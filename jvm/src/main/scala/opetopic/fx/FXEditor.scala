@@ -57,10 +57,10 @@ object FXEditor extends JFXApp {
             if (str == "") {
               nm.element = None
             } else {
-              println("Setting label to: " ++ str)
               nm.element = Some(ColoredLabel(str, clr))
             }
 
+            thisEditor.deselectAll
             thisEditor.render
             tabPane.requestFocus
 
@@ -123,7 +123,12 @@ object FXEditor extends JFXApp {
     disable = true
   }
 
-  val labelField = new TextField
+  val labelField = new TextField {
+    onAction = () => {
+      applyButton.fire
+    }
+  }
+
   val colorPicker = new ColorPicker
   val applyButton = new Button("Apply")
 

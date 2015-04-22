@@ -46,6 +46,7 @@ class LabeledCellEditor extends FXCardinalEditor[ColoredLabel] {
   class LabeledCellBox[N <: Nat](mk : FXNeutralMarker[N]) extends FXNeutralBox[N] {
 
     def marker : FXNeutralMarker[N] = mk
+
     def color : Color =
       marker.label match {
         case Neutral(Some(cl)) => cl.color
@@ -72,20 +73,8 @@ class LabeledCellViewer(lc: FiniteComplex[ColoredLabel.LabelOpt]) extends FXComp
 
     val r = implicitly[FXRenderable[ColoredLabel.LabelOpt]]
 
-    val label : Node = {
-      marker.label match {
-        case Some(cl) => {
-          println("Rendering cl with label: " ++ cl.label)
-          new Text(cl.label)
-        }
-        case None => {
-          val rect = new Rectangle(10.0, 10.0)
-          rect.setFill(Color.TRANSPARENT)
-          rect
-        }
-      }
-      // r.render(marker.dim)(marker.label)
-    }
+    val label : Node = 
+      r.render(marker.dim)(marker.label)
 
     pane.getChildren.add(label)
 

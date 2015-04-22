@@ -14,6 +14,7 @@ import javafx.scene.Node
 import javafx.scene.text.Text
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
+import javafx.scene.effect.ColorAdjust
 
 import opetopic._
 import opetopic.ui._
@@ -222,10 +223,23 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
 
     type Dim = N
 
-    override def doHoverStyle = setBackground(genBg(Color.CORNFLOWERBLUE))
-    override def doUnhoverStyle = setBackground(genBg(Color.WHITE))
-    override def doSelectedStyle = setBackground(genBg(Color.ROYALBLUE))
-    override def doUnselectedStyle = setBackground(genBg(Color.WHITE))
+    override def doHoverStyle = {
+      val hoverColor = color.deriveColor(0, 1.0, .90, 1.0)
+      setBackground(genBg(hoverColor))
+    }
+
+    override def doUnhoverStyle = {
+      setBackground(genBg(color))
+    }
+
+    override def doSelectedStyle = {
+      val selectedColor = color.deriveColor(0, 1.0, .80, 1.0)
+      setBackground(genBg(selectedColor))
+    }
+
+    override def doUnselectedStyle = {
+      setBackground(genBg(color))
+    }
 
     // override def onClick = deselectAll
 
