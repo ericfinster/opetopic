@@ -210,6 +210,9 @@ object TypeDefs extends NatConstants {
   type Cardinal[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = CardinalNesting[A[K], K] })#L, S[N]]
 
+  type FiniteCardinal[A[_ <: Nat]] = 
+    Sigma[({ type L[K <: Nat] = Cardinal[A, K]})#L]
+
   type PolaritySuite[A[_ <: Nat], N <: Nat] = 
     Suite[({ type L[K <: Nat] = (A[K], A[K]) })#L, S[N]]
 

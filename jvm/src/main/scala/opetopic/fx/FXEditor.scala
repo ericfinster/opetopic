@@ -27,6 +27,7 @@ import opetopic.ui._
 import opetopic.TypeDefs._
 import opetopic.Cardinal._
 import opetopic.syntax.complex._
+import opetopic.syntax.cardinal._
 
 object FXEditor extends JFXApp {
 
@@ -40,7 +41,9 @@ object FXEditor extends JFXApp {
 
   def addTab(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) : Unit = {
 
-    val editor = new LabeledCellEditor(cmplx) { thisEditor =>
+    val cardinal = Cardinal.complexToCardinal(cmplx.value)._1
+
+    val editor = new LabeledCellEditor(cardinal) { thisEditor =>
 
       onSelectAsRoot = new IndexedOp[FXCardinalMarker] {
         def apply[N <: Nat](n: N)(mk: FXCardinalMarker[N]) : Unit = {

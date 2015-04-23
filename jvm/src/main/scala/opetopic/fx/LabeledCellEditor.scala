@@ -13,6 +13,7 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 
 import opetopic._
+import syntax.cardinal._
 import TypeDefs._
 
 case class ColoredLabel[N <: Nat](val label: String, val color: Color) {
@@ -60,14 +61,9 @@ object ColoredLabel {
 
 }
 
-class LabeledCellEditor extends FXCardinalEditor[ColoredLabel] {
+class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCardinalEditor[ColoredLabel](c) {
 
-  def this(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) = {
-    this()
-    val labelCardinal = Cardinal.complexToCardinal(cmplx.value)._1
-    val newState = initializeEditor(labelCardinal)
-    editorState = newState
-  }
+  def this() = this(Cardinal[ColoredLabel.LabelOpt]() >> Pt(Obj(None)))
 
   type NeutralBoxType[N <: Nat] = LabeledCellBox[N]
 

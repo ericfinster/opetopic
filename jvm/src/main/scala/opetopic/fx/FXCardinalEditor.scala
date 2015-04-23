@@ -24,7 +24,7 @@ import Cardinal._
 
 import syntax.complex._
 
-abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A]) 
+abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Nat] = Option[A[K]] })#L])(implicit fxr: FXRenderable[A]) 
     extends FXViewer[({ type L[K <: Nat] = Polarity[Option[A[K]]] })#L] 
     with CardinalEditor[A, Double] {
 
@@ -43,7 +43,8 @@ abstract class FXCardinalEditor[A[_ <: Nat]](implicit fxr: FXRenderable[A])
   val labelRenderer : FXRenderable[({ type L[K <: Nat] = Polarity[Option[A[K]]] })#L] =
     polarityIsRenderable[({ type L[K <: Nat] = Option[A[K]] })#L](optIsRenderable[A](fxr))
 
-  var editorState : EditorState = EditorState(Obj(None))
+  var editorState : EditorState = 
+    initializeEditor(c.value)
 
   var onSelectAsRoot : IndexedOp[FXCardinalMarker] = 
     new IndexedOp[FXCardinalMarker] { 

@@ -51,4 +51,7 @@ trait ToCardinalOps {
   implicit def toCardinalOps[A[_ <: Nat], N <: Nat](cardinal : Cardinal[A, N]) : CardinalOps[A, N] = 
     new CardinalOps(cardinal)
 
+  implicit def toFiniteCardinal[A[_ <: Nat], N <: Nat](cardinal: Cardinal[A, N]) : FiniteCardinal[A] = 
+    Sigma[({ type L[K <: Nat] = Cardinal[A, K] })#L, N](cardinal.length.pred)(cardinal)
+
 }

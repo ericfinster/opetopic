@@ -22,7 +22,7 @@ import syntax.complex._
 import syntax.nesting._
 import syntax.cardinal._
 
-trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polarity[Option[A[K]]] })#L, U] { 
+trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polarity[Option[A[K]]] })#L, U] {
 
   type PolA[K <: Nat] = Polarity[Option[A[K]]]
   type OptA[K <: Nat] = Option[A[K]]
@@ -129,9 +129,10 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             Obj(marker)
           }
           case Box(opt, Pt(n)) => {
+            val canopy = genObjData(n, () :: base)
             val marker = createNeutralMarker(Z)(opt, CardinalAddress() >> base, false, objCanvas, edgeCanvas)
             marker.faceComplex = Some(Complex() >> Obj(marker))
-            Box(marker, Pt(genObjData(n, () :: base)))
+            Box(marker, Pt(canopy))
           }
         }
 
@@ -176,12 +177,13 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
         nst match {
           case Dot(opt, d) => 
             Dot(createNeutralMarker(nextDim)(opt, pref >> base, true, objCanvas, edgeCanvas), d)
-          case Box(opt, cn) => 
-            Box(createNeutralMarker(nextDim)(opt, pref >> base, false, objCanvas, edgeCanvas), 
-              cn mapWithAddress {
+          case Box(opt, cn) => {
+            val newCanopy = cn mapWithAddress {
                 case (nst, dir) => genNstData(nst, pref, dir :: base)
               }
-            )
+
+            Box(createNeutralMarker(nextDim)(opt, pref >> base, false, objCanvas, edgeCanvas), newCanopy)
+          }
         }
 
       val neutralNesting = mapCardinalTreeWithAddr(nextDim)(cn)({
