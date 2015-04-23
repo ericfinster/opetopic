@@ -249,6 +249,38 @@ trait CardinalFunctions {
     })(n)(c, p)
 
   //============================================================================================
+  // COMPLEX TO CARDINAL
+  //
+
+  def complexToCardinal[A[_ <: Nat], N <: Nat](cmplx: Complex[A, N]) : (Cardinal[A, N], Derivative[Nesting[A[S[N]], S[N]], S[N]]) = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = Complex[A, N] => (Cardinal[A, N], Derivative[Nesting[A[S[N]], S[N]], S[N]])
+
+      def caseZero : Out[_0] = {
+        case Complex(_, hd) => {
+          (Cardinal[A]() >> Pt(hd) , (Pt(Leaf(__1)), Nil))
+        }
+      }
+
+      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
+        case Complex(tl, hd) => {
+          type INst[K <: Nat] = Nesting[A[K], K]
+          type ICNst[K <: Nat] = CardinalNesting[A[K], K]
+          val (newTl, deriv) = this(p)(tl)
+
+          val nextCardinalNesting = 
+            mapCardinalTree[INst[P], Tree[Nesting[A[S[P]], S[P]], S[P]], P](p)(Suite.head[ICNst, P](newTl))(
+              nst => Node(hd, deriv._1)
+            )
+
+          (newTl >> nextCardinalNesting, (Tree.const(Nesting.toTree(Suite.head[INst, P](tl)), Leaf(S(S(p)))), Nil))
+        }
+      }
+
+    })(cmplx.length.pred)(cmplx)
+
+  //============================================================================================
   // POKE
   //
 

@@ -46,6 +46,18 @@ object ColoredLabel {
         }
     }
 
+  implicit def labelReader[N <: Nat] : IndexedReader[LabelOpt] = 
+    new IndexedReader[LabelOpt] {
+      def reader[N <: Nat] : Reader[LabelOpt[N]] = 
+        Reader[LabelOpt[N]] {
+          case Js.Arr(els @ _*) => {
+            for {
+              Js.Obj(("label", Js.Str(lbl)), ("color", Js.Str(cl))) <- els.headOption
+            } yield ColoredLabel(lbl, Color.web(cl))
+          }
+        }
+    }
+
 }
 
 class LabeledCellEditor extends FXCardinalEditor[ColoredLabel] {

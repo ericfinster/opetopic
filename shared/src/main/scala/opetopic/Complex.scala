@@ -372,4 +372,33 @@ object Complex extends ComplexFunctions {
     })
   }
 
+  implicit def complexReader[A[_ <: Nat]](implicit rdr: IndexedReader[A]) : Reader[FiniteComplex[A]] = {
+    type IdxdNesting[K <: Nat] = Nesting[A[K], K]
+
+    new Reader[FiniteComplex[A]] {
+      def read0: PartialFunction[Js.Value, FiniteComplex[A]] = {
+        case Js.Arr(els @ _*) => {
+          val dim = intToNat(els.length - 1)
+          Sigma[({ type L[K <: Nat] = Complex[A, K] })#L, Nat](dim)(readComplex(dim)(els))
+        }
+      }
+
+      def readComplex[N <: Nat](n: N)(vs: Seq[Js.Value]) : Complex[A, N] = 
+        (new NatCaseSplit0 {
+
+          type Out[N <: Nat] = Seq[Js.Value] => Complex[A, N]
+
+          def caseZero : Out[_0] = {
+            vs => Complex[A]() >> Nesting.nestingReader(Z)(rdr.reader[_0]).read(vs.head)
+          }
+
+          def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
+            vs => this(p)(vs.tail) >> Nesting.nestingReader(S(p))(rdr.reader[S[P]]).read(vs.head)
+          }
+
+        })(n)(vs)
+
+    }
+  }
+
 }

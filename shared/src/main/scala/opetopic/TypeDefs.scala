@@ -38,11 +38,19 @@ object TypeDefs extends NatConstants {
   type ConstString[N <: Nat] = String
 
   trait IndexedOp[A[_ <: Nat]] {
-    def apply[N <: Nat](n: N)(an : A[N]) : Unit
+    def apply[N <: Nat](n: N)(an: A[N]) : Unit
+  }
+
+  trait IndexedMap[A[_ <: Nat], B[_ <: Nat]] {
+    def apply[N <: Nat](n: N)(an: A[N]) : B[N]
   }
 
   trait IndexedWriter[A[_ <: Nat]] {
     def writer[N <: Nat] : upickle.Writer[A[N]]
+  }
+
+  trait IndexedReader[A[_ <: Nat]] {
+    def reader[N <: Nat] : upickle.Reader[A[N]]
   }
 
   //============================================================================================

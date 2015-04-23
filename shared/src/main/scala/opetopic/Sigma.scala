@@ -18,4 +18,14 @@ trait Sigma[T[_ <: Nat]] {
 
 }
 
+object Sigma {
+
+  def apply[T[_ <: Nat], M <: Nat](m: M)(tm: T[M]) : Sigma[T] = 
+    new Sigma[T] {
+      type N = M
+      val n = m
+      val value = tm
+    }
+
+}
 

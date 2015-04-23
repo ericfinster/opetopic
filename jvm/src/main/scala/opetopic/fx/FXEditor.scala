@@ -18,6 +18,7 @@ import scalafx.scene.control._
 import scalafx.scene.paint.Color
 import scalafx.geometry._
 import scalafx.stage.PopupWindow
+import scalafx.stage.FileChooser
 
 import scalafx.scene.control.Alert
 
@@ -92,7 +93,7 @@ object FXEditor extends JFXApp {
 
       content = new StackPane {
         children = editor
-        style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: blue"
+        // style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: blue"
       }
 
       onSelectionChanged = () => {
@@ -169,14 +170,6 @@ object FXEditor extends JFXApp {
           viewer.labelComplex
 
         import upickle._
-
-        val dorp : Nesting[Option[Int], _2] = 
-          Box(None, Node(Dot(None, __2), 
-            Node(Node(Dot(None, __2), Leaf(__1)), 
-              Pt(Node(Leaf(__2), 
-                Pt(Node(Leaf(__2),
-                  Pt(Leaf(__1)))))))))
-
         import Complex._
 
         val jsonViewer = new FXDialogs.CodeDisplayDialog(write(complex.value))
@@ -209,12 +202,75 @@ object FXEditor extends JFXApp {
     dividerPositions = 0.75f
   }
 
+  val fileChooser = new FileChooser
+
+  def onSaveComplex : Unit = 
+    for {
+      viewer <- activePreview
+    } {
+
+      fileChooser.setTitle("Save Complex")
+
+      val file = fileChooser.showSaveDialog(editorScene.getWindow)
+
+      if (file != null) {
+
+        val complex : FiniteComplex[ColoredLabel.LabelOpt] =
+          viewer.labelComplex
+
+        import upickle._
+        import Complex._
+
+        val writer = new java.io.PrintWriter(file)
+        writer.write(write(complex.value))
+        writer.close
+
+      }
+
+    }
+
+  def onLoadComplex : Unit = {
+
+    fileChooser.setTitle("Load Complex")
+
+    val file = fileChooser.showOpenDialog(editorScene.getWindow)
+
+    if (file != null) {
+
+      val reader = new java.io.FileReader(file)
+      val src = io.Source.fromFile(file, "UTF-8")
+      val json = src.getLines.mkString
+      src.close
+
+      // Now, we should try to read the json ...
+
+      import upickle._
+      import Complex._
+
+      val complex : FiniteComplex[ColoredLabel.LabelOpt] =
+        read[FiniteComplex[ColoredLabel.LabelOpt]](json)
+
+      val facePreview = new LabeledCellViewer(complex)
+      facePreview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
+      previewPane.children = facePreview
+      activePreview = Some(facePreview)
+      facePreview.render
+
+    }
+  }
+
   val borderPane = new BorderPane {
     top = new MenuBar {
       useSystemMenuBar = true
       menus = List(
         new Menu("File") {
           items = List(
+            new MenuItem("Save Complex") {
+              onAction = () => { onSaveComplex }
+            },
+            new MenuItem("Load Complex") {
+              onAction = () => { onLoadComplex }
+            },
             new MenuItem("Exit") {
               onAction = () => {
                 scalafx.application.Platform.exit

@@ -116,6 +116,7 @@ object Suite {
   ) : T[Suite[G, L]] = traverseWithCount[T, F, G, L](seq)(trav)._1
 
   import upickle._
+  import scala.{PartialFunction => PF}
 
   implicit def suiteWriter[F[_ <: Nat], N <: Nat](implicit iwrtr: IndexedWriter[F]) : Writer[Suite[F, N]] = 
     new Writer[Suite[F, N]] {
@@ -137,6 +138,12 @@ object Suite {
         }
     }
 
+  implicit def suiteReader[F[_ <: Nat], N <: Nat](implicit irdr: IndexedReader[F]) : Reader[Suite[F, N]] = 
+    new Reader[Suite[F, N]] {
+      def read0: PF[Js.Value, Suite[F, N]] = {
+        case Js.Arr(v) => ???
+      }
+    }
 
 }
 

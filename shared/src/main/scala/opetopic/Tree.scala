@@ -449,14 +449,41 @@ object Tree extends TreeFunctions {
     new Writer[Tree[A, N]] { 
       def write0: Tree[A, N] => Js.Value = {
         case Pt(a) => Js.Obj(("type", Js.Str("pt")), ("val", wrtr.write(a)))
-        case Leaf(d) => Js.Obj(("type", Js.Str("leaf")), ("dim", Js.Num(natToInt(d))))
+        case Leaf(d) => Js.Obj(("type", Js.Str("leaf")))
         case Node(a, sh) => {
           val shellWriter : Writer[Tree[Tree[A, S[Nat]], Nat]] =
             treeWriter[Tree[A, S[Nat]], Nat](this)
-          Js.Obj(("type", Js.Str("node")), ("shell", shellWriter.write(sh)))
+          Js.Obj(("type", Js.Str("node")), ("val", wrtr.write(a)), ("shell", shellWriter.write(sh)))
         }
       }
     }
+
+  implicit def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = Reader[Tree[A, N]]
+
+      def caseZero : Out[_0] = 
+        new Reader[Tree[A, _0]] {
+          def read0: PartialFunction[Js.Value, Tree[A, _0]] = {
+            case Js.Obj(("type", Js.Str("pt")), ("val", a)) => Pt(rdr.read(a))
+          }
+        }
+
+      def caseSucc[P <: Nat](p: P) : Out[S[P]] = 
+        new Reader[Tree[A, S[P]]] { thisRdr => 
+          def read0: PartialFunction[Js.Value, Tree[A, S[P]]] = {
+            case Js.Obj(("type", Js.Str("leaf"))) => Leaf(S(p))
+            case Js.Obj(("type", Js.Str("node")), ("val", a), ("shell", sh)) => {
+              val shellReader : Reader[Tree[Tree[A, S[P]], P]] = 
+                treeReader[Tree[A, S[P]], P](p)(thisRdr)
+
+              Node(rdr.read(a), shellReader.read(sh))
+            }
+          }
+        }
+
+    })(n)
 
 
 }

@@ -156,6 +156,19 @@ module Cardinal where
   completeToComplex {n = suc n} (tl ▶ hd) (ps ▶ (a₋ , a₊)) = 
     completeToComplex tl ps ▶ box a₊ (node (dot a₋) (toShell {n = n} hd))
 
+  complexToCardinal₀ : {A : ℕ → Set} → {n : ℕ} → Complex A n → (Cardinal A n × Derivative (Nesting (A (suc n)) (suc n)) (suc n))
+  complexToCardinal₀ {n = zero} (∥ ▶ hd) = (∥ ▶ (pt hd)) , (pt leaf) , []
+  complexToCardinal₀ {n = suc n} (tl ▶ hd) with complexToCardinal₀ tl
+  complexToCardinal₀ {A = A} {n = suc n} (tl ▶ hd) | (c₀ , (sh , _)) = nextCardinal , const (toTree (head tl)) leaf , []
+
+    where nextCardinal : Cardinal A (suc n)
+          nextCardinal = c₀ ▶ mapCardinalTree {A = Nesting (A n) n} 
+                                {B = Tree (Nesting (A (suc n)) (suc n)) (suc n)} {n} (head c₀) 
+                                  (λ nst → node hd sh)
+
+  complexToCardinal : {A : ℕ → Set} → {n : ℕ} → Complex A n → Cardinal A n
+  complexToCardinal c = proj₁ (complexToCardinal₀ c)
+
   data CardinalDimFlag : ℕ → ℕ → Set where
     dimEq : {k : ℕ} → CardinalDimFlag k k 
     dimSucc : {k : ℕ} → CardinalDimFlag (suc k) k
@@ -199,8 +212,6 @@ module Cardinal where
       >>= (λ { (tr , ∂) → seekTo tr hd 
       >>= (λ { (fcs , cntxt) → exciseWithMask fcs msk 
       >>= (λ { (cut , cutSh) → η (plugCardinal ∂ (cntxt ↓ node (node (dot a) cut) cutSh)) }) }) })
-
-  -- tailDerivative : {M : Set → Set} → ⦃ isE : MonadError M ⦄ → {A : Set} → {n k : ℕ} → (k≤n : k ≤ n) → 
 
     extrudeLeafAt : {A B : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress k → Tree B k → M (CardinalNesting A n)
     extrudeLeafAt {A} {B} (s≤s (s≤s (z≤n {n}))) cn ca msk = 
