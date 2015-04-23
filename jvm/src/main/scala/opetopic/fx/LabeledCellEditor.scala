@@ -62,6 +62,13 @@ object ColoredLabel {
 
 class LabeledCellEditor extends FXCardinalEditor[ColoredLabel] {
 
+  def this(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) = {
+    this()
+    val labelCardinal = Cardinal.complexToCardinal(cmplx.value)._1
+    val newState = initializeEditor(labelCardinal)
+    editorState = newState
+  }
+
   type NeutralBoxType[N <: Nat] = LabeledCellBox[N]
 
   def createNeutralBox[N <: Nat](mk : FXNeutralMarker[N]) : LabeledCellBox[N] = 

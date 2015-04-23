@@ -35,9 +35,12 @@ object FXEditor extends JFXApp {
   var activeEditor : Option[LabeledCellEditor] = None
   var activePreview : Option[LabeledCellViewer] = None
 
-  def addTab : Unit = {
+  def addTab : Unit = 
+    addTab(Complex[ColoredLabel.LabelOpt]() >> Obj(None))
 
-    val editor = new LabeledCellEditor { thisEditor =>
+  def addTab(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) : Unit = {
+
+    val editor = new LabeledCellEditor(cmplx) { thisEditor =>
 
       onSelectAsRoot = new IndexedOp[FXCardinalMarker] {
         def apply[N <: Nat](n: N)(mk: FXCardinalMarker[N]) : Unit = {
@@ -179,8 +182,23 @@ object FXEditor extends JFXApp {
     }
   }
 
+  val toCardinalButton = new Button("To Cardinal") {
+    onAction = () => {
+      for {
+        viewer <- activePreview
+      } {
+
+        val complex : FiniteComplex[ColoredLabel.LabelOpt] = 
+          viewer.labelComplex
+
+        addTab(complex)
+
+      }
+    }
+  }
+
   val buttonTray = new HBox {
-    children = List(getCodeButton, getJsonButton)
+    children = List(getCodeButton, getJsonButton, toCardinalButton)
     spacing = 10
   }
 
