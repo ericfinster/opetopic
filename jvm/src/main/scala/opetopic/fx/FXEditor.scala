@@ -271,11 +271,7 @@ object FXEditor extends JFXApp {
       val complex : FiniteComplex[ColoredLabel.LabelOpt] =
         read[FiniteComplex[ColoredLabel.LabelOpt]](json)
 
-      val facePreview = new LabeledCellViewer(complex)
-      facePreview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
-      previewPane.children = facePreview
-      activePreview = Some(facePreview)
-      facePreview.render
+      addTab(complex)
 
     }
   }
