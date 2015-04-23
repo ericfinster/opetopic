@@ -19,7 +19,8 @@ lazy val opetopic = crossProject.in(file(".")).
       "-feature",
       "-deprecation"
     ),
-    libraryDependencies += "com.lihaoyi" %%% "scalatags" % "0.5.1"
+    libraryDependencies += "com.lihaoyi" %%% "scalatags" % "0.5.1",
+    libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.2.8"
   ).jvmSettings(
     fork := true,
     mainClass := Some("FXEditor"),

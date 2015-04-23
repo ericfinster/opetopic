@@ -34,6 +34,18 @@ object ColoredLabel {
       new Text(cl.label)
   }
 
+  import upickle._
+
+  implicit def labelWriter[N <: Nat] : IndexedWriter[LabelOpt] = 
+    new IndexedWriter[LabelOpt] {
+      def writer[N <: Nat] : Writer[LabelOpt[N]] =  
+        Writer[LabelOpt[N]] {
+          case None => Js.Arr()
+          case Some(ColoredLabel(lbl, cl)) => 
+            Js.Arr(Js.Obj(("label", Js.Str(lbl)), ("color", Js.Str(cl.toString))))
+        }
+    }
+
 }
 
 class LabeledCellEditor extends FXCardinalEditor[ColoredLabel] {

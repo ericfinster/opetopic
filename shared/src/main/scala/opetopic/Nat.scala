@@ -42,6 +42,20 @@ case class S[P <: Nat](val pred : P) extends Nat {
 
 }
 
+object Nat {
+
+  import upickle.Js
+
+  implicit val natWriter = upickle.Writer[Nat]{
+    case n => Js.Num(TypeDefs.natToInt(n))
+  }
+
+  implicit val natReader = upickle.Reader[Nat]{
+    case Js.Num(d) => TypeDefs.intToNat(d.toInt)
+  }
+
+}
+
 trait NatTypeRec[Type] {
 
   type OnZero <: Type
@@ -262,6 +276,9 @@ trait NatConstants {
       case Z => 0
       case S(p) => natToInt(p) + 1
     }
+
+  def intToNat(i : Int) : Nat = 
+    if (i <= 0) Z else S(intToNat(i - 1))
 
 }
 

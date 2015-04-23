@@ -41,6 +41,10 @@ object TypeDefs extends NatConstants {
     def apply[N <: Nat](n: N)(an : A[N]) : Unit
   }
 
+  trait IndexedWriter[A[_ <: Nat]] {
+    def writer[N <: Nat] : upickle.Writer[A[N]]
+  }
+
   //============================================================================================
   // POLARITIES
   //

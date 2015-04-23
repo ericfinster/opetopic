@@ -19,7 +19,7 @@ import TypeDefs._
 
 sealed abstract class Tree[+A, N <: Nat] { def dim : N }
 case class Pt[+A](a : A) extends Tree[A, _0] { def dim = Z }
-case class Leaf[N <: Nat](d : S[N]) extends Tree[Nothing, S[N]] { def dim = d ; override def toString = "Leaf(__" ++ natToInt(d).toString ++ ")" }
+case class Leaf[N <: Nat](d : S[N]) extends Tree[Nothing, S[N]] { def dim = d }
 case class Node[+A, N <: Nat](a : A, shell : Tree[Tree[A, S[N]], N]) extends Tree[A, S[N]] { def dim = S(shell.dim) }
 
 trait TreeFunctions { tfns => 
@@ -441,6 +441,24 @@ trait TreeFunctions { tfns =>
 
 }
 
-object Tree extends TreeFunctions 
+object Tree extends TreeFunctions {
+
+  import upickle._
+
+  implicit def treeWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Tree[A, N]] = 
+    new Writer[Tree[A, N]] { 
+      def write0: Tree[A, N] => Js.Value = {
+        case Pt(a) => Js.Obj(("type", Js.Str("pt")), ("val", wrtr.write(a)))
+        case Leaf(d) => Js.Obj(("type", Js.Str("leaf")), ("dim", Js.Num(natToInt(d))))
+        case Node(a, sh) => {
+          val shellWriter : Writer[Tree[Tree[A, S[Nat]], Nat]] =
+            treeWriter[Tree[A, S[Nat]], Nat](this)
+          Js.Obj(("type", Js.Str("node")), ("shell", shellWriter.write(sh)))
+        }
+      }
+    }
+
+
+}
 
 

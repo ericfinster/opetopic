@@ -362,4 +362,14 @@ object Complex extends ComplexFunctions {
     Some((Suite.tail[IdxdNesting, N](suite), Suite.head[IdxdNesting, N](suite)))
   }
 
+  import upickle._
+
+  implicit def complexWriter[A[_ <: Nat], N <: Nat](implicit wrtr : IndexedWriter[A]) : Writer[Complex[A, N]] = {
+    type IdxdNesting[K <: Nat] = Nesting[A[K], K]
+    Suite.suiteWriter(new IndexedWriter[IdxdNesting] {
+      def writer[N <: Nat] : Writer[IdxdNesting[N]] = 
+        Nesting.nestingWriter[A[N], N](wrtr.writer[N])
+    })
+  }
+
 }

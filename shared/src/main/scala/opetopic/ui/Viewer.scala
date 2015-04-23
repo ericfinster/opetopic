@@ -29,6 +29,12 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
 
   def complex : FiniteComplex[MarkerType]
 
+  def labelComplex : FiniteComplex[A] = 
+    complex.value map (new ~~>[MarkerType, A] {
+      def apply[N <: Nat](mk: MarkerType[N]) : A[N] = 
+        mk.label
+    })
+
   //============================================================================================
   // EVENT HANDLERS
   //

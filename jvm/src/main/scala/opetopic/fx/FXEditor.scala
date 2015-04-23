@@ -32,6 +32,7 @@ object FXEditor extends JFXApp {
   var tabCount : Int = 1
 
   var activeEditor : Option[LabeledCellEditor] = None
+  var activePreview : Option[LabeledCellViewer] = None
 
   def addTab : Unit = {
 
@@ -73,6 +74,7 @@ object FXEditor extends JFXApp {
             val facePreview = new LabeledCellViewer(cmplx)
             facePreview.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
             previewPane.children = facePreview
+            activePreview = Some(facePreview)
             facePreview.render
 
           }
@@ -139,13 +141,65 @@ object FXEditor extends JFXApp {
   propertiesPane.add(applyButton, 1, 2)
 
   val previewPane = new StackPane {
-    // style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: red"
+    style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: grey"
     padding = Insets(10, 10, 10, 10)
+  }
+
+  VBox.setVgrow(previewPane, Priority.Always)
+
+  val getCodeButton = new Button("Get Code") {
+    onAction = () => {
+      for {
+        viewer <- activePreview
+      } {
+        val code = viewer.labelComplex.value.toString
+        val codeViewer = new FXDialogs.CodeDisplayDialog(code)
+        codeViewer.showAndWait
+      }
+    }
+  }
+
+  val getJsonButton = new Button("Get Json") {
+    onAction = () => {
+      for {
+        viewer <- activePreview
+      } {
+
+        val complex : FiniteComplex[ColoredLabel.LabelOpt] = 
+          viewer.labelComplex
+
+        import upickle._
+
+        val dorp : Nesting[Option[Int], _2] = 
+          Box(None, Node(Dot(None, __2), 
+            Node(Node(Dot(None, __2), Leaf(__1)), 
+              Pt(Node(Leaf(__2), 
+                Pt(Node(Leaf(__2),
+                  Pt(Leaf(__1)))))))))
+
+        import Complex._
+
+        val jsonViewer = new FXDialogs.CodeDisplayDialog(write(complex.value))
+        jsonViewer.showAndWait
+
+      }
+    }
+  }
+
+  val buttonTray = new HBox {
+    children = List(getCodeButton, getJsonButton)
+    spacing = 10
+  }
+
+  val previewVBox = new VBox {
+    children = List(previewPane, buttonTray)
+    padding = Insets(10, 10, 10, 10)
+    spacing = 10
   }
 
   val horizontalSplit = new SplitPane {
     orientation = Orientation.HORIZONTAL
-    items ++= List(propertiesPane, previewPane)
+    items ++= List(propertiesPane, previewVBox)
     dividerPositions = 0.25f
   }
 

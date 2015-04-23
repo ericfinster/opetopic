@@ -19,7 +19,7 @@ import TypeDefs._
 
 sealed abstract class Nesting[+A, N <: Nat] { def dim : N }
 case class Obj[+A](a : A) extends Nesting[A, _0] { def dim = Z }
-case class Dot[+A, P <: Nat](a : A, d : S[P]) extends Nesting[A, S[P]] { def dim = d ; override def toString = "Dot(" ++ a.toString ++ ", __" ++ natToInt(d).toString ++ ")" }
+case class Dot[+A, P <: Nat](a : A, d : S[P]) extends Nesting[A, S[P]] { def dim = d }
 case class Box[+A, N <: Nat](a : A, c : Tree[Nesting[A, N], N]) extends Nesting[A, N] { def dim = c.dim }
 
 trait NestingFunctions {
@@ -316,5 +316,41 @@ trait NestingFunctions {
 
 }
 
-object Nesting extends NestingFunctions
+object Nesting extends NestingFunctions {
+
+  import upickle._
+
+  implicit def nestingWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Nesting[A, N]] = 
+    new Writer[Nesting[A, N]] {
+      def write0: Nesting[A, N] => Js.Value = {
+        case Obj(a) => Js.Obj(("type", Js.Str("obj")), ("val", wrtr.write(a)))
+        case Dot(a, d) => Js.Obj(("type", Js.Str("dot")), ("val", wrtr.write(a)), ("dim", Js.Num(natToInt(d))))
+        case Box(a, cn) => {
+          val canopyWriter : Writer[Tree[Nesting[A, N], N]] = 
+            Tree.treeWriter(this)
+          Js.Obj(("type", Js.Str("box")), ("val", wrtr.write(a)), ("canopy", canopyWriter.write(cn)))
+        }
+      }
+    }
+
+  // implicit def treeWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Tree[A, N]] = 
+  //   new Writer[Tree[A, N]] { 
+  //     def write0: Tree[A, N] => Js.Value = {
+  //       case Pt(a) => Js.Obj(("type", Js.Str("pt")), ("val", wrtr.write(a)))
+  //       case Leaf(d) => Js.Obj(("type", Js.Str("leaf")), ("dim", Js.Num(natToInt(d))))
+  //       case Node(a, sh) => {
+  //         val shellWriter : Writer[Tree[Tree[A, S[Nat]], Nat]] =
+  //           treeWriter[Tree[A, S[Nat]], Nat](this)
+  //         Js.Obj(("type", Js.Str("node")), ("shell", shellWriter.write(sh)))
+  //       }
+  //     }
+  //   }
+
+
+
+  // implicit val natReader = upickle.Reader[Nat]{
+  //   case Js.Num(d) => TypeDefs.intToNat(d.toInt)
+  // }
+
+}
 
