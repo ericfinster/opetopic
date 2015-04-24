@@ -40,7 +40,7 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   implicit val isNumeric = ev
 
   def arcRadius : Double = 4.0
-  def halfLeafWidth : Double = 5.0
+  def halfLeafWidth : Double = 8.0
   def halfStrokeWidth : Double = 1.0
   def internalPadding : Double = 5.0
   def externalPadding : Double = 5.0
