@@ -1,3 +1,4 @@
 target/
 .ensime_cache/
+logs/
 *.agdai
