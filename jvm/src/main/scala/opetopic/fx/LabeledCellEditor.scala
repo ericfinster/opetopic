@@ -62,7 +62,7 @@ object ColoredLabel {
 
 }
 
-class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCardinalEditor[ColoredLabel](c) {
+class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCardinalEditor[ColoredLabel](c) { self =>
 
   def this() = this(Cardinal[ColoredLabel.LabelOpt]() >> Pt(Obj(None)))
 
@@ -85,8 +85,14 @@ class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCard
 
       val labelDialog = new FXDialogs.CellEditorDialog[N]
 
+      import java.util.function.Consumer
 
-      val result = labelDialog.showAndWait()
+      labelDialog.showAndWait.ifPresent(new Consumer[Option[ColoredLabel[N]]] {
+        def accept(lblOpt: Option[ColoredLabel[N]]) = {
+          marker.element = lblOpt
+          self.render   // Er, well, don't render everything ....
+        }
+      })
 
     }
 
