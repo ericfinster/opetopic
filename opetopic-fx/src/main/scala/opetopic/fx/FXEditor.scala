@@ -51,30 +51,6 @@ object FXEditor extends JFXApp {
 
           val nm : FXNeutralMarker[N] = mk.asInstanceOf[FXNeutralMarker[N]]
 
-          propertiesPane.disable = false
-
-          nm.element match {
-            case None => labelField.text = ""
-            case Some(cl) => labelField.text = cl.label
-          }
-
-          applyButton.onAction = () => {
-
-            val str = labelField.text()
-            val clr = colorPicker.value()
-
-            if (str == "") {
-              nm.element = None
-            } else {
-              nm.element = Some(ColoredLabel(str, clr))
-            }
-
-            thisEditor.deselectAll
-            thisEditor.render
-            tabPane.requestFocus
-
-          }
-
           for {
             cmplx <- nm.neutralComplex
           } {
@@ -127,27 +103,27 @@ object FXEditor extends JFXApp {
     }
   }
 
-  val propertiesPane = new GridPane {
-    hgap = 10
-    vgap = 10
-    padding = Insets(10,10,10,10)
-    disable = true
-  }
+  // val propertiesPane = new GridPane {
+  //   hgap = 10
+  //   vgap = 10
+  //   padding = Insets(10,10,10,10)
+  //   disable = true
+  // }
 
-  val labelField = new TextField {
-    onAction = () => {
-      applyButton.fire
-    }
-  }
+  // val labelField = new TextField {
+  //   onAction = () => {
+  //     applyButton.fire
+  //   }
+  // }
 
-  val colorPicker = new ColorPicker
-  val applyButton = new Button("Apply")
+  // val colorPicker = new ColorPicker
+  // val applyButton = new Button("Apply")
 
-  propertiesPane.add(new Label("Label: "), 0, 0)
-  propertiesPane.add(labelField, 1, 0)
-  propertiesPane.add(new Label("Color: "), 0, 1)
-  propertiesPane.add(colorPicker, 1, 1)
-  propertiesPane.add(applyButton, 1, 2)
+  // propertiesPane.add(new Label("Label: "), 0, 0)
+  // propertiesPane.add(labelField, 1, 0)
+  // propertiesPane.add(new Label("Color: "), 0, 1)
+  // propertiesPane.add(colorPicker, 1, 1)
+  // propertiesPane.add(applyButton, 1, 2)
 
   val previewPane = new StackPane {
     style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: grey"
@@ -224,15 +200,15 @@ object FXEditor extends JFXApp {
     spacing = 10
   }
 
-  val horizontalSplit = new SplitPane {
-    orientation = Orientation.HORIZONTAL
-    items ++= List(propertiesPane, previewVBox)
-    dividerPositions = 0.25f
-  }
+  // val horizontalSplit = new SplitPane {
+  //   orientation = Orientation.HORIZONTAL
+  //   items ++= List(propertiesPane, previewVBox)
+  //   dividerPositions = 0.25f
+  // }
 
   val verticalSplit = new SplitPane {
     orientation = Orientation.VERTICAL
-    items ++= List(tabPane, horizontalSplit)
+    items ++= List(tabPane, previewVBox)
     dividerPositions = 0.75f
   }
 
