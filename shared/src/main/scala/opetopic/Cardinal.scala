@@ -719,7 +719,7 @@ trait CardinalFunctions {
 
     for {
       msk <- getSelection(lte.lower)(Suite.getAt[KNesting, K, N, diff.D](c)(lte), ca)(p)
-      res <- Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new Suite.SuiteTraverse[ShapeM, KNesting, KNesting] {
+      res <- Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new IndexedTraverse[ShapeM, KNesting, KNesting] {
         def apply[M <: Nat](m: M)(cn: KNesting[M]) : ShapeM[KNesting[M]] = {
           extrudeDispatch[A, Nesting[A[K], K], K, M](cn, ca, a0, a1, msk, getFlag(m, lte.lower))
         }
@@ -732,7 +732,7 @@ trait CardinalFunctions {
     a0: A[S[K]], a1: A[S[S[K]]]
   )(implicit diff: Lte.Diff[K, N]) : ShapeM[Cardinal[A, N]] = {
     type KNesting[K <: Nat] = CardinalNesting[A[K], K]
-    Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new Suite.SuiteTraverse[ShapeM, KNesting, KNesting] {
+    Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new IndexedTraverse[ShapeM, KNesting, KNesting] {
       def apply[M <: Nat](m: M)(cn: KNesting[M]) : ShapeM[KNesting[M]] = {
         dropDispatch(cn, ca, a0, a1, getFlag(m, S(diff.lte.lower)))
       }

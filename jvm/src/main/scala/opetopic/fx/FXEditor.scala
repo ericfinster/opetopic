@@ -19,6 +19,7 @@ import scalafx.scene.paint.Color
 import scalafx.geometry._
 import scalafx.stage.PopupWindow
 import scalafx.stage.FileChooser
+import scalafx.scene.input.MouseEvent
 
 import scalafx.scene.control.Alert
 
@@ -93,19 +94,20 @@ object FXEditor extends JFXApp {
 
     editor.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
 
+    val editorStack = new StackPane {
+      // style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: blue"
+      children = editor
+      handleEvent(MouseEvent.MouseClicked)((ev: MouseEvent) => {
+        editor.deselectAll
+      })
+    }
+
     val tab = new Tab {
-
       text = "Cardinal " ++ tabCount.toString
-
-      content = new StackPane {
-        children = editor
-        // style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: blue"
-      }
-
+      content = editorStack
       onSelectionChanged = () => {
         if (selected()) activeEditor = Some(editor)
       }
-
     }
 
     tabPane += tab
@@ -185,6 +187,17 @@ object FXEditor extends JFXApp {
     }
   }
 
+  val getSvgButton = new Button("Get Svg") {
+    onAction = () => {
+      for {
+        viewer <- activePreview
+      } {
+        val svgViewer = new FXDialogs.CodeDisplayDialog(viewer.toSvg.toString)
+        svgViewer.showAndWait
+      }
+    }
+  }
+
   val toCardinalButton = new Button("To Cardinal") {
     onAction = () => {
       for {
@@ -201,7 +214,7 @@ object FXEditor extends JFXApp {
   }
 
   val buttonTray = new HBox {
-    children = List(getCodeButton, getJsonButton, toCardinalButton)
+    children = List(getCodeButton, getJsonButton, getSvgButton, toCardinalButton)
     spacing = 10
   }
 

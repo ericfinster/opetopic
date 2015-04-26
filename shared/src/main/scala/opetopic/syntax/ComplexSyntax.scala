@@ -53,7 +53,7 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
 
   def traverse[T[_], B[_ <: Nat]](trav: IndexedTraverse[T, A, B])(implicit apT: Applicative[T]) : T[Complex[B, N]] = {
     type BNst[K <: Nat] = Nesting[B[K], K]
-    Suite.traverse[T, INst, BNst, S[N]](cmplx)(new SuiteTraverse[T, INst, BNst] {
+    Suite.traverse[T, INst, BNst, S[N]](cmplx)(new IndexedTraverse[T, INst, BNst] {
       def apply[N <: Nat](n: N)(nst: INst[N]) : T[BNst[N]] = 
         Nesting.traverse(nst)(an => trav(n)(an))
     })

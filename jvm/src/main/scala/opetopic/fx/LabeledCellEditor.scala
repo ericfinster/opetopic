@@ -13,6 +13,7 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 
 import opetopic._
+import opetopic.ui._
 import syntax.cardinal._
 import TypeDefs._
 
@@ -75,18 +76,25 @@ class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCard
     def marker : FXNeutralMarker[N] = mk
 
     def color : Color =
-      marker.label match {
-        case Neutral(Some(cl)) => cl.color
-        case Neutral(None) => Color.WHITE
-        case Positive() => Color.GAINSBORO
-        case Negative() => Color.GAINSBORO
+      marker.element match {
+        case Some(cl) => cl.color
+        case None => Color.WHITE
       }
+
+    override def onMouseDoubleClick : Unit = {
+
+      val labelDialog = new FXDialogs.CellEditorDialog[N]
+
+
+      val result = labelDialog.showAndWait()
+
+    }
 
   }
 
 }
 
-class LabeledCellViewer(lc: FiniteComplex[ColoredLabel.LabelOpt]) extends FXComplexViewer[ColoredLabel.LabelOpt](lc) {
+class LabeledCellViewer(lc: FiniteComplex[ColoredLabel.LabelOpt]) extends FXComplexViewer[ColoredLabel.LabelOpt](lc) with FXSvgGenerator[ColoredLabel.LabelOpt] {
 
   type BoxType = ColoredBox
 

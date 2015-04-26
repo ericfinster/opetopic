@@ -9,9 +9,15 @@ package opetopic.fx
 
 import javafx.util.Callback
 
+import javafx.scene.layout.GridPane
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import javafx.scene.control.Dialog
 import javafx.scene.control.ButtonType
 import javafx.scene.control.TextArea
+import javafx.scene.control.ColorPicker
+
+import opetopic._
 
 object FXDialogs {
 
@@ -33,39 +39,38 @@ object FXDialogs {
 
   }
 
-  // class PropertiesDialog extends Dialog[CellProperties] {
+  class CellEditorDialog[N <: Nat] extends Dialog[Option[ColoredLabel[N]]] {
 
-  //   setTitle("Cell Properties")
-  //   setHeaderText("Cell Properties")
+    setTitle("Cell Properties")
+    setHeaderText("Cell Properties")
 
-  //   getDialogPane.getButtonTypes.addAll(ButtonType.OK, ButtonType.CANCEL)
+    getDialogPane.getButtonTypes.addAll(ButtonType.OK, ButtonType.CANCEL)
 
-  //   val cb = new Callback[ButtonType, CellProperties] { 
-  //     def call(bt: ButtonType) : CellProperties = 
-  //       bt match {
-  //         case ButtonType.OK => CellProperties(labelField.getText, colorPicker.getValue)
-  //         case ButtonType.CANCEL => CellProperties("", Color.WHITE)
-  //       }
-  //   }
+    val cb = new Callback[ButtonType, Option[ColoredLabel[N]]] { 
+      def call(bt: ButtonType) : Option[ColoredLabel[N]] = 
+        bt match {
+          case ButtonType.OK => Some(ColoredLabel(labelField.getText, colorPicker.getValue))
+          case ButtonType.CANCEL => None
+        }
+    }
 
-  //   setResultConverter(cb)
+    setResultConverter(cb)
 
-  //   val grid = new GridPane
-  //   grid.setHgap(10)
-  //   grid.setVgap(10)
+    val grid = new GridPane
+    grid.setHgap(10)
+    grid.setVgap(10)
 
-  //   val labelField = new TextField
-  //   val colorPicker = new ColorPicker
+    val labelField = new TextField
+    val colorPicker = new ColorPicker
 
-  //   grid.add(new Label("Label: "), 0, 0)
-  //   grid.add(labelField, 1, 0)
-  //   grid.add(new Label("Color: "), 0, 1)
-  //   grid.add(colorPicker, 1, 1)
+    grid.add(new Label("Label: "), 0, 0)
+    grid.add(labelField, 1, 0)
+    grid.add(new Label("Color: "), 0, 1)
+    grid.add(colorPicker, 1, 1)
 
-  //   getDialogPane.setContent(grid)
+    getDialogPane.setContent(grid)
 
-  // }
-
+  }
 
 
 }

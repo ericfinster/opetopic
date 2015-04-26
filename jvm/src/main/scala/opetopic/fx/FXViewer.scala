@@ -173,60 +173,6 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   // boxContextMenu.getItems.addAll(propertiesItem, previewCellItem)
 
   //============================================================================================
-  // PROPERTIES DIALOG
-  //
-
-  // case class CellProperties(val label: String, val color: Color)
-
-  // class PropertiesDialog extends Dialog[CellProperties] {
-
-  //   setTitle("Cell Properties")
-  //   setHeaderText("Cell Properties")
-
-  //   getDialogPane.getButtonTypes.addAll(ButtonType.OK, ButtonType.CANCEL)
-
-  //   val cb = new Callback[ButtonType, CellProperties] { 
-  //     def call(bt: ButtonType) : CellProperties = 
-  //       bt match {
-  //         case ButtonType.OK => CellProperties(labelField.getText, colorPicker.getValue)
-  //         case ButtonType.CANCEL => CellProperties("", Color.WHITE)
-  //       }
-  //   }
-
-  //   setResultConverter(cb)
-
-  //   val grid = new GridPane
-  //   grid.setHgap(10)
-  //   grid.setVgap(10)
-
-  //   val labelField = new TextField
-  //   val colorPicker = new ColorPicker
-
-  //   grid.add(new Label("Label: "), 0, 0)
-  //   grid.add(labelField, 1, 0)
-  //   grid.add(new Label("Color: "), 0, 1)
-  //   grid.add(colorPicker, 1, 1)
-
-  //   getDialogPane.setContent(grid)
-
-  // }
-
-  // def getCellProperties(box : FXBox) : Unit = {
-
-  //   val dialog = new PropertiesDialog
-
-  //   dialog.showAndWait.ifPresent(new Consumer[CellProperties] {
-  //     def accept(cp: CellProperties) = {
-  //       val newLabel = parseStringInput[box.Dim](cp.label)
-  //       box.setBackground(box.genBg(cp.color))
-  //       box.marker.label = newLabel
-  //       render
-  //     }
-  //   })
-
-  // }
-
-  //============================================================================================
   // BOXES
   //
 
@@ -274,28 +220,18 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
       new EventHandler[MouseEvent] {
         def handle(ev : MouseEvent) {
           ev.getEventType match {
-            case MouseEvent.MOUSE_ENTERED => marker.hover
-            case MouseEvent.MOUSE_EXITED => marker.unhover
+            case MouseEvent.MOUSE_ENTERED => onMouseEnter
+            case MouseEvent.MOUSE_EXITED => onMouseExit
             case MouseEvent.MOUSE_CLICKED => {
               ev.getButton match {
                 case MouseButton.PRIMARY => 
                   if (ev.isControlDown())
-                    select(marker)
+                    onMouseCtrlClick
+                  else if (ev.getClickCount > 1) 
+                    onMouseDoubleClick
                   else
-                    selectAsRoot(marker)
-                case MouseButton.SECONDARY => {
-
-                  // propertiesItem.setOnAction(new EventHandler[ActionEvent] {
-                  //   def handle(ev: ActionEvent) = getCellProperties(thisBox)
-                  // })
-
-                  // boxContextMenu.show(thisBox, Side.TOP, 
-                  //   labelXPos + marker.halfLabelWidth, 
-                  //   labelYPos + marker.halfLabelHeight
-                  // )
-
-                  ()
-                }
+                    onMouseClick
+                case MouseButton.SECONDARY => onMouseRightClick
                 case _ => ()
               }
             }

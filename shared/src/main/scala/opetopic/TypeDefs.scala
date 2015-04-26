@@ -53,6 +53,11 @@ object TypeDefs extends NatConstants {
     def reader[N <: Nat] : upickle.Reader[A[N]]
   }
 
+  trait IndexedFold[A[_ <: Nat], B] {
+    def caseZero : B
+    def caseSucc[P <: Nat](p: P)(ap: A[P], b: B) : B
+  }
+
   //============================================================================================
   // POLARITIES
   //

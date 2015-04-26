@@ -133,6 +133,13 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     def doSelectedStyle : Unit
     def doUnselectedStyle : Unit
 
+    def onMouseEnter : Unit = marker.hover
+    def onMouseExit : Unit = marker.unhover
+    def onMouseClick : Unit = selectAsRoot(marker)
+    def onMouseCtrlClick : Unit = select(marker)
+    def onMouseDoubleClick : Unit = ()
+    def onMouseRightClick : Unit = ()
+
   }
 
   trait ViewerBox extends ViewerElement

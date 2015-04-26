@@ -157,20 +157,51 @@ module Complex where
       >>= (λ hd → comultiply (tail c) 
       >>= (λ tl → η (tl ▶ hd)))
 
+  -- Now, I would like to implement something like complex grafting.  How is this going to
+  -- work? Eventually, you should have a tree of complexes.  But of course this decomposes
+  -- into steps.
 
-  testComplex : Complex (λ k → ℕ) 1
-  testComplex = ∥ ▶ box 0 (pt (box 1 (pt (obj 2)))) ▶ box 3 (node (dot 4) (pt (node (dot 5) (pt leaf))))
+  -- The inductive step is that you are looking at an (n+1)-complex.  You then have an n-tree
+  -- of (n+1)-complexes.  The assumption, of course is that the target of each of these complexes
+  -- agrees with the source to which it is attached.  Now, that source is exactly the canopy of
+  -- the box one dimension below.
 
-  testSeek : Maybe (ComplexZipper (λ k → ℕ) 1)
-  testSeek = seekComplex (complexToZipper testComplex) ((tt ∷ []) ∷ [])
-    where open SourceCalculation ⦃ maybeE ⦄
+  -- Right.  You see, the problem is what is the result.  It's not really going to be a new complex,
+  -- unless you provide extra data for the filler and the new target, which of course is indeed 
+  -- possible.  But the intermediate steps should be .... well, almost stupid if everything is well
+  -- formed.
 
-  testSource : Maybe (Complex (λ k → ℕ) 1)
-  testSource = sourceAt testComplex ((tt ∷ []) ∷ [])
-    where open SourceCalculation ⦃ maybeE ⦄
-    
-  testCanopy : Tree (Nesting ℕ 2) 2
-  testCanopy = node (dot 6) (node (node (dot 4) leaf) (pt (node (node (dot 2) leaf) (pt leaf))))
+  -- Indeed.  If you perform no compatibility checks, the you actually just *throw away* the higher
+  -- codimension crap.  Is this really true?
 
-  testGraft : Maybe (Tree (Nesting ℕ 2) 2)
-  testGraft = graft ⦃ maybeE ⦄ testCanopy leaf
+  -- module ComplexGrafting {M : Set → Set} ⦃ isE : MonadError M ⦄ where
+  
+  --   open MonadError ⦃ ... ⦄
+
+  --   complexGraft : {A : ℕ → Set} → {n : ℕ} → Tree (Complex A (suc n)) (suc n) → M (Complex A n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
+  --   complexGraft leaf = {!!}
+  --   complexGraft (node c pd) = {!!}
+
+  --   -- Mmmm.  So the totally naive thing doesn't work, because you don't have the lower dimensional information when you get to the leaves.
+  --   -- You need something to "send back" as it were.  Like there is a sort of environment consisting of the lower dimensional information.
+
+  --   -- Roughly, the idea would be that the thing you send back is that face.
+
+  --   graftInContext : {A : ℕ → Set} → {n : ℕ} → Complex A n → Tree (Complex A (suc n)) (suc n) → M (Complex A n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
+  --   graftInContext c₀ leaf = η (c₀ , leaf)
+  --   graftInContext c₀ (node (∥ ▶ obj a₀ ▶ dot a₁) pd) = failWith "Malformed pasting diagram"
+  --   graftInContext c₀ (node (c₁ ▶ dot a₁ ▶ dot a₂) pd) = failWith "Malformed pasting diagram"
+  --   graftInContext c₀ (node (_ ▶ box _ _) _) = failWith "Malformed Pasting diagram"
+  --   graftInContext c₀ (node (c₁ ▶ box a₀ cn ▶ dot a₁) sh) = 
+  --     traverseTree {{monadIsApp isMonad}} sh (λ pd → graftInContext {!!} pd) 
+  --     >>= (λ zt → let (cmplxTr , newSh) = unzip zt    
+  --                   in match (λ { nst cmplx → {!head cmplx!} }) cn cmplxTr 
+  --     >>= {!!} )
+
+
+    -- Umm-hmm. The deal is that something needs to be zipped with the canopy of the box.  If the complex
+    -- is well formed, Then this contains a shitload of dots.  These dots should be replaced with boxes.  
+    -- The question is: which boxes?
+
+    -- Well shite.  As expected, it's not totally clear what to do here, even if basically you know what you want.
+    -- Let's move on to expressions and come back to this when we think we can use it.

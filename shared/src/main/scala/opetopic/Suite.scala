@@ -81,24 +81,19 @@ object Suite {
   def foreach[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : Unit = 
     foreachWithCount(suite)(op)._1
 
-  trait SuiteFold[F[_ <: Nat], A] {
-
-    def caseZero : A
-    def caseSucc[P <: Nat](fp: F[P], a: A) : A
-
-  }
-
-  def fold[F[_ <: Nat], A, N <: Nat](suite: Suite[F, N])(implicit fld: SuiteFold[F, A]) : A = 
+  def foldWithCount[F[_ <: Nat], A, N <: Nat](suite: Suite[F, N])(fld: IndexedFold[F, A]) : (A, N) = 
     suite match {
-      case SNil() => fld.caseZero
-      case tl >> hd => fld.caseSucc(hd, fold(tl))
+      case SNil() => (fld.caseZero, Z)
+      case tl >> hd => {
+        val (res, p) = foldWithCount(tl)(fld)
+        (fld.caseSucc(p)(hd, res), S(p))
+      }
     }
 
-  trait SuiteTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
-    def apply[N <: Nat](n: N)(fn : F[N]) : T[G[N]]
-  }
+  def fold[F[_ <: Nat], A , N <: Nat](suite: Suite[F, N])(fld: IndexedFold[F, A]) : A =
+    foldWithCount(suite)(fld)._1
 
-  def traverseWithCount[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: SuiteTraverse[T, F, G])(
+  def traverseWithCount[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: IndexedTraverse[T, F, G])(
     implicit apT: Applicative[T]
   ) : (T[Suite[G, L]], L) = 
     seq match {
@@ -111,7 +106,7 @@ object Suite {
       }
     }
 
-  def traverse[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: SuiteTraverse[T, F, G])(
+  def traverse[T[_], F[_ <: Nat], G[_ <: Nat], L <: Nat](seq: Suite[F, L])(trav: IndexedTraverse[T, F, G])(
     implicit apT: Applicative[T]
   ) : T[Suite[G, L]] = traverseWithCount[T, F, G, L](seq)(trav)._1
 
