@@ -148,6 +148,27 @@ module Prelude where
 
   syntax ap f p = p |in-ctx f
 
+  fiber : {A B : Set} → (f : A → B) → B → Set
+  fiber f b = Σ[ a ∈ _ ] f a == b
+
+  record _≃_ (A B : Set) : Set where
+
+    field
+
+      f : A → B
+      g : B → A
+
+      η : (a : A) → a == g (f a)
+      ε : (b : B) → f (g b) == b
+
+  id-equiv : (A : Set) → A ≃ A
+  id-equiv A = record { 
+                 f = λ a → a ; 
+                 g = λ a → a ; 
+                 η = λ a → idp ; 
+                 ε = λ a → idp 
+               }
+
   ap : ∀ {i j} {A : Set i} {B : Set j} (f : A → B) {x y : A}
     → (x == y → f x == f y)
   ap f idp = idp

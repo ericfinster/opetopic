@@ -13,63 +13,81 @@ module Expressions where
 
   mutual
 
-    Shell : ℕ → Set
-    Shell n = Tree (Expr n) n × Expr n
+    data Ty : Set where
+      U : Ty
+      E : Tm U 0 → Ty
+      F : {n : ℕ} → (A : Ty) → Shell A n → Ty
+      Π : Ty → Ty → Ty
 
-    data Expr : ℕ → Set where
-      ob : String → Expr 0 
-      cell : {n : ℕ} → String → Shell n → Expr (suc n)
-      fill : {n : ℕ} → Nook n → Expr (suc n)
-      tgt : {n : ℕ} → Nook n → Expr n
+    data Tm : Ty → ℕ → Set where
+      ob : {A : Ty} → String → Tm A 0
+      cell : {A : Ty} → {n : ℕ} → String → Shell A n → Tm A (suc n)
+      comp : {A : Ty} → {n : ℕ} → Shell A n → Nook A (suc n) → Tm A (suc n)
+      fill : {A : Ty} → {n : ℕ} → Shell A n → Nook A (suc n) → Tm A (suc (suc n))
 
-    -- Now, how do you make sense of the target and it's filler?
+      -- Errrp.
+      lam₁ : {A : Ty} → {n : ℕ} → String → (τ : Tm A (suc n)) → Tm (Π {!!} (F A (ShellOf τ))) 0
 
-    data Nook : ℕ → Set where
-      in-nook : {n : ℕ} → Derivative (Expr n) n → Expr n → Nook n
-      out-nook : {n : ℕ} → Tree (Expr n) n → Nook n
+    data Nook (A : Ty) : ℕ → Set where
+      in-nook : {n : ℕ} → Derivative (Tm A n) n → Tm A n → Nook A n
+      out-nook : {n : ℕ} → Tree (Tm A n) n → Nook A n
 
-    shellComplex : {n : ℕ} → Shell n → Complex Expr n
-    shellComplex (pd , t) = {!mapTree pd expressionComplex!}
+    Shell : Ty → ℕ → Set
+    Shell A n = Tree (Tm A n) n × Tm A n
 
-    expressionComplex : {n : ℕ} → Expr n → Complex Expr n
-    expressionComplex {zero} expr = ∥ ▶ (obj expr)
-    expressionComplex {suc n} (cell nm sh) = shellComplex sh ▶ dot (cell nm sh)
-    expressionComplex {suc n} (fill nk) = {!!}
-    expressionComplex {suc n} (tgt nk) = {!!}
+    ShellOf : {A : Ty} → {n : ℕ} → Tm A (suc n) → Shell A n
+    ShellOf = {!!}
 
-    x : Expr 0
-    x = ob "x"
+  -- An example term and its type
 
-    y : Expr 0
-    y = ob "y"
+  pd : Tree (Tm U 1) 1
+  pd = node (cell "p" (pt (ob "A") , ob "B")) (pt (node (cell "q" (pt (ob "B") , ob "C")) (pt leaf)))
 
-    z : Expr 0
-    z = ob "z"
+  example-tm : Tm U 2
+  example-tm = fill (pt (ob "A") , ob "C") (out-nook pd)
 
-    f : Expr 1
-    f = cell "f" (pt x , y)
+  example-ty : Ty
+  example-ty = F U (pd , comp (pt (ob "A") , ob "C") (out-nook pd))
 
-    g : Expr 1
-    g = cell "g" (pt y , z)
+  A : Ty
+  A = E (ob "A")
 
-    g∘f : Expr 1
-    g∘f = tgt (out-nook (node g (pt (node f (pt leaf)))))
-    
-    def-g∘f : Expr 2
-    def-g∘f = fill (out-nook (node g (pt (node f (pt leaf)))))
+  a₀ : Tm A 0
+  a₀ = ob "a₀"
 
-    -- Fascinating.  Now we can have something like a predicate which
-    -- says if these things are well typed or not.  Moreover, universality
-    -- is also a predicate in this picture, not something intrinsic to the
-    -- expression.
+  -- Okay, this is a problem.  We have completely lost track of the 
+  -- reference to the lower dimensional information.  We have no idea
+  -- *what* cell this is the identity on.
 
-    -- You could phrase it this way: universality is a *tactic*.  It will try
-    -- to build the algorithm for replacing universal cells by induction on 
-    -- the expression.  This may fail.  And the user may choose to give an
-    -- implementation himself.
+  -- Mmm. Better should be that to give a nook, you already need to give
+  -- the shell which the nook should live in.
 
-    -- The next question is the most crucial one in all the land: where does one
-    -- store or how does one type or describe this purported implementation?
+  id-a₀ : Tm A 1
+  id-a₀ = comp (pt (ob "a₀") , ob "a₀") (out-nook leaf)
 
-    -- What does it *look* like?
-    
+  -- Now, I would like to abstract over the a₀ in the previous example.  When I do
+  -- that, what is the resulting type? 
+
+  id-as-lam : Tm (Π A (F A (pt (ob "a₀") , ob "a₀"))) 0
+  id-as-lam = {!!}
+
+
+  a₁ : Tm A 0
+  a₁ = ob "a₁"
+
+  f₀ : Tm A 1
+  f₀ = cell "f₀" (pt a₀ , a₁)
+
+  B : Ty
+  B = E (ob "B")
+
+  -- Ah, right.  But the point is that we need to work in contexts.  And as a result, 
+  -- we should not be talking about just the identity type *in* some type, but the identity
+  -- type in some kind of context.  
+
+  -- Blah blah.  Don't confuse the terms of the theory with its proof theory.  For now, the simple
+  -- looking terms above suffice to have a reasonable notion of abstraction.  Let's keep going with
+  -- it and see if we can write down some more complicated terms to play with.
+
+  -- Well, fuck me.  What next.  The idea, I guess is to start writing down a kind of type
+  -- checker which decides if a given term can have a given type.  
