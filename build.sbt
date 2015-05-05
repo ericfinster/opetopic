@@ -31,7 +31,7 @@ lazy val opetopicFx = (project in file("opetopic-fx")).
   settings(
     scalaVersion := scalaV,
     fork := true,
-    mainClass := Some("FXEditor"),
+    mainClass := Some("opetopic.fx.opfibred.OpFibred"),
     libraryDependencies ++= Seq(
       "org.scalafx" %% "scalafx" % "8.0.40-R8"
     )

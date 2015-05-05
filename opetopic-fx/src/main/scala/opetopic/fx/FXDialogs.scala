@@ -9,13 +9,17 @@ package opetopic.fx
 
 import javafx.util.Callback
 
+import javafx.scene.paint.Color
 import javafx.scene.layout.GridPane
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import javafx.scene.control.Dialog
+import javafx.scene.control.DialogEvent
 import javafx.scene.control.ButtonType
 import javafx.scene.control.TextArea
 import javafx.scene.control.ColorPicker
+
+import javafx.event.EventHandler
 
 import opetopic._
 
@@ -53,6 +57,13 @@ object FXDialogs {
           case ButtonType.CANCEL => None
         }
     }
+
+    // setOnShown(new EventHandler[DialogEvent] {
+    //   def handle(ev : DialogEvent) = {
+    //     grid.requestFocus
+    //     labelField.requestFocus
+    //   }
+    // })
 
     setResultConverter(cb)
 

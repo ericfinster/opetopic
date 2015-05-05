@@ -71,6 +71,8 @@ class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCard
   def createNeutralBox[N <: Nat](mk : FXNeutralMarker[N]) : LabeledCellBox[N] = 
     new LabeledCellBox(mk)
 
+  var lastColor: Color = Color.WHITE
+
   class LabeledCellBox[N <: Nat](mk : FXNeutralMarker[N]) extends FXNeutralBox[N] {
 
     def marker : FXNeutralMarker[N] = mk
@@ -85,11 +87,30 @@ class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCard
 
       val labelDialog = new FXDialogs.CellEditorDialog[N]
 
+      marker.element match {
+        case None => labelDialog.colorPicker.setValue(lastColor)
+        case Some(cl) => {
+          labelDialog.colorPicker.setValue(cl.color)
+          labelDialog.labelField.setText(cl.label)
+        }
+      }
+
       import java.util.function.Consumer
+
+      javafx.application.Platform.runLater(new Runnable {
+        def run : Unit = labelDialog.labelField.requestFocus
+      })
 
       labelDialog.showAndWait.ifPresent(new Consumer[Option[ColoredLabel[N]]] {
         def accept(lblOpt: Option[ColoredLabel[N]]) = {
           marker.element = lblOpt
+
+          for {
+            cl <- lblOpt
+          } {
+            lastColor = cl.color
+          }
+
           self.render   // Er, well, don't render everything ....
         }
       })

@@ -103,28 +103,6 @@ object FXEditor extends JFXApp {
     }
   }
 
-  // val propertiesPane = new GridPane {
-  //   hgap = 10
-  //   vgap = 10
-  //   padding = Insets(10,10,10,10)
-  //   disable = true
-  // }
-
-  // val labelField = new TextField {
-  //   onAction = () => {
-  //     applyButton.fire
-  //   }
-  // }
-
-  // val colorPicker = new ColorPicker
-  // val applyButton = new Button("Apply")
-
-  // propertiesPane.add(new Label("Label: "), 0, 0)
-  // propertiesPane.add(labelField, 1, 0)
-  // propertiesPane.add(new Label("Color: "), 0, 1)
-  // propertiesPane.add(colorPicker, 1, 1)
-  // propertiesPane.add(applyButton, 1, 2)
-
   val previewPane = new StackPane {
     style = "-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: grey"
     padding = Insets(10, 10, 10, 10)
@@ -199,12 +177,6 @@ object FXEditor extends JFXApp {
     padding = Insets(10, 10, 10, 10)
     spacing = 10
   }
-
-  // val horizontalSplit = new SplitPane {
-  //   orientation = Orientation.HORIZONTAL
-  //   items ++= List(propertiesPane, previewVBox)
-  //   dividerPositions = 0.25f
-  // }
 
   val verticalSplit = new SplitPane {
     orientation = Orientation.VERTICAL

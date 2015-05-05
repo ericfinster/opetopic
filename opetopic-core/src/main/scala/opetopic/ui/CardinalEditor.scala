@@ -412,6 +412,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
 
             render
 
+            selectAsRoot(mk0)
+
           }
         }
     }
@@ -479,6 +481,8 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             editorState.refreshFaceComplexes
 
             render
+
+            selectAsRoot(sel.root)
 
           }
         }

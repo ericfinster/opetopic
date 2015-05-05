@@ -246,8 +246,6 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
       setBackground(genBg(color))
     }
 
-    // override def onClick = deselectAll
-
   }
 
   class FXPolarizedBox[N <: Nat](mk : FXPolarizedMarker[N]) extends FXCardinalBox {
@@ -258,6 +256,8 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
     def isPositive : Boolean = mk.isPositive
 
     def color : Color = Color.GAINSBORO
+
+    override def onMouseClick = deselectAll
 
   }
 

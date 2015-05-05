@@ -126,6 +126,10 @@ module Prelude where
   []       ++ ys = ys
   (x ∷ xs) ++ ys = x ∷ (xs ++ ys)
 
+  mapList : {A B : Set} → (A → B) → List A → List B
+  mapList f [] = []
+  mapList f (a ∷ as) = f a ∷ mapList f as
+
   data ⊥ : Set where
 
   {-# IMPORT Data.FFI #-}
