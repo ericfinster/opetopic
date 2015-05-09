@@ -58,6 +58,12 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
   abstract class FXCardinalMarker[N <: Nat] extends FXMarker[N] with CardinalMarker[N] {
     thisMarker =>
 
+    var nestingAddress : Address[S[N]] = Nil
+
+    def address : Address[S[N]] = nestingAddress
+    def address_=(addr: Address[S[N]]) : Unit = 
+      nestingAddress = addr
+
     val edge : EdgeType = new FXEdge {
       type Dim = N
       val marker = thisMarker
@@ -68,7 +74,7 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
   class FXNeutralMarker[N <: Nat](
     val dim : N,
     val el : Option[A[N]], 
-    val address : CardinalAddress[S[N]],
+    cardAddr : CardinalAddress[S[N]],
     val isExternal : Boolean,
     val objectCanvas : FXCardinalCanvas,
     val edgeCanvas : FXCardinalCanvas
@@ -95,7 +101,7 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
     var isSelectionFace = false
     val isSelectable = true
 
-    cardinalAddress = Some(address)
+    cardinalAddress = Some(cardAddr)
 
     objectCanvas.addNeutralBox(nbox)
     edgeCanvas.addEdge(edge)

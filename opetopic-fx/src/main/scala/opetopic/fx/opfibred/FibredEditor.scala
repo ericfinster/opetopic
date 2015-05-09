@@ -10,27 +10,34 @@ package opetopic.fx.opfibred
 import javafx.scene.paint.Color
 import javafx.scene.control._
 import javafx.scene.layout._
+import javafx.geometry._
+import javafx.event._
 
 import javafx.util.Callback
 import java.util.function.Consumer
 
+import scalaz.std.option._
+
 import opetopic._
 import opetopic.fx._
 import TypeDefs._
+import syntax.complex._
 import syntax.cardinal._
 
 import FibredLabel._
 
-class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder) extends FXCardinalEditor[FibredLabel](c) { thisEditor =>
+class FibredEditor(c: FiniteCardinal[FibredLblOpt], val context: FiniteComplex[FibredLabel]) 
+    extends FXCardinalEditor[FibredLabel](c) { thisEditor =>
 
-  def this(b: ContextBuilder) = this(Cardinal[FibredLblOpt]() >> Pt(Obj(None)), b)
+  def this(cntxt: FiniteComplex[FibredLabel]) = 
+    this(Cardinal[FibredLblOpt]() >> Pt(Obj(None)), cntxt)
 
   type NeutralBoxType[N <: Nat] = FibredCellBox[N]
 
   def createNeutralBox[N <: Nat](mk: FXNeutralMarker[N]) : FibredCellBox[N] = 
     new FibredCellBox(mk)
 
-  class FibredCellBox[N <: Nat](mk: FXNeutralMarker[N]) extends FXNeutralBox[N] {
+  class FibredCellBox[N <: Nat](mk: FXNeutralMarker[N]) extends FXNeutralBox[N] { thisBox =>
 
     def marker: FXNeutralMarker[N] = mk
 
@@ -40,12 +47,42 @@ class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder)
         case Some(fl) => fl.color
       }
 
-    override def onMouseDoubleClick : Unit = {
+    override def onMouseRightClick : Unit = {
+
+      // editItem.setOnAction(new EventHandler[ActionEvent] {
+      //   def handle(ev: ActionEvent) = editCellContent
+      // })
+
+      // asContextItem.setOnAction(new EventHandler[ActionEvent] {
+      //   def handle(ev: ActionEvent) = {
+      //     for {
+      //       fc <- marker.faceComplex
+      //       lblCmplx <- fc.traverse(new IndexedTraverse[Option, MarkerType, FibredLabel] {
+      //         def apply[N <: Nat](n: N)(mk: MarkerType[N]) : Option[FibredLabel[N]] = 
+      //           mk.label match {
+      //             case Neutral(opt) => opt
+      //             case _ => None
+      //           }
+      //       })
+      //     } { builder.exportContext(lblCmplx) }
+      //   }
+      // })
+
+      cellContextMenu.show(thisBox, Side.TOP,
+        labelXPos + marker.halfLabelWidth,
+        labelYPos + marker.halfLabelHeight
+      )
+
+    }
+
+    override def onMouseDoubleClick : Unit = editCellContent
+
+    def editCellContent : Unit = {
 
       val cellDialog = new CellEditorDialog[N]
 
       marker.element match {
-        case None => cellDialog.colorPicker.setValue(builder.lastColor)
+        case None => cellDialog.colorPicker.setValue(lastColor)
         case Some(fl) => {
           cellDialog.colorPicker.setValue(fl.color)
           cellDialog.labelField.setText(fl.label)
@@ -61,7 +98,7 @@ class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder)
       cellDialog.showAndWait.ifPresent(new Consumer[FibredLblOpt[N]] {
         def accept(lblOpt: FibredLblOpt[N]) = {
           marker.element = lblOpt
-          for { fl <- lblOpt } { builder.lastColor = fl.color }
+          for { fl <- lblOpt } { lastColor = fl.color }
           thisEditor.render   // Er, well, don't render everything ....
         }
       })
@@ -72,8 +109,20 @@ class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder)
   }
 
   //============================================================================================
+  // CELL CONTEXT MENU
+  //
+
+  val editItem = new MenuItem("Edit")
+  val asContextItem = new MenuItem("Use As Context")
+
+  val cellContextMenu = new ContextMenu
+  cellContextMenu.getItems.addAll(editItem, asContextItem)
+
+  //============================================================================================
   // CELL EDITOR DIALOG
   //
+
+  var lastColor : Color = Color.WHITE
 
   class CellEditorDialog[N <: Nat] extends Dialog[FibredLblOpt[N]] {
 
@@ -86,16 +135,11 @@ class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder)
       def call(bt: ButtonType) : FibredLblOpt[N] = 
         bt match {
           case ButtonType.OK => {
-
             for {
               sel <- contextViewer.selection
             } yield {
-              FibredLabel(
-                labelField.getText, colorPicker.getValue,
-                Sigma[Address, S[sel.Dim]](S(sel.dim))(sel.root.nestingAddress)
-              )
+              FibredLabel(sel.dim)(labelField.getText, colorPicker.getValue, sel.root.address)
             }
-
           }
           case ButtonType.CANCEL => None
         }
@@ -110,11 +154,9 @@ class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder)
     val labelField = new TextField
     val colorPicker = new ColorPicker
 
-    val contextViewer = builder.createContextViewer
-    contextViewer.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
+    val contextViewer = new FibredViewer(context)
 
     val viewerStack = new StackPane 
-
     viewerStack.getChildren add contextViewer
     viewerStack.setStyle("-fx-border-style: solid; -fx-border-width: 1px; -fx-border-color: grey")
     viewerStack.setMinSize(200, 100)
@@ -134,4 +176,4 @@ class FibredEditor(c: FiniteCardinal[FibredLblOpt], val builder: ContextBuilder)
   }
 
 }
-
+ 

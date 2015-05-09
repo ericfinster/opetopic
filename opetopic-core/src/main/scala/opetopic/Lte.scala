@@ -116,7 +116,7 @@ object Lte extends LteImplicits {
 
   }
 
-  def diffOpt[M[+_], K <: Nat, N <: Nat](k: K, n: N) : Option[Diff[K, N]] = 
+  def diffOpt[K <: Nat, N <: Nat](k: K, n: N) : Option[Diff[K, N]] = 
     (new NatCaseSplit0 {
 
       type Out[K <: Nat] = Option[Diff[K, N]]

@@ -17,7 +17,7 @@ import syntax.complex._
 
 import FibredLabel._
 
-class FibredViewer(fc: FiniteComplex[FibredLblOpt]) extends FXComplexViewer[FibredLblOpt](fc) {
+class FibredViewer(fc: FiniteComplex[FibredLabel]) extends FXComplexViewer[FibredLabel](fc) {
 
   type BoxType = FibredBox
 
@@ -29,18 +29,12 @@ class FibredViewer(fc: FiniteComplex[FibredLblOpt]) extends FXComplexViewer[Fibr
 
   abstract class FibredBox extends FXBox {
 
-    val rdr = implicitly[FXRenderable[FibredLblOpt]]
-
     val label: Node = 
-      rdr.render(marker.dim)(marker.label)
+      fibredLabelRenderable.render(marker.dim)(marker.label)
 
     pane.getChildren.add(label)
 
-    val color: Color = 
-      marker.label match {
-        case None => Color.WHITE
-        case Some(fl) => fl.color
-      }
+    val color: Color = marker.label.color
 
     override def doHoverStyle = {
       val hoverColor = 

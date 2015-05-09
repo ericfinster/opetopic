@@ -48,6 +48,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   trait ViewerMarker[N <: Nat] extends RenderMarker {
 
     def dim : N
+    def address : Address[S[N]]
 
     def label : A[N]
 
@@ -57,7 +58,6 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
     def box : BoxType 
     def edge : EdgeType
 
-    var nestingAddress : Address[S[N]] = Nil
 
     // The fact that this is an "option" is really detestable ...
     var faceComplex : Option[Complex[MarkerType, N]] = None 
@@ -294,7 +294,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
                   diffOpt(marker.dim, curComplex.n)
                 )
                 nst = curComplex.getNesting(diff)
-                zipper <- nst seekTo marker.nestingAddress
+                zipper <- nst seekTo marker.address
               } yield {
 
                 import scalaz.-\/

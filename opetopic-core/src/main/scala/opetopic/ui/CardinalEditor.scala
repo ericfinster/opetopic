@@ -85,7 +85,7 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
 
           nst traverseWithAddress[Id, Unit] {
             case (mk, addr) => {
-              mk.nestingAddress = addr
+              mk.address = addr
             }
           }
         }
@@ -210,7 +210,7 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
           for {
             fc <- extendedComplex sourceAt addr
           } yield {
-            mk.nestingAddress = addr
+            mk.address = addr
             mk.faceComplex = Some(fc)
           }
       }
@@ -249,7 +249,13 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
   trait CardinalMarker[N <: Nat] extends ViewerMarker[N] {
 
     def isExtrudable : Boolean
+
     var cardinalAddress : Option[CardinalAddress[S[N]]] = None
+
+    // This should be able to be calculated from the cardinal address.
+    // Just have to make some experiments to see how to do it.
+    def address_=(addr: Address[S[N]])
+
 
   }
 

@@ -191,6 +191,45 @@ module Cardinal where
     >>= (λ { (tr , ∂) → seekTo tr hd 
     >>= (λ { (fcs , cntxt) → succeed (takeWhile fcs (λ nst → p (baseValue nst))) }) })
 
+  sproutAt : {A : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress (suc n) → A → Error (CardinalNesting A n)
+  sproutAt {n = zero} (pt nst) (tl ▶ hd) a = 
+    seekToNesting nst hd 
+    >>= (λ { (obj a₁ , cntxt) → succeed (pt (closeNesting cntxt (box a₁ (pt (obj a))))) 
+           ; (box a₁ cn , cntxt) → fail "Cannot sprout from a box" })
+  sproutAt {n = suc n} cn (tl ▶ hd) a = 
+    poke cn tl 
+    >>= (λ { (nst , ∂) → seekToNesting nst hd 
+    >>= (λ { (dot a₁ , []) → succeed (plugCardinal ∂ (box a₁ (node (dot a) (const (proj₁ (proj₂ ∂)) leaf)))) -- Here you will have to look at how the extension should go using ∂
+           ; (dot a₁ , c ∷ cs) → succeed (plugCardinal ∂ (closeNesting (c ∷ cs) 
+                                         (box a₁ (node (dot a) (const (proj₁ (proj₂ c)) leaf)))))  -- Here you should have the information in the zipper
+           ; (box a₁ cn₁ , cntxt) → fail "Cannot sprout from a box" }) })
+
+  sproutFillerAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress (suc n) → Address n → A → Error (CardinalNesting A (suc n))
+  sproutFillerAt {n = zero} cn ca addr a = {!!}
+  sproutFillerAt {n = suc n} cn ca addr a = 
+    poke cn ca  
+    >>= (λ { (nst , (∂₀ , tr , ls)) → seekTo tr addr 
+    >>= (λ { (leaf , cs) → fail "Outgoing canopy was truncated" 
+           ; (node leaf sh , cs) → succeed (plugCardinal (∂₀ , cs ↓ node (node (dot a) leaf) sh , ls) nst) -- This somehow doesn't feel right ....
+           ; (node (node _ _) sh , cs) → fail "Expected a leaf here ..." }) })  
+
+    -- Here's the idea: that derivative has a tree representing the outgoing leaves of this 
+    -- box you just found.  The point is that you want to zip to the correct address in that
+    -- guy, where you should find a leaf outgoing.  Then you double that fucker by putting a
+    -- dot there and ... ??? something else?
+
+    -- Question is: how do I know the right address?  One option would be to compute the spine
+    -- while saving the addresses of the internal guys.
+
+    -- Another is a sort of cross reference routine which feels a lot like grafting.  What if
+    -- you convert the guy to a tree ... maybe the extents thing will help?
+
+    -- And of course, you're going to have to do this every time.  It would be much better if 
+    -- the thing was computed once and for all at the beginning ...
+
+  sproutLeafAt : {A : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress (suc k) → Address k → Error (CardinalNesting A n)
+  sproutLeafAt {n = n} {k = k} 2pk≤n cn ca addr = {!!}
+
   extrudeAt : {A B : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → Tree B n → A → Error (CardinalNesting A n)
   extrudeAt {n = zero} cn ca msk a = succeed (pt (box a cn))
   extrudeAt {n = suc n} cn (tl ▶ hd) msk a = 
@@ -274,11 +313,21 @@ module Cardinal where
   dropDispatch cn ca a₀ a₁ dimSucc            = extrudeDropAt cn ca a₁
   dropDispatch cn ca a₀ a₁ (dimDblSucc 3pk≤n) = extrudeDropLeafAt 3pk≤n cn ca
 
+  sproutDispatch : {A : ℕ → Set} → {n k : ℕ} → CardinalNesting (A n) n → CardinalAddress (suc k) → Address k → 
+                   A k → A (suc k) → CardinalDimFlag n k → Error (CardinalNesting (A n) n)
+  sproutDispatch cn ca addr a₀ a₁ (dimLt sn≤k) = succeed cn
+  sproutDispatch cn ca addr a₀ a₁ dimEq = sproutAt cn ca a₀
+  sproutDispatch cn ca addr a₀ a₁ dimSucc = sproutFillerAt cn ca addr a₁ 
+  sproutDispatch cn ca addr a₀ a₁ (dimDblSucc 2pk≤n) = sproutLeafAt 2pk≤n cn ca addr
+
   extrudeSelection : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → 
                      A k → A (1 + k) → (A k → Bool) → k ≤ n → Error (Cardinal A n)
   extrudeSelection c ca a₀ a₁ p k≤n = 
     getSelection (getAt _ k≤n c) ca p 
     >>= (λ msk → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → extrudeDispatch cn ca a₀ a₁ msk (getFlag m _)))
+
+  sproutAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress (suc k) → A k → A (1 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
+  sproutAtAddress {A} c ca a₀ a₁ k≤n = {!!} -- traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
 
   dropAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → A (1 + k) → A (2 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
   dropAtAddress {A} c ca a₀ a₁ k≤n = traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → dropDispatch {A = A} cn ca a₀ a₁ (getFlag m _))

@@ -64,6 +64,7 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
   }
 
   // setStyle("-fx-border-style: solid; -fx-border-size: 2pt; -fx-border-color: purple")
+  setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE)
 
   //============================================================================================
   // RENDER MARKER IMPLEMENTATION

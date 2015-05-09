@@ -15,11 +15,17 @@ import opetopic._
 import opetopic.fx._
 import TypeDefs._
 
-case class FibredLabel[N <: Nat](
-  val label: String,
-  val color: Color,
-  val address: Sigma[Address]
-)
+abstract class FibredLabel[N <: Nat] {
+
+  type ColoringDim <: Nat
+  val coloringDim : ColoringDim
+
+  val label: String
+  val color: Color
+
+  val address: Address[S[ColoringDim]]
+
+}
 
 object FibredLabel {
 
@@ -30,4 +36,15 @@ object FibredLabel {
       new Text(fl.label)
   }
 
+  def apply[N <: Nat, D <: Nat](d: D)(l: String, c: Color, a: Address[S[D]]) = 
+    new FibredLabel[N] {
+
+      type ColoringDim = D
+      val coloringDim = d
+
+      val label = l
+      val color = c
+      val address = a
+
+    }
 }
