@@ -205,30 +205,38 @@ module Cardinal where
            ; (box a₁ cn₁ , cntxt) → fail "Cannot sprout from a box" }) })
 
   sproutFillerAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress (suc n) → Address n → A → Error (CardinalNesting A (suc n))
-  sproutFillerAt {n = zero} cn ca addr a = {!!}
+  sproutFillerAt {n = zero} cn ca addr a = 
+    poke cn ca 
+    >>= (λ { (nst , ∂₀ , pt leaf , ls) → succeed (plugCardinal (∂₀ , pt (node (dot a) (pt leaf)) , ls) nst) 
+           ; (nst , ∂₀ , pt (node a₁ tr) , ls) → fail "Expected a leaf here ..." })
   sproutFillerAt {n = suc n} cn ca addr a = 
     poke cn ca  
     >>= (λ { (nst , (∂₀ , tr , ls)) → seekTo tr addr 
     >>= (λ { (leaf , cs) → fail "Outgoing canopy was truncated" 
-           ; (node leaf sh , cs) → succeed (plugCardinal (∂₀ , cs ↓ node (node (dot a) leaf) sh , ls) nst) -- This somehow doesn't feel right ....
+           ; (node leaf sh , cs) → succeed (plugCardinal (∂₀ , cs ↓ node (node (dot a) (node leaf (const sh leaf))) sh , ls) nst)
            ; (node (node _ _) sh , cs) → fail "Expected a leaf here ..." }) })  
 
-    -- Here's the idea: that derivative has a tree representing the outgoing leaves of this 
-    -- box you just found.  The point is that you want to zip to the correct address in that
-    -- guy, where you should find a leaf outgoing.  Then you double that fucker by putting a
-    -- dot there and ... ??? something else?
-
-    -- Question is: how do I know the right address?  One option would be to compute the spine
-    -- while saving the addresses of the internal guys.
-
-    -- Another is a sort of cross reference routine which feels a lot like grafting.  What if
-    -- you convert the guy to a tree ... maybe the extents thing will help?
-
-    -- And of course, you're going to have to do this every time.  It would be much better if 
-    -- the thing was computed once and for all at the beginning ...
-
   sproutLeafAt : {A : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress (suc k) → Address k → Error (CardinalNesting A n)
-  sproutLeafAt {n = n} {k = k} 2pk≤n cn ca addr = {!!}
+  sproutLeafAt (s≤s (s≤s (z≤n {n}))) cn ca addr = 
+    tailDerivative (s≤s (z≤n {n})) cn ca 
+    >>= (λ { (seq , (∂₀ , tr , ls)) → succeed (coe! (cardinalTreeAssoc (s≤s (z≤n {n}))) 
+                                              (plugCardinal (∂₀ , pt (node (seqLeaf {n = 1} {k = n}) (pt leaf)) , ls) seq)) })
+  sproutLeafAt {A = A} (s≤s (s≤s (s≤s {k} {n} k≤n))) cn ca addr = 
+    tailDerivative (s≤s (s≤s k≤n)) cn ca 
+    >>= (λ { (seq , ∂₀ , tr , ls) → seekTo tr addr 
+    >>= (λ { (leaf , cs) → fail "Outgoing canopy was truncated ..." 
+           ; (node leaf sh , cs) → 
+
+             let p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
+                 p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
+
+                 P : ℕ → Set
+                 P m = CardinalTree (TreeSeq (Nesting A (3 + n)) (suc k) m) k
+
+             in succeed (coe! (cardinalTreeAssoc {A = Nesting A (3 + n)} {n = 2 + n} {k = k} (≤-suc (≤-suc k≤n)))
+                                              (transport! P p (plugCardinal (∂₀ , node (node (seqLeaf {n = 2 + k} {k = Δ k≤n}) (node leaf (const sh leaf))) sh , ls) seq)))
+
+           ; (node (node _ _) sh , cs) → fail "Expected a leaf here" }) })
 
   extrudeAt : {A B : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → Tree B n → A → Error (CardinalNesting A n)
   extrudeAt {n = zero} cn ca msk a = succeed (pt (box a cn))
@@ -327,7 +335,15 @@ module Cardinal where
     >>= (λ msk → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → extrudeDispatch cn ca a₀ a₁ msk (getFlag m _)))
 
   sproutAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress (suc k) → A k → A (1 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
-  sproutAtAddress {A} c ca a₀ a₁ k≤n = {!!} -- traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
+  sproutAtAddress {A} {k = k} c ca a₀ a₁ k≤n = 
+    let cn : CardinalTree (Nesting (A k) k) k
+        cn = getAt _ k≤n c
+    in poke cn (tail ca) 
+       >>= (λ { (nst , ∂) → fromTree (toTree nst) 
+       >>= (λ addrNst → seekToNesting addrNst (head ca) 
+       >>= (λ { (fcs , cs) → succeed (baseValue fcs) -- A hack to pattern match the guy below
+       >>= (λ { (inj₁ _) → fail "Failed to calculate shell address" 
+              ; (inj₂ addr) → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca addr a₀ a₁ (getFlag m _)) }) })) }) 
 
   dropAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → A (1 + k) → A (2 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
   dropAtAddress {A} c ca a₀ a₁ k≤n = traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → dropDispatch {A = A} cn ca a₀ a₁ (getFlag m _))

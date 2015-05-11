@@ -41,6 +41,10 @@ module Nesting where
   mapNestingWithAddr : {A B : Set} → {n : ℕ} → Nesting A n → (A → Address (suc n) → B) → Nesting B n
   mapNestingWithAddr = traverseNestingWithAddr ⦃ idA ⦄ 
 
+  external : {A : Set} → {n : ℕ} → A → Nesting A n
+  external {n = zero} a = obj a
+  external {n = suc n} a = dot a
+
   baseValue : {A : Set} → {n : ℕ} → Nesting A n → A
   baseValue (obj a) = a
   baseValue (dot a) = a
@@ -51,6 +55,10 @@ module Nesting where
   toTree {n = zero} (box a (pt nst)) = node a (pt (toTree nst))
   toTree {n = suc n} (dot a) = leaf
   toTree {n = suc n} (box a cn) = node a (mapTree cn toTree)
+
+  fromTree : {A : Set} → {n : ℕ} → Tree A (suc n) → Error (Nesting (A ⊎ (Address n)) n)
+  fromTree {A} {n} tr = graftRec (λ a cn → succeed (box (inj₁ a) cn)) (λ addr → succeed (external (inj₂ addr))) tr
+    where open GraftRec {A} {Nesting (A ⊎ (Address n)) n}
 
   extendNestingWith : {A B : Set} → {n : ℕ} → Nesting A n → B → Tree (Nesting B (suc n)) (suc n)
   extendNestingWith (obj a) b = leaf
