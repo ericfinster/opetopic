@@ -11,6 +11,9 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
+import scalaz.\/
+import scalaz.-\/
+import scalaz.\/-
 import scalaz.Monad
 import scalaz.Applicative
 import scalaz.syntax.monad._
@@ -98,6 +101,23 @@ trait NestingFunctions {
   }
 
   //============================================================================================
+  // EXTERNAL
+  //
+
+  // Actually, I bet this can be used very effectively elsewhere to
+  // reduce the number of nat case splits ...
+
+  def external[A, N <: Nat](n: N)(a: A) : Nesting[A, N] = 
+    (new NatCaseSplit0 {
+
+      type Out[N <: Nat] = Nesting[A, N]
+
+      def caseZero : Out[_0] = Obj(a)
+      def caseSucc[P <: Nat](p: P) : Out[S[P]] = Dot(a, S(p))
+
+    })(n)
+
+  //============================================================================================
   // BASE VALUE
   //
 
@@ -118,6 +138,16 @@ trait NestingFunctions {
       case Dot(a, d) => Leaf(S(d))
       case Box(a, cn) => Node(a, Tree.map(cn)(toTree(_)))
     }
+
+  //============================================================================================
+  // FROM TREE
+  //
+
+  def fromTree[A, N <: Nat](tr : Tree[A, S[N]]) : ShapeM[Nesting[\/[A, Address[N]], N]] = 
+    Tree.graftRec[A, Nesting[\/[A, Address[N]], N], N](tr)(
+      addr => Monad[ShapeM].pure(external(tr.dim.pred)(\/-(addr))))({
+      case (a, cn) => Monad[ShapeM].pure(Box(-\/(a), cn)) 
+    })
 
   //============================================================================================
   // SPINE FROM CANOPY

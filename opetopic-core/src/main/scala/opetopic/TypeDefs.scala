@@ -24,6 +24,9 @@ object TypeDefs extends NatConstants {
   def fail[A](se: ShapeError) : ShapeM[A] = 
     -\/(se)
 
+  def succeed[A](a: A) : ShapeM[A] = 
+    \/-(a)
+
   def fromOpt[A](opt: Option[A]) : ShapeM[A] = 
     opt match {
       case None => fail(new ShapeError("Option was none"))

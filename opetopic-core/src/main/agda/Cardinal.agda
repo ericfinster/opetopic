@@ -234,7 +234,7 @@ module Cardinal where
                  P m = CardinalTree (TreeSeq (Nesting A (3 + n)) (suc k) m) k
 
              in succeed (coe! (cardinalTreeAssoc {A = Nesting A (3 + n)} {n = 2 + n} {k = k} (≤-suc (≤-suc k≤n)))
-                                              (transport! P p (plugCardinal (∂₀ , node (node (seqLeaf {n = 2 + k} {k = Δ k≤n}) (node leaf (const sh leaf))) sh , ls) seq)))
+                                              (transport! P p (plugCardinal (∂₀ , cs ↓ node (node (seqLeaf {n = 2 + k} {k = Δ k≤n}) (node leaf (const sh leaf))) sh , ls) seq)))
 
            ; (node (node _ _) sh , cs) → fail "Expected a leaf here" }) })
 

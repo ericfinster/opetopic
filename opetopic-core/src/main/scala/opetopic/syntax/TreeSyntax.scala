@@ -11,6 +11,7 @@ import scala.language.higherKinds
 import scala.language.implicitConversions
 
 import scalaz.Id._
+import scalaz.\/
 import scalaz.Monad
 import scalaz.Traverse
 import scalaz.Applicative
