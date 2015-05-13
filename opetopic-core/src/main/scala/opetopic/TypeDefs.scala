@@ -27,11 +27,15 @@ object TypeDefs extends NatConstants {
   def succeed[A](a: A) : ShapeM[A] = 
     \/-(a)
 
-  def fromOpt[A](opt: Option[A]) : ShapeM[A] = 
+
+  def fromOpt[A](opt: Option[A], se: ShapeError) : ShapeM[A] = 
     opt match {
-      case None => fail(new ShapeError("Option was none"))
+      case None => fail(se)
       case Some(a) => \/-(a)
     }
+
+  def fromOpt[A](opt: Option[A]) : ShapeM[A] = 
+    fromOpt(opt, new ShapeError("Option was none"))
 
   //============================================================================================
   // INDEXED OPERATIONS

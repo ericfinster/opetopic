@@ -256,6 +256,9 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
     // Just have to make some experiments to see how to do it.
     def address_=(addr: Address[S[N]])
 
+    // With reverse extrusion, the external status of a marker
+    // can change!
+    var isExternal : Boolean
 
   }
 
@@ -492,6 +495,85 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
 
           }
         }
+    }
+
+  }
+
+  def sprout : Unit = {
+
+    val curState = editorState
+
+    type D = curState.Dim
+    implicit val d = curState.dim
+
+    selection match {
+      case None => ()
+      case Some(sel) =>
+        if (sel.root.isExternal) {
+
+          val selectionDim : Int = natToInt(sel.dim)
+          val curStateDim : Int = natToInt(curState.dim)
+
+          val (extrusionState, fillerEdgeCanvas) = 
+            if (selectionDim == curStateDim) {
+              val newState = extendedState
+              (newState, newState.nextCanvas)
+            } else if (selectionDim == (curStateDim - 1)) {
+              (curState, curState.nextCanvas)
+            } else (curState, curState.canvases(selectionDim + 2))
+
+          val targetCanvas = extrusionState.canvases(natToInt(sel.dim))
+          val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
+
+          for {
+            diff <- fromOpt(Lte.diffOpt(sel.dim, extrusionState.dim))
+            ca <- fromOpt(sel.root.cardinalAddress)
+            mk0 = createNeutralMarker(sel.dim)(None, ca, true, targetCanvas, fillerCanvas)
+            mk1 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
+            _ = mk0.outgoingEdgeMarker = sel.root.outgoingEdgeMarker
+            _ = mk1.outgoingEdgeMarker = Some(sel.root) 
+            _ = sel.root.isExternal = false
+            _ = println("About to sprout...")
+            newCardinal <- Cardinal.sproutAtAddress(extrusionState.cardinal, ca, mk0, mk1)(diff)
+            _ = println("Sprout complete.")
+            // _ = println(newCardinal.toString)
+          } yield {
+
+            // I think I see the problem: the marker for the selection root was marked external,
+            // but it no longer is!  This needs to be fixed.
+
+            deselectAll
+
+            val newComplex : Complex[MarkerType, extrusionState.Dim] = 
+              completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
+
+            println("Resulting complex:")
+            println(newComplex.toString)
+
+            editorState = new EditorState {
+
+              type Dim = extrusionState.Dim
+              val dim = extrusionState.dim
+              val complex = newComplex
+              val cardinal = newCardinal
+              val polarizedMarkers = extrusionState.polarizedMarkers
+              val canvases = extrusionState.canvases
+              val nextCanvas = extrusionState.nextCanvas
+
+            }
+
+            editorState.refreshCardinalAddresses
+            editorState.refreshComplexAddresses
+            editorState.refreshFaceComplexes
+
+            val renderResult = render
+            println("Rendering result: " ++ renderResult.toString)
+
+            selectAsRoot(mk0)
+
+          }
+        }
+
     }
 
   }

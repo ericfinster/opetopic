@@ -301,7 +301,8 @@ trait Renderer[U]  {
       case Dot(rm, d) => 
         for {
           outgoingEdge <- fromOpt(
-            rm.outgoingEdgeMarker
+            rm.outgoingEdgeMarker,
+            new ShapeError("Missing outgoing edge for" ++ rm.toString)
           )
         } yield {
 

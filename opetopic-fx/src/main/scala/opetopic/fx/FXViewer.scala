@@ -53,13 +53,15 @@ abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Regi
 
   val canvases : ListBuffer[CanvasType] = new ListBuffer()
 
-  override def render : Unit = {
-    super.render
-
+  override def render : ShapeM[Unit] = {
     for {
-      canvas <- canvases
-    } {
-      canvas.requestLayout()
+      _ <- super.render
+    } yield {
+      for {
+        canvas <- canvases
+      } {
+        canvas.requestLayout()
+      }
     }
   }
 

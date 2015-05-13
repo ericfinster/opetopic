@@ -98,6 +98,7 @@ object FXEditor extends JFXApp {
       ev.code match {
         case KeyCode.E => for { editor <- activeEditor } { editor.extrudeSelection }
         case KeyCode.D => for { editor <- activeEditor } { editor.extrudeDrop }
+        case KeyCode.P => for { editor <- activeEditor } { editor.sprout }
         case _ => ()
       }
     }

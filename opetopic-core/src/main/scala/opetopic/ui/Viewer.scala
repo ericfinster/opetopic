@@ -153,16 +153,18 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   // RENDER VIEWER
   //
 
-  def render : Unit = {
+  def render : ShapeM[Unit] = {
     val cmplx = complex
 
-    renderComplex[cmplx.N](cmplx.value)
-
     for {
-      mk <- cmplx
-    } {
-      mk.box.render
-      mk.edge.render
+      _ <- renderComplex[cmplx.N](cmplx.value)
+    } yield {
+      for {
+        mk <- cmplx
+      } {
+        mk.box.render
+        mk.edge.render
+      }
     }
 
   }
@@ -171,26 +173,27 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   // RENDER COMPLEX
   //
  
-  def renderComplex[N <: Nat](cmplx : Complex[MarkerType, N]) : Unit =
+  def renderComplex[N <: Nat](cmplx : Complex[MarkerType, N]) : ShapeM[Unit] =
     (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = Complex[MarkerType, N] => Unit
+      type Out[N <: Nat] = Complex[MarkerType, N] => ShapeM[Unit]
 
       def caseZero : Out[_0] = {
         case Complex(_, hd) => {
           // println("========= Dimension 0 =========")
           renderObjectNesting(hd)
+          succeed(())
         }
       }
 
       def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
         case Complex(tl, hd) => {
-
-          renderComplex(tl)
-
-          // println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
-
           for {
+
+            _ <- renderComplex(tl)
+
+            // _ = println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
+
             spine <- tl.headSpine
 
             leaves = spine map (rm => 
@@ -223,6 +226,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
 
             totalLayout.rootEdgeMarker.edgeEndY = baseLayout.rootY + (fromInt(2) * externalPadding)
 
+            // println("Render ok ...")
           }
         }
       }

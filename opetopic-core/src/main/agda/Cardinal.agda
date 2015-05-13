@@ -194,49 +194,43 @@ module Cardinal where
   sproutAt : {A : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress (suc n) → A → Error (CardinalNesting A n)
   sproutAt {n = zero} (pt nst) (tl ▶ hd) a = 
     seekToNesting nst hd 
-    >>= (λ { (obj a₁ , cntxt) → succeed (pt (closeNesting cntxt (box a₁ (pt (obj a))))) 
-           ; (box a₁ cn , cntxt) → fail "Cannot sprout from a box" })
+    >>= (λ { (obj a₁ , cs) → succeed (pt (closeNesting cs (box a₁ (pt (obj a))))) 
+           ; (box _ _ , cntxt) → fail "Cannot sprout from a box" })
   sproutAt {n = suc n} cn (tl ▶ hd) a = 
     poke cn tl 
     >>= (λ { (nst , ∂) → seekToNesting nst hd 
-    >>= (λ { (dot a₁ , []) → succeed (plugCardinal ∂ (box a₁ (node (dot a) (const (proj₁ (proj₂ ∂)) leaf)))) -- Here you will have to look at how the extension should go using ∂
-           ; (dot a₁ , c ∷ cs) → succeed (plugCardinal ∂ (closeNesting (c ∷ cs) 
-                                         (box a₁ (node (dot a) (const (proj₁ (proj₂ c)) leaf)))))  -- Here you should have the information in the zipper
-           ; (box a₁ cn₁ , cntxt) → fail "Cannot sprout from a box" }) })
+    >>= (λ { (dot a₁ , cs) → succeed (plugCardinal ∂ (closeNesting cs (box a₁ (node (dot a) (const (proj₁ (proj₂ ∂)) leaf)))))
+           ; (box _ _ , cs) → fail "Cannot sprout from a box" }) })
 
-  sproutFillerAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress (suc n) → Address n → A → Error (CardinalNesting A (suc n))
-  sproutFillerAt {n = zero} cn ca addr a = 
-    poke cn ca 
-    >>= (λ { (nst , ∂₀ , pt leaf , ls) → succeed (plugCardinal (∂₀ , pt (node (dot a) (pt leaf)) , ls) nst) 
-           ; (nst , ∂₀ , pt (node a₁ tr) , ls) → fail "Expected a leaf here ..." })
-  sproutFillerAt {n = suc n} cn ca addr a = 
-    poke cn ca  
-    >>= (λ { (nst , (∂₀ , tr , ls)) → seekTo tr addr 
-    >>= (λ { (leaf , cs) → fail "Outgoing canopy was truncated" 
-           ; (node leaf sh , cs) → succeed (plugCardinal (∂₀ , cs ↓ node (node (dot a) (node leaf (const sh leaf))) sh , ls) nst)
-           ; (node (node _ _) sh , cs) → fail "Expected a leaf here ..." }) })  
+  -- poke : {A : Set} → {n : ℕ} → CardinalTree A n → CardinalAddress n → Error (A × CardinalDerivative A n)
 
-  sproutLeafAt : {A : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress (suc k) → Address k → Error (CardinalNesting A n)
-  sproutLeafAt (s≤s (s≤s (z≤n {n}))) cn ca addr = 
-    tailDerivative (s≤s (z≤n {n})) cn ca 
-    >>= (λ { (seq , (∂₀ , tr , ls)) → succeed (coe! (cardinalTreeAssoc (s≤s (z≤n {n}))) 
-                                              (plugCardinal (∂₀ , pt (node (seqLeaf {n = 1} {k = n}) (pt leaf)) , ls) seq)) })
-  sproutLeafAt {A = A} (s≤s (s≤s (s≤s {k} {n} k≤n))) cn ca addr = 
-    tailDerivative (s≤s (s≤s k≤n)) cn ca 
-    >>= (λ { (seq , ∂₀ , tr , ls) → seekTo tr addr 
-    >>= (λ { (leaf , cs) → fail "Outgoing canopy was truncated ..." 
-           ; (node leaf sh , cs) → 
+  sproutFillerAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress (suc n) → A → Error (CardinalNesting A (suc n))
+  sproutFillerAt {n = zero} cn (tl ▶ hd) a = 
+    poke cn tl 
+    >>= (λ { (tr , ∂) → seekTo tr hd 
+    >>= (λ { (leaf , cs) → succeed (plugCardinal ∂ (cs ↓ node (dot a) (pt leaf))) 
+           ; (node _ _ , cs) → fail "Expected a leaf here ..." }) })
+  sproutFillerAt {n = suc n} cn (tl ▶ hd) a = 
+    poke {A = Tree (Nesting _ (2 + n)) (2 + n)} {n = suc n} cn tl 
+    >>= (λ { (tr , ∂) → seekTo tr hd 
+    >>= (λ { (leaf , cs) → succeed (plugCardinal ∂ (cs ↓ node (dot a) (node leaf (const (proj₁ (proj₂ ∂)) leaf)))) 
+           ; (node _ _ , cs) → fail "Exprected a leaf here ..." }) })
 
-             let p : Δ (≤-suc (≤-suc k≤n)) == suc (suc (Δ k≤n))
-                 p = Δ-lem (≤-suc k≤n) ∙ (ap suc (Δ-lem k≤n))
+  sproutLeafAt : {A : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress (suc k) → Error (CardinalNesting A n)
+  sproutLeafAt {A} (s≤s (s≤s (z≤n {n}))) cn (tl ▶ hd) = 
+    tailDerivative {A = Nesting A (2 + n)} {n = suc n} {k = 0} (z≤n {suc n}) cn tl
+    >>= (λ { (seq , ∂) → seekTo seq hd 
+    >>= (λ { (leaf , cs) → succeed (coe! (cardinalTreeAssoc (s≤s (z≤n {n}))) (plugCardinal ∂ (cs ↓ node (seqLeaf {_} {1} {n}) (pt leaf)))) 
+           ; (node _ _ , cs) → fail "Expected leaf here" }) })
+  sproutLeafAt {A} (s≤s (s≤s (s≤s {k} {n} k≤n))) cn (tl ▶ hd) = 
+    tailDerivative {A = Nesting A (3 + n)} {n = suc (suc n)} {k = suc k} (s≤s (≤-suc k≤n)) cn tl 
+    >>= (λ { (seq , ∂) → seekTo (transport P (Δ-lem k≤n) seq) hd 
+    >>= (λ { (leaf , cs) → succeed (coe! (cardinalTreeAssoc (s≤s (≤-suc k≤n))) 
+                                   (plugCardinal ∂ (transport! P (Δ-lem k≤n) (cs ↓ node (seqLeaf {_} {2 + k} {Δ k≤n}) (node leaf (const (proj₁ (proj₂ ∂)) leaf)) )))) 
+           ; (node _ _ , cs) → fail "Exprected leaf here" }) })
 
-                 P : ℕ → Set
-                 P m = CardinalTree (TreeSeq (Nesting A (3 + n)) (suc k) m) k
-
-             in succeed (coe! (cardinalTreeAssoc {A = Nesting A (3 + n)} {n = 2 + n} {k = k} (≤-suc (≤-suc k≤n)))
-                                              (transport! P p (plugCardinal (∂₀ , cs ↓ node (node (seqLeaf {n = 2 + k} {k = Δ k≤n}) (node leaf (const sh leaf))) sh , ls) seq)))
-
-           ; (node (node _ _) sh , cs) → fail "Expected a leaf here" }) })
+    where P : ℕ → Set
+          P m = TreeSeq (Nesting A (suc (suc (suc n)))) (suc (suc k)) m 
 
   extrudeAt : {A B : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → Tree B n → A → Error (CardinalNesting A n)
   extrudeAt {n = zero} cn ca msk a = succeed (pt (box a cn))
@@ -321,12 +315,12 @@ module Cardinal where
   dropDispatch cn ca a₀ a₁ dimSucc            = extrudeDropAt cn ca a₁
   dropDispatch cn ca a₀ a₁ (dimDblSucc 3pk≤n) = extrudeDropLeafAt 3pk≤n cn ca
 
-  sproutDispatch : {A : ℕ → Set} → {n k : ℕ} → CardinalNesting (A n) n → CardinalAddress (suc k) → Address k → 
+  sproutDispatch : {A : ℕ → Set} → {n k : ℕ} → CardinalNesting (A n) n → CardinalAddress (suc k) → 
                    A k → A (suc k) → CardinalDimFlag n k → Error (CardinalNesting (A n) n)
-  sproutDispatch cn ca addr a₀ a₁ (dimLt sn≤k) = succeed cn
-  sproutDispatch cn ca addr a₀ a₁ dimEq = sproutAt cn ca a₀
-  sproutDispatch cn ca addr a₀ a₁ dimSucc = sproutFillerAt cn ca addr a₁ 
-  sproutDispatch cn ca addr a₀ a₁ (dimDblSucc 2pk≤n) = sproutLeafAt 2pk≤n cn ca addr
+  sproutDispatch cn ca a₀ a₁ (dimLt sn≤k) = succeed cn
+  sproutDispatch cn ca a₀ a₁ dimEq = sproutAt cn ca a₀
+  sproutDispatch cn ca a₀ a₁ dimSucc = sproutFillerAt cn ca a₁ 
+  sproutDispatch cn ca a₀ a₁ (dimDblSucc 2pk≤n) = sproutLeafAt 2pk≤n cn ca
 
   extrudeSelection : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → 
                      A k → A (1 + k) → (A k → Bool) → k ≤ n → Error (Cardinal A n)
@@ -335,15 +329,15 @@ module Cardinal where
     >>= (λ msk → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → extrudeDispatch cn ca a₀ a₁ msk (getFlag m _)))
 
   sproutAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress (suc k) → A k → A (1 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
-  sproutAtAddress {A} {k = k} c ca a₀ a₁ k≤n = 
-    let cn : CardinalTree (Nesting (A k) k) k
-        cn = getAt _ k≤n c
-    in poke cn (tail ca) 
-       >>= (λ { (nst , ∂) → fromTree (toTree nst) 
-       >>= (λ addrNst → seekToNesting addrNst (head ca) 
-       >>= (λ { (fcs , cs) → succeed (baseValue fcs) -- A hack to pattern match the guy below
-       >>= (λ { (inj₁ _) → fail "Failed to calculate shell address" 
-              ; (inj₂ addr) → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca addr a₀ a₁ (getFlag m _)) }) })) }) 
+  sproutAtAddress {A} {k = k} c ca a₀ a₁ k≤n = traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
+    -- let cn : CardinalTree (Nesting (A k) k) k
+    --     cn = getAt _ k≤n c
+    -- in poke cn (tail ca) 
+    --    >>= (λ { (nst , ∂) → fromTree (toTree nst) 
+    --    >>= (λ addrNst → seekToNesting addrNst (head ca) 
+    --    >>= (λ { (fcs , cs) → succeed (baseValue fcs) -- A hack to pattern match the guy below
+    --    >>= (λ { (inj₁ _) → fail "Failed to calculate shell address" 
+    --           ; (inj₂ addr) → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca a₀ a₁ (getFlag m _)) }) })) }) 
 
   dropAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress k → A (1 + k) → A (2 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
   dropAtAddress {A} c ca a₀ a₁ k≤n = traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → dropDispatch {A = A} cn ca a₀ a₁ (getFlag m _))

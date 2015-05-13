@@ -59,6 +59,7 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
     thisMarker =>
 
     var nestingAddress : Address[S[N]] = Nil
+    var isExternal : Boolean = false
 
     def address : Address[S[N]] = nestingAddress
     def address_=(addr: Address[S[N]]) : Unit = 
@@ -75,7 +76,7 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
     val dim : N,
     val el : Option[A[N]], 
     cardAddr : CardinalAddress[S[N]],
-    val isExternal : Boolean,
+    isExt : Boolean,
     val objectCanvas : FXCardinalCanvas,
     val edgeCanvas : FXCardinalCanvas
   ) extends FXCardinalMarker[N] with NeutralMarker[N] {
@@ -92,6 +93,8 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
       markerElement = el
       box.refreshLabel
     }
+
+    isExternal = isExt
 
     // Ugly ...
     val nbox : FXNeutralBox[N] = createNeutralBox(this)
@@ -111,12 +114,14 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
   class FXPolarizedMarker[N <: Nat](
     val dim : N,
     val lbl : Polarization[Option[A[N]]],
-    val isExternal : Boolean,
+    isExt : Boolean,
     val objectCanvas : FXCardinalCanvas,
     val edgeCanvas : FXCardinalCanvas
   ) extends FXCardinalMarker[N] with PolarizedMarker[N] {
 
     def label : Polarity[Option[A[N]]] = lbl
+
+    isExternal = isExt 
 
     // Ugly
     val pbox : FXPolarizedBox[N] = new FXPolarizedBox(this)
@@ -177,7 +182,7 @@ abstract class FXCardinalEditor[A[_ <: Nat]](c: FiniteCardinal[({ type L[K <: Na
       group.getChildren add box
 
       for { pos <- positiveBox } { 
-        box.toBack
+        if (! box.marker.isExternal) box.toBack
         pos.toBack 
       }
 
