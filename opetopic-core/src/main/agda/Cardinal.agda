@@ -199,10 +199,9 @@ module Cardinal where
   sproutAt {n = suc n} cn (tl ▶ hd) a = 
     poke cn tl 
     >>= (λ { (nst , ∂) → seekToNesting nst hd 
-    >>= (λ { (dot a₁ , cs) → succeed (plugCardinal ∂ (closeNesting cs (box a₁ (node (dot a) (const (proj₁ (proj₂ ∂)) leaf)))))
+    >>= (λ { (dot a₁ , cs) → let sh = maybeRec (headMaybe cs) (const (proj₁ (proj₂ ∂)) leaf) (λ c → const (proj₁ (proj₂ c)) leaf) in 
+                  succeed (plugCardinal ∂ (closeNesting cs (box a₁ (node (dot a) sh))))  
            ; (box _ _ , cs) → fail "Cannot sprout from a box" }) })
-
-  -- poke : {A : Set} → {n : ℕ} → CardinalTree A n → CardinalAddress n → Error (A × CardinalDerivative A n)
 
   sproutFillerAt : {A : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress (suc n) → A → Error (CardinalNesting A (suc n))
   sproutFillerAt {n = zero} cn (tl ▶ hd) a = 
@@ -213,7 +212,8 @@ module Cardinal where
   sproutFillerAt {n = suc n} cn (tl ▶ hd) a = 
     poke {A = Tree (Nesting _ (2 + n)) (2 + n)} {n = suc n} cn tl 
     >>= (λ { (tr , ∂) → seekTo tr hd 
-    >>= (λ { (leaf , cs) → succeed (plugCardinal ∂ (cs ↓ node (dot a) (node leaf (const (proj₁ (proj₂ ∂)) leaf)))) 
+    >>= (λ { (leaf , cs) → let sh = maybeRec (headMaybe cs) (const (proj₁ (proj₂ ∂)) leaf) (λ c → const (proj₁ (proj₂ c)) leaf) in 
+                   succeed (plugCardinal ∂ (cs ↓ node (dot a) (node leaf sh))) 
            ; (node _ _ , cs) → fail "Exprected a leaf here ..." }) })
 
   sproutLeafAt : {A : Set} → {n k : ℕ} → (2pk≤n : 2 + k ≤ n) → CardinalNesting A n → CardinalAddress (suc k) → Error (CardinalNesting A n)
@@ -225,8 +225,9 @@ module Cardinal where
   sproutLeafAt {A} (s≤s (s≤s (s≤s {k} {n} k≤n))) cn (tl ▶ hd) = 
     tailDerivative {A = Nesting A (3 + n)} {n = suc (suc n)} {k = suc k} (s≤s (≤-suc k≤n)) cn tl 
     >>= (λ { (seq , ∂) → seekTo (transport P (Δ-lem k≤n) seq) hd 
-    >>= (λ { (leaf , cs) → succeed (coe! (cardinalTreeAssoc (s≤s (≤-suc k≤n))) 
-                                   (plugCardinal ∂ (transport! P (Δ-lem k≤n) (cs ↓ node (seqLeaf {_} {2 + k} {Δ k≤n}) (node leaf (const (proj₁ (proj₂ ∂)) leaf)) )))) 
+    >>= (λ { (leaf , cs) → let sh = maybeRec (headMaybe cs) (const (proj₁ (proj₂ ∂)) leaf) (λ c → const (proj₁ (proj₂ c)) leaf) in 
+                   succeed (coe! (cardinalTreeAssoc (s≤s (≤-suc k≤n))) 
+                                   (plugCardinal ∂ (transport! P (Δ-lem k≤n) (cs ↓ node (seqLeaf {_} {2 + k} {Δ k≤n}) (node leaf sh) )))) 
            ; (node _ _ , cs) → fail "Exprected leaf here" }) })
 
     where P : ℕ → Set
@@ -329,10 +330,11 @@ module Cardinal where
     >>= (λ msk → traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → extrudeDispatch cn ca a₀ a₁ msk (getFlag m _)))
 
   sproutAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress (suc k) → A k → A (1 + k) → (k≤n : k ≤ n) → Error (Cardinal A n)
-  sproutAtAddress {A} {k = k} c ca a₀ a₁ k≤n = traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
-    -- let cn : CardinalTree (Nesting (A k) k) k
-    --     cn = getAt _ k≤n c
-    -- in poke cn (tail ca) 
+  sproutAtAddress {A} {k = k} c ca a₀ a₁ k≤n = --traverseSuite ⦃ monadIsApp errorM ⦄ c (λ m cn → sproutDispatch {A = A} cn ca a₀ a₁ (getFlag m _))
+    let cn : CardinalTree (Nesting (A k) k) k
+        cn = getAt _ k≤n c
+    in {!!}
+    -- poke cn (tail ca) 
     --    >>= (λ { (nst , ∂) → fromTree (toTree nst) 
     --    >>= (λ addrNst → seekToNesting addrNst (head ca) 
     --    >>= (λ { (fcs , cs) → succeed (baseValue fcs) -- A hack to pattern match the guy below

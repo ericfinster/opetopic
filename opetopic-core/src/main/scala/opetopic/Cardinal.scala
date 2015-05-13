@@ -593,8 +593,13 @@ trait CardinalFunctions {
             pr1 <- Nesting.seekNesting(S(p))((nst, Nil), hd)
             res <- (
               pr1 match {
-                case (Dot(a1, sp), cs) => 
-                  succeed(plugCardinal(S(p))(deriv, Nesting.closeNesting(S(p))(cs, Box(a1, Node(Dot(a, S(p)), Tree.const(deriv._2._1, Leaf(S(p))))))))
+                case (Dot(a1, sp), cs) => {
+                  val sh = 
+                    (cs.headOption map ((c : (_, Derivative[_, S[P]])) => Tree.const(c._2._1, Leaf(S(p))))).
+                      getOrElse(Tree.const(deriv._2._1, Leaf(S(p))))
+
+                  succeed(plugCardinal(S(p))(deriv, Nesting.closeNesting(S(p))(cs, Box(a1, Node(Dot(a, S(p)), sh)))))
+                }
                 case (Box(_, _), _) => fail(new ShapeError("Cannot sprout from box"))
               }
             )
@@ -603,6 +608,10 @@ trait CardinalFunctions {
 
     })(n)(cn, ca)
 
+  // Indeed, the address must be adjusted be the nestings which appear in the next dimension.  Thereafter, I believe
+  // everything will be the same.  But the address can indeed be shortened by the filling dimension if some boxes
+  // surround the main tree.
+
   def sproutFillerAt[A, N <: Nat](n: N)(cn: CardinalNesting[A, S[N]], ca: CardinalAddress[S[N]], a: A) : ShapeM[CardinalNesting[A, S[N]]] = 
     (new NatCaseSplit0 {
 
@@ -610,9 +619,12 @@ trait CardinalFunctions {
 
       def caseZero : Out[_0] = {
         case (cn, tl >> hd) => {
+          println("In debug case")
           for {
             pr0 <- poke[Tree[Nesting[A, _1], _1], _0](cn, tl)
+            _ = println("Poke complete")
             pr1 <- Tree.seekTo(pr0._1, hd)
+            _ = println("Seek complete")
             res <- (
               pr1._1 match {
                 case Leaf(_) => succeed(
@@ -632,9 +644,15 @@ trait CardinalFunctions {
             pr1 <- Tree.seekTo(pr0._1, hd)
             res <- (
               pr1._1 match {
-                case Leaf(_) => succeed(
-                  plugCardinal(S(p))(pr0._2, Zipper.close(S(S(p)))(pr1._2, Node(Dot(a, S(S(p))), Node(Leaf(S(S(p))), Tree.const(pr0._2._2._1, Leaf(S(p)))))))
-                )
+                case Leaf(_) => {
+                  val sh = 
+                    (pr1._2.headOption map ((c : (_, Derivative[_, S[P]])) => Tree.const(c._2._1, Leaf(S(p))))).
+                      getOrElse(Tree.const(pr0._2._2._1, Leaf(S(p))))
+
+                  succeed(
+                    plugCardinal(S(p))(pr0._2, Zipper.close(S(S(p)))(pr1._2, Node(Dot(a, S(S(p))), Node(Leaf(S(S(p))), sh))))
+                  )
+                }
                 case Node(_, _) => fail(new ShapeError("Expected a leaf"))
               }
             )
@@ -693,11 +711,15 @@ trait CardinalFunctions {
                   res <- (
                     pr1._1 match {
                       case Leaf(_) => {
+                        val sh =
+                          (pr1._2.headOption map ((c : (_, Derivative[_, S[K]])) =>Tree.const(c._2._1, Leaf(S(k))))).
+                            getOrElse(Tree.const(pr0._2._2._1, Leaf(S(k))))
+
                         succeed(
                           symm[Nothing, Any, CardinalNestingTrplSucc[A, N], CardinalTree[TreeSeq[Nesting[A, S[S[S[N]]]], S[S[K]], S[D]], S[K]]](
                             cardinalTreeAssoc[Nesting[A, S[S[S[N]]]], S[K], S[S[N]], S[D]](ev)
                           )(
-                            plugCardinal(S(k))(pr0._2, Zipper.close(S(S(k)))(pr1._2, Node(seqLeaf(S(S(k)), plte.diff), Node(Leaf(S(S(k))), Tree.const(pr0._2._2._1, Leaf(S(k)))))))
+                            plugCardinal(S(k))(pr0._2, Zipper.close(S(S(k)))(pr1._2, Node(seqLeaf(S(S(k)), plte.diff), Node(Leaf(S(S(k))), sh))))
                           )
                         )
                       }
@@ -929,7 +951,10 @@ trait CardinalFunctions {
 
     Suite.traverse[ShapeM, KNesting, KNesting, S[N]](c)(new IndexedTraverse[ShapeM, KNesting, KNesting] {
       def apply[M <: Nat](m: M)(cn: KNesting[M]) : ShapeM[KNesting[M]] = {
-        sproutDispatch(cn, ca, a0, a1, getFlag(m, diff.lte.lower))
+        println("Dispatching in dimension " ++ natToInt(m).toString)
+        val res = sproutDispatch(cn, ca, a0, a1, getFlag(m, diff.lte.lower))
+        println("Result: " ++ res.toString)
+        res
       }
     })
   }

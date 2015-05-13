@@ -51,10 +51,9 @@ module Nesting where
   baseValue (box a cn) = a
 
   toTree : {A : Set} → {n : ℕ} → Nesting A n → Tree A (suc n)
-  toTree {n = zero} (obj a) = leaf
-  toTree {n = zero} (box a (pt nst)) = node a (pt (toTree nst))
-  toTree {n = suc n} (dot a) = leaf
-  toTree {n = suc n} (box a cn) = node a (mapTree cn toTree)
+  toTree (obj a) = leaf
+  toTree (dot a) = leaf
+  toTree (box a cn) = node a (mapTree cn toTree)
 
   fromTree : {A : Set} → {n : ℕ} → Tree A (suc n) → Error (Nesting (A ⊎ (Address n)) n)
   fromTree {A} {n} tr = graftRec (λ a cn → succeed (box (inj₁ a) cn)) (λ addr → succeed (external (inj₂ addr))) tr
@@ -74,6 +73,20 @@ module Nesting where
     spineFromDeriv (obj a) ∂ = succeed (pt a) 
     spineFromDeriv (dot a) ∂ = succeed (∂ ← a) 
     spineFromDeriv (box a cn) ∂ = spineFromCanopy cn
+
+  -- The following routine, given a canopy, produces a new nesting with the external cells holding 
+  -- the short address of a leaf.  See sprouting routine for usage.
+  canopyAddressExtend : {A : Set} → {n : ℕ} → Tree (Nesting A (suc n)) (suc n) → Error (Nesting (Address (suc n)) n)
+  canopyAddressExtend tr = canopyAddressExtend₀ tr []
+
+    where canopyAddressExtend₀ : {A : Set} → {n : ℕ} → Tree (Nesting A (suc n)) (suc n) → Address (suc n) → Error (Nesting (Address (suc n)) n)
+          canopyAddressExtend₀ leaf addr = succeed (external addr)
+          canopyAddressExtend₀ {A} {n} (node nst sh) addr = 
+            spineFromDeriv nst (const sh leaf , []) -- This get's us a tree at the current stage, which I think we are going to join or something
+            >>= (λ tr → traverseWithAddress {{monadIsApp errorM}} sh (λ b d → canopyAddressExtend₀ b (d ∷ addr)) -- Here we loop the computation
+            >>= (λ shRes → graftRec (λ _ cn → succeed (box addr cn)) (valueAt shRes) tr))
+
+            where open GraftRec {A} {Nesting (Address (suc n)) n}
 
   ContextNst : Set → ℕ → Set
   ContextNst A n = List (A × Derivative (Nesting A n) n)

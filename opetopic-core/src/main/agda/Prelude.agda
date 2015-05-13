@@ -119,6 +119,10 @@ module Prelude where
   {-# IMPORT Data.FFI #-}
   {-# COMPILED_DATA List Data.FFI.AgdaList [] (:) #-}
 
+  headMaybe : {A : Set} → List A → Maybe A
+  headMaybe [] = nothing
+  headMaybe (a ∷ _) = just a
+
   [_] : ∀ {A : Set} → A → List A
   [ x ] = x ∷ []
 
@@ -237,3 +241,7 @@ module Prelude where
   +-unit-r : ∀ {n} → n == (n + zero)
   +-unit-r {zero} = idp
   +-unit-r {suc n} = ap suc +-unit-r
+
+  Δ-+-lem : ∀ {m n} → (m≤n : m ≤ n) → (Δ m≤n + m) == n
+  Δ-+-lem z≤n = ! +-unit-r
+  Δ-+-lem (s≤s {m} {n} m≤n) = +-suc {Δ m≤n} {m} ∙ ap suc (Δ-+-lem m≤n)
