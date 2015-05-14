@@ -83,7 +83,7 @@ module Nesting where
           canopyAddressExtend₀ leaf addr = succeed (external addr)
           canopyAddressExtend₀ {A} {n} (node nst sh) addr = 
             spineFromDeriv nst (const sh leaf , []) -- This get's us a tree at the current stage, which I think we are going to join or something
-            >>= (λ tr → traverseWithAddress {{monadIsApp errorM}} sh (λ b d → canopyAddressExtend₀ b (d ∷ addr)) -- Here we loop the computation
+            >>= (λ tr → traverseWithAddress ⦃ monadIsApp errorM ⦄ sh (λ b d → canopyAddressExtend₀ b (d ∷ addr)) -- Here we loop the computation
             >>= (λ shRes → graftRec (λ _ cn → succeed (box addr cn)) (valueAt shRes) tr))
 
             where open GraftRec {A} {Nesting (Address (suc n)) n}

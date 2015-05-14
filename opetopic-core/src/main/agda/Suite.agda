@@ -26,9 +26,13 @@ module Suite where
   prepend {P} ∥ p = ∥ ▶ transport P +-unit-r p
   prepend {P} {suc n} {m} (tl ▶ hd) p = prepend {P} {n} {m} tl p ▶ transport! P (+-suc {m} {n}) hd
 
-  grab : {P : ℕ → Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → Suite P n → (Suite P (Δ k≤n) × Suite (P ↑ (Δ k≤n)) k)
-  grab .0 z≤n s = s , ∥
-  grab {P} ._ (s≤s {k} {n} k≤n) (tl ▶ hd) = let x , y = grab k k≤n tl in x , (y ▶ transport! P (Δ-+-lem k≤n) hd)
+  grab : {P : ℕ → Set} → {n k : ℕ} → (k≤n : k ≤ n) → Suite P n → (Suite P (Δ k≤n) × Suite (P ↑ (Δ k≤n)) k)
+  grab z≤n s = s , ∥
+  grab {P} (s≤s {k} {n} k≤n) (tl ▶ hd) = let x , y = grab k≤n tl in x , (y ▶ transport! P (Δ-+-lem k≤n) hd)
+
+  smash : {P : ℕ → Set} → {n m : ℕ} → Suite P n → Suite (P ↑ n) m → Suite P (n + m)
+  smash s ∥ = transport (Suite _) +-unit-r s
+  smash {P} {n} {suc m} s (tl ▶ hd) = transport! (Suite _) (+-suc {n} {m}) (smash s tl ▶ hd)
 
   mapSuite : {P Q : ℕ → Set} → {n : ℕ} → Suite P n → ((k : ℕ) → P k → Q k) → Suite Q n
   mapSuite ∥ f = ∥

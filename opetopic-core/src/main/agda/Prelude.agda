@@ -242,6 +242,14 @@ module Prelude where
   +-unit-r {zero} = idp
   +-unit-r {suc n} = ap suc +-unit-r
 
+  +-sym : ∀ {n m} → (n + m) == (m + n)
+  +-sym {zero} {m} = +-unit-r
+  +-sym {suc n} {m} = ap suc (+-sym {n = n}) ∙ ! (+-suc {m} {n})
+
+  +-≤-lem : ∀ {n m} → n ≤ n + m
+  +-≤-lem {zero} = z≤n
+  +-≤-lem {suc n} = s≤s +-≤-lem
+
   Δ-+-lem : ∀ {m n} → (m≤n : m ≤ n) → (Δ m≤n + m) == n
   Δ-+-lem z≤n = ! +-unit-r
   Δ-+-lem (s≤s {m} {n} m≤n) = +-suc {Δ m≤n} {m} ∙ ap suc (Δ-+-lem m≤n)
