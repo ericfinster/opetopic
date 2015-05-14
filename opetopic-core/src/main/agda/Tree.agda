@@ -219,17 +219,20 @@ module Tree where
                    (node _ sh₀) d ∂ → shellExtents₀ sh₀ (d ∷ ds) }) 
             >>= join
 
-  exciseWithProp : {A : Set} → {n : ℕ} → Tree A (suc n) → Derivative (Tree A (suc n)) n → (A → Bool) →
+  exciseWithProp₀ : {A : Set} → {n : ℕ} → Tree A (suc n) → Derivative (Tree A (suc n)) n → (A → Bool) →
                    Error (Tree A (suc n) × Tree (Tree A (suc n)) n)
-  exciseWithProp leaf ∂ p = succeed (leaf , ∂ ← leaf)
-  exciseWithProp (node a sh) ∂ p = 
+  exciseWithProp₀ leaf ∂ p = succeed (leaf , ∂ ← leaf)
+  exciseWithProp₀ (node a sh) ∂ p = 
     if p a then 
       traverseWithLocalData ⦃ monadIsApp errorM ⦄ sh
-        (λ b _ ∂₀ → exciseWithProp b ∂₀ p)
+        (λ b _ ∂₀ → exciseWithProp₀ b ∂₀ p)
         >>= (λ ztr → let (newSh , toJn) = unzip ztr
                        in join toJn >>= (λ jnd → η (node a newSh , jnd))) 
     else 
       succeed (leaf , sh)
+
+  exciseWithProp : {A : Set} → {n : ℕ} → Tree A (suc n) → (A → Bool) → Error (Tree A (suc n) × Tree (Tree A (suc n)) n)
+  exciseWithProp tr p = exciseWithProp₀ tr (globDerivative _ _) p
 
   exciseWithMask₀ : {A B : Set} → {n : ℕ} → Tree A (suc n) → Derivative (Tree A (suc n)) n → Tree B (suc n) → 
                     Error (Tree A (suc n) × Tree (Tree A (suc n)) n)

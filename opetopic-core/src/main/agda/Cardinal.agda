@@ -143,20 +143,13 @@ module Cardinal where
   --  Normal Extrusion Routines
   -- 
 
-  getSelection : {A : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → (A → Bool) → Error (Tree (Nesting A n) n)
-  getSelection {n = zero} (pt nst) ca p = if p (baseValue nst) then succeed (pt (nst)) else fail "Nothing selected"
-  getSelection {n = suc n} cn (tl ▶ hd) p = 
+  extrudeAt : {A : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → (A → Bool) → A → Error (CardinalNesting A n × Tree (Nesting A n) n)
+  extrudeAt {n = zero} (pt nst) ca p a = if p (baseValue nst) then succeed (pt (box a (pt nst)) , pt nst) else fail "Nothing selected" 
+  extrudeAt {n = suc n} cn (tl ▶ hd) p a = 
     poke cn tl 
     >>= (λ { (tr , ∂) → seekTo tr hd 
-    >>= (λ { (fcs , cntxt) → succeed (takeWhile fcs (λ nst → p (baseValue nst))) }) })
-
-  extrudeAt : {A B : Set} → {n : ℕ} → CardinalNesting A n → CardinalAddress n → Tree B n → A → Error (CardinalNesting A n)
-  extrudeAt {n = zero} cn ca msk a = succeed (pt (box a cn))
-  extrudeAt {n = suc n} cn (tl ▶ hd) msk a = 
-    poke cn tl 
-    >>= (λ { (tr , ∂) → seekTo tr hd 
-    >>= (λ { (fcs , cntxt) → exciseWithMask fcs msk 
-    >>= (λ { (cn , verts) → succeed (plugCardinal ∂ (cntxt ↓ node (box a cn) verts)) }) }) })
+    >>= (λ { (fcs , cntxt) → exciseWithProp fcs (λ nst → p (baseValue nst))
+    >>= (λ { (cn , verts) → succeed (plugCardinal ∂ (cntxt ↓ node (box a cn) verts) , cn) }) }) })
 
   extrudeFillerAt : {A B : Set} → {n : ℕ} → CardinalNesting A (suc n) → CardinalAddress n → Tree B n → A → Error (CardinalNesting A (suc n))
   extrudeFillerAt {n = zero} cn (∥ ▶ hd) msk a = succeed (pt (node (dot a) cn))
@@ -310,11 +303,10 @@ module Cardinal where
                         A k → A (1 + k) → (A k → Bool) → (1 + k ≤ n) → Error (Cardinal A n)
   extrudeSelection {A} {n} {k} c ca a₀ a₁ p sk≤n with cardinalSplit sk≤n c
   extrudeSelection {A} {n} {k} c ca a₀ a₁ p sk≤n | (c₀ , c₁ , c₂ , c₃) = 
-    getSelection c₁ ca p 
-    >>= (λ msk → extrudeAt c₁ ca msk a₀   -- The first two steps can be done simultaneously now ...
-    >>= (λ c₁' → extrudeFillerAt c₂ ca msk a₁ 
+    extrudeAt c₁ ca p a₀ 
+    >>= (λ { (c₁' , msk) → extrudeFillerAt c₂ ca msk a₁ 
     >>= (λ c₂' → traverseSuite ⦃ monadIsApp errorM ⦄ c₃ (λ m cn → extrudeLeafAt (s≤s (s≤s +-≤-lem)) cn ca msk)
-    >>= (λ c₃' → succeed (cardinalJoin sk≤n (c₀ , c₁' , c₂' , c₃'))))))
+    >>= (λ c₃' → succeed (cardinalJoin sk≤n (c₀ , c₁' , c₂' , c₃')))) })
 
   sproutAtAddress : {A : ℕ → Set} → {n k : ℕ} → Cardinal A n → CardinalAddress (suc k) → A k → A (1 + k) → (sk≤n : 1 + k ≤ n) → Error (Cardinal A n)
   sproutAtAddress {A} {n} {k} c ca a₀ a₁ sk≤n with cardinalSplit sk≤n c
