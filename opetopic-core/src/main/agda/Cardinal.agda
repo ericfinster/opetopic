@@ -64,8 +64,11 @@ module Cardinal where
   CardinalNesting : Set → ℕ → Set
   CardinalNesting A n = CardinalTree (Nesting A n) n 
 
+  IndexedNesting : (ℕ → Set) → ℕ → Set
+  IndexedNesting A k = CardinalNesting (A k) k
+
   Cardinal : (ℕ → Set) → ℕ → Set
-  Cardinal A n = Suite (λ k → CardinalNesting (A k) k) (suc n)
+  Cardinal A n = Suite (IndexedNesting A) (suc n)
 
   open Monad errorM
 
@@ -269,15 +272,12 @@ module Cardinal where
     where P : ℕ → Set
           P m = TreeSeq (Nesting A (suc (suc (suc n)))) (suc (suc k)) m 
 
-  IndexedCardinal : (ℕ → Set) → ℕ → Set
-  IndexedCardinal A k = CardinalNesting (A k) k
-
   cardinalSplit : {A : ℕ → Set} → {n k : ℕ} → (sk≤n : 1 + k ≤ n) → Cardinal A n → 
-                  Suite (IndexedCardinal A) k × IndexedCardinal A k × IndexedCardinal A (1 + k) × Suite (IndexedCardinal A ↑ (2 + k)) (Δ sk≤n)
+                  Suite (IndexedNesting A) k × IndexedNesting A k × IndexedNesting A (1 + k) × Suite (IndexedNesting A ↑ (2 + k)) (Δ sk≤n)
   cardinalSplit {A} {n} {k} sk≤n c = 
     let (pre₀ , post₀) = grab (Δ-≤-lem (s≤s sk≤n)) c 
-        pre = transport (Suite (IndexedCardinal A)) lem₀ pre₀
-        post = transport (λ m → Suite (IndexedCardinal A ↑ m) (Δ sk≤n)) lem₁ post₀
+        pre = transport (Suite (IndexedNesting A)) lem₀ pre₀
+        post = transport (λ m → Suite (IndexedNesting A ↑ m) (Δ sk≤n)) lem₁ post₀
         preTail = tail pre
     in tail preTail , head preTail , head pre , post
 
@@ -288,10 +288,10 @@ module Cardinal where
           lem₁ = Δ-lem (Δ-≤-lem sk≤n) ∙ ap suc (Δ-≤-lem-eq sk≤n)
 
   cardinalJoin : {A : ℕ → Set} → {n k : ℕ} → (sk≤n : 1 + k ≤ n) → 
-                 Suite (IndexedCardinal A) k × IndexedCardinal A k × IndexedCardinal A (1 + k) × Suite (IndexedCardinal A ↑ (2 + k)) (Δ sk≤n) → 
+                 Suite (IndexedNesting A) k × IndexedNesting A k × IndexedNesting A (1 + k) × Suite (IndexedNesting A ↑ (2 + k)) (Δ sk≤n) → 
                  Cardinal A n
   cardinalJoin {A} {n} {k} sk≤n (c₀ , c₁ , c₂ , c₃) = 
-    transport (Suite (IndexedCardinal A)) lem (smash (c₀ ▶ c₁ ▶ c₂) c₃)
+    transport (Suite (IndexedNesting A)) lem (smash (c₀ ▶ c₁ ▶ c₂) c₃)
 
     where lem : (2 + (k + Δ sk≤n)) == suc n
           lem = 2 + (k + Δ sk≤n)            =⟨ idp ⟩ 

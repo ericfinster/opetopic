@@ -19,21 +19,6 @@ module Suite where
     ∥ : Suite P 0
     _▶_ : {n : ℕ} → Suite P n → P n → Suite P (suc n)
 
-  -- Using these, we should be able to get rid of this horrible
-  -- dispatch system, which is not doing anybody any good ....
-
-  prepend : {P : ℕ → Set} → {n m : ℕ} → Suite (P ↑ (suc m)) n → P m → Suite (P ↑ m) (suc n)
-  prepend {P} ∥ p = ∥ ▶ transport P +-unit-r p
-  prepend {P} {suc n} {m} (tl ▶ hd) p = prepend {P} {n} {m} tl p ▶ transport! P (+-suc {m} {n}) hd
-
-  grab : {P : ℕ → Set} → {n k : ℕ} → (k≤n : k ≤ n) → Suite P n → (Suite P (Δ k≤n) × Suite (P ↑ (Δ k≤n)) k)
-  grab z≤n s = s , ∥
-  grab {P} (s≤s {k} {n} k≤n) (tl ▶ hd) = let x , y = grab k≤n tl in x , (y ▶ transport! P (Δ-+-lem k≤n) hd)
-
-  smash : {P : ℕ → Set} → {n m : ℕ} → Suite P n → Suite (P ↑ n) m → Suite P (n + m)
-  smash s ∥ = transport (Suite _) +-unit-r s
-  smash {P} {n} {suc m} s (tl ▶ hd) = transport! (Suite _) (+-suc {n} {m}) (smash s tl ▶ hd)
-
   mapSuite : {P Q : ℕ → Set} → {n : ℕ} → Suite P n → ((k : ℕ) → P k → Q k) → Suite Q n
   mapSuite ∥ f = ∥
   mapSuite (tl ▶ hd) f = mapSuite tl f ▶ f _ hd
@@ -44,6 +29,18 @@ module Suite where
     where open Applicative ⦃ ... ⦄
   traverseSuite (tl ▶ hd) f = (pure _▶_) ⊛ traverseSuite tl f ⊛ f _ hd
     where open Applicative ⦃ ... ⦄
+
+  grab : {P : ℕ → Set} → {n k : ℕ} → (k≤n : k ≤ n) → Suite P n → (Suite P (Δ k≤n) × Suite (P ↑ (Δ k≤n)) k)
+  grab z≤n s = s , ∥
+  grab {P} (s≤s {k} {n} k≤n) (tl ▶ hd) = let x , y = grab k≤n tl in x , (y ▶ transport! P (Δ-+-lem k≤n) hd)
+
+  smash : {P : ℕ → Set} → {n m : ℕ} → Suite P n → Suite (P ↑ n) m → Suite P (n + m)
+  smash s ∥ = transport (Suite _) +-unit-r s
+  smash {P} {n} {suc m} s (tl ▶ hd) = transport! (Suite _) (+-suc {n} {m}) (smash s tl ▶ hd)
+
+  prepend : {P : ℕ → Set} → {n m : ℕ} → Suite (P ↑ (suc m)) n → P m → Suite (P ↑ m) (suc n)
+  prepend {P} ∥ p = ∥ ▶ transport P +-unit-r p
+  prepend {P} {suc n} {m} (tl ▶ hd) p = prepend {P} {n} {m} tl p ▶ transport! P (+-suc {m} {n}) hd
 
   drop : {P : ℕ → Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → Suite P n → Suite P (Δ k≤n)
   drop .0 z≤n s = s

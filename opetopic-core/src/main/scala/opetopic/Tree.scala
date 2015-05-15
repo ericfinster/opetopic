@@ -7,9 +7,6 @@
 
 package opetopic
 
-import scala.language.higherKinds
-import scala.language.implicitConversions
-
 import scalaz.Id._
 import scalaz.Monad
 import scalaz.Applicative
@@ -236,39 +233,33 @@ trait TreeFunctions { tfns =>
 
   }
 
-  def graftRec[A, B, N <: Nat](tr : Tree[A, S[N]])(leafRec : Address[N] => ShapeM[B])(nodeRec : (A, Tree[B, N]) => ShapeM[B]) : ShapeM[B] = 
-    (new NatCaseSplit0 {
+  @natElim
+  def graftRec[A, B, N <: Nat](n: N)(tr : Tree[A, S[N]])(leafRec : Address[N] => ShapeM[B])(nodeRec : (A, Tree[B, N]) => ShapeM[B]) : ShapeM[B] = {
+    case (Z, Leaf(_), lfR, ndR) => lfR(())
+    case (Z, Node(hd, Pt(tl)), lfR, ndR) => {
+      for {
+        b0 <- graftRec(Z)(tl)(lfR)(ndR)
+        b <- ndR(hd, Pt(b0))
+      } yield b
+    }
+    case (S(p), Leaf(_), lfR, ndR) => lfR(Nil)
+    case (S(p), Node(a, Leaf(d)), lfR, ndR) => ndR(a, Leaf(d))
+    case (S(p), Node(a, Node(v, hsh)), lfR, ndR) => {
 
-      type Out[N <: Nat] = (Tree[A, S[N]], Address[N] => ShapeM[B], (A, Tree[B, N]) => ShapeM[B]) => ShapeM[B]
-
-      def caseZero : Out[_0] = {
-        case (Leaf(_), lfR, ndR) => lfR(())
-        case (Node(hd, Pt(tl)), lfR, ndR) => 
-          for {
-            b0 <- caseZero(tl, lfR, ndR)
-            b <- ndR(hd, Pt(b0))
-          } yield b
+      val recursor = new GraftRecursor[A, B, Nat] {
+        def caseLeaf(addr: Address[S[Nat]]) : ShapeM[B] = lfR(addr)
+        def caseNode(a: A, sh: Tree[B, S[Nat]]) : ShapeM[B] = ndR(a, sh)
       }
 
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (Leaf(_), lfR, ndR) => lfR(Nil)
-        case (Node(a, Leaf(d)), lfR, ndR) => ndR(a, Leaf(d))
-        case (Node(a, Node(v, hsh)), lfR, ndR) => {
+      for {
+        pr <- recursor.initVertical(a, v, hsh)
+      } yield pr._1
 
-          val recursor = new GraftRecursor[A, B, P] { 
+    }
+  }
 
-            def caseLeaf(addr: Address[S[P]]) : ShapeM[B] = lfR(addr)
-            def caseNode(a: A, sh: Tree[B, S[P]]) : ShapeM[B] = ndR(a, sh)
-
-          }
-
-          for {
-            pr <- recursor.initVertical(a, v, hsh)
-          } yield pr._1
-        }
-      }
-
-    })(tr.dim.pred)(tr, leafRec, nodeRec)
+  def graftRec[A, B, N <: Nat](tr : Tree[A, S[N]])(leafRec : Address[N] => ShapeM[B])(nodeRec : (A, Tree[B, N]) => ShapeM[B]) : ShapeM[B] =
+    graftRec(tr.dim.pred)(tr)(leafRec)(nodeRec)
 
   def graft[A, N <: Nat](tr : Tree[A, S[N]])(brs : Tree[Tree[A, S[N]], N]) : ShapeM[Tree[A, S[N]]] = 
     graftRec(tr)(addr => valueAt(brs, addr))({ case (a, sh) => Monad[ShapeM].pure(Node(a, sh)) })
@@ -277,26 +268,20 @@ trait TreeFunctions { tfns =>
   // JOIN
   //
 
-  def join[A, N <: Nat](tr : Tree[Tree[A, N], N]) : ShapeM[Tree[A, N]] = 
-    (new NatCaseSplit0 {
+  @natElim
+  def join[A, N <: Nat](n: N)(tr : Tree[Tree[A, N], N]) : ShapeM[Tree[A, N]] = {
+    case (Z, Pt(t)) => succeed(t)
+    case (S(p), Leaf(d)) => succeed(Leaf(d))
+    case (S(p), Node(t, tsh)) =>
+      for {
+        gsh <- traverse(tsh)(join(S(p))(_))
+        res <- graft(t)(gsh)
+      } yield res
+  }
 
-      type Out[N <: Nat] = Tree[Tree[A, N], N] => ShapeM[Tree[A, N]]
-
-      def caseZero : Out[_0] = {
-        case Pt(t) => Monad[ShapeM].pure(t)
-      }
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case Leaf(d) => Monad[ShapeM].pure(Leaf(d))
-        case Node(t, tsh) => 
-          for {
-            gsh <- traverse(tsh)(join(_))
-            res <- graft(t)(gsh)
-          } yield res
-      }
-
-    })(tr.dim)(tr)
-
+  // We should start getting rid of these ....
+  def join[A, N <: Nat](tr : Tree[Tree[A, N], N]) : ShapeM[Tree[A, N]] =
+    join(tr.dim)(tr)
 
   //============================================================================================
   // SHELL EXTENTS
@@ -383,21 +368,14 @@ trait TreeFunctions { tfns =>
   // SEEK TO
   //
 
+  @natElim
+  def seekTo[A, N <: Nat](n: N)(tr: Tree[A, N], addr: Address[N]) : ShapeM[Zipper[A, N]] = {
+    case (Z, tr, addr) => succeed((tr, ()))
+    case (S(p), tr, addr) => Zipper.seek(S(p))((tr, Nil), addr)
+  }
+
   def seekTo[A, N <: Nat](tr : Tree[A, N], addr : Address[N]) : ShapeM[Zipper[A, N]] = 
-    (new NatCaseSplit0 {
-
-      type Out[N <: Nat] = (Tree[A, N], Address[N]) => ShapeM[Zipper[A, N]]
-
-      def caseZero : Out[_0] = {
-        case (tr, addr) => Monad[ShapeM].pure((tr, ()))
-      }
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (tr, addr) => Zipper.seek(S(p))((tr, Nil), addr)
-      }
-
-    })(tr.dim)(tr, addr)
-
+    seekTo(tr.dim)(tr, addr)
 
   def valueAt[A, N <: Nat](tr : Tree[A, N], addr : Address[N]) : ShapeM[A] = 
     for {
@@ -458,6 +436,7 @@ object Tree extends TreeFunctions {
       }
     }
 
+  // Here you will need to fix the macro to generate the modifiers as well ....
   implicit def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] = 
     (new NatCaseSplit0 {
 
