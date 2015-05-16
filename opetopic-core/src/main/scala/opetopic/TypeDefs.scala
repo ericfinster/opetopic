@@ -21,6 +21,9 @@ object TypeDefs extends NatConstants {
 
   type ShapeM[+A] = \/[ShapeError, A]
 
+  def fail[A](msg: String) : ShapeM[A] = 
+    fail(new ShapeError(msg))
+
   def fail[A](se: ShapeError) : ShapeM[A] = 
     -\/(se)
 

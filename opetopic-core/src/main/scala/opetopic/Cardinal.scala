@@ -7,9 +7,6 @@
 
 package opetopic
 
-import scala.language.higherKinds
-import scala.language.implicitConversions
-
 import scalaz.Id._
 import scalaz.Monad
 import scalaz.Leibniz
@@ -179,18 +176,11 @@ trait CardinalFunctions {
   // COMPLETE WITH
   //
 
-  def completeWith[A, N <: Nat](n : N)(ct: CardinalTree[A, N], a : A) : Tree[A, N] =
-    (new NatCaseSplit0 {
-      
-      type Out[N <: Nat] = CardinalTree[A, N] => Tree[A, N]
-
-      def caseZero : Out[_0] = { ct => ct }
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        ct => Node(a, completeWith[Tree[A, S[P]], P](p)(ct, Leaf(S(p))))
-      }
-
-    })(n)(ct)
+  @natElim
+  def completeWith[A, N <: Nat](n : N)(ct: CardinalTree[A, N], a : A) : Tree[A, N] = {
+    case (Z, ct, a) => ct
+    case (S(p), ct, a) => Node(a, completeWith[Tree[A, S[Nat]], Nat](p)(ct, Leaf(S(p))))
+  }
 
   def toShell[A, N <: Nat](n : N)(ct : CardinalTree[A, S[N]]) : Tree[Tree[A, S[N]], N] = 
     completeWith[Tree[A, S[N]], N](n)(ct, Leaf(S(n)))
@@ -199,54 +189,29 @@ trait CardinalFunctions {
   // CARDINAL ADDRESS COMPlETE
   //
 
-  def cardinalAddressComplete[N <: Nat](n: N)(ca: CardinalAddress[N]) : Address[S[N]] = 
-    (new NatCaseSplit0 {
+  // Never really debugged or looked at this guy ...
 
-      type Out[N <: Nat] = CardinalAddress[N] => Address[S[N]] 
-
-      def caseZero : Out[_0] = {
-        case (_ >> hd) => () :: Nil
-      }
-
-      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
-        case (tl >> hd) => this(p)(tl) :: hd :: Nil
-      }
-
-    })(n)(ca)
+  @natElim
+  def cardinalAddressComplete[N <: Nat](n: N)(ca: CardinalAddress[N]) : Address[S[N]] = {
+    case (Z, _ >> hd) => () :: Nil
+    case (S(p), tl >> hd) => cardinalAddressComplete(p)(tl) :: hd :: Nil
+  }
 
   //============================================================================================
   // TO COMPLEX
   //
 
-  trait CardinalCellGenerator[D <: Nat, A[_ <: Nat], B[_ <: Nat]] {
-
-    def positive[N <: Nat](n: N)(diff: Lte.Diff[N, D]) : B[N]
-    def negative[N <: Nat](n: N)(diff: Lte.Diff[N, D]) : B[N]
-
-    def neutral[N <: Nat](n: N)(a: A[N])(diff: Lte.Diff[N, D]) : B[N]
-
-  }
-
+  @natElim
   def completeToComplex[A[_ <: Nat], B[K <: Nat] <: A[K], C[K <: Nat] <: A[K], N <: Nat](n: N)(
-    c: Cardinal[B, N], p: PolaritySuite[C, N]
-  ) : Complex[A, N] =
-    (new NatCaseSplit0 {
-
-      type Out[N <: Nat] = (Cardinal[B, N], PolaritySuite[C, N]) => Complex[A, N]
-
-      def caseZero : Out[_0] = {
-        case (Cardinal(_, hd), PolaritySuite(_, (_, pa))) => {
-          Complex[A]() >> Box(pa, hd)
-        }
-      }
-
-      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
-        case (Cardinal(tl, hd), PolaritySuite(ps, (na, pa))) => {
-          this(p)(tl, ps) >> Box(pa, Node(Dot(na, S(p)), toShell(p)(hd)))
-        }
-      }
-
-    })(n)(c, p)
+    c: Cardinal[B, N], ps: PolaritySuite[C, N]
+  ) : Complex[A, N] = {
+    case (Z, Cardinal(_, hd), PolaritySuite(_, (_, pa))) => {
+      Complex[A]() >> Box(pa, hd)
+    }
+    case (S(p), Cardinal(tl, hd), PolaritySuite(ps, (na, pa))) => {
+      completeToComplex[A, B, C, Nat](p)(tl, ps) >> Box(pa, Node(Dot(na, S(p)), toShell(p)(hd)))
+    }
+  }
 
   //============================================================================================
   // COMPLEX TO CARDINAL

@@ -127,7 +127,7 @@ trait TreeFunctions { tfns =>
         ap2(f(a, b), matchedShell)(pure(Node(_, _)))
 
       }
-      case _ => fail(new ShapeError("Match failed"))
+      case _ => fail("Match failed")
     }
 
   }
@@ -159,7 +159,7 @@ trait TreeFunctions { tfns =>
         ap2(f(a, b, deriv), matchedShell)(pure(Node(_, _)))
 
       }
-      case _ => fail(new ShapeError("Match failed"))
+      case _ => fail("Match failed")
     }
   }
 
@@ -262,7 +262,7 @@ trait TreeFunctions { tfns =>
     graftRec(tr.dim.pred)(tr)(leafRec)(nodeRec)
 
   def graft[A, N <: Nat](tr : Tree[A, S[N]])(brs : Tree[Tree[A, S[N]], N]) : ShapeM[Tree[A, S[N]]] = 
-    graftRec(tr)(addr => valueAt(brs, addr))({ case (a, sh) => Monad[ShapeM].pure(Node(a, sh)) })
+    graftRec(tr)(addr => valueAt(brs, addr))({ case (a, sh) => succeed(Node(a, sh)) })
 
   //============================================================================================
   // JOIN
@@ -288,18 +288,16 @@ trait TreeFunctions { tfns =>
   //
 
 
-  def shellExtents[A, N <: Nat](sh: Tree[Tree[A, S[N]], N], base: Address[S[N]]) : ShapeM[Tree[Address[S[N]], N]] = 
+  def shellExtents[A, N <: Nat](sh: Tree[Tree[A, S[N]], N], base: Address[S[N]] = Nil) : ShapeM[Tree[Address[S[N]], N]] = 
     for {
       jnSh <- traverseWithLocalData(sh)({ 
         case (Leaf(d), dir, deriv) => 
-          Monad[ShapeM].pure(Zipper.plug(d.pred)(deriv, dir :: base))
+          succeed(Zipper.plug(d.pred)(deriv, dir :: base))
         case (Node(_, sh0), dir, deriv) => shellExtents(sh0, dir :: base)
       })
       res <- join(jnSh)
     } yield res
 
-  def shellExtents[A, N <: Nat](sh: Tree[Tree[A, S[N]], N]) : ShapeM[Tree[Address[S[N]], N]] = 
-    shellExtents(sh, Nil)
 
   //============================================================================================
   // SPLIT WITH
@@ -346,9 +344,9 @@ trait TreeFunctions { tfns =>
 
   def rootValue[A, N <: Nat](tr : Tree[A, N]) : ShapeM[A] =
     tr match {
-      case Pt(a) => Monad[ShapeM].pure(a)
-      case Leaf(_) => fail(new ShapeError("No root value"))
-      case Node(a, _) => Monad[ShapeM].pure(a)
+      case Pt(a) => succeed(a)
+      case Leaf(_) => fail("No root value")
+      case Node(a, _) => succeed(a)
     }
 
   //============================================================================================
@@ -404,8 +402,8 @@ trait TreeFunctions { tfns =>
 
   def exciseWithMask[A, B, N <: Nat](tr: Tree[A, S[N]], deriv: Derivative[Tree[A, S[N]], N], msk: Tree[B, S[N]]) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
     (tr, msk) match {
-      case (tr, Leaf(d)) => Monad[ShapeM].pure(Leaf(d), Zipper.plug(d.pred)(deriv, tr))
-      case (Leaf(_), Node(_, _)) => fail(new ShapeError("Excision error"))
+      case (tr, Leaf(d)) => succeed(Leaf(d), Zipper.plug(d.pred)(deriv, tr))
+      case (Leaf(_), Node(_, _)) => fail("Excision error")
       case (Node(a, sh), Node(_, mskSh)) =>
         for {
           ztr <- matchWithDerivative(sh, mskSh)({ case (t, m0, d0) => exciseWithMask(t, d0, m0) })
@@ -463,7 +461,6 @@ object Tree extends TreeFunctions {
         }
 
     })(n)
-
 
 }
 

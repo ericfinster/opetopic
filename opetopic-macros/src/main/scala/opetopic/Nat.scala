@@ -341,10 +341,46 @@ object natElim {
               case tr @ _ => transform(tr)
             }
 
-            tq"$tcons[..$nargs]"
+            customUnfold(tq"$tcons[..$nargs]")
           }
           case _ =>
             super.transform(tree)
+        }
+
+      def customUnfold(tr: Tree) : Tree = 
+        tr match {
+          case tq"Derivative[$a, S[$p]]" => {
+            val newDeriv = customUnfold(
+              tq"Derivative[Tree[$a, S[$p]], $p]"
+            )
+            tq"(Tree[Tree[$a, S[$p]], $p], List[($a, $newDeriv)])"
+          }
+          case tq"Context[$a, S[$p]]" => {
+            val newDeriv = customUnfold(
+              tq"Derivative[Tree[$a, S[$p]], $p]"
+            )
+            tq"List[($a, $newDeriv)]"
+          }
+          case tq"NestingContext[$a, S[$p]]" => {
+            val newDeriv = customUnfold(
+              tq"Derivative[Nesting[$a, S[$p]], S[$p]]"
+            )
+            tq"List[($a, $newDeriv)]"
+          }
+          case tq"NestingZipper[$a, S[$p]]" => {
+            val newCntxt = customUnfold(
+              tq"NestingContext[$a, S[$p]]"
+            )
+            val res = tq"(Nesting[$a, S[$p]], $newCntxt)"
+            // println(tr.toString ++ " -> " ++ res.toString)
+            res
+          }
+          case tq"CardinalTree[$a, S[$p]]" => {
+            customUnfold(
+              tq"CardinalTree[Tree[$a, S[$p]], $p]"
+            )
+          }
+          case _ => tr
         }
 
     }
