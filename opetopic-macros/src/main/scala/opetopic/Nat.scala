@@ -360,20 +360,17 @@ object natElim {
 
         val result = tree match {
           case Ident(TypeName(id)) => {
-            if (debug) println("Matched type identifier: " ++ id)
             if (bindings.isDefinedAt(id)) {
               patternToType(bindings(id))
             } else Ident(TypeName(id))
           }
           case tq"$tpt#$tpname" => {
-            if (debug) println("Matched projection")
             tq"${transform(tpt)}#$tpname"
           }
           case tq"$ref.$tpename" => {
             tq"$ref.$tpename"
           }
           case tq"$tcons[..$targs]" => {
-            if (debug) println("Matched application: " ++ showRaw(tree) )
             val ncons = transform(tcons)
             val nargs = for { arg <- targs } yield transform(arg)
             customUnfold(tq"$ncons[..$nargs]")
@@ -382,12 +379,44 @@ object natElim {
             super.transform(tree)
         }
 
-        if (debug) println(tree.toString ++ " -> " ++ result.toString)
         result
       }
 
-
-      def customUnfold(tr: Tree) : Tree = tr
+      def customUnfold(tr: Tree) : Tree = 
+        tr match {
+          case tq"Derivative[$a, S[$p]]" => {
+            val newDeriv = customUnfold(
+              tq"Derivative[Tree[$a, S[$p]], $p]"
+            )
+            tq"(Tree[Tree[$a, S[$p]], $p], List[($a, $newDeriv)])"
+          }
+          case tq"Context[$a, S[$p]]" => {
+            val newDeriv = customUnfold(
+              tq"Derivative[Tree[$a, S[$p]], $p]"
+            )
+            tq"List[($a, $newDeriv)]"
+          }
+          case tq"NestingContext[$a, S[$p]]" => {
+            val newDeriv = customUnfold(
+              tq"Derivative[Nesting[$a, S[$p]], S[$p]]"
+            )
+            tq"List[($a, $newDeriv)]"
+          }
+          case tq"NestingZipper[$a, S[$p]]" => {
+            val newCntxt = customUnfold(
+              tq"NestingContext[$a, S[$p]]"
+            )
+            val res = tq"(Nesting[$a, S[$p]], $newCntxt)"
+            // println(tr.toString ++ " -> " ++ res.toString)
+            res
+          }
+          case tq"CardinalTree[$a, S[$p]]" => {
+            customUnfold(
+              tq"CardinalTree[Tree[$a, S[$p]], $p]"
+            )
+          }
+          case _ => tr
+        }
 
     }
 
@@ -495,7 +524,7 @@ object natElim {
             }
               
           q"""
-             $dmods def $mname[..$tparams](...$args) : $rtype = 
+             $dmods def $mname[..$tparams](...$args)(implicit ..$implargs) : $rtype = 
                ${expandMatch(varPairs, Map.empty, caseAnalysis)}
            """
         }

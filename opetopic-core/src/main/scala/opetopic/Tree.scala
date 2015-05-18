@@ -233,7 +233,7 @@ trait TreeFunctions { tfns =>
 
   }
 
-  @natElim(true)
+  @natElim
   def graftRec[A, B, N <: Nat](n: N)(tr : Tree[A, S[N]])(leafRec : Address[N] => ShapeM[B])(nodeRec : (A, Tree[B, N]) => ShapeM[B]) : ShapeM[B] = {
     case (Z, Leaf(_), lfR, ndR) => lfR(())
     case (Z, Node(hd, Pt(tl)), lfR, ndR) => {
@@ -434,32 +434,29 @@ object Tree extends TreeFunctions {
       }
     }
 
-  implicit def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] =
-    (new NatCaseSplit0 {
+  @natElim
+  implicit def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] = {
+    case Z => {
+      new Reader[Tree[A, _0]] {
+        def read0: PartialFunction[Js.Value, Tree[A, _0]] = {
+          case Js.Obj(("type", Js.Str("pt")), ("val", a)) => Pt(rdr.read(a))
+        }
+      }
+    }
+    case S(p) => {
+      new Reader[Tree[A, S[Nat]]] { thisRdr =>
+        def read0: PartialFunction[Js.Value, Tree[A, S[Nat]]] = {
+          case Js.Obj(("type", Js.Str("leaf"))) => Leaf(S(p))
+          case Js.Obj(("type", Js.Str("node")), ("val", a), ("shell", sh)) => {
+            val shellReader : Reader[Tree[Tree[A, S[Nat]], Nat]] =
+              treeReader[Tree[A, S[Nat]], Nat](p)(thisRdr)
 
-      type Out[N <: Nat] = Reader[Tree[A, N]]
-
-      def caseZero : Out[_0] = 
-        new Reader[Tree[A, _0]] {
-          def read0: PartialFunction[Js.Value, Tree[A, _0]] = {
-            case Js.Obj(("type", Js.Str("pt")), ("val", a)) => Pt(rdr.read(a))
+            Node(rdr.read(a), shellReader.read(sh))
           }
         }
-
-      def caseSucc[P <: Nat](p: P) : Out[S[P]] = 
-        new Reader[Tree[A, S[P]]] { thisRdr => 
-          def read0: PartialFunction[Js.Value, Tree[A, S[P]]] = {
-            case Js.Obj(("type", Js.Str("leaf"))) => Leaf(S(p))
-            case Js.Obj(("type", Js.Str("node")), ("val", a), ("shell", sh)) => {
-              val shellReader : Reader[Tree[Tree[A, S[P]], P]] = 
-                treeReader[Tree[A, S[P]], P](p)(thisRdr)
-
-              Node(rdr.read(a), shellReader.read(sh))
-            }
-          }
-        }
-
-    })(n)
+      }
+    }
+  }
 
 }
 
