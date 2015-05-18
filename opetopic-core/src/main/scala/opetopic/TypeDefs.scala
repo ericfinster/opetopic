@@ -147,21 +147,21 @@ object TypeDefs extends NatConstants {
   //
 
   type Complex[A[_ <: Nat], N <: Nat] = 
-    Suite[({ type L[K <: Nat] = Nesting[A[K], K] })#L, S[N]]
+    Suite[Lambda[`K <: Nat` => Nesting[A[K], K]], S[N]]
 
   type FiniteComplex[A[_ <: Nat]] = 
-    Sigma[({ type L[K <: Nat] = Complex[A, K] })#L]
+    Sigma[Lambda[`K <: Nat` => Complex[A, K]]]
 
   type DblComplex[A[_ <: Nat], N <: Nat] = 
-    Complex[({ type L[K <: Nat] = Complex[A, K] })#L, N]
+    Complex[Lambda[`K <: Nat` => Complex[A, K]], N]
 
   type ComplexZipper[A[_ <: Nat], N <: Nat] = 
-    Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]
+    Suite[Lambda[`K <: Nat` => NestingZipper[A[K], K]], S[N]]
 
   object ComplexZipper {
 
-    def apply[A[_ <: Nat]]() : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, _0] = 
-      SNil[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L]()
+    def apply[A[_ <: Nat]]() : Suite[Lambda[`K <: Nat` => NestingZipper[A[K], K]], _0] = 
+      SNil[Lambda[`K <: Nat` => NestingZipper[A[K], K]]]()
 
     def unapply[A[_ <: Nat], N <: Nat](suite : Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, S[N]]) 
         : Option[(Suite[({ type L[K <: Nat] = NestingZipper[A[K], K] })#L, N], NestingZipper[A[N], N])] = {

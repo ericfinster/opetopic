@@ -233,7 +233,7 @@ trait TreeFunctions { tfns =>
 
   }
 
-  @natElim
+  @natElim(true)
   def graftRec[A, B, N <: Nat](n: N)(tr : Tree[A, S[N]])(leafRec : Address[N] => ShapeM[B])(nodeRec : (A, Tree[B, N]) => ShapeM[B]) : ShapeM[B] = {
     case (Z, Leaf(_), lfR, ndR) => lfR(())
     case (Z, Node(hd, Pt(tl)), lfR, ndR) => {
@@ -434,8 +434,7 @@ object Tree extends TreeFunctions {
       }
     }
 
-  // Here you will need to fix the macro to generate the modifiers as well ....
-  implicit def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] = 
+  implicit def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] =
     (new NatCaseSplit0 {
 
       type Out[N <: Nat] = Reader[Tree[A, N]]
