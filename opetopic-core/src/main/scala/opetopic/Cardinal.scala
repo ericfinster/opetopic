@@ -113,47 +113,40 @@ trait CardinalFunctions {
   }
 
   //============================================================================================
+  // SELECTORS
+  //
+
+  def cardinalHead[A[_ <: Nat], N <: Nat](c: Cardinal[A, N]) : CardinalNesting[A[N], N] = 
+    Suite.head[Lambda[`K <: Nat` => CardinalNesting[A[K], K]], N](c)
+
+  def cardinalTail[A[_ <: Nat], N <: Nat](c: Cardinal[A, S[N]]) : Cardinal[A, N] = 
+    Suite.tail[Lambda[`K <: Nat` => CardinalNesting[A[K], K]], S[N]](c)
+
+  //============================================================================================
   // TRAVERSALS
   //
 
-  def traverseCardinalTree[G[_], A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: A => G[B])(implicit apG: Applicative[G]) : G[CardinalTree[B, N]] = 
-    (new NatCaseSplit0 {
-
-      type Out[N <: Nat] = CardinalTree[A, N] => G[CardinalTree[B, N]]
-
-      def caseZero : Out[_0] = {
-        case Pt(a) => apG.ap(f(a))(apG.pure(Pt(_)))
-      }
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case ct => traverseCardinalTree[G, Tree[A, S[P]], Tree[B, S[P]], P](p)(ct)(Tree.traverse(_)(f))
-      }
-
-    })(n)(ct)
+  @natElim
+  def traverseCardinalTree[G[_], A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: A => G[B])(implicit apG: Applicative[G]) : G[CardinalTree[B, N]] = {
+    case (Z, Pt(a), f) => apG.ap(f(a))(apG.pure(Pt(_)))
+    case (S(p), ct, f) => traverseCardinalTree[G, Tree[A, S[Nat]], Tree[B, S[Nat]], Nat](p)(ct)(Tree.traverse(_)(f))
+  }
 
   def mapCardinalTree[A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: A => B) : CardinalTree[B, N] = 
     traverseCardinalTree[Id, A, B, N](n)(ct)(f)
 
+  @natElim
   def traverseCardinalTreeWithAddr[G[_], A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: (A, CardinalAddress[N]) => G[B])(
     implicit apG: Applicative[G]
-  ) : G[CardinalTree[B, N]] = 
-    (new NatCaseSplit0 {
-
-      type Out[N <: Nat] = (CardinalTree[A, N], (A, CardinalAddress[N]) => G[B]) => G[CardinalTree[B, N]]
-
-      def caseZero : Out[_0] = {  // Seriously, fix this notation
-        case (Pt(a), f) => apG.ap(f(a, SNil[Address]() >> (())))(apG.pure(Pt(_)))
-      }
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case (ct, f) => traverseCardinalTreeWithAddr[G, Tree[A, S[P]], Tree[B, S[P]], P](p)(ct)({
-          case (tr, base) => Tree.traverseWithAddress(tr)({
-            case (a, addr) => f(a, base >> addr)
-          })
+  ) : G[CardinalTree[B, N]] = {
+    case (Z, Pt(a), f) => apG.ap(f(a, SNil[Address]() >> (())))(apG.pure(Pt(_)))
+    case (S(p), ct, f) => 
+      traverseCardinalTreeWithAddr[G, Tree[A, S[Nat]], Tree[B, S[Nat]], Nat](p)(ct)({
+        case (tr, base) => Tree.traverseWithAddress(tr)({
+          case (a, addr) => f(a, base >> addr)
         })
-      }
-
-    })(n)(ct, f)
+      })
+  }
 
   def mapCardinalTreeWithAddr[A, B, N <: Nat](n: N)(ct: CardinalTree[A, N])(f: (A, CardinalAddress[N]) => B) : CardinalTree[B, N] = 
     traverseCardinalTreeWithAddr[Id, A, B, N](n)(ct)(f)
@@ -162,15 +155,11 @@ trait CardinalFunctions {
   // SEQ LEAF
   //
 
-  def seqLeaf[A, N <: Nat, K <: Nat](n : N, k : K) : TreeSeq[A, S[N], K] = 
-    (new NatCaseSplit0 {
-
-      type Out[M <: Nat] = TreeSeq[A, S[N], M]
-
-      def caseZero : TreeSeq[A, S[N], _0] = Leaf(S(n))
-      def caseSucc[P <: Nat](p : P) : TreeSeq[A, S[N], S[P]] = Leaf(S(n))
-
-    })(k)
+  @natElim
+  def seqLeaf[A, N <: Nat, K <: Nat](n : N, k : K) : TreeSeq[A, S[N], K] = {
+    case (n, Z) => Leaf(S(n))
+    case (n, S(p)) => Leaf(S(n))
+  }
 
   //============================================================================================
   // COMPLETE WITH
@@ -205,45 +194,34 @@ trait CardinalFunctions {
   def completeToComplex[A[_ <: Nat], B[K <: Nat] <: A[K], C[K <: Nat] <: A[K], N <: Nat](n: N)(
     c: Cardinal[B, N], ps: PolaritySuite[C, N]
   ) : Complex[A, N] = {
-    case (Z, Cardinal(_, hd), PolaritySuite(_, (_, pa))) => {
-      Complex[A]() >> Box(pa, hd)
-    }
-    case (S(p), Cardinal(tl, hd), PolaritySuite(ps, (na, pa))) => {
+    case (Z, Cardinal(_, hd), PolaritySuite(_, (_, pa))) => Complex[A]() >> Box(pa, hd)
+    case (S(p), Cardinal(tl, hd), PolaritySuite(ps, (na, pa))) => 
       completeToComplex[A, B, C, Nat](p)(tl, ps) >> Box(pa, Node(Dot(na, S(p)), toShell(p)(hd)))
-    }
   }
 
   //============================================================================================
   // COMPLEX TO CARDINAL
   //
 
-  def complexToCardinal[A[_ <: Nat], N <: Nat](cmplx: Complex[A, N]) : (Cardinal[A, N], Derivative[Nesting[A[S[N]], S[N]], S[N]]) = 
-    (new NatCaseSplit0 {
+  @natElim
+  def complexToCardinal[A[_ <: Nat], N <: Nat](n: N)(cmplx: Complex[A, N]) : (Cardinal[A, N], Derivative[Nesting[A[S[N]], S[N]], S[N]]) = {
+    case (Z, Complex(_, hd)) => (Cardinal[A]() >> Pt(hd) , (Pt(Leaf(__1)), Nil))
+    case (S(p), Complex(tl, hd)) => {
 
-      type Out[N <: Nat] = Complex[A, N] => (Cardinal[A, N], Derivative[Nesting[A[S[N]], S[N]], S[N]])
+      // This is the kind of thing which still needs some cleanup ....
 
-      def caseZero : Out[_0] = {
-        case Complex(_, hd) => {
-          (Cardinal[A]() >> Pt(hd) , (Pt(Leaf(__1)), Nil))
-        }
-      }
+      type INst[K <: Nat] = Nesting[A[K], K]
 
-      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
-        case Complex(tl, hd) => {
-          type INst[K <: Nat] = Nesting[A[K], K]
-          type ICNst[K <: Nat] = CardinalNesting[A[K], K]
-          val (newTl, deriv) = this(p)(tl)
+      val (newTl, deriv) = complexToCardinal(p)(tl)
 
-          val nextCardinalNesting = 
-            mapCardinalTree[INst[P], Tree[Nesting[A[S[P]], S[P]], S[P]], P](p)(Suite.head[ICNst, P](newTl))(
-              nst => Node(hd, deriv._1)
-            )
+      val nextCardinalNesting =
+        mapCardinalTree[INst[Nat], Tree[Nesting[A[S[Nat]], S[Nat]], S[Nat]], Nat](p)(cardinalHead(newTl))(
+          nst => Node(hd, deriv._1)
+        )
 
-          (newTl >> nextCardinalNesting, (Tree.const(Nesting.toTree(Suite.head[INst, P](tl)), Leaf(S(S(p)))), Nil))
-        }
-      }
-
-    })(cmplx.length.pred)(cmplx)
+      (newTl >> nextCardinalNesting, (Tree.const(Nesting.toTree(Complex.complexHead(tl)), Leaf(S(S(p)))), Nil))
+    }
+  }
 
   //============================================================================================
   // POKE
@@ -266,7 +244,7 @@ trait CardinalFunctions {
             plc <- Tree.seekTo(tr, hd)
             res <- (
               plc._1 match {
-                case Leaf(_) => fail(new ShapeError("Poke failed by landing on a leaf"))
+                case Leaf(_) => fail("Poke failed by landing on a leaf")
                 case Node(a, sh) => Monad[ShapeM].pure(a, (deriv, (sh, plc._2)))
               }
             )

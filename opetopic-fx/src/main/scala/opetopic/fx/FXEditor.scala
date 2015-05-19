@@ -42,7 +42,7 @@ object FXEditor extends JFXApp {
 
   def addTab(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) : Unit = {
 
-    val cardinal = Cardinal.complexToCardinal(cmplx.value)._1
+    val cardinal = Cardinal.complexToCardinal(cmplx.n)(cmplx.value)._1
 
     val editor = new LabeledCellEditor(cardinal) { thisEditor =>
 

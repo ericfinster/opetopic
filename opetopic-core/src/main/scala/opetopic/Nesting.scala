@@ -298,36 +298,33 @@ object Nesting extends NestingFunctions {
       }
     }
 
-  implicit def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = 
-    (new NatCaseSplit0 {
-
-      type Out[N <: Nat] = Reader[Nesting[A, N]]
-
-      def caseZero : Out[_0] = 
-        new Reader[Nesting[A, _0]] { thisRdr =>
-          def read0: PartialFunction[Js.Value, Nesting[A, _0]] = {
-            case Js.Obj(("type", Js.Str("obj")), ("val", a)) => Obj(rdr.read(a))
-            case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
-              val canopyReader : Reader[Tree[Nesting[A, _0], _0]] =
-                Tree.treeReader(Z)(thisRdr)
-              Box(rdr.read(a), canopyReader.read(cn))
-            }
+  @natElim
+  implicit def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = {
+    case Z => {
+      new Reader[Nesting[A, _0]] { thisRdr =>
+        def read0: PartialFunction[Js.Value, Nesting[A, _0]] = {
+          case Js.Obj(("type", Js.Str("obj")), ("val", a)) => Obj(rdr.read(a))
+          case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
+            val canopyReader : Reader[Tree[Nesting[A, _0], _0]] =
+              Tree.treeReader(Z)(thisRdr)
+            Box(rdr.read(a), canopyReader.read(cn))
           }
         }
-
-      def caseSucc[P <: Nat](p: P) : Out[S[P]] = 
-        new Reader[Nesting[A, S[P]]] { thisRdr => 
-          def read0: PartialFunction[Js.Value, Nesting[A, S[P]]] = {
-            case Js.Obj(("type", Js.Str("dot")), ("val", a)) => Dot(rdr.read(a), S(p))
-            case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
-              val canopyReader : Reader[Tree[Nesting[A, S[P]], S[P]]] = 
-                Tree.treeReader(S(p))(thisRdr)
-              Box(rdr.read(a), canopyReader.read(cn))
-            }
+      }
+    }
+    case S(p) => {
+      new Reader[Nesting[A, S[Nat]]] { thisRdr =>
+        def read0: PartialFunction[Js.Value, Nesting[A, S[Nat]]] = {
+          case Js.Obj(("type", Js.Str("dot")), ("val", a)) => Dot(rdr.read(a), S(p))
+          case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
+            val canopyReader : Reader[Tree[Nesting[A, S[Nat]], S[Nat]]] =
+              Tree.treeReader(S(p))(thisRdr)
+            Box(rdr.read(a), canopyReader.read(cn))
           }
         }
-
-    })(n)
+      }
+    }
+  }
 
 }
 

@@ -29,7 +29,7 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
     Nesting.baseValue(head)
 
   def headSpine : ShapeM[Tree[A[N], N]] = 
-    focusSpine(complexToZipper(cmplx))
+    focusSpine(cmplx.length.pred)(complexToZipper(cmplx))
 
   def foreach(op: IndexedOp[A]) : Unit = {
     Suite.foreach[INst, S[N]](cmplx)(new IndexedOp[INst] {
@@ -63,10 +63,10 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
   }
 
   def sourceAt[K <: Nat](addr: Address[S[K]])(implicit diff: Lte.Diff[K, N]) : ShapeM[Complex[A, K]] = 
-    Complex.sourceAt(getPrefix(diff), addr)
+    Complex.sourceAt(diff.lte.lower)(getPrefix(diff), addr)
 
   def sourceAt(addr: Address[S[N]]) : ShapeM[Complex[A, N]] =
-    Complex.sourceAt(cmplx, addr)
+    Complex.sourceAt(cmplx.length.pred)(cmplx, addr)
 
   def getPrefix[K <: Nat](diff: Lte.Diff[K, N]) : Complex[A, K] = {
     Suite.drop[INst, diff.D, S[N], S[K]](cmplx)(Lte.lteSucc(Lte.lteInvert(diff.lte)))
@@ -76,7 +76,7 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
     Suite.getAt[INst, K, N, diff.D](cmplx)(diff.lte)
 
   def comultiply : ShapeM[DblComplex[A, N]] = 
-    Complex.comultiply(cmplx)
+    Complex.comultiply(cmplx.length.pred)(cmplx)
 
 }
 
