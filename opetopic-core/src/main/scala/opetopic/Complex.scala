@@ -312,7 +312,7 @@ object Complex extends ComplexFunctions {
       @natElim
       def readComplex[N <: Nat](n: N)(vs: Seq[Js.Value]) : Complex[A, N] = {
         case (Z, vs) => Complex[A]() >> Nesting.nestingReader(Z)(rdr.reader[_0]).read(vs.head)
-        case (S(p), vs) => readComplex(p)(vs.tail) >> Nesting.nestingReader(S(p))(rdr.reader[S[Nat]]).read(vs.head)
+        case (S(p: P), vs) => readComplex(p)(vs.tail) >> Nesting.nestingReader(S(p))(rdr.reader[S[P]]).read(vs.head)
       }
     }
   }

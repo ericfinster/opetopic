@@ -242,13 +242,13 @@ trait TreeFunctions { tfns =>
         b <- ndR(hd, Pt(b0))
       } yield b
     }
-    case (S(p), Leaf(_), lfR, ndR) => lfR(Nil)
-    case (S(p), Node(a, Leaf(d)), lfR, ndR) => ndR(a, Leaf(d))
-    case (S(p), Node(a, Node(v, hsh)), lfR, ndR) => {
+    case (S(p: P), Leaf(_), lfR, ndR) => lfR(Nil)
+    case (S(p: P), Node(a, Leaf(d)), lfR, ndR) => ndR(a, Leaf(d))
+    case (S(p: P), Node(a, Node(v, hsh)), lfR, ndR) => {
 
-      val recursor = new GraftRecursor[A, B, Nat] {
-        def caseLeaf(addr: Address[S[Nat]]) : ShapeM[B] = lfR(addr)
-        def caseNode(a: A, sh: Tree[B, S[Nat]]) : ShapeM[B] = ndR(a, sh)
+      val recursor = new GraftRecursor[A, B, P] {
+        def caseLeaf(addr: Address[S[P]]) : ShapeM[B] = lfR(addr)
+        def caseNode(a: A, sh: Tree[B, S[P]]) : ShapeM[B] = ndR(a, sh)
       }
 
       for {
@@ -443,13 +443,13 @@ object Tree extends TreeFunctions {
         }
       }
     }
-    case S(p) => {
-      new Reader[Tree[A, S[Nat]]] { thisRdr =>
-        def read0: PartialFunction[Js.Value, Tree[A, S[Nat]]] = {
+    case S(p: P) => {
+      new Reader[Tree[A, S[P]]] { thisRdr =>
+        def read0: PartialFunction[Js.Value, Tree[A, S[P]]] = {
           case Js.Obj(("type", Js.Str("leaf"))) => Leaf(S(p))
           case Js.Obj(("type", Js.Str("node")), ("val", a), ("shell", sh)) => {
-            val shellReader : Reader[Tree[Tree[A, S[Nat]], Nat]] =
-              treeReader[Tree[A, S[Nat]], Nat](p)(thisRdr)
+            val shellReader : Reader[Tree[Tree[A, S[P]], P]] =
+              treeReader[Tree[A, S[P]], P](p)(thisRdr)
 
             Node(rdr.read(a), shellReader.read(sh))
           }

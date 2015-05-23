@@ -38,9 +38,9 @@ module Suite where
   smash s ∥ = transport (Suite _) +-unit-r s
   smash {P} {n} {suc m} s (tl ▶ hd) = transport! (Suite _) (+-suc {n} {m}) (smash s tl ▶ hd)
 
-  prepend : {P : ℕ → Set} → {n m : ℕ} → Suite (P ↑ (suc m)) n → P m → Suite (P ↑ m) (suc n)
-  prepend {P} ∥ p = ∥ ▶ transport P +-unit-r p
-  prepend {P} {suc n} {m} (tl ▶ hd) p = prepend {P} {n} {m} tl p ▶ transport! P (+-suc {m} {n}) hd
+  -- prepend : {P : ℕ → Set} → {n m : ℕ} → Suite (P ↑ (suc m)) n → P m → Suite (P ↑ m) (suc n)
+  -- prepend {P} ∥ p = ∥ ▶ transport P +-unit-r p
+  -- prepend {P} {suc n} {m} (tl ▶ hd) p = prepend {P} {n} {m} tl p ▶ transport! P (+-suc {m} {n}) hd
 
   drop : {P : ℕ → Set} → {n : ℕ} → (k : ℕ) → (k≤n : k ≤ n) → Suite P n → Suite P (Δ k≤n)
   drop .0 z≤n s = s

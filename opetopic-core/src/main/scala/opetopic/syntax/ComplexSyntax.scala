@@ -69,7 +69,7 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
     Complex.sourceAt(cmplx.length.pred)(cmplx, addr)
 
   def getPrefix[K <: Nat](diff: Lte.Diff[K, N]) : Complex[A, K] = {
-    Suite.drop[INst, diff.D, S[N], S[K]](cmplx)(Lte.lteSucc(Lte.lteInvert(diff.lte)))
+    Suite.drop[INst, diff.D, S[N], S[K]](Lte.lteSucc(Lte.lteInvert(diff.lte)))(cmplx)
   }
 
   def getNesting[K <: Nat](diff : Lte.Diff[K, N]) : Nesting[A[K], K] = 

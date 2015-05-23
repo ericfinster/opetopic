@@ -79,6 +79,15 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
 lazy val opetopicCoreJvm = opetopicCore.jvm
 lazy val opetopicCoreJs = opetopicCore.js
 
+lazy val opetopicTests = (project in file("opetopic-tests")).
+  settings(commonSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "org.scalaz" %% "scalaz-core" % "7.1.1"
+    )
+  ).
+  dependsOn(opetopicMacrosJvm)
+
 lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opetopic-macros")).
   settings(commonSettings: _*).
   settings(

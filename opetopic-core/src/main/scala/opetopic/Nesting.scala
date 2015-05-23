@@ -279,6 +279,22 @@ trait NestingFunctions {
       }
     }
 
+
+  def canopyAddressExtend[A, N <: Nat](n: N)(tr: Tree[Nesting[A, S[N]], S[N]], addr: Address[S[N]] = Nil) : ShapeM[Nesting[Address[S[N]], N]] = 
+    tr match {
+      case Leaf(_) => succeed(external(n)(addr))
+      case Node(nst, sh) => 
+        for {
+          spine <- spineFromDerivative[A, S[N]](nst, (Tree.const(sh, Leaf(S(n))), Nil))
+          shRes <- Tree.traverseWithAddress(sh)({
+            case (b, dir) => canopyAddressExtend(n)(b, (dir :: addr))
+          })
+          res <- Tree.graftRec(n)(spine)(ad => Tree.valueAt(shRes, ad))({ 
+            case (_, cn) => succeed(Box(addr, cn)) 
+          })
+        } yield res
+    }
+
 }
 
 object Nesting extends NestingFunctions {

@@ -16,6 +16,8 @@ import scalaz.Leibniz._
 
 sealed trait Nat {
 
+  type N <: Nat
+
   type TypeRec[Type, R <: NatTypeRec[Type]] <: Type
   type ConsRec[Type, C <: NatConsRec[Type], +A] <: Type
 
@@ -25,6 +27,8 @@ sealed trait Nat {
 
 case object Z extends Nat {
 
+  type N = Z.type
+
   type TypeRec[Type, R <: NatTypeRec[Type]] = R#OnZero
   type ConsRec[Type, C <: NatConsRec[Type], +A] = C#OnZero[A]
 
@@ -33,6 +37,8 @@ case object Z extends Nat {
 }
 
 case class S[P <: Nat](val pred : P) extends Nat {
+
+  type N = S[P]
 
   type TypeRec[Type, R <: NatTypeRec[Type]] = 
     R#OnSucc[P, P#TypeRec[Type, R]]
@@ -177,6 +183,12 @@ trait NatLemmas {
   def rewriteNatIn[F[_ <: Nat], N <: Nat, M <: Nat](ev : N =::= M) : F[N] === F[M] = 
     lift[Nothing, Nothing, Nat, Any, F, N, M](ev)
 
+  def natSymm[N <: Nat, M <: Nat](ev: N =::= M) : M =::= N = 
+    symm[Nothing, Nat, N, M](ev)
+
+  def simpleSymm[A, B](ev: A === B) : B === A = 
+    symm[Nothing, Any, A, B](ev)
+
   def matchNatPair[N <: Nat, M <: Nat](n : N, m : M) : Option[N =::= M] = 
     (new NatCaseSplit0 { sp => 
 
@@ -317,139 +329,6 @@ object recType {
 }
 
 //============================================================================================
-// COMMON ELIMINATION
-//
-
-object elimCommon {
-
-  sealed trait NatPattern
-  case object ZeroPattern extends NatPattern
-  case class BindPattern(name: String) extends NatPattern
-  case class SuccPattern(pat: NatPattern) extends NatPattern
-
-  def patternToTree(c: Context)(pat: NatPattern) : c.Tree = {
-    import c.universe._
-
-    pat match {
-      case ZeroPattern => pq"Z"
-      case BindPattern(name) => Bind(TermName(name), Ident(termNames.WILDCARD))
-      case SuccPattern(pt) => pq"S(${patternToTree(c)(pt)})"
-    }
-  }
-
-  def patternToType(c: Context)(pat: NatPattern) : c.Tree = {
-    import c.universe._
-
-    pat match {
-      case ZeroPattern => tq"Z.type"
-      case BindPattern(name) => tq"Nat"
-      case SuccPattern(pt) => tq"S[${patternToType(c)(pt)}]"
-    }
-  }
-
-  def abortElim(c: Context)(str: String) =
-    c.abort(c.enclosingPosition, str)
-
-  def rewriteNat(c: Context)(bindings: Map[String, NatPattern], tree: c.Tree) : c.Tree = {
-    import c.universe._
-
-    val result = tree match {
-      case Ident(TypeName(id)) => {
-        if (bindings.isDefinedAt(id)) {
-          patternToType(c)(bindings(id))
-        } else Ident(TypeName(id))
-      }
-      case tq"$tpt.type" => {
-        tq"${rewriteNat(c)(bindings, tpt)}.type"
-      }
-      case tq"$tpt#$tpname" => {
-        tq"${rewriteNat(c)(bindings, tpt)}#$tpname"
-      }
-      case tq"$ref.$tpename" => {
-        tq"$ref.$tpename"
-      }
-      case tq"$tcons[..$targs]" => {
-
-        // if (debug) println("Constructor: " ++ showRaw(tcons))
-
-        val ncons = rewriteNat(c)(bindings, tcons)
-
-        val nargs =
-          for { arg <- targs } yield {
-            rewriteNat(c)(bindings, arg)
-          }
-
-        unfold(c)(bindings, tq"$ncons[..$nargs]")
-      }
-      case _ => tree
-        // super.transform(tree)
-    }
-
-    // if (debug) println(tree.toString ++ " -> " ++ result.toString)
-
-    result
-
-  }
-
-  def unfold(c: Context)(bindings: Map[String, NatPattern], tree: c.Tree) : c.Tree = {
-    import c.universe._
-
-    tree match {
-      case tq"Derivative[$a, S[$p]]" => {
-        val newDeriv = unfold(c)(bindings, 
-          tq"Derivative[Tree[$a, S[$p]], $p]"
-        )
-        tq"(Tree[Tree[$a, S[$p]], $p], List[($a, $newDeriv)])"
-      }
-      case tq"Context[$a, S[$p]]" => {
-        val newDeriv = unfold(c)(bindings,
-          tq"Derivative[Tree[$a, S[$p]], $p]"
-        )
-        tq"List[($a, $newDeriv)]"
-      }
-      case tq"NestingContext[$a, S[$p]]" => {
-        val newDeriv = unfold(c)(bindings,
-          tq"Derivative[Nesting[$a, S[$p]], S[$p]]"
-        )
-        tq"List[($a, $newDeriv)]"
-      }
-      case tq"NestingZipper[$a, S[$p]]" => {
-        val newCntxt = unfold(c)(bindings,
-          tq"NestingContext[$a, S[$p]]"
-        )
-        val res = tq"(Nesting[$a, S[$p]], $newCntxt)"
-        // println(tr.toString ++ " -> " ++ res.toString)
-        res
-      }
-      case tq"CardinalTree[$a, S[$p]]" => {
-        unfold(c)(bindings,
-          tq"CardinalTree[Tree[$a, S[$p]], $p]"
-        )
-      }
-      case _ => tree
-    }
-  }
-}
-
-//============================================================================================
-// LTE ELIMINATION MACRO
-//
-
-// class lteElim extends StaticAnnotation {
-//   def macroTransform(annottees: Any*) : Any =
-//     macro lteElim.impl
-// }
-
-// object lteElim {
-
-//   def impl(c: Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
-//     import c.universe._
-
-//   }
-
-// }
-
-//============================================================================================
 // NAT ELIMINATION MACRO
 //
 
@@ -500,19 +379,28 @@ object natElim {
               if (natPats.length != natArgCount) abortElim(c)("Incorrect nat pattern count")
               if (auxPats.length != auxArgCount) abortElim(c)("Incorrect parameter pattern count")
 
-              def parsePattern(pat: Tree) : NatPattern = 
+              def parsePattern(pat: Tree) : NatPattern = {
                 pat match {
                   case pq"Z" => ZeroPattern
                   case pq"S($p)" => SuccPattern(parsePattern(p))
                   case Bind(TermName(name), Ident(termNames.WILDCARD)) =>
-                    BindPattern(name)
+                    BindPattern(name, "Nat")
+                  case Bind(TermName(name), Typed(Ident(termNames.WILDCARD), Ident(TypeName(tpe)))) =>
+                    BindPattern(name, tpe)
                 }
+              }
 
               (natPats map parsePattern, (auxPats, expr))
             }
           }
 
-          def expandMatch(matchVars: List[(TermName, String)], bindings: Map[String, NatPattern], matchData: List[(List[NatPattern], (List[Tree], Tree))]) : Tree = 
+          def expandMatch(
+            matchVars: List[(TermName, String)], 
+            typeBindings: Map[String, Tree], 
+            typeDefns: List[(String, String)],
+            patnDefns: List[(String, String)],
+            matchData: List[(List[NatPattern], (List[Tree], Tree))]
+          ) : Tree =
             matchVars match {
               case Nil => {
 
@@ -522,9 +410,7 @@ object natElim {
 
                 val argStrings : List[(TermName, Tree)] = auxArgs map {
                   case q"$mods val $mname: $tpe = $expr" => {
-                    //println("Processing argument: " ++ mname.toString)
-                    val thisTermType = rewriteNat(c)(bindings, tpe)
-                    //println(tpe.toString ++ " -> " ++ resultType.toString)
+                    val thisTermType = rewriteNat(c)(typeBindings, tpe)
                     val thisTermName = TermName(c.freshName(mname.toString))
                     val thisTermDecl = 
                       q"val $thisTermName = $mname.asInstanceOf[$thisTermType]"
@@ -533,11 +419,26 @@ object natElim {
                   }
                 }
 
-                // Now generate the coercions
+                val typeDecls = 
+                  typeDefns map {
+                    case (tpeName, localName) => q"type ${TypeName(tpeName)} = ${TermName(localName)}.N"
+                  }
+
+                val termDecls = 
+                  patnDefns map {
+                    case (name, localName) => {
+                      val localTerm = TermName(localName)
+                      q"val ${TermName(name)} = $localTerm.asInstanceOf[$localTerm.N]"
+                    }
+                  }
+
+                // Now generate the return coercions
                 val resultParamTerm = TermName(c.freshName("res"))
-                val resultParamType = rewriteNat(c)(bindings, rtype)
+                val resultParamType = rewriteNat(c)(typeBindings, rtype)
 
                 q"""
+                  ..${typeDecls}
+                  ..${termDecls}
                   ..${argStrings map (_._2)}
 
                   def coe($resultParamTerm: $resultParamType) : $rtype = 
@@ -548,22 +449,34 @@ object natElim {
                   })
                  """
               }
-              case v :: vs => {
+              case (TermName(arg), tpe) :: vs => {
 
-                val patternMap : Map[NatPattern, List[(List[NatPattern], (List[Tree], Tree))]] = 
-                  matchData.groupBy(_._1.head)
+                val resultCases =
+                  matchData.groupBy(_._1.head) map {
+                    case (thisPat, remPats) => {
 
-                val recData : Map[NatPattern, Tree] = 
-                  patternMap map { case (thisPat, remPats) => 
-                    (thisPat, expandMatch(vs, bindings + (v._2 -> thisPat), remPats map ({ case (l, r) => (l.tail, r) })))
+                      val (newTypeDefns, newPatnDefns, matchName) = 
+                        (getBinding(thisPat) map { 
+                          case (name, "Nat") => (typeDefns, patnDefns, name)
+                          case (name, tpe) => {
+                            val localName = c.freshName(name)
+                            ((tpe, localName) :: typeDefns, (name, localName) :: patnDefns, localName)
+                          }
+                        }).getOrElse(typeDefns, patnDefns, "")
+
+                      val thisCase =
+                        expandMatch(vs, 
+                          typeBindings + (tpe -> patternToType(c)(thisPat)), 
+                          newTypeDefns, newPatnDefns,
+                          remPats map ({ case (l, r) => (l.tail, r) })
+                        )
+
+                      cq"${expandPattern(c)(thisPat, matchName)} => $thisCase"
+                    }
                   }
 
-                val resultCases = recData map {
-                  case (np, tr) => cq"${patternToTree(c)(np)} => $tr"
-                }
-
                 q"""
-                  ${v._1} match {
+                  ${TermName(arg)} match {
                     case ..$resultCases
                   }
                  """
@@ -572,7 +485,7 @@ object natElim {
               
           q"""
              $dmods def $mname[..$tparams](...$args)(implicit ..$implargs) : $rtype = 
-               ${expandMatch(varPairs, Map.empty, caseAnalysis)}
+               ${expandMatch(varPairs, Map.empty, Nil, Nil, caseAnalysis)}
            """
         }
         case _ => abortElim(c)("Failed to parse method definition")
