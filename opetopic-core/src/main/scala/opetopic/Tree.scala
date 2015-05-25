@@ -415,6 +415,24 @@ trait TreeFunctions { tfns =>
   def exciseWithMask[A, B, N <: Nat](tr: Tree[A, S[N]], msk: Tree[B, S[N]]) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
     exciseWithMask(tr, Zipper.globDerivative(tr.dim.pred), msk)
 
+  def exciseWithProp[A, N <: Nat](tr: Tree[A, S[N]], deriv: Derivative[Tree[A, S[N]], N])(pred: A => Boolean) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
+    tr match {
+      case Leaf(d) => succeed(Leaf(d), Zipper.plug(d.pred)(deriv, Leaf(d)))
+      case Node(a, sh) => 
+        if (pred(a)) {
+          for {
+            ztr <- traverseWithLocalData(sh)({
+              case (b, _, d) => exciseWithProp(b, d)(pred)
+            })
+            (newSh, toJn) = unzip(ztr)
+            jnd <- join(toJn)
+          } yield (Node(a, newSh), jnd)
+        } else succeed(Leaf(S(sh.dim)), sh)
+    }
+
+  def exciseWithProp[A, N <: Nat](tr: Tree[A, S[N]])(pred: A => Boolean) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
+    exciseWithProp(tr, Zipper.globDerivative(tr.dim.pred))(pred)
+
 }
 
 object Tree extends TreeFunctions {

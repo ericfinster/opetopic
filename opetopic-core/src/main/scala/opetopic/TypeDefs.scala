@@ -55,6 +55,10 @@ object TypeDefs extends NatConstants {
     def apply[N <: Nat](n: N)(an: A[N]) : B[N]
   }
 
+  trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
+    def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
+  }
+
   trait IndexedWriter[A[_ <: Nat]] {
     def writer[N <: Nat] : upickle.Writer[A[N]]
   }

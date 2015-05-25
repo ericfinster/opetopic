@@ -35,21 +35,6 @@ case class SuccLte[M <: Nat, N <: Nat, D <: Nat](plte : Lte[M, N, D]) extends Lt
 
 }
 
-trait LteCaseSplit {
-
-  type Out[M <: Nat, N <: Nat, D <: Nat]
-
-  def caseZero[N <: Nat](n : N) : Out[Z.type, N, N]
-  def caseSucc[M <: Nat, N <: Nat, D <: Nat](plte : Lte[M, N, D]) : Out[S[M], S[N], D]
-
-  def apply[M <: Nat, N <: Nat, D <: Nat](lte : Lte[M, N, D]) : Out[M, N, D] = 
-    lte match {
-      case ZeroLte(n) => caseZero(n)
-      case SuccLte(plte) => caseSucc(plte)
-    }
-
-}
-
 trait LteImplicits {
 
   implicit def zeroLte[N <: Nat](implicit n : N) : Lte[Z.type, N, N] = 
@@ -60,105 +45,7 @@ trait LteImplicits {
 
 }
 
-object Lte extends LteImplicits {
-
-  def lteSucc[M <: Nat, N <: Nat, D <: Nat](implicit lte : Lte[M, N, D]) : Lte[M, S[N], S[D]] = 
-    lte match {
-      case ZeroLte(n) => ZeroLte(S(n))
-      case SuccLte(plte) => SuccLte(lteSucc(plte))
-    }
-
-  def lteRefl[N <: Nat](n : N) : Lte[N, N, Z.type] = 
-    (new NatCaseSplit0 {
-
-      type Out[M <: Nat] = Lte[M, M, Z.type]
-
-      def caseZero : Lte[Z.type, Z.type, Z.type] = 
-        ZeroLte(Z)
-
-      def caseSucc[P <: Nat](p : P) : Lte[S[P], S[P], Z.type] = 
-        SuccLte(lteRefl(p))
-
-    })(n)
-
-  def ltePred[M <: Nat, N <: Nat, D <: Nat](lte : Lte[S[M], N, D]) : Lte[M, N, S[D]] = 
-    lte match {
-      case SuccLte(plte) => lteSucc(plte)
-    }
-
-  def lteInvert[M <: Nat, N <: Nat, D <: Nat](lte : Lte[M, N, D]) : Lte[D, N, M] = 
-    (new LteCaseSplit {
-
-      type Out[M <: Nat, N <: Nat, D <: Nat] = Lte[D, N, M]
-
-      def caseZero[N <: Nat](n : N) : Lte[N, N, Z.type] = 
-        lteRefl(n)
-
-      def caseSucc[M <: Nat, N <: Nat, D <: Nat](plte : Lte[M, N, D]) : Lte[D, S[N], S[M]] = 
-        lteSucc(lteInvert(plte))
-
-    })(lte)
-
-  trait Diff[K <: Nat, N <: Nat] {
-
-    type D <: Nat
-    val lte : Lte[K, N, D]
-
-  }
-
-  object Diff {
-
-    def apply[K0 <: Nat, N0 <: Nat, D0 <: Nat](l: Lte[K0, N0, D0]) : Diff[K0, N0] = 
-      new Diff[K0, N0] {
-        type D = D0
-        val lte = l
-      }
-
-  }
-
-  def diffOpt[K <: Nat, N <: Nat](k: K, n: N) : Option[Diff[K, N]] = 
-    (new NatCaseSplit0 {
-
-      type Out[K <: Nat] = Option[Diff[K, N]]
-
-      def caseZero : Out[Z.type] = 
-        Some(new Diff[Z.type, N] {
-
-          type D = N
-          val lte : Lte[Z.type, N, N] = 
-            ZeroLte(n)
-
-        })
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
-        (new NatCaseSplit0 {
-
-          type Out[N <: Nat] = Option[Diff[S[P], N]]
-
-          def caseZero : Out[Z.type] = None
-
-          def caseSucc[Q <: Nat](q: Q) : Out[S[Q]] = {
-
-            import scalaz.syntax.monad._
-
-            for {
-              diff <- diffOpt(p, q)
-            } yield {
-              new Diff[S[P], S[Q]] {
-
-                type D = diff.D
-                val lte : Lte[S[P], S[Q], diff.D] = 
-                  SuccLte(diff.lte)
-
-              }
-            }
-          }
-
-        })(n)
-
-    })(k)
-
-}
+object Lte extends LteImplicits 
 
 //============================================================================================
 // LTE ELIMINATION MACRO
@@ -183,7 +70,7 @@ object lteElim {
       }
 
     sealed trait LtePattern
-    case class ZeroLtePat(name: String) extends LtePattern
+    case class ZeroLtePat(name: String, tpe: String) extends LtePattern
     case class BindLtePat(name: String, mTpe: String, nTpe: String, dTpe: String) extends LtePattern
     case class SuccLtePat(pat: LtePattern) extends LtePattern
 
@@ -191,28 +78,28 @@ object lteElim {
 
       def depth: Int = 
         pat match {
-          case ZeroLtePat(name) => 0
+          case ZeroLtePat(_, _) => 0
           case BindLtePat(_, _, _, _) => -1
           case SuccLtePat(p) => p.depth + 1
         }
 
       def boundName : String = 
         pat match {
-          case ZeroLtePat(name) => name
+          case ZeroLtePat(name, _) => name
           case BindLtePat(name, _, _, _) => name
           case SuccLtePat(p) => p.boundName
         }
 
       def toPatternWith(name: String) : Tree = 
         pat match {
-          case ZeroLtePat(_) => pq"ZeroLte(${Bind(TermName(name), Ident(termNames.WILDCARD))})"
+          case ZeroLtePat(_, _) => pq"ZeroLte(${Bind(TermName(name), Ident(termNames.WILDCARD))})"
           case BindLtePat(_, _, _, _) => Bind(TermName(name), Ident(termNames.WILDCARD))
           case SuccLtePat(p) => pq"SuccLte(${p.toPatternWith(name)})"
         }
 
       def coercionDecl(matchName: String) : Tree = 
         pat match {
-          case ZeroLtePat(name) => 
+          case ZeroLtePat(name, _) => 
             q"val ${TermName(name)} = ${TermName(matchName)}.asInstanceOf[${TermName(matchName)}.N]"
           case BindLtePat(name, _, _, _) => {
             val lowerTpe = tq"${TermName(matchName)}.lower.N"
@@ -225,7 +112,7 @@ object lteElim {
 
       def rawTypeTriple(name: String) : (Tree, Tree, Tree) = 
         pat match {
-          case ZeroLtePat(_) => 
+          case ZeroLtePat(_, _) => 
             (tq"Z.type", tq"${TermName(name)}.N", tq"${TermName(name)}.N")
           case BindLtePat(_, _, _, _) => 
             (tq"S[${TermName(name)}.lower.N]", tq"S[${TermName(name)}.upper.N]", tq"${TermName(name)}.diff.N")
@@ -234,7 +121,11 @@ object lteElim {
 
       def typeCoercions(matchName: String) : List[Tree] = 
         pat match {
-          case ZeroLtePat(_) => Nil
+          case ZeroLtePat(_, tpe) => {
+            if (tpe != "") {
+              List(q"type ${TypeName(tpe)} = ${TermName(matchName)}.N")
+            } else Nil
+          }
           case BindLtePat(_, mTpe, nTpe, dTpe) => {
             if (mTpe != "") {
               List(
@@ -264,9 +155,9 @@ object lteElim {
                     val nPat = patternFromType(c)(n)
                     val dPat = patternFromType(c)(d)
 
-                    // if (debug) println("M: " ++ mPat.toString)
-                    // if (debug) println("N: " ++ nPat.toString)
-                    // if (debug) println("D: " ++ dPat.toString)
+                    if (debug) println("M: " ++ mPat.toString)
+                    if (debug) println("N: " ++ nPat.toString)
+                    if (debug) println("D: " ++ dPat.toString)
 
                     (nm, mPat, nPat, dPat)
                   }
@@ -314,6 +205,8 @@ object lteElim {
               (getBaseType(dPat) -> Ident(udTpe))
             ), localLteTpe)
 
+          if (debug) println("Begining case analysis ...")
+
           val caseAnalysis : List[(LtePattern, List[Tree], Tree)] = cases map {
             case cq"(..$pats) => $expr" => {
 
@@ -328,8 +221,11 @@ object lteElim {
                     SuccLtePat(parseLtePattern(l))
                   }
                   case Apply(Ident(TermName("ZeroLte")), List(Bind(TermName(name), Ident(termNames.WILDCARD)))) => {
-                    ZeroLtePat(name)
+                    ZeroLtePat(name, "")
                   }
+                  case Apply(Ident(TermName("ZeroLte")), List(Bind(TermName(name), Typed(Ident(termNames.WILDCARD), Ident(TypeName(tpe)))))) =>
+                    ZeroLtePat(name, tpe)
+
                   case Bind(TermName(name), Ident(termNames.WILDCARD)) => {
                     BindLtePat(name, "", "", "")
                   }
@@ -346,9 +242,13 @@ object lteElim {
                   }
                 }
 
+              if (debug) println("Parsed pattern: " ++ parseLtePattern(ltePat).toString)
+
               (parseLtePattern(ltePat), argPats, expr)
             }
           }
+
+          if (debug) println("Building cases ...")
 
           val casePatterns : List[CaseDef] = caseAnalysis.groupBy(_._1).map({
             case (thisPat, rawCases) => {
@@ -377,9 +277,13 @@ object lteElim {
                 }
               }
 
+              if (debug) println("About to rewrite result type ...")
+
               // Now generate the coercions
               val resultParamTerm = TermName(c.freshName("res"))
               val resultParamType = rewriteNat(c)(typeBindings, rtype)
+
+              if (debug) println("Finished result type")
 
               cq"""
                 ${thisPat.toPatternWith(bindingName)} => {

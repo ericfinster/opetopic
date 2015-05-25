@@ -50,20 +50,6 @@ case class S[P <: Nat](val pred : P) extends Nat {
 
 }
 
-object Nat {
-
-  // import upickle.Js
-
-  // implicit val natWriter = upickle.Writer[Nat]{
-  //   case n => Js.Num(TypeDefs.natToInt(n))
-  // }
-
-  // implicit val natReader = upickle.Reader[Nat]{
-  //   case Js.Num(d) => TypeDefs.intToNat(d.toInt)
-  // }
-
-}
-
 trait NatTypeRec[Type] {
 
   type OnZero <: Type
@@ -75,180 +61,6 @@ trait NatConsRec[Type] {
 
   type OnZero[+A] <: Type
   type OnSucc[P <: Nat, T[+_] <: Type, +A] <: Type
-
-}
-
-trait ~~>[F[_ <: Nat], G[_ <: Nat]] {
-
-  def apply[N <: Nat](fn : F[N]) : G[N]
-
-}
-
-trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
-  def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
-}
-
-trait NatCaseSplit0 {
-
-  type Out[N <: Nat]
-
-  def caseZero : Out[Z.type]
-  def caseSucc[P <: Nat](p: P) : Out[S[P]]
-
-  def apply[N <: Nat](n : N) : Out[N] = 
-    n match {
-      case Z => caseZero.asInstanceOf[Out[N]]
-      case S(p) => caseSucc(p).asInstanceOf[Out[N]]
-    }
-
-}
-
-trait NatCaseSplit1 {
-
-  type Out[N <: Nat, A]
-
-  def caseZero[A] : Out[Z.type, A]
-  def caseSucc[P <: Nat, A](p : P) : Out[S[P], A]
-
-  def apply[N <: Nat, A](n : N) : Out[N, A] = 
-    n match {
-      case Z => caseZero[A].asInstanceOf[Out[N, A]]
-      case S(p) => caseSucc[Nat, A](p).asInstanceOf[Out[N, A]]
-    }
-}
-
-trait NatCaseSplit2 {
-
-  type Out[N <: Nat, A, B]
-
-  def caseZero[A, B] : Out[Z.type, A, B]
-  def caseSucc[P <: Nat, A, B](p : P) : Out[S[P], A, B]
-
-  def apply[N <: Nat, A, B](n : N) : Out[N, A, B] = 
-    n match {
-      case Z => caseZero[A, B].asInstanceOf[Out[N, A, B]]
-      case S(p) => caseSucc[Nat, A, B](p).asInstanceOf[Out[N, A, B]]
-    }
-
-}
-
-trait NatCaseSplitWithOne extends NatCaseSplit0 { sp => 
-
-  def caseOne : Out[S[Z.type]]
-  def caseDblSucc[P <: Nat](p : P) : Out[S[S[P]]]
-
-  override final def caseSucc[P <: Nat](p : P) : Out[S[P]] =
-    splitSucc(p)
-
-  object splitSucc extends NatCaseSplit0 {
-
-    type Out[N <: Nat] = sp.Out[S[N]]
-
-    def caseZero : Out[Z.type] =
-      sp.caseOne
-
-    def caseSucc[PP <: Nat](pp : PP) : Out[S[PP]] =
-      sp.caseDblSucc(pp)
-
-  }
-
-}
-
-trait NatCaseSplitWithTwo extends NatCaseSplitWithOne { sp => 
-
-  def caseTwo : Out[S[S[Z.type]]]
-  def caseTrplSucc[P <: Nat](p : P) : Out[S[S[S[P]]]]
-
-  override final def caseDblSucc[P <: Nat](p : P) : Out[S[S[P]]] = 
-    splitDblSucc(p)
-
-  object splitDblSucc extends NatCaseSplit0 {
-
-    type Out[N <: Nat] = sp.Out[S[S[N]]]
-
-    def caseZero : Out[Z.type] = 
-      sp.caseTwo
-
-    def caseSucc[PPP <: Nat](ppp : PPP) : Out[S[PPP]] = 
-      sp.caseTrplSucc(ppp)
-
-  }
-
-}
-
-trait NatLemmas {
-
-  type =::=[N <: Nat, M <: Nat] = Leibniz[Nothing, Nat, N, M]
-
-  def rewriteNatIn[F[_ <: Nat], N <: Nat, M <: Nat](ev : N =::= M) : F[N] === F[M] = 
-    lift[Nothing, Nothing, Nat, Any, F, N, M](ev)
-
-  def natSymm[N <: Nat, M <: Nat](ev: N =::= M) : M =::= N = 
-    symm[Nothing, Nat, N, M](ev)
-
-  def simpleSymm[A, B](ev: A === B) : B === A = 
-    symm[Nothing, Any, A, B](ev)
-
-  def matchNatPair[N <: Nat, M <: Nat](n : N, m : M) : Option[N =::= M] = 
-    (new NatCaseSplit0 { sp => 
-
-      type Out[N0 <: Nat] = Option[N0 =::= M]
-
-      def caseZero : Out[Z.type] = 
-        (new NatCaseSplit0 {
-
-          type Out[M0 <: Nat] = Option[Z.type =::= M0]
-
-          def caseZero : Out[Z.type] = Some(refl)
-          def caseSucc[P <: Nat](p : P) : Out[S[P]] = None
-
-        })(m)
-
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = 
-        (new NatCaseSplit0 {
-
-          type Out[M0 <: Nat] = Option[S[P] =::= M0]
-
-          def caseZero : Out[Z.type] = None
-          def caseSucc[Q <: Nat](q : Q) : Out[S[Q]] = 
-            for {
-              ev <- matchNatPair(p, q)
-            } yield {
-              lift[Nothing, Nothing, Nat, Nat, S, P, Q](ev)
-            }
-
-        })(m)
-
-    })(n)
-
-  def plusSuccLemma[M <: Nat, N <: Nat](m : M) : M#Plus[S[N]] =::= S[M#Plus[N]] = 
-    (new NatCaseSplit0 {
-
-      type Out[X <: Nat] = X#Plus[S[N]] =::= S[X#Plus[N]]
-
-      def caseZero : Z.type#Plus[S[N]] =::= S[Z.type#Plus[N]] = refl
-
-      def caseSucc[P <: Nat](p : P) : S[P]#Plus[S[N]] =::= S[S[P]#Plus[N]] = {
-        lift[Nothing, Nothing, Nat, Nat, S, P#Plus[S[N]], S[P]#Plus[N]](
-          plusSuccLemma(p)
-        )
-      }
-
-    })(m)
-
-  def plusUnitRight[N <: Nat](n : N) : N =::= N#Plus[Z.type] = 
-    (new NatCaseSplit0 {
-
-      type Out[M <: Nat] = M =::= M#Plus[Z.type]
-
-      def caseZero : Z.type =::= Z.type#Plus[Z.type] = refl 
-
-      def caseSucc[P <: Nat](p : P) : S[P] =::= S[P]#Plus[Z.type] = 
-        lift[Nothing, Nothing, Nat, Nat, S, P, P#Plus[Z.type]](
-          plusUnitRight(p)
-        )
-
-    })(n)
 
 }
 
@@ -294,8 +106,19 @@ trait NatConstants {
 
 }
 
-object Nats extends NatImplicits
-    with NatLemmas 
+object Nats extends NatImplicits {
+
+  // import upickle.Js
+
+  // implicit val natWriter = upickle.Writer[Nat]{
+  //   case n => Js.Num(TypeDefs.natToInt(n))
+  // }
+
+  // implicit val natReader = upickle.Reader[Nat]{
+  //   case Js.Num(d) => TypeDefs.intToNat(d.toInt)
+  // }
+
+}
 
 //============================================================================================
 // RECURSIVE TYPE DEFINITION MACRO

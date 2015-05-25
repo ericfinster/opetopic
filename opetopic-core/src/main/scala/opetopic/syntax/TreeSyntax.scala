@@ -41,19 +41,6 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
       case (a, b) => Monad[ShapeM].pure(f(a, b))
     })
 
-  //   def seekTo(addr : Address[N]) : Option[Zipper[N, A]] =
-  //     (new NatCaseSplit {
-
-  //       type Out[N <: Nat] = (Address[N], Tree[N, A]) => Option[Zipper[N, A]]
-
-  //       def caseZero : (Address[_0], Tree[_0, A]) => Option[Zipper[_0, A]] =
-  //         (addr, tr) => Some(tr, ())
-
-  //       def caseSucc[P <: Nat](p : P) : (Address[S[P]], Tree[S[P], A]) => Option[Zipper[S[P], A]] =
-  //         (addr, tr) => Zippers.seek((tr, Nil : Context[S[P], A]), addr)
-
-  //     })(tr.dim)(addr, tr)
-
   //   def rootOption : Option[A] =
   //     Tree.rootOption(tr)
 

@@ -23,8 +23,8 @@ trait ComplexFunctions {
     type IdxdNst[K <: Nat] = Nesting[A[K], K]
     type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
-    Suite.map[IdxdNst, IdxdZip, S[N]](c)(new ~~>[IdxdNst, IdxdZip] {
-      def apply[K <: Nat](nst : IdxdNst[K]) : IdxdZip[K] = (nst, Nil)
+    Suite.map[IdxdNst, IdxdZip, S[N]](c)(new IndexedMap[IdxdNst, IdxdZip] {
+      def apply[K <: Nat](k: K)(nst : IdxdNst[K]) : IdxdZip[K] = (nst, Nil)
     })
 
   }
@@ -34,8 +34,8 @@ trait ComplexFunctions {
     type IdxdNst[K <: Nat] = Nesting[A[K], K]
     type IdxdZip[K <: Nat] = NestingZipper[A[K], K]
 
-    Suite.map[IdxdZip, IdxdNst, S[N]](z)(new ~~>[IdxdZip, IdxdNst] {
-      def apply[K <: Nat](zp : IdxdZip[K]) : IdxdNst[K] = Nesting.closeNesting(zp._1.dim)(zp._2, zp._1)
+    Suite.map[IdxdZip, IdxdNst, S[N]](z)(new IndexedMap[IdxdZip, IdxdNst] {
+      def apply[K <: Nat](k: K)(zp : IdxdZip[K]) : IdxdNst[K] = Nesting.closeNesting(zp._1.dim)(zp._2, zp._1)
     })
 
   }

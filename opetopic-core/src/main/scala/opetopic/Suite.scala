@@ -13,6 +13,7 @@ import scala.language.implicitConversions
 import scalaz.Applicative
 
 import TypeDefs._
+import TypeLemmas._
 
 sealed trait Suite[F[_ <: Nat], L <: Nat] {
 
@@ -45,11 +46,35 @@ object Suite {
       case (tl >> _) => tl
     }
 
-  def map[F[_ <: Nat], G[_ <: Nat], L <: Nat](seq : Suite[F, L])(f : F ~~> G) : Suite[G, L] =
+  def map[F[_ <: Nat], G[_ <: Nat], L <: Nat](seq : Suite[F, L])(f : IndexedMap[F, G]) : Suite[G, L] =
     seq match {
       case SNil() => SNil()
-      case tail >> hd => map(tail)(f) >> f(hd)
+      case tail >> hd => map(tail)(f) >> f(tail.length)(hd)
     }
+
+  @lteElim
+  def grab[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](lte: Lte[K, N, D])(suite: Suite[F, N]) 
+      : (Suite[F, D], Suite[Lambda[`M <: Nat` => F[D#Plus[M]]], K]) = {
+    case (ZeroLte(n : N0), s) => (s, SNil[Lambda[`M <: Nat` => F[N0#Plus[M]]]]())
+    case (SuccLte(plte : (K0, N0, D0)), tl >> hd) => {
+      val (left, right) = grab(plte)(tl)
+      (left, right >> inverseOf(rewriteNatIn[F, D0#Plus[K0], N0](lteSumLemma(plte)))(hd))
+    }
+  }
+
+  @natElim
+  def smash[F[_ <: Nat], N <: Nat, M <: Nat](n: N, m: M)(left: Suite[F, N], right: Suite[Lambda[`K <: Nat` => F[N#Plus[K]]], M]) : Suite[F, N#Plus[M]] = {
+    case (n0: N0, Z, left, _) => 
+      rewriteNatIn[Lambda[`K <: Nat` => Suite[F, K]], N0, N0#Plus[Z.type]](plusUnitRight(n0))(left)
+    case (n0: N0, S(p: P), left, right) => {
+      val tl = tail[Lambda[`K <: Nat` => F[N0#Plus[K]]], P](right)
+      val hd = head[Lambda[`K <: Nat` => F[N0#Plus[K]]], P](right)
+      val ev = plusSuccLemma[N0, P](n0)
+      inverseOf(rewriteNatIn[Lambda[`K <: Nat` => Suite[F, K]], N0#Plus[S[P]], S[N0#Plus[P]]](ev))(
+        smash(n0, p)(left, tl) >> hd
+      )
+    }
+  }
 
   @lteElim
   def drop[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](lte: Lte[K, N, D])(suite: Suite[F, N]) : Suite[F, D] = {
@@ -58,7 +83,7 @@ object Suite {
   }
 
   def getAt[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](suite : Suite[F, S[N]])(implicit lte: Lte[K, N, D]) : F[K] =
-    head(drop(Lte.lteSucc(Lte.lteInvert(lte)))(suite))
+    head(drop(lteSucc(lteInvert(lte)))(suite))
 
   def foreachWithCount[F[_ <: Nat], N <: Nat](suite: Suite[F, N])(op: IndexedOp[F]) : (Unit, N) = 
     suite match {

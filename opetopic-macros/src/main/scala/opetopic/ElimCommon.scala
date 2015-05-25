@@ -107,9 +107,10 @@ object elimCommon {
       case tq"$ref.$tpename" => {
         tq"$ref.$tpename"
       }
+      case tq"..$parents { type $tltpe[..$tlparams] = $tpe }" => {
+        tq"..$parents { type $tltpe[..$tlparams] = ${rewriteNat(c)(bindings, tpe)} }"
+      }
       case tq"$tcons[..$targs]" => {
-
-        // if (debug) println("Constructor: " ++ showRaw(tcons))
 
         val ncons = rewriteNat(c)(bindings, tcons)
 
@@ -121,13 +122,9 @@ object elimCommon {
         unfold(c)(bindings, tq"$ncons[..$nargs]")
       }
       case _ => tree
-        // super.transform(tree)
     }
 
-    // if (debug) println(tree.toString ++ " -> " ++ result.toString)
-
     result
-
   }
 
   def unfold(c: Context)(bindings: Map[String, c.Tree], tree: c.Tree) : c.Tree = {
@@ -164,6 +161,17 @@ object elimCommon {
         unfold(c)(bindings,
           tq"CardinalTree[Tree[$a, S[$p]], $p]"
         )
+      }
+      case tq"CardinalNesting[$a, $n]" => {
+        unfold(c)(bindings,
+          tq"CardinalTree[Nesting[$a, $n], $n]"
+        )
+      }
+      case tq"Zipper[$a, $n]" => {
+        val newCntxt = unfold(c)(bindings, 
+          tq"Context[$a, $n]"
+        )
+        tq"(Tree[$a, $n], $newCntxt)"
       }
       case _ => tree
     }

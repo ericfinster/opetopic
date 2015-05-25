@@ -14,6 +14,7 @@ import scalaz.syntax.monad._
 
 import opetopic._
 import TypeDefs._
+import TypeLemmas._
 
 import syntax.tree._
 import syntax.complex._
@@ -30,8 +31,8 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   def complex : FiniteComplex[MarkerType]
 
   def labelComplex : FiniteComplex[A] = 
-    complex.value map (new ~~>[MarkerType, A] {
-      def apply[N <: Nat](mk: MarkerType[N]) : A[N] = 
+    complex.value map (new IndexedMap[MarkerType, A] {
+      def apply[N <: Nat](n: N)(mk: MarkerType[N]) : A[N] = 
         mk.label
     })
 
@@ -66,8 +67,8 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
       for {
         fc <- faceComplex
       } yield {
-        fc map (new ~~>[MarkerType, A] {
-          def apply[N <: Nat](mk: MarkerType[N]) : A[N] = 
+        fc map (new IndexedMap[MarkerType, A] {
+          def apply[N <: Nat](n: N)(mk: MarkerType[N]) : A[N] = 
             mk.label
         })
       }
@@ -173,65 +174,61 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   // RENDER COMPLEX
   //
  
-  def renderComplex[N <: Nat](cmplx : Complex[MarkerType, N]) : ShapeM[Unit] =
-    (new NatCaseSplit0 {
+  @natElim
+  def renderComplex[N <: Nat](n: N)(cmplx: Complex[MarkerType, N]) : ShapeM[Unit] = {
+    case (Z, Complex(_, hd)) => {
+      // println("========= Dimension 0 =========")
+      renderObjectNesting(hd)
+      succeed(())
+    }
+    case (S(p), Complex(tl, hd)) => {
 
-      type Out[N <: Nat] = Complex[MarkerType, N] => ShapeM[Unit]
+      for {
 
-      def caseZero : Out[_0] = {
-        case Complex(_, hd) => {
-          // println("========= Dimension 0 =========")
-          renderObjectNesting(hd)
-          succeed(())
-        }
-      }
+        _ <- renderComplex(tl)
 
-      def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
-        case Complex(tl, hd) => {
-          for {
+        // _ = println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
 
-            _ <- renderComplex(tl)
+        spine <- tl.headSpine
 
-            // _ = println("========= Dimension " ++ natToInt(tl.length).toString ++  " =========")
+        leaves = spine map (rm =>
+          new LayoutMarker {
 
-            spine <- tl.headSpine
+            val element = new EdgeStartMarker(rm)
+            val rootEdgeMarker = rm
+            val external = true
 
-            leaves = spine map (rm => 
-              new LayoutMarker {
+            override def leftInternalMargin = halfLeafWidth
+            override def rightInternalMargin = halfLeafWidth
 
-                val element = new EdgeStartMarker(rm)
-                val rootEdgeMarker = rm
-                val external = true
-
-                override def leftInternalMargin = halfLeafWidth
-                override def rightInternalMargin = halfLeafWidth
-
-              }
-            )
-
-            totalLayout <- renderNesting(hd, leaves)
-            baseLayout = Nesting.baseValue(hd)
-
-          } yield {
-
-            import isNumeric._
-
-            // Set the positions of incoming edges
-
-            for { rm <- spine } {
-              rm.edgeStartY = baseLayout.y - (fromInt(2) * externalPadding)
-            }
-
-            // Set the position of the outgoing edge
-
-            totalLayout.rootEdgeMarker.edgeEndY = baseLayout.rootY + (fromInt(2) * externalPadding)
-
-            // println("Render ok ...")
           }
+        )
+
+        totalLayout <- renderNesting(hd, leaves)
+        baseLayout = Nesting.baseValue(hd)
+
+      } yield {
+
+        import isNumeric._
+
+        // Set the positions of incoming edges
+
+        for { rm <- spine } {
+          rm.edgeStartY = baseLayout.y - (fromInt(2) * externalPadding)
         }
+
+        // Set the position of the outgoing edge
+
+        totalLayout.rootEdgeMarker.edgeEndY = baseLayout.rootY + (fromInt(2) * externalPadding)
+
+        // println("Render ok ...")
       }
 
-    })(cmplx.length.pred)(cmplx)
+    }
+  }
+
+  def renderComplex[N <: Nat](cmplx : Complex[MarkerType, N]) : ShapeM[Unit] =
+    renderComplex(cmplx.length.pred)(cmplx)
 
   //============================================================================================
   // SELECTION ROTUINES

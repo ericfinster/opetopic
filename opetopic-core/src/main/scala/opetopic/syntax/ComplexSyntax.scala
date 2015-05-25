@@ -14,6 +14,7 @@ import scalaz.Applicative
 import opetopic._
 
 import TypeDefs._
+import TypeLemmas._
 import Complex._
 
 final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
@@ -44,12 +45,12 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
       def apply[N <: Nat](n: N)(an : A[N]) : Unit = op(an)
     })
 
-  def map[B[_ <: Nat]](f: A ~~> B) : Complex[B, N] = 
+  def map[B[_ <: Nat]](f: IndexedMap[A, B]) : Complex[B, N] = 
     Suite.map[INst, ({ type L[K <: Nat] = Nesting[B[K], K] })#L, S[N]](cmplx)(
-      new ~~>[INst, ({ type L[K <: Nat] = Nesting[B[K], K] })#L] {
-        def apply[N <: Nat](nst: INst[N]) : Nesting[B[N], N] = {
+      new IndexedMap[INst, ({ type L[K <: Nat] = Nesting[B[K], K] })#L] {
+        def apply[N <: Nat](n: N)(nst: INst[N]) : Nesting[B[N], N] = {
           import scalaz.Id._
-          Nesting.traverse[Id, A[N], B[N], N](nst)(f(_))
+          Nesting.traverse[Id, A[N], B[N], N](nst)(f(n)(_))
         }
       }
     )
@@ -62,17 +63,17 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
     })
   }
 
-  def sourceAt[K <: Nat](addr: Address[S[K]])(implicit diff: Lte.Diff[K, N]) : ShapeM[Complex[A, K]] = 
+  def sourceAt[K <: Nat](addr: Address[S[K]])(implicit diff: Diff[K, N]) : ShapeM[Complex[A, K]] = 
     Complex.sourceAt(diff.lte.lower)(getPrefix(diff), addr)
 
   def sourceAt(addr: Address[S[N]]) : ShapeM[Complex[A, N]] =
     Complex.sourceAt(cmplx.length.pred)(cmplx, addr)
 
-  def getPrefix[K <: Nat](diff: Lte.Diff[K, N]) : Complex[A, K] = {
-    Suite.drop[INst, diff.D, S[N], S[K]](Lte.lteSucc(Lte.lteInvert(diff.lte)))(cmplx)
+  def getPrefix[K <: Nat](diff: Diff[K, N]) : Complex[A, K] = {
+    Suite.drop[INst, diff.D, S[N], S[K]](lteSucc(lteInvert(diff.lte)))(cmplx)
   }
 
-  def getNesting[K <: Nat](diff : Lte.Diff[K, N]) : Nesting[A[K], K] = 
+  def getNesting[K <: Nat](diff : Diff[K, N]) : Nesting[A[K], K] = 
     Suite.getAt[INst, K, N, diff.D](cmplx)(diff.lte)
 
   def comultiply : ShapeM[DblComplex[A, N]] = 
