@@ -32,52 +32,52 @@ trait FXSvgGenerator[A[_ <: Nat]] { thisGen : Viewer[A, Double] =>
     svg(width:=200,height:=200,xmlns:="http://www.w3.org/2000/svg")(complexToSvg(complex.value))
   }
 
-  def complexToSvg[N <: Nat](cmplx: Complex[MarkerType, N]) : Seq[Tag] = 
-    (new NatCaseSplit0 {
+  def complexToSvg[N <: Nat](cmplx: Complex[MarkerType, N]) : Seq[Tag] = Seq()
+    // (new NatCaseSplit0 {
 
-      type Out[N <: Nat] = Complex[MarkerType, N] => Seq[Tag]
+    //   type Out[N <: Nat] = Complex[MarkerType, N] => Seq[Tag]
 
-      def caseZero : Out[_0] = {
-        case Complex(_, hd) => {
+    //   def caseZero : Out[_0] = {
+    //     case Complex(_, hd) => {
 
-          def renderObject(mk: MarkerType[_0]) : Tag = {
-            import svgattr._
-            rect(x:=mk.x,y:=mk.y,width:=mk.width,height:=mk.height)
-          }
+    //       def renderObject(mk: MarkerType[_0]) : Tag = {
+    //         import svgattr._
+    //         rect(x:=mk.x,y:=mk.y,width:=mk.width,height:=mk.height)
+    //       }
 
-          def genObjectNesting(nst: Nesting[MarkerType[_0], _0]) : Seq[Tag] = 
-            nst match {
-              case Obj(mk) => Seq(renderObject(mk))
-              case Box(mk, Pt(n)) => {
-                genObjectNesting(n) :+ renderObject(mk)
-              }
-            }
+    //       def genObjectNesting(nst: Nesting[MarkerType[_0], _0]) : Seq[Tag] = 
+    //         nst match {
+    //           case Obj(mk) => Seq(renderObject(mk))
+    //           case Box(mk, Pt(n)) => {
+    //             genObjectNesting(n) :+ renderObject(mk)
+    //           }
+    //         }
 
-          Seq(g(genObjectNesting(hd)))
-        }
-      }
+    //       Seq(g(genObjectNesting(hd)))
+    //     }
+    //   }
 
-      def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
-        case Complex(tl, hd) => {
-          val tailGroups = this(p)(tl)
+    //   def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
+    //     case Complex(tl, hd) => {
+    //       val tailGroups = this(p)(tl)
 
-          def renderBox(mk: MarkerType[S[P]]) : Tag = {
-            import svgattr._
-            rect(x:=mk.x,y:=mk.y,width:=mk.width,height:=mk.height)
-          }
+    //       def renderBox(mk: MarkerType[S[P]]) : Tag = {
+    //         import svgattr._
+    //         rect(x:=mk.x,y:=mk.y,width:=mk.width,height:=mk.height)
+    //       }
 
-          def genNesting(nst: Nesting[MarkerType[S[P]], S[P]]) : Seq[Tag] =
-            nst match{
-              case Dot(mk, _) => Seq(renderBox(mk))
-              case Box(mk, cn) => {
-                (cn.map(genNesting(_))).nodes.flatten :+ renderBox(mk)
-              }
-            }
+    //       def genNesting(nst: Nesting[MarkerType[S[P]], S[P]]) : Seq[Tag] =
+    //         nst match{
+    //           case Dot(mk, _) => Seq(renderBox(mk))
+    //           case Box(mk, cn) => {
+    //             (cn.map(genNesting(_))).nodes.flatten :+ renderBox(mk)
+    //           }
+    //         }
 
-          tailGroups :+ g(genNesting(hd))
-        }
-      }
+    //       tailGroups :+ g(genNesting(hd))
+    //     }
+    //   }
 
-    })(cmplx.length.pred)(cmplx)
+    // })(cmplx.length.pred)(cmplx)
 
 }

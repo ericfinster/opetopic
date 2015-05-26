@@ -222,6 +222,7 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
         totalLayout.rootEdgeMarker.edgeEndY = baseLayout.rootY + (fromInt(2) * externalPadding)
 
         // println("Render ok ...")
+
       }
 
     }

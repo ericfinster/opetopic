@@ -229,7 +229,7 @@ module Tree where
         >>= (λ ztr → let (newSh , toJn) = unzip ztr
                        in join toJn >>= (λ jnd → η (node a newSh , jnd))) 
     else 
-      succeed (leaf , sh)
+      succeed (leaf , ?) -- Have to plug the derivative with the node itself
 
   exciseWithProp : {A : Set} → {n : ℕ} → Tree A (suc n) → (A → Bool) → Error (Tree A (suc n) × Tree (Tree A (suc n)) n)
   exciseWithProp tr p = exciseWithProp₀ tr (globDerivative _ _) p

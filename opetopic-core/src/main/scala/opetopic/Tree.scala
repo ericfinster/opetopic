@@ -427,7 +427,7 @@ trait TreeFunctions { tfns =>
             (newSh, toJn) = unzip(ztr)
             jnd <- join(toJn)
           } yield (Node(a, newSh), jnd)
-        } else succeed(Leaf(S(sh.dim)), sh)
+        } else succeed(Leaf(S(sh.dim)), Zipper.plug(sh.dim)(deriv, Node(a, sh)))
     }
 
   def exciseWithProp[A, N <: Nat](tr: Tree[A, S[N]])(pred: A => Boolean) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =

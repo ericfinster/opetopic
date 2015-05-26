@@ -17,6 +17,7 @@ import scalafx.scene.control._
 
 import opetopic._
 import TypeDefs._
+import TypeLemmas._
 import syntax.complex._
 
 import scalaz.std.option._
@@ -98,7 +99,7 @@ class ContextStack extends StackPane {
 
   def getContextFace[N <: Nat](fl: FibredLabel[N], cntxt: Context) : ShapeM[Context] =
     for {
-      diff <- fromOpt(Lte.diffOpt(fl.coloringDim, cntxt.n))
+      diff <- fromOpt(diffOpt(fl.coloringDim, cntxt.n))
       clr <- cntxt.value.sourceAt(fl.address)(diff)
     } yield clr
 

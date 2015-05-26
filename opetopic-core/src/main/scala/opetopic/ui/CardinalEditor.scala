@@ -15,6 +15,7 @@ import scalaz.syntax.monad._
 
 import opetopic._
 import TypeDefs._
+import TypeLemmas._
 import Cardinal._
 
 import syntax.tree._
@@ -353,220 +354,220 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
     render
   }
 
-  // def extrudeSelection : Unit = {
+  def extrudeSelection : Unit = {
 
-  //   val curState = editorState
+    val curState = editorState
 
-  //   type D = curState.Dim
-  //   implicit val d = curState.dim
+    type D = curState.Dim
+    implicit val d = curState.dim
 
-  //   selection match {
-  //     case None => ()
-  //     case Some(sel) =>
-  //       if (sel.root.isExtrudable) {
+    selection match {
+      case None => ()
+      case Some(sel) =>
+        if (sel.root.isExtrudable) {
 
-  //         val selectionDim : Int = natToInt(sel.dim)
-  //         val curStateDim : Int = natToInt(curState.dim)
+          val selectionDim : Int = natToInt(sel.dim)
+          val curStateDim : Int = natToInt(curState.dim)
 
-  //         val (extrusionState, fillerEdgeCanvas) = 
-  //           if (selectionDim == curStateDim) {
-  //             val newState = extendedState
-  //             (newState, newState.nextCanvas)
-  //           } else if (selectionDim == (curStateDim - 1)) {
-  //             (curState, curState.nextCanvas)
-  //           } else (curState, curState.canvases(selectionDim + 2))
+          val (extrusionState, fillerEdgeCanvas) = 
+            if (selectionDim == curStateDim) {
+              val newState = extendedState
+              (newState, newState.nextCanvas)
+            } else if (selectionDim == (curStateDim - 1)) {
+              (curState, curState.nextCanvas)
+            } else (curState, curState.canvases(selectionDim + 2))
 
-  //         val targetCanvas = extrusionState.canvases(natToInt(sel.dim))
-  //         val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
+          val targetCanvas = extrusionState.canvases(natToInt(sel.dim))
+          val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
 
-  //         for {
-  //           diff <- fromOpt(Lte.diffOpt(sel.dim, extrusionState.dim))
-  //           ca <- fromOpt(sel.root.cardinalAddress)
-  //           mk0 = createNeutralMarker(sel.dim)(None, ca, false, targetCanvas, fillerCanvas)
-  //           mk1 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
-  //           _ = mk1.outgoingEdgeMarker = Some(mk0) // This should be the only change to these, no?
-  //           newCardinal <- Cardinal.extrudeSelection(???)(extrusionState.cardinal, Suite.tail(ca), mk0, mk1,
-  //             mk => mk.isSelected
-  //           )
-  //         } yield {
+          for {
+            diff <- fromOpt(diffOpt(S(sel.dim), extrusionState.dim))
+            ca <- fromOpt(sel.root.cardinalAddress)
+            mk0 = createNeutralMarker(sel.dim)(None, ca, false, targetCanvas, fillerCanvas)
+            mk1 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
+            _ = mk1.outgoingEdgeMarker = Some(mk0) // This should be the only change to these, no?
+            newCardinal <- Cardinal.extrudeSelection(diff.lte)(extrusionState.cardinal, Suite.tail(ca), mk0, mk1)(
+              mk => mk.isSelected
+            )
+          } yield {
 
-  //           deselectAll
+            deselectAll
 
-  //           val newComplex : Complex[MarkerType, extrusionState.Dim] = 
-  //             completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
+            val newComplex : Complex[MarkerType, extrusionState.Dim] = 
+              completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
 
-  //           editorState = new EditorState {
+            editorState = new EditorState {
 
-  //             type Dim = extrusionState.Dim
-  //             val dim = extrusionState.dim
-  //             val complex = newComplex
-  //             val cardinal = newCardinal
-  //             val polarizedMarkers = extrusionState.polarizedMarkers
-  //             val canvases = extrusionState.canvases
-  //             val nextCanvas = extrusionState.nextCanvas
+              type Dim = extrusionState.Dim
+              val dim = extrusionState.dim
+              val complex = newComplex
+              val cardinal = newCardinal
+              val polarizedMarkers = extrusionState.polarizedMarkers
+              val canvases = extrusionState.canvases
+              val nextCanvas = extrusionState.nextCanvas
 
-  //           }
+            }
 
-  //           editorState.refreshCardinalAddresses
-  //           editorState.refreshComplexAddresses
-  //           editorState.refreshFaceComplexes
+            editorState.refreshCardinalAddresses
+            editorState.refreshComplexAddresses
+            editorState.refreshFaceComplexes
 
-  //           render
+            render
 
-  //           selectAsRoot(mk0)
+            selectAsRoot(mk0)
 
-  //         }
-  //       }
-  //   }
+          }
+        }
+    }
 
-  // }
+  }
 
-  // def extrudeDrop : Unit = {
+  def extrudeDrop : Unit = {
 
-  //   val curState = editorState
+    val curState = editorState
 
-  //   type D = curState.Dim
-  //   implicit val d = curState.dim
+    type D = curState.Dim
+    implicit val d = curState.dim
 
-  //   selection match {
-  //     case None => ()
-  //     case Some(sel) =>
-  //       if (sel.root.isExtrudable) {
+    selection match {
+      case None => ()
+      case Some(sel) =>
+        if (sel.root.isExtrudable) {
 
-  //         val selectionDim : Int = natToInt(sel.dim)
-  //         val curStateDim : Int = natToInt(curState.dim)
+          val selectionDim : Int = natToInt(sel.dim)
+          val curStateDim : Int = natToInt(curState.dim)
 
-  //         val (extrusionState, fillerEdgeCanvas) = 
-  //           if (selectionDim == curStateDim) {
-  //             editorState = extendedState
-  //             val newState = extendedState
-  //             (newState, newState.nextCanvas)
-  //           } else if (selectionDim == (curStateDim - 1)) {
-  //             val newState = extendedState
-  //             (newState, newState.nextCanvas)
-  //           } else if (selectionDim == (curStateDim - 2)) {
-  //             (curState, curState.nextCanvas)
-  //           } else (curState, curState.canvases(selectionDim + 3))
+          val (extrusionState, fillerEdgeCanvas) = 
+            if (selectionDim == curStateDim) {
+              editorState = extendedState
+              val newState = extendedState
+              (newState, newState.nextCanvas)
+            } else if (selectionDim == (curStateDim - 1)) {
+              val newState = extendedState
+              (newState, newState.nextCanvas)
+            } else if (selectionDim == (curStateDim - 2)) {
+              (curState, curState.nextCanvas)
+            } else (curState, curState.canvases(selectionDim + 3))
 
-  //         val targetCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
-  //         val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 2)
+          val targetCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
+          val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 2)
 
-  //         for {
-  //           diff <- fromOpt(Lte.diffOpt(sel.dim, extrusionState.dim))
-  //           ca <- fromOpt(sel.root.cardinalAddress)
-  //           mk0 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, false, targetCanvas, fillerCanvas)
-  //           mk1 = createNeutralMarker(S(S(sel.dim)))(None, ca >> Nil >> Nil, true, fillerCanvas, fillerEdgeCanvas)
-  //           _ = mk1.outgoingEdgeMarker = Some(mk0) 
-  //           newCardinal <- Cardinal.dropAtAddress(extrusionState.cardinal, Suite.tail(ca), mk0, mk1)(diff)
-  //         } yield {
+          for {
+            diff <- fromOpt(diffOpt(S(S(sel.dim)), extrusionState.dim))
+            ca <- fromOpt(sel.root.cardinalAddress)
+            mk0 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, false, targetCanvas, fillerCanvas)
+            mk1 = createNeutralMarker(S(S(sel.dim)))(None, ca >> Nil >> Nil, true, fillerCanvas, fillerEdgeCanvas)
+            _ = mk1.outgoingEdgeMarker = Some(mk0) 
+            newCardinal <- Cardinal.dropAtAddress(diff.lte)(extrusionState.cardinal, Suite.tail(ca), mk0, mk1)
+          } yield {
 
-  //           deselectAll
+            deselectAll
 
-  //           val newComplex : Complex[MarkerType, extrusionState.Dim] = 
-  //             completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
+            val newComplex : Complex[MarkerType, extrusionState.Dim] = 
+              completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
 
-  //           editorState = new EditorState {
+            editorState = new EditorState {
 
-  //             type Dim = extrusionState.Dim
-  //             val dim = extrusionState.dim
-  //             val complex = newComplex
-  //             val cardinal = newCardinal
-  //             val polarizedMarkers = extrusionState.polarizedMarkers
-  //             val canvases = extrusionState.canvases
-  //             val nextCanvas = extrusionState.nextCanvas
+              type Dim = extrusionState.Dim
+              val dim = extrusionState.dim
+              val complex = newComplex
+              val cardinal = newCardinal
+              val polarizedMarkers = extrusionState.polarizedMarkers
+              val canvases = extrusionState.canvases
+              val nextCanvas = extrusionState.nextCanvas
 
-  //           }
+            }
 
-  //           editorState.refreshCardinalAddresses
-  //           editorState.refreshComplexAddresses
-  //           editorState.refreshFaceComplexes
+            editorState.refreshCardinalAddresses
+            editorState.refreshComplexAddresses
+            editorState.refreshFaceComplexes
 
-  //           render
+            render
 
-  //           selectAsRoot(sel.root)
+            selectAsRoot(sel.root)
 
-  //         }
-  //       }
-  //   }
+          }
+        }
+    }
 
-  // }
+  }
 
-  // def sprout : Unit = {
+  def sprout : Unit = {
 
-  //   val curState = editorState
+    val curState = editorState
 
-  //   type D = curState.Dim
-  //   implicit val d = curState.dim
+    type D = curState.Dim
+    implicit val d = curState.dim
 
-  //   selection match {
-  //     case None => ()
-  //     case Some(sel) =>
-  //       if (sel.root.isExternal) {
+    selection match {
+      case None => ()
+      case Some(sel) =>
+        if (sel.root.isExternal) {
 
-  //         val selectionDim : Int = natToInt(sel.dim)
-  //         val curStateDim : Int = natToInt(curState.dim)
+          val selectionDim : Int = natToInt(sel.dim)
+          val curStateDim : Int = natToInt(curState.dim)
 
-  //         val (extrusionState, fillerEdgeCanvas) = 
-  //           if (selectionDim == curStateDim) {
-  //             val newState = extendedState
-  //             (newState, newState.nextCanvas)
-  //           } else if (selectionDim == (curStateDim - 1)) {
-  //             (curState, curState.nextCanvas)
-  //           } else (curState, curState.canvases(selectionDim + 2))
+          val (extrusionState, fillerEdgeCanvas) = 
+            if (selectionDim == curStateDim) {
+              val newState = extendedState
+              (newState, newState.nextCanvas)
+            } else if (selectionDim == (curStateDim - 1)) {
+              (curState, curState.nextCanvas)
+            } else (curState, curState.canvases(selectionDim + 2))
 
-  //         val targetCanvas = extrusionState.canvases(natToInt(sel.dim))
-  //         val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
+          val targetCanvas = extrusionState.canvases(natToInt(sel.dim))
+          val fillerCanvas = extrusionState.canvases(natToInt(sel.dim) + 1)
 
-  //         for {
-  //           diff <- fromOpt(Lte.diffOpt(sel.dim, extrusionState.dim))
-  //           ca <- fromOpt(sel.root.cardinalAddress)
-  //           mk0 = createNeutralMarker(sel.dim)(None, ca, true, targetCanvas, fillerCanvas)
-  //           mk1 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
-  //           _ = mk0.outgoingEdgeMarker = sel.root.outgoingEdgeMarker
-  //           _ = mk1.outgoingEdgeMarker = Some(sel.root) 
-  //           _ = sel.root.isExternal = false
-  //           _ = println("About to sprout")
-  //           newCardinal <- Cardinal.sproutAtAddress(extrusionState.cardinal, ca, mk0, mk1)(diff)
-  //           _ = println("Sprout finished")
-  //         } yield {
+          for {
+            diff <- fromOpt(diffOpt(S(sel.dim), extrusionState.dim))
+            ca <- fromOpt(sel.root.cardinalAddress)
+            mk0 = createNeutralMarker(sel.dim)(None, ca, true, targetCanvas, fillerCanvas)
+            mk1 = createNeutralMarker(S(sel.dim))(None, ca >> Nil, true, fillerCanvas, fillerEdgeCanvas)
+            _ = mk0.outgoingEdgeMarker = sel.root.outgoingEdgeMarker
+            _ = mk1.outgoingEdgeMarker = Some(sel.root) 
+            _ = sel.root.isExternal = false
+            _ = println("About to sprout")
+            newCardinal <- Cardinal.sproutAtAddress(diff.lte)(extrusionState.cardinal, ca, mk0, mk1)
+            _ = println("Sprout finished")
+          } yield {
 
-  //           // I think I see the problem: the marker for the selection root was marked external,
-  //           // but it no longer is!  This needs to be fixed.
+            // I think I see the problem: the marker for the selection root was marked external,
+            // but it no longer is!  This needs to be fixed.
 
-  //           deselectAll
+            deselectAll
 
-  //           val newComplex : Complex[MarkerType, extrusionState.Dim] = 
-  //             completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
+            val newComplex : Complex[MarkerType, extrusionState.Dim] = 
+              completeToComplex(extrusionState.dim)(newCardinal, extrusionState.polarizedMarkers)
 
-  //           // println("Resulting complex:")
-  //           // println(newComplex.toString)
+            // println("Resulting complex:")
+            // println(newComplex.toString)
 
-  //           editorState = new EditorState {
+            editorState = new EditorState {
 
-  //             type Dim = extrusionState.Dim
-  //             val dim = extrusionState.dim
-  //             val complex = newComplex
-  //             val cardinal = newCardinal
-  //             val polarizedMarkers = extrusionState.polarizedMarkers
-  //             val canvases = extrusionState.canvases
-  //             val nextCanvas = extrusionState.nextCanvas
+              type Dim = extrusionState.Dim
+              val dim = extrusionState.dim
+              val complex = newComplex
+              val cardinal = newCardinal
+              val polarizedMarkers = extrusionState.polarizedMarkers
+              val canvases = extrusionState.canvases
+              val nextCanvas = extrusionState.nextCanvas
 
-  //           }
+            }
 
-  //           editorState.refreshCardinalAddresses
-  //           editorState.refreshComplexAddresses
-  //           editorState.refreshFaceComplexes
+            editorState.refreshCardinalAddresses
+            editorState.refreshComplexAddresses
+            editorState.refreshFaceComplexes
 
-  //           val renderResult = render
-  //           println("Rendering result: " ++ renderResult.toString)
+            val renderResult = render
+            println("Rendering result: " ++ renderResult.toString)
 
-  //           selectAsRoot(mk0)
+            selectAsRoot(mk0)
 
-  //         }
-  //       }
+          }
+        }
 
-  //   }
+    }
 
-  // }
+  }
 
 }
