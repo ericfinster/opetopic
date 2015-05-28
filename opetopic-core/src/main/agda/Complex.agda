@@ -95,6 +95,9 @@ module Complex where
   liftS : {A : ℕ → Set} → {n : ℕ} → {B : Set} → Error B → SourceM A n B
   liftS mb = toS (λ c → mb >>= (λ b → η (c , b)))
 
+  SourceE : (A : ℕ → Set) → (n : ℕ) → MonadError (SourceM A n)
+  SourceE A n = record { isMonad = SourceMN A n ; failWith = λ msg → liftS (fail msg) }
+
   mutual
 
     sourceAt : {A : ℕ → Set} → {n : ℕ} → Complex A n → Address (suc n) → Error (Complex A n)
@@ -134,7 +137,7 @@ module Complex where
     compressLocal z leaf = focusUnit z
     compressLocal z (node a sh) = 
       focusCanopy z 
-      >>= (λ cn → match (λ d tr → visitComplex z d >>= (λ z₀ → compressLocal z₀ tr)) cn sh 
+      >>= (λ cn → match ⦃ errorE ⦄ (λ d tr → visitComplex z d >>= (λ z₀ → compressLocal z₀ tr)) cn sh 
       >>= join)
 
     exciseLocal : {A : ℕ → Set} → {n : ℕ} → Address (suc n) → Tree (A (suc n)) (suc n) → SourceM A n ⊤
@@ -154,51 +157,29 @@ module Complex where
     >>= (λ hd → comultiply (tail c) 
     >>= (λ tl → succeed (tl ▶ hd)))
 
-  -- -- Now, I would like to implement something like complex grafting.  How is this going to
-  -- -- work? Eventually, you should have a tree of complexes.  But of course this decomposes
-  -- -- into steps.
+  module ComplexGrafting (A : ℕ → Set) (disc : (n : ℕ) → A n → A n → Error (A n)) where
 
-  -- -- The inductive step is that you are looking at an (n+1)-complex.  You then have an n-tree
-  -- -- of (n+1)-complexes.  The assumption, of course is that the target of each of these complexes
-  -- -- agrees with the source to which it is attached.  Now, that source is exactly the canopy of
-  -- -- the box one dimension below.
+    complexGraft : {n : ℕ} → Nesting (Complex A (suc n)) n → Error (Complex A n × Tree (A (suc n)) (suc n))
+    complexGraft (obj c) = succeed (tail c , leaf)
+    complexGraft (dot c) = succeed (tail c , leaf)
+    complexGraft {zero} (box (∥ ▶ (box t₀ (pt (obj s₀))) ▶ dot a₀) (pt pd)) = 
+      complexGraft pd >>= (λ { ((∥ ▶ outC) , arrStck) → disc _ s₀ (baseValue outC)
+                      >>= (λ v₀ → succeed ((∥ ▶ (box t₀ (pt (withBase v₀ outC)))) , (node a₀ (pt arrStck)))) })
+    complexGraft {zero} _ = fail "Malformed (arrow) complex"
+    complexGraft {n = suc n} (box (c ▶ box t₀ cn₀ ▶ dot a₀) cn) = 
+      traverseTree ⦃ monadIsApp errorM ⦄ cn complexGraft 
+      >>= (λ toGraft → let cmplxSh , aSh = unzip toGraft 
+                       in matchWithAddress ⦃ errorE ⦄ complexGraftLocal cn₀ cmplxSh 
+                          >>= (λ prTr → let newCnpy , fillerTr = unzip prTr 
+                                        in toNesting fillerTr (λ addr → seekNesting (head c , []) addr >>= (λ zp → succeed (proj₁ zp))) 
+                                           >>= (λ nstNst → nestingJoin nstNst 
+                                           >>= (λ cdim2 → succeed ((tail c ▶ cdim2 ▶ box t₀ newCnpy) , node a₀ aSh)))))
 
-  -- -- Right.  You see, the problem is what is the result.  It's not really going to be a new complex,
-  -- -- unless you provide extra data for the filler and the new target, which of course is indeed 
-  -- -- possible.  But the intermediate steps should be .... well, almost stupid if everything is well
-  -- -- formed.
+      where complexGraftLocal : Nesting (A (suc n)) (suc n) → Complex A (suc n) → Address (suc n) → 
+                                Error (Nesting (A (suc n)) (suc n) × Nesting (A n) n)
+            complexGraftLocal (dot s₀) (c₀ ▶ nst) addr = 
+              disc _ s₀ (baseValue nst) >>= (λ v₀ → succeed (withBase v₀ nst , head c₀))
+            complexGraftLocal _ _ addr = fail "Malformed complex"
 
-  -- -- Indeed.  If you perform no compatibility checks, the you actually just *throw away* the higher
-  -- -- codimension crap.  Is this really true?
+    complexGraft {n = suc n} _ = fail "Malformed complex"
 
-  -- -- module ComplexGrafting {M : Set → Set} ⦃ isE : MonadError M ⦄ where
-  
-  -- --   open MonadError ⦃ ... ⦄
-
-  -- --   complexGraft : {A : ℕ → Set} → {n : ℕ} → Tree (Complex A (suc n)) (suc n) → M (Complex A n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
-  -- --   complexGraft leaf = {!!}
-  -- --   complexGraft (node c pd) = {!!}
-
-  -- --   -- Mmmm.  So the totally naive thing doesn't work, because you don't have the lower dimensional information when you get to the leaves.
-  -- --   -- You need something to "send back" as it were.  Like there is a sort of environment consisting of the lower dimensional information.
-
-  -- --   -- Roughly, the idea would be that the thing you send back is that face.
-
-  -- --   graftInContext : {A : ℕ → Set} → {n : ℕ} → Complex A n → Tree (Complex A (suc n)) (suc n) → M (Complex A n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
-  -- --   graftInContext c₀ leaf = η (c₀ , leaf)
-  -- --   graftInContext c₀ (node (∥ ▶ obj a₀ ▶ dot a₁) pd) = failWith "Malformed pasting diagram"
-  -- --   graftInContext c₀ (node (c₁ ▶ dot a₁ ▶ dot a₂) pd) = failWith "Malformed pasting diagram"
-  -- --   graftInContext c₀ (node (_ ▶ box _ _) _) = failWith "Malformed Pasting diagram"
-  -- --   graftInContext c₀ (node (c₁ ▶ box a₀ cn ▶ dot a₁) sh) = 
-  -- --     traverseTree {{monadIsApp isMonad}} sh (λ pd → graftInContext {!!} pd) 
-  -- --     >>= (λ zt → let (cmplxTr , newSh) = unzip zt    
-  -- --                   in match (λ { nst cmplx → {!head cmplx!} }) cn cmplxTr 
-  -- --     >>= {!!} )
-
-
-  --   -- Umm-hmm. The deal is that something needs to be zipped with the canopy of the box.  If the complex
-  --   -- is well formed, Then this contains a shitload of dots.  These dots should be replaced with boxes.  
-  --   -- The question is: which boxes?
-
-  --   -- Well shite.  As expected, it's not totally clear what to do here, even if basically you know what you want.
-  --   -- Let's move on to expressions and come back to this when we think we can use it.

@@ -45,10 +45,23 @@ module Nesting where
   external {n = zero} a = obj a
   external {n = suc n} a = dot a
 
+  -- isExternal : {A : Set} → {n : ℕ} → Nesting A n → Bool
+  -- isExternal
+
+  asBox : {A : Set} → {n : ℕ} → Nesting A n → Error (A × Tree (Nesting A n) n)
+  asBox (obj a) = fail "Not a box"
+  asBox (dot a) = fail "Not a box"
+  asBox (box a cn) = succeed (a , cn)
+
   baseValue : {A : Set} → {n : ℕ} → Nesting A n → A
   baseValue (obj a) = a
   baseValue (dot a) = a
   baseValue (box a cn) = a
+
+  withBase : {A : Set} → {n : ℕ} → A → Nesting A n → Nesting A n
+  withBase a (obj _) = obj a
+  withBase a (dot _) = dot a
+  withBase a (box _ cn) = box a cn
 
   toTree : {A : Set} → {n : ℕ} → Nesting A n → Tree A (suc n)
   toTree (obj a) = leaf
@@ -58,6 +71,15 @@ module Nesting where
   fromTree : {A : Set} → {n : ℕ} → Tree A (suc n) → Error (Nesting (A ⊎ (Address n)) n)
   fromTree {A} {n} tr = graftRec (λ a cn → succeed (box (inj₁ a) cn)) (λ addr → succeed (external (inj₂ addr))) tr
     where open GraftRec {A} {Nesting (A ⊎ (Address n)) n}
+
+  toNesting₀ : {A : Set} → {n : ℕ} → Tree A (suc n) → Address (suc n) → (f : Address (suc n) → Error A) → Error (Nesting A n)
+  toNesting₀ leaf base f = f base >>= (λ a → succeed (external a)) 
+  toNesting₀ (node a sh) base f = 
+    traverseWithAddress ⦃ monadIsApp errorM ⦄ sh (λ b d → toNesting₀ b (d ∷ base) f) 
+    >>= (λ newSh → succeed (box a newSh)) 
+
+  toNesting : {A : Set} → {n : ℕ} → Tree A (suc n) → (f : Address (suc n) → Error A) → Error (Nesting A n)
+  toNesting tr f = toNesting₀ tr [] f
 
   extendNestingWith : {A B : Set} → {n : ℕ} → Nesting A n → B → Tree (Nesting B (suc n)) (suc n)
   extendNestingWith (obj a) b = leaf
@@ -87,6 +109,15 @@ module Nesting where
             >>= (λ shRes → graftRec (λ _ cn → succeed (box addr cn)) (valueAt shRes) tr))
 
             where open GraftRec {A} {Nesting (Address (suc n)) n}
+
+  nestingJoin : {A : Set} → {n : ℕ} → Nesting (Nesting A n) n → Error (Nesting A n)
+  nestingJoin (obj obs) = succeed obs
+  nestingJoin (dot ext) = succeed ext
+  nestingJoin {A} {n} (box nst cn) = 
+    traverseTree ⦃ monadIsApp errorM ⦄ cn nestingJoin 
+    >>= (λ trNst → graftRec (λ an cnn → succeed (box an cnn)) (λ addr → valueAt trNst addr) (toTree nst))
+
+    where open GraftRec {A} {Nesting A n}
 
   ContextNst : Set → ℕ → Set
   ContextNst A n = List (A × Derivative (Nesting A n) n)

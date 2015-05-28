@@ -253,6 +253,9 @@ module Mtl where
   errorM : Monad Error
   errorM = eitherM
 
+  errorE : MonadError Error
+  errorE = record { isMonad = errorM ; failWith = inj₁ }
+
   succeed : {A : Set} → A → Error A
   succeed a = inj₂ a
 

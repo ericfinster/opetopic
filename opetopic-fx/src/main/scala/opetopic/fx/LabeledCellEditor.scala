@@ -112,6 +112,7 @@ class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCard
           }
 
           self.render   // Er, well, don't render everything ....
+
         }
       })
 

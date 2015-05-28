@@ -18,6 +18,18 @@ module Tree where
     leaf : {n : ℕ} → Tree A (suc n)
     node : {n : ℕ} → (a : A) → (sh : Tree (Tree A (suc n)) n) → Tree A (suc n)
 
+  isPoint : {A : Set} → {n : ℕ} → Tree A n → Bool
+  isPoint (pt a) = true
+  isPoint _ = false
+
+  isLeaf : {A : Set} → {n : ℕ} → Tree A n → Bool
+  isLeaf leaf = true
+  isLeaf _ = false
+
+  isNode : {A : Set} → {n : ℕ} → Tree A n → Bool
+  isNode (node a sh) = true
+  isNode _ = false
+
   Address : (n : ℕ) → Set
   Address zero = ⊤
   Address (suc n) = List (Address n)
@@ -133,24 +145,36 @@ module Tree where
           traverseWithLocalData₀ (node a sh) base f = 
             pure node ⊛ f a base (const sh leaf , []) ⊛ traverseWithAddress sh (λ b d → traverseWithLocalData₀ b (d ∷ base) f)
   
-  module Matching where
+  module Matching {M : Set → Set} ⦃ isErr : MonadError M ⦄ where
 
-    open Applicative (monadIsApp errorM)
+    open MonadError ⦃ ... ⦄
+    open Applicative (monadIsApp isMonad)
 
-    match : {A B C : Set} → {n : ℕ} → (A → B → Error C) → Tree A n → Tree B n → Error (Tree C n)
+    match : {A B C : Set} → {n : ℕ} → (A → B → M C) → Tree A n → Tree B n → M (Tree C n)
     match φ (pt a) (pt b) = pure pt ⊛ φ a b 
     match φ leaf leaf = pure leaf
-    match φ leaf (node b shB) = fail "Match error"
-    match φ (node a shA) leaf = fail "Match error"
+    match φ leaf (node b shB) = failWith "Match error"
+    match φ (node a shA) leaf = failWith "Match error"
     match φ (node a shA) (node b shB) = 
       pure node ⊛ φ a b ⊛ match (match φ) shA shB
 
-    matchWithDerivative : {A B C D : Set} → {n : ℕ} → (A → B → Derivative C n → Error D) → 
-                          Tree A n → Tree B n → Error (Tree D n)
+    matchWithAddress₀ : {A B C : Set} → {n : ℕ} → (A → B → Address n → M C) → Address n → Tree A n → Tree B n → M (Tree C n)
+    matchWithAddress₀ φ base (pt a) (pt b) = pure pt ⊛ φ a b tt
+    matchWithAddress₀ φ base leaf leaf = pure leaf
+    matchWithAddress₀ φ base leaf (node a shB) = failWith "Match error"
+    matchWithAddress₀ φ base (node a shA) leaf = failWith "Match error"
+    matchWithAddress₀ φ base (node a shA) (node b shB) = 
+      pure node ⊛ φ a b base ⊛ matchWithAddress₀ (λ brA brB dir → matchWithAddress₀ φ (dir ∷ base) brA brB) (rootAddr _) shA shB
+
+    matchWithAddress : {A B C : Set} → {n : ℕ} → (A → B → Address n → M C) → Tree A n → Tree B n → M (Tree C n)
+    matchWithAddress φ trA trB = matchWithAddress₀ φ (rootAddr _) trA trB 
+
+    matchWithDerivative : {A B C D : Set} → {n : ℕ} → (A → B → Derivative C n → M D) → 
+                          Tree A n → Tree B n → M (Tree D n)
     matchWithDerivative φ (pt a) (pt b) = pure pt ⊛ φ a b tt
     matchWithDerivative φ leaf leaf = pure leaf
-    matchWithDerivative φ leaf (node b shB) = fail "Match error"
-    matchWithDerivative φ (node a shA) leaf = fail "Match error"
+    matchWithDerivative φ leaf (node b shB) = failWith "Match error"
+    matchWithDerivative φ (node a shA) leaf = failWith "Match error"
     matchWithDerivative φ (node a shA) (node b shB) = 
       pure node ⊛ φ a b (const shB leaf , []) ⊛ match (matchWithDerivative φ) shA shB
 
@@ -178,12 +202,12 @@ module Tree where
         >>= (λ res → unzipJoinAndAppend res (λ-rec base))
       horizontalPass base (node (node a vsh) hsh) ∂ = 
         horizontalPass base vsh ∂ 
-        >>= (λ { (bTr , adTr₀) → matchWithDerivative {C = Address (suc n)} horizontalPass adTr₀ hsh 
+        >>= (λ { (bTr , adTr₀) → matchWithDerivative ⦃ errorE ⦄ {C = Address (suc n)} horizontalPass adTr₀ hsh 
         >>= (λ res → unzipJoinAndAppend res (ν-rec a bTr)) })
 
       initHorizontal : A → Tree (Tree (Tree A (suc (suc n))) (suc n)) n → Error (B × Tree (Address (suc n)) n) → Error (B × Tree (Address (suc n)) n)
       initHorizontal a hsh m = 
-        m >>= (λ { (b₀ , adTr₀) → matchWithDerivative {C = Address (suc n)} horizontalPass adTr₀ hsh 
+        m >>= (λ { (b₀ , adTr₀) → matchWithDerivative ⦃ errorE ⦄ {C = Address (suc n)} horizontalPass adTr₀ hsh 
           >>= (λ res → unzipAndJoin res 
           >>= (λ { (bSh , adTr) → ν-rec a (node b₀ bSh) 
           >>= (λ b → η (b , adTr)) })) })
@@ -229,7 +253,7 @@ module Tree where
         >>= (λ ztr → let (newSh , toJn) = unzip ztr
                        in join toJn >>= (λ jnd → η (node a newSh , jnd))) 
     else 
-      succeed (leaf , ?) -- Have to plug the derivative with the node itself
+      succeed (leaf , ∂ ← node a sh)
 
   exciseWithProp : {A : Set} → {n : ℕ} → Tree A (suc n) → (A → Bool) → Error (Tree A (suc n) × Tree (Tree A (suc n)) n)
   exciseWithProp tr p = exciseWithProp₀ tr (globDerivative _ _) p
@@ -239,7 +263,7 @@ module Tree where
   exciseWithMask₀ tr ∂ leaf = succeed (leaf , ∂ ← tr)
   exciseWithMask₀ leaf ∂ (node a msk) = fail "Incomplete Mask"
   exciseWithMask₀ (node a trSh) ∂ (node _ mskSh) = 
-    matchWithDerivative (λ t m₀ ∂₀ → exciseWithMask₀ t ∂₀ m₀) trSh mskSh
+    matchWithDerivative ⦃ errorE ⦄ (λ t m₀ ∂₀ → exciseWithMask₀ t ∂₀ m₀) trSh mskSh
     >>= (λ ztr → let (nsh , toJn) = unzip ztr in join toJn 
     >>= (λ jn → succeed (node a nsh , jn)))
 

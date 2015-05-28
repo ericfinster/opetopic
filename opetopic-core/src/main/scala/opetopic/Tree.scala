@@ -22,6 +22,28 @@ case class Node[+A, N <: Nat](a : A, shell : Tree[Tree[A, S[N]], N]) extends Tre
 trait TreeFunctions { tfns => 
 
   //============================================================================================
+  // TYPE QUERIES
+  //
+
+  def isNode[A, N <: Nat](tr: Tree[A, N]) : Boolean = 
+    tr match {
+      case Node(_, _) => true
+      case _ => false
+    }
+
+  def isLeaf[A, N <: Nat](tr: Tree[A, N]) : Boolean = 
+    tr match {
+      case Leaf(_) => true
+      case _ => false
+    }
+
+  def isPoint[A, N <: Nat](tr: Tree[A, N]) : Boolean = 
+    tr match {
+      case Pt(_) => true
+      case _ => false
+    }
+
+  //============================================================================================
   // TRAVERSE
   //
 
@@ -130,6 +152,26 @@ trait TreeFunctions { tfns =>
       case _ => fail("Match failed")
     }
 
+  }
+
+  //============================================================================================
+  // MATCH WITH ADDRESS
+  //
+
+  @natElim
+  def matchWithAddress[A, B, C, N <: Nat](n: N)(
+    trA: Tree[A, N], trB: Tree[B, N], base: Address[N] = Zipper.rootAddr(n)
+  )(f: (A, B, Address[N]) => ShapeM[C]) : ShapeM[Tree[C, N]] = {
+    case (Z, Pt(a), Pt(b), _, f) => for { v <- f(a, b, ()) } yield Pt(v)
+    case (S(p), Leaf(d), Leaf(_), _, f) => succeed(Leaf(d))
+    case (S(p), Node(a, aSh), Node(b, bSh), base, f) => 
+      for {
+        newSh <- matchWithAddress(p)(aSh, bSh)({
+          case (brA, brB, dir) => matchWithAddress(S(p))(brA, brB, dir :: base)(f)
+        })
+        fab <- f(a, b, base)
+      } yield Node(fab, newSh)
+    case (S(p), _, _, _, _) => fail("Match failed")
   }
 
   //============================================================================================

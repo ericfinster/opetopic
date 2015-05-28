@@ -526,9 +526,7 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             _ = mk0.outgoingEdgeMarker = sel.root.outgoingEdgeMarker
             _ = mk1.outgoingEdgeMarker = Some(sel.root) 
             _ = sel.root.isExternal = false
-            _ = println("About to sprout")
             newCardinal <- Cardinal.sproutAtAddress(diff.lte)(extrusionState.cardinal, ca, mk0, mk1)
-            _ = println("Sprout finished")
           } yield {
 
             // I think I see the problem: the marker for the selection root was marked external,
@@ -558,8 +556,7 @@ trait CardinalEditor[A[_ <: Nat], U] extends Viewer[({ type L[K <: Nat] = Polari
             editorState.refreshComplexAddresses
             editorState.refreshFaceComplexes
 
-            val renderResult = render
-            println("Rendering result: " ++ renderResult.toString)
+            render
 
             selectAsRoot(mk0)
 
