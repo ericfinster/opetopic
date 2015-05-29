@@ -135,12 +135,21 @@ module Cardinal where
   complexToCardinal₀ {A = A} {n = suc n} (tl ▶ hd) | (c₀ , (sh , _)) = nextCardinal , const (toTree (head tl)) leaf , []
 
     where nextCardinal : Cardinal A (suc n)
-          nextCardinal = c₀ ▶ mapCardinalTree {A = Nesting (A n) n} 
-                                {B = Tree (Nesting (A (suc n)) (suc n)) (suc n)} {n} (head c₀) 
-                                  (λ nst → node hd sh)
+          nextCardinal = c₀ ▶ mapCardinalTree {n = n} (head c₀) (λ nst → node hd sh)
 
   complexToCardinal : {A : ℕ → Set} → {n : ℕ} → Complex A n → Cardinal A n
   complexToCardinal c = proj₁ (complexToCardinal₀ c)
+
+  pasteToCardinal : {A : ℕ → Set} → {n : ℕ} → (δ : (n : ℕ) → A n → A n → Error (A n)) → Tree (Complex A (suc n)) (suc n) → 
+                    Error (Cardinal A (suc n))
+  pasteToCardinal {A} {n} δ tr = 
+    paste tr >>= (λ { (cmplx , pd) → 
+      let c₀ = complexToCardinal cmplx
+          c₁ = mapCardinalTree {n = n} (head c₀) (λ _ → pd)
+        in succeed (c₀ ▶ c₁) })
+    where open ComplexGrafting A δ
+
+  -- 
 
   --
   --  Normal Extrusion Routines

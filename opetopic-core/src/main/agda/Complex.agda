@@ -159,27 +159,40 @@ module Complex where
 
   module ComplexGrafting (A : ℕ → Set) (disc : (n : ℕ) → A n → A n → Error (A n)) where
 
-    complexGraft : {n : ℕ} → Nesting (Complex A (suc n)) n → Error (Complex A n × Tree (A (suc n)) (suc n))
-    complexGraft (obj c) = succeed (tail c , leaf)
-    complexGraft (dot c) = succeed (tail c , leaf)
-    complexGraft {zero} (box (∥ ▶ (box t₀ (pt (obj s₀))) ▶ dot a₀) (pt pd)) = 
-      complexGraft pd >>= (λ { ((∥ ▶ outC) , arrStck) → disc _ s₀ (baseValue outC)
-                      >>= (λ v₀ → succeed ((∥ ▶ (box t₀ (pt (withBase v₀ outC)))) , (node a₀ (pt arrStck)))) })
-    complexGraft {zero} _ = fail "Malformed (arrow) complex"
-    complexGraft {n = suc n} (box (c ▶ box t₀ cn₀ ▶ dot a₀) cn) = 
-      traverseTree ⦃ monadIsApp errorM ⦄ cn complexGraft 
-      >>= (λ toGraft → let cmplxSh , aSh = unzip toGraft 
-                       in matchWithAddress ⦃ errorE ⦄ complexGraftLocal cn₀ cmplxSh 
-                          >>= (λ prTr → let newCnpy , fillerTr = unzip prTr 
-                                        in toNesting fillerTr (λ addr → seekNesting (head c , []) addr >>= (λ zp → succeed (proj₁ zp))) 
-                                           >>= (λ nstNst → nestingJoin nstNst 
-                                           >>= (λ cdim2 → succeed ((tail c ▶ cdim2 ▶ box t₀ newCnpy) , node a₀ aSh)))))
+    -- This should calculate exactly the sources we are going to require to start the induction
+    -- and no more, storing them at the end of a nesting and leaving us with the pasting diagram
+    -- we were using ....
 
-      where complexGraftLocal : Nesting (A (suc n)) (suc n) → Complex A (suc n) → Address (suc n) → 
+    pastingDiagramToNesting : {n : ℕ} → Tree (Complex A (suc n)) (suc n) → Error (Nesting (Complex A n) n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
+    pastingDiagramToNesting tr = let (cmplxTree , pdTree) = splitWith (λ c → (tail c , head c)) tr
+                    in toNesting cmplxTree (λ { [] → fail "This should have been a leaf ..." 
+                                              ; (dir ∷ addr) → seekTo cmplxTree addr 
+                                                               >>= (λ { (leaf , _) → fail "Was hoping to see a complex here ..." 
+                                                                      ; (node c _ , _) → sourceAt c (dir ∷ []) }) }) 
+                       >>= (λ graftNst → succeed (graftNst , pdTree))
+
+    graftNesting : {n : ℕ} → Nesting (Complex A n) n → Error (Complex A n)
+    graftNesting (obj c) = succeed c
+    graftNesting (dot c) = succeed c
+    graftNesting {zero} (box (∥ ▶ (box t₀ (pt (obj s₀)))) (pt pd)) = 
+      graftNesting pd >>= (λ { (∥ ▶ outC) → disc _ s₀ (baseValue outC)
+                      >>= (λ v₀ → succeed (∥ ▶ (box t₀ (pt (withBase v₀ outC))))) })
+    graftNesting {zero} _ = fail "Malformed (arrow) complex"
+    graftNesting {n = suc n} (box (c ▶ box t₀ cn₀) cn) = 
+      traverseTree ⦃ monadIsApp errorM ⦄ cn graftNesting 
+      >>= (λ cmplxSh →  matchWithAddress ⦃ errorE ⦄ graftNestingLocal cn₀ cmplxSh 
+                        >>= (λ prTr → let newCnpy , fillerTr = unzip prTr 
+                                      in toNesting fillerTr (λ addr → seekNesting (head c , []) addr >>= (λ zp → succeed (proj₁ zp))) 
+                                         >>= (λ nstNst → nestingJoin nstNst 
+                                         >>= (λ cdim2 → succeed (tail c ▶ cdim2 ▶ box t₀ newCnpy)))))
+
+      where graftNestingLocal : Nesting (A (suc n)) (suc n) → Complex A (suc n) → Address (suc n) → 
                                 Error (Nesting (A (suc n)) (suc n) × Nesting (A n) n)
-            complexGraftLocal (dot s₀) (c₀ ▶ nst) addr = 
+            graftNestingLocal (dot s₀) (c₀ ▶ nst) addr = 
               disc _ s₀ (baseValue nst) >>= (λ v₀ → succeed (withBase v₀ nst , head c₀))
-            complexGraftLocal _ _ addr = fail "Malformed complex"
+            graftNestingLocal _ _ addr = fail "Malformed complex"
 
-    complexGraft {n = suc n} _ = fail "Malformed complex"
+    graftNesting {n = suc n} _ = fail "Malformed complex"
 
+    paste : {n : ℕ} → Tree (Complex A (suc n)) (suc n) → Error (Complex A n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
+    paste tr = pastingDiagramToNesting tr >>= (λ { (nst , pd) → graftNesting nst >>= (λ res → succeed (res , pd)) })

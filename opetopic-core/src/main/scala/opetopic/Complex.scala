@@ -275,6 +275,77 @@ trait ComplexFunctions {
     }
   }
 
+  //============================================================================================
+  // COMPLEX GRAFTING
+  //
+
+  def paste[A[_ <: Nat], N <: Nat](n: N)(pd: Tree[Complex[A, S[N]], S[N]])(disc: Discriminator[A]) 
+      : ShapeM[(Complex[A, N], Tree[Nesting[A[S[N]], S[N]], S[N]])] = 
+    for {
+      pr <- pastingDiagramToNesting(n)(pd)
+      res <- graftNesting(n)(pr._1)(disc)
+    } yield (res, pr._2)
+
+  def pastingDiagramToNesting[A[_ <: Nat], N <: Nat](n: N)(pd: Tree[Complex[A, S[N]], S[N]]) 
+      : ShapeM[(Nesting[Complex[A, N], N], Tree[Nesting[A[S[N]], S[N]], S[N]])] = {
+
+    val (cmplxTree, pdTree) = Tree.splitWith(pd)(c => (complexTail(c), complexHead(c)))
+
+    for {
+      graftNst <- Nesting.toNesting(cmplxTree)({
+        case Nil => fail("This should have been a leaf!")
+        case (dir :: addr) => 
+          for {
+            zp <- Tree.seekTo(S(n))(cmplxTree, addr)
+            res <- (
+              zp._1 match {
+                case Leaf(_) => fail("I wanted a complex!")
+                case Node(c, _) => sourceAt(n)(c, dir :: Nil)
+              }
+            )
+          } yield res
+      })
+    } yield (graftNst, pdTree)
+  }
+
+  @natElim
+  def graftNesting[A[_ <: Nat], N <: Nat](n: N)(nst: Nesting[Complex[A, N], N])(disc: Discriminator[A]) : ShapeM[Complex[A, N]] = {
+    case (Z, Obj(c), disc) => succeed(c)
+    case (Z, Box(Complex(em, Box(t0, Pt(Obj(s0)))), Pt(pd)), disc) => {
+      for {
+        resultPd <- graftNesting(Z)(pd)(disc)
+        outC = complexHead(resultPd)
+        v0 <- disc(Z)(s0, Nesting.baseValue(outC))
+      } yield em >> Box(t0, Pt(Nesting.withBase(v0, outC)))
+    }
+    case (Z, _, _) => fail("Malformed arrow complex")
+    case (S(p: P), Dot(c, _), disc) => succeed(c)
+    case (S(p: P), Box(Complex(c, Box(t0, cn0)), cn), disc) => {
+      for {
+        cmplxSh <- Tree.traverse(cn)(graftNesting(S(p))(_)(disc))
+        prTr <- Tree.matchWithAddress(S(p))(cn0, cmplxSh)({
+          case (Dot(s0, _), Complex(c0, nst), addr) => {
+            for {
+              v0 <- disc(S(p))(s0, Nesting.baseValue(nst))
+            } yield (Nesting.withBase(v0, nst), complexHead(c0))
+          }
+          case _ => fail("Malformed complex")
+        })
+        (newCnpy, fillerTr) = Tree.unzip(prTr)
+        nstNst <- Nesting.toNesting(fillerTr)(addr => {
+          for {
+            zp <- Nesting.seekNesting(p)((complexHead(c), Nil), addr)
+          } yield zp._1
+        })
+        cdim2 <- Nesting.nestingJoin(p)(nstNst)
+      } yield {
+        type INst[K <: Nat] = Nesting[A[K], K]
+        (Suite.tail[INst, P](c) >> cdim2 >> Box(t0, newCnpy))
+      }
+    }
+    case (S(p: P), _, _) => fail("Malformed complex")
+  }
+
 }
 
 object Complex extends ComplexFunctions {

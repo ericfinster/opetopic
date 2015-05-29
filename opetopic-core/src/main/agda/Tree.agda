@@ -127,11 +127,16 @@ module Tree where
   const : {A B : Set} → {n : ℕ} → Tree A n → B → Tree B n
   const tr b = mapTree tr (λ _ → b)
 
+  splitWith : {A B C : Set} → {n : ℕ} → (f : A → B × C) → Tree A n → Tree B n × Tree C n
+  splitWith f (pt a) = let (b , c) = f a in (pt b , pt c)
+  splitWith f leaf = leaf , leaf
+  splitWith f (node a sh) = 
+    let (aSh , bSh) = splitWith (λ br → splitWith f br) sh 
+        (a , b) = f a
+    in (node a aSh , node b bSh)
+
   unzip : {n : ℕ} → {A B : Set} → Tree (A × B) n → (Tree A n × Tree B n)
-  unzip (pt (a , b)) = (pt a , pt b)
-  unzip leaf = leaf , leaf
-  unzip (node (a , b) shAB) with unzip (mapTree shAB unzip)
-  unzip (node (a , b) shAB) | (shA , shB) = (node a shA , node b shB)
+  unzip tr = splitWith (λ pr → pr) tr
 
   traverseWithLocalData : {G : Set → Set} → ⦃ isA : Applicative G ⦄ → {A B C : Set} → {n : ℕ} → 
                           Tree A n → (A → Address n → Derivative B n → G C) → G (Tree C n)

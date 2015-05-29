@@ -72,6 +72,10 @@ object TypeDefs extends NatConstants {
     def caseSucc[P <: Nat](p: P)(ap: A[P], b: B) : B
   }
 
+  trait Discriminator[A[_ <: Nat]] {
+    def apply[N <: Nat](n: N)(s: A[N], t: A[N]): ShapeM[A[N]]
+  }
+
   //============================================================================================
   // POLARITIES
   //

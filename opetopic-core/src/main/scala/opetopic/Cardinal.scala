@@ -195,6 +195,24 @@ trait CardinalFunctions {
   }
 
   //============================================================================================
+  // PASTE TO CARDINAL
+  //
+
+   def pasteToCardinal[A[_ <: Nat], N <: Nat](n: N)(pd: Tree[Complex[A, S[N]], S[N]])(disc: Discriminator[A]) 
+    : ShapeM[Cardinal[A, S[N]]] = 
+    for {
+      pr <- Complex.paste(n)(pd)(disc)
+    } yield {
+
+      type INst[K <: Nat] = Nesting[A[K], K]
+
+      val c0 = complexToCardinal(n)(pr._1)._1
+      val c1 = mapCardinalTree[INst[N], Tree[Nesting[A[S[N]], S[N]], S[N]], N](n)(cardinalHead(c0))(_ => pr._2)
+
+      c0 >> c1
+    }
+
+  //============================================================================================
   // POKE
   //
 

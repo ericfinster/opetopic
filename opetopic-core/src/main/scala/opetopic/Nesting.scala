@@ -113,6 +113,13 @@ trait NestingFunctions {
       case Box(a, _) => a
     }
 
+  def withBase[A, N <: Nat](a: A, nst: Nesting[A, N]) : Nesting[A, N] = 
+    nst match {
+      case Obj(_) => Obj(a)
+      case Dot(_, d) => Dot(a, d)
+      case Box(_, cn) => Box(a, cn)
+    }
+
   //============================================================================================
   // TO TREE
   //
@@ -122,6 +129,17 @@ trait NestingFunctions {
       case Obj(a) => Leaf(__1)
       case Dot(a, d) => Leaf(S(d))
       case Box(a, cn) => Node(a, Tree.map(cn)(toTree(_)))
+    }
+
+  def toNesting[A, N <: Nat](tr: Tree[A, S[N]], addr: Address[S[N]] = Nil)(f: Address[S[N]] => ShapeM[A]) : ShapeM[Nesting[A, N]] = 
+    tr match {
+      case Leaf(d) => for { a <- f(addr) } yield external(d.pred)(a)
+      case Node(a, sh) => 
+        for {
+          newSh <- Tree.traverseWithAddress(sh)({
+            case (b, d) => toNesting(b, d :: addr)(f)
+          })
+        } yield Box(a, newSh)
     }
 
   //============================================================================================
@@ -194,14 +212,6 @@ trait NestingFunctions {
           zr <- visitNesting(n)(zp, d)
         } yield zr
     }
-
-
-  // Here is a first example of the expansion problem you knew you would face: rewriting in 
-  // the nesting zipper guy here produces an illegal cyclic reference which you are going to
-  // need to avoid somehow.
-
-  // The idea, of course, is to keep a black-list of types which should be unfolded by hand
-  // and thereby avoid writing the type in its reducible form.
 
   @natElim
   def sibling[A, N <: Nat](n : N)(z: NestingZipper[A, S[N]], addr: Address[N]) : ShapeM[NestingZipper[A, S[N]]] = {
@@ -291,6 +301,25 @@ trait NestingFunctions {
           })
           res <- Tree.graftRec(n)(spine)(ad => Tree.valueAt(shRes, ad))({ 
             case (_, cn) => succeed(Box(addr, cn)) 
+          })
+        } yield res
+    }
+
+  @natElim
+  def nestingJoin[A, N <: Nat](n: N)(nnst: Nesting[Nesting[A, N], N]) : ShapeM[Nesting[A, N]] = {
+    case (Z, Obj(obs)) => succeed(obs)
+    case (Z, Box(nst, cn)) => nestingJoinCanopy(Z)(Box(nst, cn))
+    case (S(p), Dot(ext, _)) => succeed(ext)
+    case (S(p), Box(nst, cn)) => nestingJoinCanopy(S(p))(Box(nst, cn))
+  }
+
+  def nestingJoinCanopy[A, N <: Nat](n: N)(box: Box[Nesting[A, N], N]) : ShapeM[Nesting[A, N]] = 
+    box match {
+      case Box(nst, cn) => 
+        for {
+          trNst <- Tree.traverse(cn)(nestingJoin(n)(_))
+          res <- Tree.graftRec[A, Nesting[A, N], N](n)(toTree(nst))(Tree.valueAt(trNst, _))({
+            case (an, cnn) => succeed(Box(an, cnn))
           })
         } yield res
     }
