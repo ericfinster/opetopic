@@ -154,8 +154,13 @@ trait Renderer[U]  {
     def labelWidth : U = halfLabelWidth * fromInt(2)
     def labelHeight : U = halfLabelHeight * fromInt(2)
 
-    def labelContainerWidth : U = strokeWidth + labelWidth + internalPadding
-    def labelContainerHeight : U = internalPadding + labelHeight + internalPadding
+    def labelContainerWidth : U = internalPadding + labelWidth + internalPadding
+    def labelContainerHeight : U = 
+      if (interiorHeight > zero) {
+        internalPadding + labelHeight + internalPadding
+      } else {
+        internalPadding + labelHeight 
+      }
 
     var leftInteriorMargin : U = zero
     var rightInteriorMargin : U = zero
