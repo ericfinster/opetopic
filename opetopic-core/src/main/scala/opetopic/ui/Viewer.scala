@@ -236,11 +236,57 @@ trait Viewer[A[_ <: Nat], U] extends Renderer[U] {
   //
 
   sealed trait Selection {
+
     type Dim <: Nat
+
     val dim : Dim
     val root : MarkerType[Dim]
     val companions : ListBuffer[MarkerType[Dim]]
+
+    def asPastingDiagram : ShapeM[Tree[MarkerType[Dim], Dim]] = {
+
+      val theComplex = complex
+
+      for {
+        diff <- fromOpt(
+          diffOpt(dim, theComplex.n)
+        )
+        nst = theComplex.getNesting(diff)
+        baseZp <- nst seekTo root.address.tail
+        rootZp <- (
+          baseZp._1 match {
+            case Box(_, cn) => cn seekTo root.address.head
+            case _ => fail("Internal error: zipper led to a leaf")
+          }
+        )
+      } yield Tree.takeWhile(dim)(rootZp._1)(nst => nst.baseValue.isSelected) map (_.baseValue)
+    }
+
   }
+
+  // def getSelection[A, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N])(sel: A => Boolean) : ShapeM[Tree[Nesting[A, N], N]] =
+    // (new NatCaseSplit0 {
+
+    //   type Out[N <: Nat] = (CardinalNesting[A, N], CardinalAddress[N]) => ShapeM[Tree[Nesting[A, N], N]]
+
+    //   def caseZero : Out[_0] = {
+    //     case (Pt(nst), ca) =>
+    //       if (sel(Nesting.baseValue(nst))) {
+    //         Monad[ShapeM].pure(Pt(nst))
+    //       } else fail(new ShapeError)
+    //   }
+
+    //   def caseSucc[P <: Nat](p : P) : Out[S[P]] = {
+    //     case (cn, tl >> hd) =>
+    //       for {
+    //         pr0 <- poke(cn, tl)
+    //         (tr, deriv) = pr0
+    //         pr1 <- Tree.seekTo(tr, hd)
+    //       } yield Tree.takeWhile(pr1._1)(nst => sel(Nesting.baseValue(nst)))
+    //   }
+
+    // })(n)(cn, ca)
+
 
   object Selection {
 

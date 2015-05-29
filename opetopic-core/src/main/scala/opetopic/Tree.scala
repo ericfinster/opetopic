@@ -427,15 +427,16 @@ trait TreeFunctions { tfns =>
   // TAKE WHILE
   //
 
-  def takeWhile[A, N <: Nat](tr : Tree[A, S[N]])(p : A => Boolean) : Tree[A, S[N]] = 
-    tr match {
-      case Leaf(d) => Leaf(d)
-      case Node(a, sh) => 
-        if (p(a)) {
-          Node(a, map(sh)(takeWhile(_)(p)))
-        } else {
-          Leaf(S(sh.dim))
-        }
+  @natElim
+  def takeWhile[A, N <: Nat](n: N)(tr : Tree[A, N])(pred : A => Boolean) : Tree[A, N] = {
+    case (Z, Pt(a), pred) => Pt(a)
+    case (S(p), Leaf(d), pred) => Leaf(d)
+    case (S(p), Node(a, sh), pred) =>
+      if (pred(a)) {
+        Node(a, map(sh)(takeWhile(S(p))(_)(pred)))
+      } else {
+        Leaf(S(p))
+      }
     }
 
   //============================================================================================

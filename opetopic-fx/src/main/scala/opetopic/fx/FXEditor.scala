@@ -40,9 +40,12 @@ object FXEditor extends JFXApp {
   def addTab : Unit = 
     addTab(Complex[ColoredLabel.LabelOpt]() >> Obj(None))
 
-  def addTab(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) : Unit = {
 
-    val cardinal = Cardinal.complexToCardinal(cmplx.n)(cmplx.value)._1
+  def addTab(cmplx: FiniteComplex[ColoredLabel.LabelOpt]) : Unit = {
+    addTabWithCardinal(Cardinal.complexToCardinal(cmplx.n)(cmplx.value)._1)
+  }
+
+  def addTabWithCardinal(cardinal: FiniteCardinal[ColoredLabel.LabelOpt]) : Unit = {
 
     val editor = new LabeledCellEditor(cardinal) { thisEditor =>
 
@@ -99,6 +102,34 @@ object FXEditor extends JFXApp {
         case KeyCode.E => for { editor <- activeEditor } { editor.extrudeSelection }
         case KeyCode.D => for { editor <- activeEditor } { editor.extrudeDrop }
         case KeyCode.P => for { editor <- activeEditor } { editor.sprout }
+        case KeyCode.X => 
+          for {
+            editor <- fromOpt(activeEditor)
+            sel <- fromOpt(editor.selection)
+            pd <- sel.asPastingDiagram
+          } {
+
+            @natElim
+            def addTabFromPastingDiagram[N <: Nat](n: N)(pd: Tree[editor.MarkerType[N], N]) : ShapeM[Unit] = {
+              case (Z, pd) => fail("Not implemented")
+              case (S(p: P), pd) => {
+                type CL[N <: Nat] = ColoredLabel.LabelOpt[N]
+
+                for {
+                  cardinal <- Cardinal.pasteToCardinal(p)(Tree.map(pd)(_.asInstanceOf[editor.NeutralMarker[S[P]]].neutralComplex.get))(
+                    new Discriminator[CL] {
+                      def apply[N <: Nat](n: N)(s: CL[N], t: CL[N]): ShapeM[CL[N]] = 
+                        succeed(s)
+                    }
+                  )
+                } yield addTabWithCardinal(cardinal)
+              }
+            }
+
+            for {
+             _ <- addTabFromPastingDiagram(sel.dim)(pd)
+            } yield ()
+          }
         case _ => ()
       }
     }
