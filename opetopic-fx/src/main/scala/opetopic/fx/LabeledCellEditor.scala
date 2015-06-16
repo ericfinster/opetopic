@@ -122,7 +122,7 @@ class LabeledCellEditor(c: FiniteCardinal[ColoredLabel.LabelOpt]) extends FXCard
 
 }
 
-class LabeledCellViewer(lc: FiniteComplex[ColoredLabel.LabelOpt]) extends FXComplexViewer[ColoredLabel.LabelOpt](lc) with FXSvgGenerator[ColoredLabel.LabelOpt] {
+class LabeledCellViewer(lc: FiniteComplex[ColoredLabel.LabelOpt]) extends FXComplexViewer[ColoredLabel.LabelOpt](lc) {
 
   type BoxType = ColoredBox
 

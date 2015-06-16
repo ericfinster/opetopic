@@ -173,16 +173,16 @@ object FXEditor extends JFXApp {
     }
   }
 
-  val getSvgButton = new Button("Get Svg") {
-    onAction = () => {
-      for {
-        viewer <- activePreview
-      } {
-        val svgViewer = new FXDialogs.CodeDisplayDialog(viewer.toSvg.toString)
-        svgViewer.showAndWait
-      }
-    }
-  }
+  // val getSvgButton = new Button("Get Svg") {
+  //   onAction = () => {
+  //     for {
+  //       viewer <- activePreview
+  //     } {
+  //       val svgViewer = new FXDialogs.CodeDisplayDialog(viewer.toSvg.toString)
+  //       svgViewer.showAndWait
+  //     }
+  //   }
+  // }
 
   val toCardinalButton = new Button("To Cardinal") {
     onAction = () => {
@@ -200,7 +200,7 @@ object FXEditor extends JFXApp {
   }
 
   val buttonTray = new HBox {
-    children = List(getCodeButton, getJsonButton, getSvgButton, toCardinalButton)
+    children = List(getCodeButton, getJsonButton, toCardinalButton)
     spacing = 10
   }
 

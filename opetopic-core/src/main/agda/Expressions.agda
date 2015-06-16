@@ -11,48 +11,37 @@ open import Complex
 
 module Expressions where
 
-  -- Okay, since the most important case of what I want to do is determined
-  -- by the desire to glue together expressions, let's try to work out that
-  -- case and see what happens.
+  -- Let's play with some expressions
 
-  data Expr : ℕ → Set where
-    ⊚ : Expr 0
-    ● : {n : ℕ} → Tree (Expr n) n → Expr n → Expr (suc n)
+  mutual
 
-  sourceTree : {n : ℕ} → Expr (suc n) → Tree (Expr n) n
-  sourceTree (● src tgt) = src
+    Shell : ℕ → Set
+    Shell n = Tree (Expr n) n × Expr n
 
-  -- Expressions in this sense are essentially opetopes, 
-  -- wrapped up in a weird way.  Let's make some low dims
+    data Nook : ℕ → Set where
+      in-nook : {n : ℕ} → Derivative (Expr n) n → Expr n → Nook n
+      out-nook : {n : ℕ} → Tree (Expr n) n → Nook n
 
-  object : Expr 0
-  object = ⊚
+    data Expr : ℕ → Set where
+      ⊚ : (ob : String) → Expr 0
+      var : {n : ℕ} → (nm : String) → Shell n → Expr (suc n)
+      tgt : {n : ℕ} → Nook n → Expr n
+      fill : {n : ℕ} → Nook n → Expr (suc n)
 
-  arrow : Expr 1
-  arrow = ● (pt ⊚) ⊚
+  -- open Monad errorM
 
-  two-drop : Expr 2
-  two-drop = ● leaf arrow
-  
-  two-glob : Expr 2
-  two-glob = ● (node arrow (pt leaf)) arrow
-  
-  simplex : Expr 2
-  simplex = ● (node arrow (pt (node arrow (pt leaf)))) arrow
+  -- complexDisc : (n : ℕ) → Expr n → Expr n → Error (Expr n)
+  -- complexDisc n e₀ e₁ = succeed e₀
 
-  -- Good, yes.  Now the point is simply that we should be able
-  -- to build a complex from this data.  This is essentially your
-  -- original representation in scala: all the extra shit is duplicated.
+  -- -- Easy peasy!!
+  -- toComplex : {n : ℕ} → Expr n → Error (Complex Expr n)
+  -- toComplex {zero} (⊚ str) = succeed (∥ ▶ (obj (⊚ str)))
+  -- toComplex {suc zero} (● str (pt (⊚ s)) (⊚ t)) = 
+  --   succeed (∥ ▶ box (⊚ t) (pt (obj (⊚ s))) ▶ dot (● str (pt (⊚ s)) (⊚ t)))
+  -- toComplex {suc (suc n)} (● str src tgt) = 
+  --   traverseTree ⦃ errorA ⦄ src toComplex 
+  --   >>= (λ srcTree → paste srcTree 
+  --   >>= (λ { (tl , cn) → succeed (tl ▶ box tgt cn ▶ dot (● str src tgt)) }))
 
-  -- The goal is to the reproduce the unduplicated thing.
+  --   where open ComplexGrafting Expr complexDisc
 
-  Unit : ℕ → Set
-  Unit _ = ⊤ 
-
-  realize : {n : ℕ} → Expr n → Complex Unit n
-  realize ⊚ = ∥ ▶ (obj tt)
-  realize (● src tgt) = {!mapTree src realize!}
-
-  -- It does not seem to be any different.  The fundamental problem
-  -- is still to figure out how to glue together a pasting diagram
-  -- of complexes.

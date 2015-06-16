@@ -16,6 +16,7 @@ import scalaz.Applicative
 
 import opetopic._
 import TypeDefs._
+import syntax.tree._
 
 final class NestingOps[A, N <: Nat](nst: Nesting[A, N]) {
 
@@ -36,6 +37,14 @@ final class NestingOps[A, N <: Nat](nst: Nesting[A, N]) {
 
   def baseValue : A = 
     Nesting.baseValue(nst)
+
+  def nodes : List[A] = 
+    Nesting.elimWithAddress(nst.dim)(nst)({
+      case (a, _) => List(a)
+    })({
+      case (a, _, cn) => (List(a) :: cn.nodes).flatten
+    })
+
 
 }
 

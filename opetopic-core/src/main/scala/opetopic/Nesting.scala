@@ -93,6 +93,36 @@ trait NestingFunctions {
   }
 
   //============================================================================================
+  // ELIM WITH ADDRESS
+  //
+
+  // Uhhh .. clean this up like join below so that we don't duplicate the code?
+
+  @natElim
+  def elimWithAddress[A, B, N <: Nat](n: N)(nst: Nesting[A, N], addr: Address[S[N]] = Nil)(
+    extRec: (A, Address[S[N]]) => B
+  )(
+    intRec: (A, Address[S[N]], Tree[B, N]) => B
+  ) : B = {
+    case (Z, Obj(a), addr, er, ir) => er(a, addr)
+    case (Z, Box(a, cn), addr, er, ir) => { 
+      ir(a, addr,
+        Tree.mapWithAddress(cn)({
+          case (ns, d) => elimWithAddress(Z)(ns, d :: addr)(er)(ir)
+        })
+      )
+    }
+    case (S(p), Dot(a, _), addr, er, ir) => er(a, addr)
+    case (S(p), Box(a, cn), addr, er, ir) => {
+      ir(a, addr,
+        Tree.mapWithAddress(cn)({
+          case (ns, d) => elimWithAddress(S(p))(ns, d :: addr)(er)(ir)
+        })
+      )
+    }
+  }
+
+  //============================================================================================
   // EXTERNAL
   //
 

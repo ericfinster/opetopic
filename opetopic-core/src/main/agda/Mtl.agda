@@ -256,6 +256,9 @@ module Mtl where
   errorE : MonadError Error
   errorE = record { isMonad = errorM ; failWith = inj₁ }
 
+  errorA : Applicative Error
+  errorA = monadIsApp errorM
+
   succeed : {A : Set} → A → Error A
   succeed a = inj₂ a
 
