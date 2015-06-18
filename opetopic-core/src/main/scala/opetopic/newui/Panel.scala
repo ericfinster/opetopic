@@ -13,445 +13,46 @@ import TypeDefs._
 import syntax.tree._
 import syntax.nesting._
 
-trait BoxSpecifier[A] {
+abstract class Panel[A, U : Numeric, N <: Nat] extends RenderingContext[U] {
 
-  def textOf(a: A) : String
-  def colorOf(a: A) : Int
+  type MarkerType <: PanelMarker
 
-}
+  abstract class PanelMarker extends RenderMarker {
 
-abstract class Panel[A, U : Numeric, N <: Nat](nesting: Nesting[A, N]) extends RenderingContext[U] {
+    def label: A
+    def address: Address[S[N]]
 
-  type MarkerType <: RenderMarker
+  }
 
   def createMarker(lbl: A, addr: Address[S[N]], isExt: Boolean) : MarkerType
 
-  val dim : N = nesting.dim
-
-  val markerNesting : Nesting[MarkerType, N] = 
-    Nesting.elimWithAddress[A, Nesting[MarkerType, N], N](dim)(nesting)({
-      case (a, addr) => Nesting.external(dim)(createMarker(a, addr, true))
+  def generateMarkers(n: N)(nst: Nesting[A, N]) : Nesting[MarkerType, N] =
+    Nesting.elimWithAddress[A, Nesting[MarkerType, N], N](n)(nst)({
+      case (a, addr) => Nesting.external(n)(createMarker(a, addr, true))
     })({
       case (a, addr, cn) => Box(createMarker(a, addr, false), cn)
     })
 
-}
+  def nesting: Nesting[MarkerType, N]
 
-abstract class ObjectPanel[A, U : Numeric](nesting: Nesting[A, _0]) extends Panel[A, U, _0](nesting) {
+  def layout : ShapeM[Unit]
 
-  import isNumeric._
-
-  def layout : RenderMarker = 
-    layout(markerNesting)
-
-  def layout(nst : Nesting[RenderMarker, _0]) : RenderMarker = 
-    nst match {
-      case Obj(rm) => {
-        rm.clear
-        rm
-      }
-      case Box(rm, Pt(n)) => {
-
-        val internalMarker = layout(n)
-
-        rm.clear
-
-        rm.leftInteriorMargin = internalMarker.leftMargin
-        rm.rightInteriorMargin = internalMarker.rightMargin
-        rm.interiorHeight = internalMarker.height
-
-        internalMarker.shiftUp(strokeWidth + rm.labelContainerHeight)
-
-        rm.horizontalDependants += internalMarker
-        rm.verticalDependants += internalMarker
-
-        rm
-      }
-    }
-
-}
-
-
-abstract class NestingPanel[A, U : Numeric, P <: Nat](nesting: Nesting[A, S[P]]) extends Panel[A, U, S[P]](nesting) {
-
-  import isNumeric._
-
-  //============================================================================================
-  // EDGE NESTING GENERATION
-  //
-
-  val edgeNesting : Nesting[EdgeMarker, P] = {
-
-    val edgeComp = 
-      markerNesting match {
-        case Dot(_, sp) => fail("Base nesting is external!")
-        case Box(_, cn) =>
-          for {
-            spine <- Nesting.spineFromCanopy(cn)
-            res <- Tree.graftRec(dim.pred)(spine)(ad => {
-              val em = new EdgeMarker
-              succeed(Nesting.external(dim.pred)(em))
-            })({ case (mk, cn) => {
-              val em = new EdgeMarker
-              mk.outgoingEdgeMarker = Some(em)
-              succeed(Box(em, cn))
-            }})
-          } yield res
-      }
-
-    import scalaz.-\/
-    import scalaz.\/-
-
-    edgeComp match {
-      case \/-(enst) => enst
-      case _ => {
-        // A dummy return, since this is an error ...
-        Nesting.external(dim.pred)(new EdgeMarker)
-      }
-    }
-
-  }
-
-  def edgeLayoutTree : ShapeM[Tree[LayoutMarker, P]] = 
+  def render(canvas: Canvas[U]) : Unit = 
     for {
-      spine <- Nesting.spineFromDerivative(edgeNesting, Zipper.globDerivative(dim.pred))
-    } yield spine.map(em => {
-      new LayoutMarker {
+      mk <- nesting
+    } {
 
-        val element = new EdgeStartRoot(em)
-        val rootEdgeMarker = em
-        val external = true
+      import isNumeric._
 
-        override def leftInternalMargin = halfLeafWidth
-        override def rightInternalMargin = halfLeafWidth
+      canvas.rect(mk.x, mk.y, mk.width, mk.height, fromInt(4)) // Got to add the arc radius setting ...
 
-      }
-    })
-
-  //============================================================================================
-  // EDGE ROOTS
-  //
-
-  class EdgeStartRoot(em : EdgeMarker) extends RootedElement {
-
-    def rootX : U = em.edgeStartX
-    def rootX_=(u : U) : Unit = 
-      em.edgeStartX = u
-
-    def rootY : U = em.edgeStartY
-    def rootY_=(u : U) : Unit = 
-      em.edgeStartY = u
-
-  }
-
-  class EdgeEndRoot(em : EdgeMarker) extends RootedElement {
-
-    def rootX : U = em.edgeEndX
-    def rootX_=(u : U) : Unit = 
-      em.edgeEndX = u
-
-    def rootY : U = em.edgeEndY
-    def rootY_=(u : U) : Unit = 
-      em.edgeEndY = u
-
-  }
-
-  //============================================================================================
-  // LAYOUT NESTING
-  //
-
-  def layout : ShapeM[Unit] = 
-    for {
-      et <- edgeLayoutTree
-      _ <- layoutNesting(markerNesting, et)
-    } yield {
-
-      // Well, you probably want to do some last minute sizing at the end here, no?
-
-      ()
+      val labelXPos = mk.x + mk.width - fullStrokeWidth - internalPadding - mk.labelWidth
+      val labelYPos = mk.y + mk.height - fullStrokeWidth - internalPadding
+      
+      canvas.text(labelXPos, labelYPos, mk.label.toString)
 
     }
-
-  def layoutNesting[N <: Nat](nst : Nesting[RenderMarker, S[N]], lvs : Tree[LayoutMarker, N]) : ShapeM[LayoutMarker] = 
-    nst match {
-      case Dot(rm, d) => 
-        for {
-          outgoingEdge <- fromOpt(
-            rm.outgoingEdgeMarker,
-            new ShapeError("Missing outgoing edge for" ++ rm.toString)
-          )
-        } yield {
-
-          rm.clear
-
-          val newEdgeMarker = new EdgeStartRoot(outgoingEdge)
-
-          rm.horizontalDependants += newEdgeMarker
-          rm.verticalDependants += newEdgeMarker
-
-          val leafMarkers = lvs.nodes
-          val leafCount = leafMarkers.length
-
-          // Zeroed out for external dots
-          rm.leftInteriorMargin = zero
-          rm.rightInteriorMargin = zero
-          rm.interiorHeight = zero
-
-          val marker =
-            if (leafCount == 0) {  // This is a drop. Simply return an appropriate marker ...
-
-              new LayoutMarker {
-
-                val element = rm
-                val external = false
-                val rootEdgeMarker = outgoingEdge
-
-                override def height = rm.height
-                override def leftInternalMargin = rm.leftMargin
-                override def rightInternalMargin = rm.rightMargin
-
-              }
-
-            } else { // We have children.  Arrange them and calculate the marker.
-
-              val isOdd = (leafCount & 1) != 0
-
-              val firstMarker = leafMarkers.head
-              val lastMarker = leafMarkers.last
-
-              val midMarker = leafMarkers(leafCount / 2)
-
-              if (isOdd) {
-
-                midMarker.rootEdgeMarker.edgeEndX = rm.rootX
-                midMarker.rootEdgeMarker.edgeEndY = rm.rootY - rm.height
-
-                val edgeMarker = new EdgeEndRoot(midMarker.rootEdgeMarker)
-
-                rm.horizontalDependants += edgeMarker
-                rm.verticalDependants += edgeMarker
-
-                rm.horizontalDependants += midMarker.element
-
-              }
-
-              if (leafCount > 1) {
-
-                val leftChildren = leafMarkers.slice(leafCount / 2 + (leafCount & 1), leafCount)
-                val rightChildren = leafMarkers.slice(0, leafCount / 2)
-
-                val leftChild = leftChildren.head
-                val rightChild = rightChildren.last
-
-                val midLeftOffset = if (isOdd) midMarker.leftMargin else zero
-                val midRightOffset = if (isOdd) midMarker.rightMargin else zero
-
-                val leftChildShift = max(midLeftOffset + externalPadding + leftChild.rightMargin, rm.leftMargin + externalPadding)
-                val rightChildShift = max(midRightOffset + externalPadding + rightChild.leftMargin, rm.rightMargin + externalPadding)
-
-                def doLeftPlacement(marker : LayoutMarker, shift : U) : Unit = {
-
-                  marker.element.shiftLeft(shift)
-                  rm.horizontalDependants += marker.element
-
-                  val edgeMarker = new EdgeEndRoot(marker.rootEdgeMarker)
-
-                  marker.rootEdgeMarker.edgeEndX = rm.x
-                  marker.rootEdgeMarker.edgeEndY = rm.y + strokeWidth + internalPadding + rm.halfLabelHeight
-
-                  rm.horizontalDependants += edgeMarker
-                  rm.verticalDependants += edgeMarker
-
-                }
-
-                def doRightPlacement(marker : LayoutMarker, shift : U) : Unit = {
-
-                  marker.element.shiftRight(shift)
-                  rm.horizontalDependants += marker.element
-
-                  val edgeMarker = new EdgeEndRoot(marker.rootEdgeMarker)
-
-                  marker.rootEdgeMarker.edgeEndX = rm.x + rm.width
-                  marker.rootEdgeMarker.edgeEndY = rm.y + strokeWidth + internalPadding + rm.halfLabelHeight
-
-                  rm.horizontalDependants += edgeMarker
-                  rm.verticalDependants += edgeMarker
-
-                }
-
-                doLeftPlacement(leftChild, leftChildShift)
-                doRightPlacement(rightChild, rightChildShift)
-
-                val leftEdge =
-                  (leftChildren.tail foldLeft (leftChildShift + leftChild.leftMargin))({
-                    case (leftShift, currentMarker) => {
-                      val thisShift = leftShift + externalPadding + currentMarker.rightMargin
-                      doLeftPlacement(currentMarker, thisShift)
-                      thisShift + currentMarker.leftMargin
-                    }
-                  })
-
-                val rightEdge =
-                  (rightChildren.init foldRight (rightChildShift + rightChild.rightMargin))({
-                    case (currentMarker, rightShift) => {
-                      val thisShift = rightShift + externalPadding + currentMarker.leftMargin
-                      doRightPlacement(currentMarker, thisShift)
-                      thisShift + currentMarker.rightMargin
-                    }
-                  })
-
-              }
-
-              new LayoutMarker {
-
-                val element = rm
-                val external = false
-                val rootEdgeMarker = outgoingEdge
-
-                override def height = rm.height
-
-                override def leftInternalMargin =
-                  if (firstMarker.element.rootX < rm.x) {
-                    (rm.rootX - firstMarker.element.rootX) + halfLeafWidth
-                  } else {
-                    rm.leftMargin
-                  }
-
-                override def rightInternalMargin =
-                  if (lastMarker.element.rootX > (rm.x + rm.width)) {
-                    (lastMarker.element.rootX - rm.rootX) + halfLeafWidth
-                  } else {
-                    rm.rightMargin
-                  }
-
-                override def leftSubtreeMargin =
-                  if (firstMarker.element.rootX < rm.x) {
-                    firstMarker.leftMargin - halfLeafWidth
-                  } else zero
-
-                override def rightSubtreeMargin =
-                  if (lastMarker.element.rootX > (rm.x + rm.width)) {
-                    lastMarker.rightMargin - halfLeafWidth
-                  } else zero
-
-              }
-
-            }
-
-          marker
-
-        }
-
-      case Box(rm, cn) => {
-
-        rm.clear
-
-        val (leafCount : Int, leavesWithIndices : Tree[(LayoutMarker, Int), N]) = lvs.zipWithIndex
-
-        def verticalPass(tr : Tree[Nesting[RenderMarker, S[N]], S[N]]) : ShapeM[LayoutMarker] = 
-          Tree.graftRec[Nesting[RenderMarker, S[N]], LayoutMarker, N](tr)({
-            case addr => 
-              for {
-                leafMarkerWithIndex <- Tree.valueAt(leavesWithIndices, addr)
-              } yield {
-
-                val (leafMarker, leafIndex) = leafMarkerWithIndex
-
-                if (leafIndex == 0 && leafCount == 1) {
-                  leafMarker.truncateUnique
-                } else if (leafIndex == 0) {
-                  leafMarker.truncateRight
-                } else if (leafIndex == leafCount - 1) {
-                  leafMarker.truncateLeft
-                } else {
-                  leafMarker.truncateMiddle
-                }
-              }
-          })({
-            case (sn, layoutTree) => 
-              for {
-                localLayout <- layoutNesting(sn, layoutTree)
-              } yield {
-
-                val descendantMarkers : List[LayoutMarker] = layoutTree.nodes
-
-                val (leftMostChild, rightMostChild, heightOfChildren) =
-                  (descendantMarkers foldLeft (localLayout, localLayout, zero))({
-                    case ((lcMarker, rcMarker, ht), thisMarker) => {
-
-                      if (! thisMarker.external) {
-                        thisMarker.element.shiftUp(localLayout.height + externalPadding)
-                        localLayout.element.verticalDependants += thisMarker.element
-                      }
-
-                      val newLeftChild = if (thisMarker.leftEdge < lcMarker.leftEdge) thisMarker else lcMarker
-                      val newRightChild = if (thisMarker.rightEdge > rcMarker.rightEdge) thisMarker else rcMarker
-
-                      (newLeftChild, newRightChild, max(ht, thisMarker.height))
-
-                    }
-                  })
-
-                val marker = new LayoutMarker {
-
-                  val element = localLayout.element
-                  val external = false
-                  val rootEdgeMarker = localLayout.rootEdgeMarker
-
-                  override def height = localLayout.height + externalPadding + heightOfChildren
-
-                  override def leftInternalMargin =
-                    (localLayout.element.rootX  - leftMostChild.element.rootX) + leftMostChild.leftInternalMargin
-
-                  override def rightInternalMargin =
-                    (rightMostChild.element.rootX - localLayout.element.rootX) + rightMostChild.rightInternalMargin
-
-                  override def leftSubtreeMargin = leftMostChild.leftSubtreeMargin
-                  override def rightSubtreeMargin = rightMostChild.rightSubtreeMargin
-
-                }
-
-                marker
-
-              }
-          })
-
-        for {
-          layout <- verticalPass(cn)
-        } yield {
-
-          // Set interior margins
-          rm.leftInteriorMargin = layout.leftMargin
-          rm.rightInteriorMargin = layout.rightMargin
-          rm.interiorHeight = layout.height
-
-          // Even if the layout was external  (meaning that we just
-          // rendered a loop) we need to move it horizontally
-          rm.horizontalDependants += layout.element
-
-          if (! layout.external) {
-            layout.element.shiftUp(strokeWidth + rm.labelContainerHeight)
-            rm.verticalDependants += layout.element
-          }
-
-          // Setup and return an appropriate marker
-          val marker = new LayoutMarker {
-
-            val element = rm
-            val external = false
-            val rootEdgeMarker = layout.rootEdgeMarker
-
-            override def height = rm.height
-            override def leftInternalMargin = rm.leftMargin 
-            override def rightInternalMargin = rm.rightMargin
-
-          }
-
-          marker
-
-        }
-      }
-    }
-
 
 }
+
+

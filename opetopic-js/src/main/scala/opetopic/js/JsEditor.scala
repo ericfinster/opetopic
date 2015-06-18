@@ -78,7 +78,8 @@ object JsEditor extends js.JSApp {
 
     if (mainContent != null) {
       import opetopic.Examples._
-      React.render(JsPanel(fred2), mainContent)
+      import opetopic.syntax.nesting._
+      React.render(JsPanel(exotic), mainContent)
     }
 
   }

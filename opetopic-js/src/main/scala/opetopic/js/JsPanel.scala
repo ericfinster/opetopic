@@ -27,20 +27,20 @@ object JsPanel {
 
   type Dim = _2
 
-  case class Props(val nesting: Nesting[Int, Dim])
+  case class Props(val nesting: Nesting[String, Dim])
   case class State(val initialized: Boolean)
 
-  class Backend(t: BackendScope[Props, State]) extends NestingPanel[Int, Double, _1](t.props.nesting) {
+  class Backend(t: BackendScope[Props, State]) extends NestingPanel[String, Double, _1] {
 
     // Rendering options ..
     def externalPadding: Double = 10.0
     def halfLeafWidth: Double = 5.0
-    def halfStrokeWidth: Double = 1.0
+    def halfStrokeWidth: Double = 0.5
     def internalPadding: Double = 10.0
 
     type MarkerType = JsNestingMarker
 
-    class JsNestingMarker(val label: Int) extends RenderMarker {
+    class JsNestingMarker(val label: String, val address: Address[S[Dim]], isExt: Boolean) extends PanelMarker {
 
       var rootX : Double = 0.0
       var rootY : Double = 0.0
@@ -48,36 +48,55 @@ object JsPanel {
       var halfLabelWidth : Double = 0.0
       var halfLabelHeight : Double = 0.0
 
-      val svgTextRef = Ref.to(JsSvgText.component, "svgTextRef")
+      val svgTextRef = Ref.to(JsSvgText.component, label)
+
+      isExternal = isExt
 
     }
 
-    def createMarker(lbl: Int, addr: Address[S[Dim]], isExt: Boolean) : JsNestingMarker = 
-      new JsNestingMarker(lbl)
+    val nesting: Nesting[JsNestingMarker, Dim] =
+      generateMarkers(S(S(Z)))(t.props.nesting)
+
+    val edgeNesting: Nesting[EdgeMarker, _1] = 
+      generateEdgeMarkers(S(Z))(nesting)
+
+    def createMarker(lbl: String, addr: Address[S[Dim]], isExt: Boolean) : JsNestingMarker = 
+      new JsNestingMarker(lbl, addr, isExt)
 
     import scalaz.syntax.traverse._
     import scalaz.std.list._
 
     def labels : List[ReactElement] = 
-      markerNesting.nodes.mapAccumL(1)((i, mk) => {
+      nesting.nodes.mapAccumL(1)((i, mk) => {
         (i + 1, JsSvgText(ref = mk.svgTextRef, x = 10, y = (15 * i), str = mk.label.toString))
       })._2
 
     def elements : List[ReactElement] = 
-      markerNesting.nodes.map(mk => {
+      nesting.nodes.map(mk => {
 
-        val labelXPos = mk.x + mk.width - strokeWidth - internalPadding - mk.labelWidth
-        val labelYPos = mk.y + mk.height - strokeWidth - internalPadding //- mk.labelHeight
+        // There seems to be a difference in the calculated position of the
+        // label and its actual display position.  I suspect this has to do
+        // with some kind of svg text baseline fiddling, but I cannot seem to
+        // change this attribute with scala tags (or else chrome is ignoring it).
+
+        val kludge = 12.0
+
+        val labelXPos = mk.x + mk.width - fullStrokeWidth - internalPadding - mk.labelWidth
+        val labelYPos = mk.y + mk.height - fullStrokeWidth - internalPadding 
+
+        val labelKludgeYPos = labelYPos - kludge
 
         List(
           rect(x := mk.x.toString, y := mk.y.toString, width := mk.width.toString, height := mk.height.toString,
-            rx := "4", ry := "4", stroke := "black", fill := "white") : ReactElement,
-          JsSvgText(ref = mk.svgTextRef, x = labelXPos, y = labelYPos, str = mk.label.toString) : ReactElement
+            rx := "4", ry := "4", stroke := "black", fill := "white", strokeWidth := fullStrokeWidth.toString, filter := "url(#dropshadow)") : ReactElement,
+          JsSvgText(ref = mk.svgTextRef, x = labelXPos, y = labelKludgeYPos, str = mk.label.toString) : ReactElement
+          // rect(x := labelXPos.toString, y := (labelYPos - mk.labelHeight).toString, width := mk.labelWidth.toString, height := mk.labelHeight.toString,
+          //   stroke := "red", fill := "none") : ReactElement
         )
       }).flatten
 
     def setLabelSizes : Unit = 
-      markerNesting.foreach(mk => {
+      nesting.foreach(mk => {
         for {
           text <- mk.svgTextRef(t)
           rect <- text.backend.getBounds
@@ -108,7 +127,7 @@ object JsPanel {
       if (S.initialized) {
 
         val viewboxStr : String = {
-          val baseMarker = B.markerNesting.baseValue
+          val baseMarker = B.nesting.baseValue
 
           (baseMarker.x - 10).toString ++ " " ++
           (baseMarker.y - 10).toString ++ " " ++
@@ -116,14 +135,39 @@ object JsPanel {
           (baseMarker.height + 20).toString
         }
 
-        svg(width := "300", height := "300", viewBox := viewboxStr)(B.elements)
+        val els = B.elements
+
+        for { el <- els } { println(React.renderToString(el)) }
+
+        svg(width := "300", height := "300", viewBox := viewboxStr)(
+          defs(
+            filterTag(id := "dropshadow")(
+              fegaussianblur(in := "SourceAlpha", stdDeviation := "3"),
+              feoffset(dx := "2", dy := "2", result := "offsetblur"),
+              femerge(femergenode, femergenode(in := "SourceGraphic"))
+            )
+          ),
+          els
+        )
+
+  // <defs>
+  //   <filter id="dropshadow" height="130%">
+  //     <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> 
+  //     <feOffset dx="2" dy="2" result="offsetblur"/> 
+  //     <feMerge> 
+  //       <feMergeNode/>
+  //       <feMergeNode in="SourceGraphic"/> 
+  //     </feMerge>
+  //   </filter>
+  // </defs>
+
       } else {
         svg(width := "200", height := "200")(B.labels)
       }
     }).componentDidMount(_.backend.finalizeInit)
     .build
 
-  def apply(nesting : Nesting[Int, Dim]) =
+  def apply(nesting : Nesting[String, Dim]) =
     component(Props(nesting))
 
 

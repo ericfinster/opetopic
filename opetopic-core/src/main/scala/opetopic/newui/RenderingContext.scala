@@ -27,7 +27,7 @@ abstract class RenderingContext[U : Numeric] {
   def halfLeafWidth : U
   def halfStrokeWidth : U
 
-  def strokeWidth = fromInt(2) * halfStrokeWidth
+  def fullStrokeWidth = fromInt(2) * halfStrokeWidth
   def leafWidth = fromInt(2) * halfLeafWidth
 
   //============================================================================================
@@ -109,33 +109,34 @@ abstract class RenderingContext[U : Numeric] {
     def width : U = leftMargin + rightMargin 
     def height : U =
       if (isExternal) {
-        strokeWidth + 
+        fullStrokeWidth + 
         internalPadding + 
         labelHeight + 
         internalPadding + 
-        strokeWidth
+        fullStrokeWidth
       } else {
-        strokeWidth +
-        labelContainerHeight +
+        fullStrokeWidth +
         interiorHeight +
         internalPadding +
-        strokeWidth
+        labelHeight +
+        internalPadding + 
+        fullStrokeWidth
       }
 
     def leftMargin : U =
       if (isExternal) {
-        halfLabelWidth + internalPadding + strokeWidth
+        fullStrokeWidth + internalPadding + halfLabelWidth
       } else {
-        strokeWidth + leftInteriorMargin + internalPadding + strokeWidth
+        fullStrokeWidth + leftInteriorMargin + internalPadding + fullStrokeWidth
       }
 
     def rightMargin : U =
       if (isExternal) {
-        halfLabelWidth + internalPadding + strokeWidth
+        halfLabelWidth + internalPadding + fullStrokeWidth
       } else {
         max(
-          labelContainerWidth + strokeWidth,
-          strokeWidth + rightInteriorMargin + internalPadding + strokeWidth
+          internalPadding + labelWidth + internalPadding + fullStrokeWidth,
+          rightInteriorMargin + internalPadding + fullStrokeWidth
         )
       }
 
@@ -144,14 +145,6 @@ abstract class RenderingContext[U : Numeric] {
 
     def labelWidth : U = halfLabelWidth * fromInt(2)
     def labelHeight : U = halfLabelHeight * fromInt(2)
-
-    def labelContainerWidth : U = internalPadding + labelWidth + internalPadding
-    def labelContainerHeight : U = 
-      if (interiorHeight > zero) {
-        internalPadding + labelHeight + internalPadding
-      } else {
-        internalPadding + labelHeight 
-      }
 
     def clear : Unit = {
       rootX = zero

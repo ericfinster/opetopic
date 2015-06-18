@@ -25,7 +25,8 @@ object JsSvgText {
   class Backend(t: BackendScope[Props, _]) {
 
     def getBounds : js.UndefOr[dom.raw.ClientRect] =
-      for { txt <- svgText(t) } yield txt.getDOMNode.getBoundingClientRect
+      for { txt <- svgText(t) } yield 
+        txt.getDOMNode.getBoundingClientRect
 
   }
 
@@ -33,7 +34,8 @@ object JsSvgText {
     .stateless
     .backend(new Backend(_))
     .render((P, S, B) => {
-      text(^.ref := svgText, x := P.x.toString, y := P.y.toString, stroke := "black")(P.str)
+      text(^.ref := svgText, x := P.x.toString, y := P.y.toString, stroke := "lightgrey", 
+        fontSize := "45", fontFamily := "AsanaMath", dominantBaseline := "text-after-edge")(P.str)
     }).build
 
   def apply(ref: js.UndefOr[String] = "", key: js.Any = {}, x: Double, y: Double, str: String) =
