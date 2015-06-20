@@ -41,11 +41,7 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     sourceMapsDirectories += opetopicCoreJs.base / "..",
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.8.0",
-      "com.github.japgolly.scalajs-react" %%% "core" % "0.9.0"
-    ),
-    jsDependencies ++= Seq(
-      "org.webjars" % "react" % "0.12.2" / "react-with-addons.js" commonJSName "React"
+      "org.scala-js" %%% "scalajs-dom" % "0.8.0"
     )
   ).enablePlugins(ScalaJSPlugin, ScalaJSPlay).
   dependsOn(opetopicCoreJs)
@@ -56,7 +52,8 @@ lazy val opetopicFx = (project in file("opetopic-fx")).
     fork := true,
     mainClass in (Compile, run) := Some("opetopic.fx.FXEditor"),
     libraryDependencies ++= Seq(
-      "org.scalafx" %% "scalafx" % "8.0.40-R8"
+      "org.scalafx" %% "scalafx" % "8.0.40-R8",
+      "com.lihaoyi" %% "scalatags" % "0.5.2"
     )
   ).dependsOn(opetopicCoreJvm)
 
@@ -64,7 +61,8 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "upickle" % "0.2.8"
+      "com.lihaoyi" %%% "upickle" % "0.2.8",
+      "com.lihaoyi" %%% "scalatags" % "0.5.2"
     )
   ).
   jsConfigure(_ enablePlugins ScalaJSPlay).

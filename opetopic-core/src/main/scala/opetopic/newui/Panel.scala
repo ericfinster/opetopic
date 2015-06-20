@@ -22,6 +22,7 @@ abstract class Panel[A, U : Numeric, N <: Nat] extends RenderingContext[U] {
     def label: A
     def address: Address[S[N]]
 
+
   }
 
   def createMarker(lbl: A, addr: Address[S[N]], isExt: Boolean) : MarkerType
@@ -36,6 +37,12 @@ abstract class Panel[A, U : Numeric, N <: Nat] extends RenderingContext[U] {
   def nesting: Nesting[MarkerType, N]
 
   def layout : ShapeM[Unit]
+
+  // Yeah, this is no good.  What we should be producing here is like vitual-dom:
+  // the canvas is an intermidiary which abstracts over the return type of render
+  // (which should be a type variable instantiated for the various implementations)
+  // For scalafx, it will be Node.  For scalatags, the various frontend/backend
+  // capabilities.
 
   def render(canvas: Canvas[U]) : Unit = 
     for {
