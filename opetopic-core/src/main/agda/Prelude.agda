@@ -159,24 +159,6 @@ module Prelude where
   fiber : {A B : Set} → (f : A → B) → B → Set
   fiber f b = Σ[ a ∈ _ ] f a == b
 
-  record _≃_ (A B : Set) : Set where
-
-    field
-
-      f : A → B
-      g : B → A
-
-      η : (a : A) → a == g (f a)
-      ε : (b : B) → f (g b) == b
-
-  id-equiv : (A : Set) → A ≃ A
-  id-equiv A = record { 
-                 f = λ a → a ; 
-                 g = λ a → a ; 
-                 η = λ a → idp ; 
-                 ε = λ a → idp 
-               }
-
   ap : ∀ {i j} {A : Set i} {B : Set j} (f : A → B) {x y : A}
     → (x == y → f x == f y)
   ap f idp = idp
@@ -203,6 +185,58 @@ module Prelude where
   
   ! : ∀ {i} → {A : Set i} → {x y : A} → (x == y → y == x)
   ! idp = idp
+
+
+  record _≃_ (A B : Set) : Set where
+
+    field
+
+      f : A → B
+      g : B → A
+
+      η : (a : A) → a == g (f a)
+      ε : (b : B) → f (g b) == b
+
+  id-equiv : (A : Set) → A ≃ A
+  id-equiv A = record { 
+                 f = λ a → a ; 
+                 g = λ a → a ; 
+                 η = λ a → idp ; 
+                 ε = λ a → idp 
+               }
+
+  Σ-eqv-base : (A : Set) → (Σ[ u ∈ ⊤ ] A) ≃ A
+  Σ-eqv-base A = record { 
+    f = λ { (tt , a) → a } ; 
+    g = λ a → (tt , a) ; 
+    η = λ _ → idp ; 
+    ε = λ _ → idp }
+
+  Σ-eqv-lift : (A : Set) (P : A → Set) (Q : Σ A P → Set) → 
+               (Σ (Σ A P) Q) ≃ Σ A (λ a → Σ (P a) (λ p → Q (a , p)))
+  Σ-eqv-lift A P Q = record { 
+    f = λ { ((a , p) , q) → a , (p , q) } ; 
+    g = λ { (a , p , q) → (a , p) , q } ; 
+    η = λ _ → idp ; 
+    ε = λ _ → idp }
+
+  Σ-eqv-inv : (A : Set) (P Q : A → Set) → ((a : A) → P a ≃ Q a) → Σ A P ≃ Σ A Q
+  Σ-eqv-inv A P Q φ = record { 
+    f = λ { (a , p) → a , f (φ a) p } ; 
+    g = λ { (a , q) → a , g (φ a) q } ; 
+    η = λ { (a , p) → ap (λ x → a , x) (η (φ a) p) } ; 
+    ε = λ { (a , q) → ap (λ x → a , x) (ε (φ a) q) } }
+
+    where open _≃_
+
+  _⊙_ : {A B C : Set} → B ≃ C → A ≃ B → A ≃ C
+  φ ⊙ ψ = record { 
+    f = λ a → (f φ) ((f ψ) a) ; 
+    g = λ c → (g ψ) ((g φ) c) ; 
+    η = λ a → η ψ a ∙ ap (g ψ) (η φ (f ψ a)) ; 
+    ε = λ c → ap (f φ) (ε ψ (g φ c)) ∙ ε φ c } 
+
+    where open _≃_
 
   ≤-suc : ∀ {m n} → m ≤ n → m ≤ suc n
   ≤-suc z≤n = z≤n
@@ -253,3 +287,16 @@ module Prelude where
   Δ-+-lem : ∀ {m n} → (m≤n : m ≤ n) → (Δ m≤n + m) == n
   Δ-+-lem z≤n = ! +-unit-r
   Δ-+-lem (s≤s {m} {n} m≤n) = +-suc {Δ m≤n} {m} ∙ ap suc (Δ-+-lem m≤n)
+
+  -- Coinduction
+
+  infix 1000 ♯_
+
+  postulate
+    ∞  : ∀ {a} (A : Set a) → Set a
+    ♯_ : ∀ {a} {A : Set a} → A → ∞ A
+    ♭  : ∀ {a} {A : Set a} → ∞ A → A
+
+  {-# BUILTIN INFINITY ∞  #-}
+  {-# BUILTIN SHARP    ♯_ #-}
+  {-# BUILTIN FLAT     ♭  #-}

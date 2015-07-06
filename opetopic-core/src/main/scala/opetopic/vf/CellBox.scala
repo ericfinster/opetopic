@@ -19,7 +19,7 @@ trait CellBoxDefn[U] { vf: PanelDeps[U] =>
     @natElim
     def apply[A, N <: Nat](n: N)(
       panel: Panel[A, N],
-      label: Representation[A],
+      label: View[A],
       address: Address[S[N]],
       isExternal: Boolean
     ) : CellBox[A, N] = {
@@ -30,14 +30,14 @@ trait CellBoxDefn[U] { vf: PanelDeps[U] =>
   }
 
   // The box should already contain a component for the label ...
-  abstract class CellBox[A, N <: Nat](panel: Panel[A, N], lbl: Representation[A]) extends Component with Rooted {
+  abstract class CellBox[A, N <: Nat](panel: Panel[A, N], lbl: View[A]) extends Component with Rooted {
 
     import panel._
 
-    val boxRect = rect(x, y, width, height)
+    val boxRect = Rectangle(x, y, width, height)
 
     def render: Seq[ElementType] = {
-      lbl.render ++ boxRect.render
+      lbl.component.render ++ boxRect.render
     }
 
     //
@@ -119,7 +119,7 @@ trait CellBoxDefn[U] { vf: PanelDeps[U] =>
 
   }
 
-  class ZeroBox[A](panel: Panel[A, _0], lbl: Representation[A]) extends CellBox[A, _0](panel, lbl) 
-  class SuccBox[A, P <: Nat](panel: Panel[A, S[P]], lbl: Representation[A]) extends CellBox[A, S[P]](panel, lbl)
+  class ZeroBox[A](panel: Panel[A, _0], lbl: View[A]) extends CellBox[A, _0](panel, lbl) 
+  class SuccBox[A, P <: Nat](panel: Panel[A, S[P]], lbl: View[A]) extends CellBox[A, S[P]](panel, lbl)
 
 }

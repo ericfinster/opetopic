@@ -16,7 +16,7 @@ trait CellEdgeDefn[U] { vf: PanelDeps[U] =>
 
   def cellEdge[A, N <: Nat](n: N)(
     panel: Panel[A, N]
-  ) : CellEdge[A, N] = ???
+  ) : CellEdge[A, N] = new CellEdge(panel)
 
   trait EdgeLike {
 
@@ -28,7 +28,9 @@ trait CellEdgeDefn[U] { vf: PanelDeps[U] =>
 
   }
 
-  abstract class CellEdge[A, N <: Nat](panel: Panel[A, N]) extends Component with EdgeLike {
+  class CellEdge[A, N <: Nat](panel: Panel[A, N]) extends Component with EdgeLike {
+
+    def render: Seq[ElementType] = Seq()
 
   }
 

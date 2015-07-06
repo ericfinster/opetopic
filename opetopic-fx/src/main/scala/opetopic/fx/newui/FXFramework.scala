@@ -17,15 +17,34 @@ object FXFramework extends VisualFramework[Double] with PanelDeps[Double] {
 
   type ElementType = Node
 
+  //============================================================================================
+  // CONTSTRUCTORS
+  //
+
+  def rect(x: Double, y: Double, width: Double, height: Double) : Rectangle = 
+    new FXRectangle(x, y, width, height)
+
+  def text(x: Double, y: Double, txt: String) : Text = 
+    new FXText(x, y, txt)
+
+  //============================================================================================
+  // RECTANGLES
+  //
+
   class FXRectangle(val x: Double, val y: Double, val width: Double, val height: Double) extends Rectangle {
     def render: Seq[Node] = Seq(new JFXRectangle(x, y, width, height))
   }
 
-  class FXText(val text: String) extends Text {
-    def render: Seq[Node] = Seq(new JFXText(text))
-  }
+  //============================================================================================
+  // TEXT
+  //
 
-  def rect(x: Double, y: Double, width: Double, height: Double) : Rectangle = 
-    new FXRectangle(x, y, width, height)
+  class FXText(val x: Double, val y: Double, val text: String) extends Text {
+    def render: Seq[Node] = {
+      val txt = new JFXText(text)
+      txt.relocate(x, y)
+      Seq(txt)
+    }
+  }
 
 }

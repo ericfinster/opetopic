@@ -18,6 +18,14 @@ object JsEditor extends js.JSApp {
 
     println("Started ...")
 
+    dom.document.addEventListener("onclick", documentEventLoop, true)
+
+    println("Installed event handler ...")
+
+  }
+
+  def documentEventLoop : dom.Event => Unit = { ev =>
+    println("Got an event!")
   }
 
 }

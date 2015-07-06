@@ -33,7 +33,7 @@ trait PanelDefn[U] { vf: PanelDeps[U] =>
     val cornerRadius : U
   )
 
-  abstract class Panel[A, N <: Nat](cfg: PanelConfig)(nst: Nesting[CellBox[A, N], N]) extends Component { thisPanel =>
+  abstract class Panel[A, N <: Nat](cfg: PanelConfig)(nst: Nesting[View[A], N]) extends Component { thisPanel =>
 
     //============================================================================================
     // RENDERING OPTIONS
@@ -54,7 +54,15 @@ trait PanelDefn[U] { vf: PanelDeps[U] =>
     // INITIALIZATION
     //
 
-    val boxNesting : Nesting[CellBox[A, N], N] = nst
+    val boxNesting : Nesting[CellBox[A, N], N] = 
+      generateBoxes(nst.dim)(nst)
+
+    def generateBoxes(n: N)(nst: Nesting[View[A], N]) : Nesting[CellBox[A, N], N] =
+      Nesting.elimWithAddress[View[A], Nesting[CellBox[A, N], N], N](n)(nst)({
+        case (view, addr) => Nesting.external(n)(CellBox(n)(thisPanel, view, addr, true))
+      })({
+        case (view, addr, cn) => Box(CellBox(n)(thisPanel, view, addr, false), cn)
+      })
 
   }
 
@@ -69,16 +77,18 @@ trait PanelDefn[U] { vf: PanelDeps[U] =>
         cornerRadius = fromInt(4)
       )
 
-    // def generateBoxes[A, N <: Nat](n: N)(nst: Nesting[Representation[A], N]) : Nesting[CellBox[A, N], N] =
-    //   Nesting.elimWithAddress[Representation[A], Nesting[CellBox[A, N], N], N](n)(nst)({
-    //     case (rep, addr) => Nesting.external(n)(cellBox(n)(thisPanel, rep, addr, true))
-    //   })({
-    //     case (rep, addr, cn) => Box(cellBox(n)(thisPanel, rep, addr, false), cn)
-    //   })
+    @natElim
+    def apply[A, N <: Nat](n: N)(nst: Nesting[View[A], N]) : Panel[A, N] = {
+      case (Z, nst) => new ObjectPanel(defaultConfig)(nst)
+      case (S(p), nst) => new NestingPanel(defaultConfig)(nst)
+    }
+
+    def apply[A, N <: Nat](nst: Nesting[A, N])(implicit isViewable: Viewable[A]) : Panel[A, N] = 
+      Panel(nst.dim)(nst map (isViewable.view(_)))
 
   }
 
-  class ObjectPanel[A](cfg: PanelConfig)(nst: Nesting[CellBox[A, _0], _0]) extends Panel[A, _0](cfg)(nst) {
+  class ObjectPanel[A](cfg: PanelConfig)(nst: Nesting[View[A], _0]) extends Panel[A, _0](cfg)(nst) {
 
     def layout(nst : Nesting[CellBox[A, _0], _0]) : CellBox[A, _0] =
       nst match {
@@ -108,7 +118,7 @@ trait PanelDefn[U] { vf: PanelDeps[U] =>
 
   }
 
-  class NestingPanel[A, P <: Nat](cfg: PanelConfig)(nst: Nesting[CellBox[A, S[P]], S[P]]) extends Panel[A, S[P]](cfg)(nst) { thisPanel => 
+  class NestingPanel[A, P <: Nat](cfg: PanelConfig)(nst: Nesting[View[A], S[P]]) extends Panel[A, S[P]](cfg)(nst) { thisPanel => 
 
     //============================================================================================
     // RENDERING

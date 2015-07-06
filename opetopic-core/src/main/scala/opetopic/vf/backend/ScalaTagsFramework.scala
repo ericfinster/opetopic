@@ -14,7 +14,7 @@ import opetopic.vf._
 import TypeDefs._
 
 abstract class ScalaTagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) 
-    extends VisualFramework[Double] {
+    extends VisualFramework[Double] with PanelDeps[Double] {
 
   import bundle._
   import implicits._
@@ -23,6 +23,20 @@ abstract class ScalaTagsFramework[Builder, Output <: FragT, FragT](val bundle: B
 
   type ElementType = TypedTag[Builder, Output, FragT]
 
+  //============================================================================================
+  // CONTRUCTORS
+  //
+
+  def rect(x: Double, y: Double, width: Double, height: Double) : Rectangle = 
+    new SvgRectangle(x, y, width, height)
+
+  def text(x: Double, y: Double, txt: String) : Text = 
+    new SvgText(x, y, txt)
+
+  //============================================================================================
+  // RECTANGLES
+  //
+
   class SvgRectangle(val x: Double, val y: Double, val width: Double, val height: Double)
       extends Rectangle {
 
@@ -30,6 +44,10 @@ abstract class ScalaTagsFramework[Builder, Output <: FragT, FragT](val bundle: B
       Seq(svgTags.rect(^.x := x.toString, ^.y := y.toString, ^.width := width.toString, ^.height := height.toString))
 
   }
+
+  //============================================================================================
+  // TEXT
+  //
 
   class SvgText(val x: Double, val y: Double, val text: String) extends Text {
 
@@ -40,5 +58,5 @@ abstract class ScalaTagsFramework[Builder, Output <: FragT, FragT](val bundle: B
 
 }
 
-
+object ScalatagsTextFramework extends ScalaTagsFramework(scalatags.Text)
 

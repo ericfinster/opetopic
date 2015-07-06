@@ -184,6 +184,21 @@ object FXEditor extends JFXApp {
   //   }
   // }
 
+  val testFrameworkButton = new Button("Test Framework") {
+    onAction = () => {
+
+      import opetopic.Examples._
+      import opetopic.vf.backend.ScalatagsTextFramework._
+
+      import opetopic.syntax.nesting._
+
+      val panel : Panel[String, _2] = Panel(fred2 map (_.toString))
+
+      println(panel.render.toString)
+
+    }
+  }
+
   val toCardinalButton = new Button("To Cardinal") {
     onAction = () => {
       for {
@@ -200,7 +215,7 @@ object FXEditor extends JFXApp {
   }
 
   val buttonTray = new HBox {
-    children = List(getCodeButton, getJsonButton, toCardinalButton)
+    children = List(getCodeButton, getJsonButton, toCardinalButton, testFrameworkButton)
     spacing = 10
   }
 
