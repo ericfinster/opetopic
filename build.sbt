@@ -41,7 +41,7 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     sourceMapsDirectories += opetopicCoreJs.base / "..",
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.8.0"
+      "org.scala-js" %%% "scalajs-dom" % "0.8.1"
     )
   ).enablePlugins(ScalaJSPlugin, ScalaJSPlay).
   dependsOn(opetopicCoreJs)
@@ -68,26 +68,17 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   jsConfigure(_ enablePlugins ScalaJSPlay).
   jsSettings(
     libraryDependencies ++= Seq(
-      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.1-2"
+      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3"
     ),
     sourceMapsBase := baseDirectory.value / ".."
   ).jvmSettings(
     libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-core" % "7.1.1"
+      "org.scalaz" %% "scalaz-core" % "7.1.3"
     )
   ).dependsOn(opetopicMacros)
 
 lazy val opetopicCoreJvm = opetopicCore.jvm
 lazy val opetopicCoreJs = opetopicCore.js
-
-lazy val opetopicTests = (project in file("opetopic-tests")).
-  settings(commonSettings: _*).
-  settings(
-    libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-core" % "7.1.1"
-    )
-  ).
-  dependsOn(opetopicMacrosJvm)
 
 lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opetopic-macros")).
   settings(commonSettings: _*).
@@ -99,12 +90,12 @@ lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opeto
   jsConfigure(_ enablePlugins ScalaJSPlay).
   jsSettings(
     libraryDependencies ++= Seq(
-      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.1-2"
+      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3"
     ),
     sourceMapsBase := baseDirectory.value / ".."
   ).jvmSettings(
     libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-core" % "7.1.1"
+      "org.scalaz" %% "scalaz-core" % "7.1.3"
     )
   )
 
