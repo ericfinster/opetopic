@@ -7,11 +7,17 @@
 
 package opetopic.ui
 
+import scala.math.Ordering._
+
 import scalatags.generic._
 import opetopic._
 
 class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) 
-    extends RenderingFramework[Int] with PanelFramework[Int] with StaticPanelFramework[Int] {
+    extends RenderingFramework[Int] 
+    with PanelFramework[Int] 
+    with StaticPanelFramework[Int] 
+    with GalleryFramework[Int] 
+    with StaticGalleryFramework[Int] {
 
   import bundle._
 
@@ -25,11 +31,16 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
   val defaultPanelConfig =
     PanelConfig(
       internalPadding = 200,
-      externalPadding = 200,
+      externalPadding = 400,
       halfLeafWidth = 50,
-      halfStrokeWidth = 20,
+      halfStrokeWidth = 30,
       cornerRadius = 100
     )
+
+  val defaultGalleryConfig = 
+    GalleryConfig(defaultPanelConfig, 800)
+
+  def half(i: Int) : Int = i / 2
 
   def translate(el: ElementType, x: Int, y: Int) : ElementType = {
     import implicits._
@@ -102,8 +113,8 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
       def x = 0
       def y = -ascent
-      def halfWidth = advance / 2
-      def halfHeight = (ascent + descent) / 2
+      def width = advance
+      def height = ascent + descent
 
     }
 

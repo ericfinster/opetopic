@@ -24,6 +24,9 @@ object Examples {
   val fred4 : Nesting[Int, _4] = 
     Dot(28,S(S(S(S(Z)))))
 
+  val fredComplex : Complex[ConstInt, _4] = 
+    Complex[ConstInt] >> fred0 >> fred1 >> fred2 >> fred3 >> fred4
+
   val exotic : Nesting[String, _2] = 
     Box("\u03b1 \u2297 \u03b2",Node(Box("B",Node(Dot("univ-adj-\u03b3",S(S(Z))),Node(Leaf(S(S(Z))),Pt(Node(Node(Dot("D",S(S(Z))),Node(Leaf(S(S(Z))),Pt(Leaf(S(Z))))),Pt(Leaf(S(Z)))))))),Node(Node(Box("E",Node(Dot("F",S(S(Z))),Node(Leaf(S(S(Z))),Pt(Node(Leaf(S(S(Z))),Pt(Leaf(S(Z)))))))),Node(Node(Dot("\u03b1-coh",S(S(Z))),Node(Leaf(S(S(Z))),Pt(Leaf(S(Z))))),Pt(Node(Node(Dot("I",S(S(Z))),Node(Leaf(S(S(Z))),Pt(Node(Node(Dot("H \u229b V",S(S(Z))),Leaf(S(Z))),Pt(Leaf(S(Z))))))),Pt(Leaf(S(Z))))))),Pt(Node(Node(Box("\u0398",Leaf(S(S(Z)))),Node(Leaf(S(S(Z))),Pt(Leaf(S(Z))))),Pt(Leaf(S(Z))))))))
 

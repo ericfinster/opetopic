@@ -7,7 +7,7 @@
 
 package opetopic.ui
 
-abstract class InteractiveFramework[U : Numeric] extends RenderingFramework[U] {
+abstract class InteractiveFramework[U](implicit isNumeric: Numeric[U], isOrdered: Ordering[U]) extends RenderingFramework[U] {
 
   type ElementType <: Element
 
@@ -33,5 +33,8 @@ abstract class InteractiveFramework[U : Numeric] extends RenderingFramework[U] {
 
   // Also, the object and nesting distinctions should become *traits* which are 
   // then mixed in dependeing on the dimension by a constructor...
+
+  // All this is now done.  Next you can either implement a gallery or move on 
+  // to the interactive/stateful panels.
 
 }

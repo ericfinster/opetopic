@@ -13,5 +13,6 @@ trait Syntax {
   object complex extends ToComplexOps
   object nesting extends ToNestingOps
   object cardinal extends ToCardinalOps
+  object suite extends ToSuiteOps
 
 }

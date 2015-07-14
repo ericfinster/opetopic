@@ -250,8 +250,8 @@ object natElim {
                 val termDecls = 
                   patnDefns map {
                     case (name, localName) => {
-                      val localTerm = TermName(localName)
-                      q"val ${TermName(name)} = $localTerm.asInstanceOf[$localTerm.N]"
+                      val localTerm = TermName(localName)  
+                      q"implicit val ${TermName(name)} = $localTerm.asInstanceOf[$localTerm.N]"
                     }
                   }
 

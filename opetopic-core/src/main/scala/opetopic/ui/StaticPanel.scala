@@ -15,7 +15,9 @@ trait StaticPanelFramework[U] { frmwk: RenderingFramework[U] with PanelFramework
   import isNumeric._
 
   abstract class StaticPanel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(nst: Nesting[A, N])(implicit r: Renderable[A, E])
-      extends Panel[A, E, N](cfg)(nst) {
+      extends Panel[A, E, N](cfg) {
+
+    val nesting : Nesting[A, N] = nst
 
     val boxNesting : Nesting[BoxType, N] = 
       generateBoxes(nst.dim)(nst)
@@ -61,11 +63,22 @@ trait StaticPanelFramework[U] { frmwk: RenderingFramework[U] with PanelFramework
       group (boxNesting.nodes map (_.element) : _*)
     }
 
+    def bounds: BBox = {
+      val baseBox = boxNesting.baseValue
+
+      new BBox {
+        def x = baseBox.x
+        def y = baseBox.y
+        def width = baseBox.width
+        def height = baseBox.height
+      }
+    }
+
     layoutObjects(boxNesting)
 
   }
 
-  class StaticNestingPanel[A, E <: ElementType, P <: Nat](cfg: PanelConfig)(nst: Nesting[A, S[P]], edgeOpt : Option[Nesting[A, P]])(implicit r: Renderable[A, E])
+  class StaticNestingPanel[A, B, E <: ElementType, P <: Nat](cfg: PanelConfig)(nst: Nesting[A, S[P]], edgeOpt : Option[Nesting[B, P]])(implicit r: Renderable[A, E])
     extends StaticPanel[A, E, S[P]](cfg)(nst) with NestingPanel[A, E, P] {
 
     def element: ElementType = {
@@ -77,6 +90,33 @@ trait StaticPanelFramework[U] { frmwk: RenderingFramework[U] with PanelFramework
 
       group(elements : _*)
 
+    }
+
+    def bounds: BBox = {
+      val baseBox = boxNesting.baseValue
+
+      val (panelX, panelWidth) = 
+        boxNesting match {
+          case Dot(box, _) => {
+
+            val allEdges : List[EdgeType] = edgeNesting.nodes
+
+            val (minX, maxX) = (allEdges foldLeft (box.x, box.x + box.width))({
+              case ((curMin, curMax), edge) => 
+                (isOrdered.min(curMin, edge.edgeStartX), isOrdered.max(curMax, edge.edgeStartX))
+            })
+
+            (minX, maxX - minX)
+          }
+          case Box(box, _) => (box.x, box.width)
+        }
+
+      new BBox {
+        def x = panelX
+        def y = baseBox.y - (fromInt(2) * externalPadding)
+        def width = panelWidth
+        def height = baseBox.height + (fromInt(4) * externalPadding)
+      }
     }
 
     val edgeNesting : Nesting[EdgeType, P] = 

@@ -7,9 +7,10 @@
 
 package opetopic.ui
 
-abstract class RenderingFramework[U : Numeric] {
+import opetopic._
 
-  val isNumeric = implicitly[Numeric[U]]
+abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isOrdered: Ordering[U]) {
+
   import isNumeric._
 
   type ElementType
@@ -31,13 +32,19 @@ abstract class RenderingFramework[U : Numeric] {
     def x: U
     def y: U
 
-    def width: U = halfWidth * fromInt(2)
-    def height: U = halfHeight * fromInt(2)
+    def width: U 
+    def height: U 
 
-    def halfWidth: U
-    def halfHeight: U
+    def halfWidth: U = half(width)
+    def halfHeight: U = half(height)
+
+    def dimString: String = 
+      x.toString ++ " " ++ y.toString ++ " " ++
+        width.toString ++ " " ++ height.toString
 
   }
+
+  def half(u: U) : U
 
   def group(elem: ElementType*) : GroupType
   def rect(x: U, y: U, width:U, height: U, r: U, strokeWidth: U) : RectangleType
@@ -62,6 +69,24 @@ abstract class RenderingFramework[U : Numeric] {
 
     implicit object IntRenderable extends Renderable[Int, TextType] {
       def render(i: Int) = text(i.toString)
+    }
+
+  }
+
+  trait RenderableFamily[A[_ <: Nat], E <: ElementType] {
+    def apply[N <: Nat](n: N) : Renderable[A[N], E]
+  }
+
+  object RenderableFamily {
+
+    implicit object ConstStringFamily extends RenderableFamily[ConstString, TextType] {
+      def apply[N <: Nat](n: N) : Renderable[String, TextType] = 
+        Renderable.StringRenderable
+    }
+
+    implicit object ConstIntFamily extends RenderableFamily[ConstInt, TextType] {
+      def apply[N <: Nat](n: N) : Renderable[Int, TextType] = 
+        Renderable.IntRenderable
     }
 
   }

@@ -32,9 +32,9 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // ABSTRACT PANEL
   //
 
-  abstract class Panel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(nst: Nesting[A, N])(implicit r: Renderable[A, E]) { thisPanel =>
+  abstract class Panel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(implicit r: Renderable[A, E]) extends BoundedElement[ElementType] { thisPanel =>
 
-    def element: ElementType
+    def nesting: Nesting[A, N]
 
     //============================================================================================
     // RENDERING OPTIONS
@@ -240,7 +240,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     // EDGE NESTING GENERATION
     //
 
-    def connectEdges(seed: Nesting[A, P], nst: Nesting[BoxType, S[P]]) : Nesting[EdgeType, P] = {
+    def connectEdges[B](seed: Nesting[B, P], nst: Nesting[BoxType, S[P]]) : Nesting[EdgeType, P] = {
 
       val en = seed map (_ => cellEdge)
 

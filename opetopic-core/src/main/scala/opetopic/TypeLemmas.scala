@@ -100,6 +100,24 @@ object TypeLemmas {
         val lte = l
       }
 
+    implicit def zeroDiff[N <: Nat](implicit n: N) : Diff[_0, N] = 
+      new Diff[_0, N] {
+        type D = N
+        val lte = ZeroLte(n)
+      }
+
+    implicit def succDiff[K <: Nat, N <: Nat](implicit d: Diff[K, N]) : Diff[K, S[N]] = 
+      new Diff[K, S[N]] {
+        type D = S[d.D]
+        val lte = lteSucc(d.lte)
+      }
+
+    implicit def reflDiff[N <: Nat](implicit n: N) : Diff[N, N] = 
+      new Diff[N, N] {
+        type D = _0
+        val lte = lteRefl(n)
+      }
+
   }
 
   @natElim
