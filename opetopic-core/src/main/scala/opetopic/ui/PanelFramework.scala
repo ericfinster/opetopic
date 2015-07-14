@@ -26,11 +26,15 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     val cornerRadius : U
   )
 
+  def defaultPanelConfig : PanelConfig
+
   //============================================================================================
   // ABSTRACT PANEL
   //
 
-  abstract class Panel[A : Renderable, N <: Nat](cfg: PanelConfig)(nst: Nesting[A, N]) { thisPanel =>
+  abstract class Panel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(nst: Nesting[A, N])(implicit r: Renderable[A, E]) { thisPanel =>
+
+    def element: ElementType
 
     //============================================================================================
     // RENDERING OPTIONS
@@ -51,49 +55,147 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     // INITIALIZATION
     //
 
-    val boxNesting : Nesting[CellBox[A, N], N] = 
-      generateBoxes(nst.dim)(nst)
-
-    def generateBoxes(n: N)(nst: Nesting[A, N]) : Nesting[CellBox[A, N], N] =
-      Nesting.elimWithAddress[A, Nesting[CellBox[A, N], N], N](n)(nst)({
-        case (a, addr) => Nesting.external(n)(CellBox(n)(thisPanel, a, addr, true))
+    def generateBoxes(n: N)(nst: Nesting[A, N]) : Nesting[BoxType, N] =
+      Nesting.elimWithAddress[A, Nesting[BoxType, N], N](n)(nst)({
+        case (a, addr) => Nesting.external(n)(cellBox(a, addr, true))
       })({
-        case (a, addr, cn) => Box(CellBox(n)(thisPanel, a, addr, false), cn)
+        case (a, addr, cn) => Box(cellBox(a, addr, false), cn)
       })
 
     //============================================================================================
-    // REDERING
+    // BOX AND EDGE CONSTRUCTORS
     //
 
-    def render: Element
+    type BoxType <: CellBox
+    type EdgeType <: CellEdge
 
-    def panelWidth: U
-    def panelHeight: U
+    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType
+    def cellEdge : EdgeType
 
-  }
+    //============================================================================================
+    // CELL BOXES
+    //
 
-  object Panel {
+    // The box should already contain a component for the label ...
+    abstract class CellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) extends Rooted {
 
-    val defaultConfig =
-      PanelConfig(
-        internalPadding = fromInt(200),
-        externalPadding = fromInt(200),
-        halfLeafWidth = fromInt(50),
-        halfStrokeWidth = fromInt(20),
-        cornerRadius = fromInt(100)
-      )
+      def element: ElementType
 
-    @natElim
-    def apply[A : Renderable, N <: Nat](n: N)(nst: Nesting[A, N]) : Panel[A, N] = {
-      case (Z, nst) => new ObjectPanel(defaultConfig)(nst)
-      case (S(p), nst) => new NestingPanel(defaultConfig)(nst, None)
+      //
+      // Label data
+      //
+
+      val (labelElement, labelBBox) = {
+        val be = r.render(lbl)
+        (be.element, be.bounds)
+      }
+
+      //
+      // Mutable Values
+      //
+
+      var rootX : U = zero
+      var rootY : U = zero
+
+      var isExternal : Boolean = isExt
+
+      var leftInteriorMargin : U = zero
+      var rightInteriorMargin : U = zero
+
+      var interiorHeight : U = zero
+
+      // Now that this exists outside and with an index parameter, we should
+      // be able to fix things up so that it's not an option in the correct dimensions ..
+      var outgoingEdge : Option[CellEdge] = None
+
+      //
+      // Derived Values
+      //
+
+      def x : U = rootX - leftMargin
+      def y : U = rootY - height
+
+      def interiorWidth : U = leftInteriorMargin + rightInteriorMargin
+
+      def width : U = leftMargin + rightMargin
+      def height : U =
+        if (isExternal) {
+          fullStrokeWidth +
+          internalPadding +
+          labelHeight +
+          internalPadding +
+          fullStrokeWidth
+        } else {
+          fullStrokeWidth +
+          interiorHeight +
+          internalPadding +
+          labelHeight +
+          internalPadding +
+          fullStrokeWidth
+        }
+
+      def leftMargin : U =
+        if (isExternal) {
+          fullStrokeWidth + internalPadding + halfLabelWidth
+        } else {
+          fullStrokeWidth + leftInteriorMargin + internalPadding + fullStrokeWidth
+        }
+
+      def rightMargin : U =
+        if (isExternal) {
+          halfLabelWidth + internalPadding + fullStrokeWidth
+        } else {
+          max(
+            internalPadding + labelWidth + internalPadding + fullStrokeWidth,
+            rightInteriorMargin + internalPadding + fullStrokeWidth
+          )
+        }
+
+      def halfLabelWidth : U = labelBBox.halfWidth
+      def halfLabelHeight : U = labelBBox.halfHeight
+
+      def labelWidth : U = labelBBox.width
+      def labelHeight : U = labelBBox.height
+
+      def clear : Unit = {
+        rootX = zero
+        rootY = zero
+        leftInteriorMargin = zero
+        rightInteriorMargin = zero
+        interiorHeight = zero
+        horizontalDependants.clear
+        verticalDependants.clear
+      }
+
     }
 
-    def apply[A : Renderable, N <: Nat](nst: Nesting[A, N]) : Panel[A, N] = 
-      Panel(nst.dim)(nst)
+    //============================================================================================
+    // CELL EDGES
+    //
 
-    def apply[A : Renderable, P <: Nat](nst: Nesting[A, S[P]], et: Nesting[A, P]) : Panel[A, S[P]] = 
-      new NestingPanel(defaultConfig)(nst, Some(et))
+
+    class CellEdge extends EdgeLike {
+
+      def pathString : String = {
+
+        val isVertical : Boolean = edgeStartX == edgeEndX
+
+        var pathString : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
+
+        if (isVertical) {
+          pathString ++= "V " ++ edgeEndY.toString
+        } else {
+          pathString ++= "V " ++ (edgeEndY - cornerRadius).toString ++ " "
+          pathString ++= "A " ++ cornerRadius.toString ++ " " ++ cornerRadius.toString ++ " 0 0 " ++ (if (edgeStartX > edgeEndX) "1 " else "0 ") ++
+            (if (edgeStartX > edgeEndX) (edgeStartX - cornerRadius) else (edgeStartX + cornerRadius)).toString ++ " " ++ edgeEndY.toString ++ " "
+          pathString ++= "H " ++ edgeEndX.toString
+        }
+
+        pathString
+
+      }
+
+    }
 
   }
 
@@ -101,24 +203,9 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // OBJECT PANEL
   //
 
-  class ObjectPanel[A : Renderable](cfg: PanelConfig)(nst: Nesting[A, _0]) extends Panel[A, _0](cfg)(nst) {
+  trait ObjectPanel[A, E <: ElementType] { thisPanel : Panel[A, E, _0] =>
 
-    //============================================================================================
-    // RENDERING
-    //
-
-    def render : Element = {
-      group (boxNesting.nodes map (_.render) : _*)
-    }
-
-    def panelWidth : U = boxNesting.baseValue.width
-    def panelHeight : U = boxNesting.baseValue.height
-
-    //============================================================================================
-    // LAYOUT
-    //
-
-    def layoutObjects(nst : Nesting[CellBox[A, _0], _0]) : CellBox[A, _0] =
+    def layoutObjects(nst : Nesting[CellBox, _0]) : CellBox =
       nst match {
         case Obj(b) => { b.clear ; b }
         case Box(b, Pt(n)) => {
@@ -141,65 +228,40 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
         }
       }
 
-
-    layoutObjects(boxNesting)
-
   }
 
   //============================================================================================
   // NESTING PANEL
   //
 
-  class NestingPanel[A : Renderable, P <: Nat](cfg: PanelConfig)(nst: Nesting[A, S[P]], edgeTreeOpt: Option[Nesting[A, P]]) extends Panel[A, S[P]](cfg)(nst) { thisPanel => 
-
-    //============================================================================================
-    // RENDERING
-    //
-
-    def render : Element = {
-
-      val (externalNodes, internalNodes) = boxNesting.nodes.partition(_.isExternal)
-      val edgeNodes = edgeNesting.nodes
-
-      val elements = internalNodes.map(_.render) ++ edgeNodes.map(_.render) ++ externalNodes.map(_.render)
-
-      group(elements : _*)
-
-    }
-
-    // Implement a kind of bounding box for your panel!!!
-    def panelWidth : U = ???
-    def panelHeight : U = ???
+  trait NestingPanel[A, E <: ElementType, P <: Nat] { thisPanel : Panel[A, E, S[P]] => 
 
     //============================================================================================
     // EDGE NESTING GENERATION
     //
 
-    val edgeNesting : Nesting[CellEdge[A, S[P]], P] = 
-      edgeTreeOpt match {
-        case None => generateEdges(boxNesting.dim.pred)(boxNesting)
-        case Some(et) => {
-          // Ahhh, so here we need to set up our outgoing edges ...
-          val en = et map (_ => CellEdge(nst.dim)(thisPanel))
+    def connectEdges(seed: Nesting[A, P], nst: Nesting[BoxType, S[P]]) : Nesting[EdgeType, P] = {
 
-          boxNesting match {
-            case Dot(mk, _) => mk.outgoingEdge = Some(en.baseValue)
-            case Box(_, cn) => {
-              // Here we match the two guys ....
-              for {
-                spine <- Nesting.spineFromCanopy(cn)
-                res <- spine.mapWith(en.toTree)({
-                  case (mk, edge) => mk.outgoingEdge = Some(edge)
-                })
-              } yield ()
-            }
-          }
+      val en = seed map (_ => cellEdge)
 
-          en
+      nst match {
+        case Dot(mk, _) => mk.outgoingEdge = Some(en.baseValue)
+        case Box(_, cn) => {
+          // Here we match the two guys ....
+          for {
+            spine <- Nesting.spineFromCanopy(cn)
+            res <- spine.mapWith(en.toTree)({
+              case (mk, edge) => mk.outgoingEdge = Some(edge)
+            })
+          } yield ()
         }
       }
 
-    def generateEdges(p: P)(nst: Nesting[CellBox[A, S[P]], S[P]]) : Nesting[CellEdge[A, S[P]], P] = {
+      en
+
+    }
+
+    def reconstructEdges(p: P)(nst: Nesting[BoxType, S[P]]) : Nesting[EdgeType, P] = {
 
       // Hmmm. In the external case, the nesting does not contain leaf information ....
       // So the panel cannot know what to do without some kind of help ....
@@ -212,10 +274,10 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
             for {
               spine <- Nesting.spineFromCanopy(cn)
               res <- Tree.graftRec(p)(spine)(ad => {
-                val edge = CellEdge(S(p))(thisPanel)
+                val edge = cellEdge
                 succeed(Nesting.external(p)(edge))
               })({ case (mk, cn) => {
-                val edge = CellEdge(S(p))(thisPanel)
+                val edge = cellEdge
                 mk.outgoingEdge = Some(edge)
                 succeed(Box(edge, cn))
               }})
@@ -229,15 +291,15 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
         case \/-(enst) => enst
         case _ => {
           // A dummy return, since this is an error ...
-          Nesting.external(p)(CellEdge(S(p))(thisPanel))
+          Nesting.external(p)(cellEdge)
         }
       }
 
     }
 
-    def edgeLayoutTree : ShapeM[Tree[LayoutMarker, P]] =
+    def edgeLayoutTree(en: Nesting[EdgeType, P]) : ShapeM[Tree[LayoutMarker, P]] =
       for {
-        spine <- Nesting.spineFromDerivative(edgeNesting, Zipper.globDerivative(edgeNesting.dim))
+        spine <- Nesting.spineFromDerivative(en, Zipper.globDerivative(en.dim))
       } yield spine.map(edge => {
         new LayoutMarker {
 
@@ -252,23 +314,20 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
       })
 
     //============================================================================================
-    // LAYOUT 
+    // LAYOUT
     //
 
-    // Run the layout routine on initialization
-    layout
-
-    def layout : Unit = 
+    def layout(nst: Nesting[BoxType, S[P]], et: Nesting[EdgeType, P]) : Unit = 
       for {
-        et <- edgeLayoutTree
-        mk <- layoutNesting(boxNesting, et)
+        elt <- edgeLayoutTree(et)
+        mk <- layoutNesting(nst, elt)
       } {
 
-        val baseBox = boxNesting.baseValue
+        val baseBox = nst.baseValue
 
         // Set the positions of incoming edges
-        for { edge <- edgeNesting } {
-          edge.edgeStartY = baseBox.y - (fromInt(2) * externalPadding)
+        for { em <- elt } {
+          em.rootEdge.edgeStartY = baseBox.y - (fromInt(2) * externalPadding)
         }
 
         // Set the position of the outgoing edge
@@ -276,7 +335,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
 
       }
 
-    def layoutNesting(nst : Nesting[CellBox[A, S[P]], S[P]], lvs : Tree[LayoutMarker, P]) : ShapeM[LayoutMarker] =
+    def layoutNesting(nst : Nesting[BoxType, S[P]], lvs : Tree[LayoutMarker, P]) : ShapeM[LayoutMarker] =
       nst match {
         case Dot(bx, d) =>
           for {
@@ -452,8 +511,8 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
 
           val (leafCount : Int, leavesWithIndices : Tree[(LayoutMarker, Int), P]) = lvs.zipWithIndex
 
-          def verticalPass(tr : Tree[Nesting[CellBox[A, S[P]], S[P]], S[P]]) : ShapeM[LayoutMarker] =
-            Tree.graftRec[Nesting[CellBox[A, S[P]], S[P]], LayoutMarker, P](tr)({
+          def verticalPass(tr : Tree[Nesting[BoxType, S[P]], S[P]]) : ShapeM[LayoutMarker] =
+            Tree.graftRec[Nesting[BoxType, S[P]], LayoutMarker, P](tr)({
               case addr =>
                 for {
                   leafMarkerWithIndex <- Tree.valueAt(leavesWithIndices, addr)
@@ -556,187 +615,6 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
           }
         }
       }
-
-  }
-
-  //============================================================================================
-  // CELL BOXES
-  //
-
-  // The box should already contain a component for the label ...
-  abstract class CellBox[A : Renderable, N <: Nat](panel: Panel[A, N], lbl: A, addr: Address[S[N]], isExt: Boolean) extends Rooted {
-
-    import panel._
-
-    //
-    // Rendering
-    //
-
-    def render: Element = {
-
-      val labelXPos = x + width - fullStrokeWidth - internalPadding - labelWidth
-      val labelYPos = y + height - fullStrokeWidth - internalPadding - labelHeight
-
-      val locatedLabel = translate(labelElement, labelXPos - labelBBox.x, labelYPos - labelBBox.y)
-
-      group(rect(x, y, width, height, cornerRadius, fullStrokeWidth), locatedLabel)
-
-    }
-
-    //
-    // Label data
-    //
-
-    val (labelElement, labelBBox) = 
-      implicitly[Renderable[A]].render(lbl)
-
-    //
-    // Mutable Values
-    //
-
-    var rootX : U = zero
-    var rootY : U = zero
-
-    var isExternal : Boolean = isExt
-
-    var leftInteriorMargin : U = zero
-    var rightInteriorMargin : U = zero
-
-    var interiorHeight : U = zero
-
-    // Now that this exists outside and with an index parameter, we should
-    // be able to fix things up so that it's not an option in the correct dimensions ..
-    var outgoingEdge : Option[CellEdge[A, N]] = None
-
-    //
-    // Derived Values
-    //
-
-    def x : U = rootX - leftMargin
-    def y : U = rootY - height
-
-    def interiorWidth : U = leftInteriorMargin + rightInteriorMargin
-
-    def width : U = leftMargin + rightMargin
-    def height : U =
-      if (isExternal) {
-        fullStrokeWidth +
-        internalPadding +
-        labelHeight +
-        internalPadding +
-        fullStrokeWidth
-      } else {
-        fullStrokeWidth +
-        interiorHeight +
-        internalPadding +
-        labelHeight +
-        internalPadding +
-        fullStrokeWidth
-      }
-
-    def leftMargin : U =
-      if (isExternal) {
-        fullStrokeWidth + internalPadding + halfLabelWidth
-      } else {
-        fullStrokeWidth + leftInteriorMargin + internalPadding + fullStrokeWidth
-      }
-
-    def rightMargin : U =
-      if (isExternal) {
-        halfLabelWidth + internalPadding + fullStrokeWidth
-      } else {
-        max(
-          internalPadding + labelWidth + internalPadding + fullStrokeWidth,
-          rightInteriorMargin + internalPadding + fullStrokeWidth
-        )
-      }
-
-    def halfLabelWidth : U = labelBBox.halfWidth
-    def halfLabelHeight : U = labelBBox.halfHeight
-
-    def labelWidth : U = labelBBox.width
-    def labelHeight : U = labelBBox.height
-
-    def clear : Unit = {
-      rootX = zero
-      rootY = zero
-      leftInteriorMargin = zero
-      rightInteriorMargin = zero
-      interiorHeight = zero
-      horizontalDependants.clear
-      verticalDependants.clear
-    }
-
-  }
-
-  class ZeroBox[A : Renderable](panel: Panel[A, _0], lbl: A, addr: Address[_1], isExt: Boolean) 
-      extends CellBox[A, _0](panel, lbl, addr, isExt)
-
-  class SuccBox[A : Renderable, P <: Nat](panel: Panel[A, S[P]], lbl: A, addr: Address[S[S[P]]], isExt: Boolean)
-      extends CellBox[A, S[P]](panel, lbl, addr, isExt)
-
-  object CellBox {
-
-    @natElim
-    def apply[A, N <: Nat](n: N)(
-      panel: Panel[A, N],
-      label: A,
-      addr: Address[S[N]],
-      isExt: Boolean
-    )(implicit ev: Renderable[A]) : CellBox[A, N] = {
-      case (Z, pnl, lbl, addr, isExt) => new ZeroBox(pnl, lbl, addr, isExt)
-      case (S(p), pnl, lbl, addr, isExt) => new SuccBox(pnl, lbl, addr, isExt)
-    }
-
-  }
-
-  //============================================================================================
-  // CELL EDGES
-  //
-
-  trait EdgeLike {
-
-    var edgeStartX : U = zero
-    var edgeStartY : U = zero
-
-    var edgeEndX : U = zero
-    var edgeEndY : U = zero
-
-  }
-
-  class CellEdge[A, N <: Nat](panel: Panel[A, N]) extends EdgeLike {
-
-    import panel._
-
-    def pathString : String = {
-
-      val isVertical : Boolean = edgeStartX == edgeEndX
-
-      var pathString : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
-
-      if (isVertical) {
-        pathString ++= "V " ++ edgeEndY.toString
-      } else {
-        pathString ++= "V " ++ (edgeEndY - cornerRadius).toString ++ " "
-        pathString ++= "A " ++ cornerRadius.toString ++ " " ++ cornerRadius.toString ++ " 0 0 " ++ (if (edgeStartX > edgeEndX) "1 " else "0 ") ++ 
-          (if (edgeStartX > edgeEndX) (edgeStartX - cornerRadius) else (edgeStartX + cornerRadius)).toString ++ " " ++ edgeEndY.toString ++ " "
-        pathString ++= "H " ++ edgeEndX.toString
-      }
-
-      pathString
-
-    }
-
-    def render : Element = {
-      path(pathString, fullStrokeWidth)
-    }
-
-  }
-
-  object CellEdge {
-
-    def apply[A, N <: Nat](n: N)(panel: Panel[A, N]) : CellEdge[A, N] = 
-      new CellEdge(panel)
 
   }
 
@@ -849,8 +727,18 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   }
 
   //============================================================================================
-  // EDGE MARKERS
+  // EDGE HELPERS
   //
+
+  trait EdgeLike {
+
+    var edgeStartX : U = zero
+    var edgeStartY : U = zero
+
+    var edgeEndX : U = zero
+    var edgeEndY : U = zero
+
+  }
 
   class EdgeStartMarker(edge : EdgeLike) extends Rooted {
 

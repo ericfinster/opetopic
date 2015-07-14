@@ -19,30 +19,30 @@ object Test {
 
     println("Opetopic Testing Object")
 
-    import opetopic.Examples._
-    import ScalatagsTextFramework._
+    // import opetopic.Examples._
+    // import ScalatagsTextFramework._
 
-    val panel = Panel(fred3, fred2)
+    // val panel = Panel(fred3, fred2)
 
-    val panelSvg = {
-      import bundle.implicits._
-      import bundle.svgTags._
-      import bundle.svgAttrs._
+    // val panelSvg = {
+    //   import bundle.implicits._
+    //   import bundle.svgTags._
+    //   import bundle.svgAttrs._
 
-      import opetopic.syntax.nesting._
+    //   import opetopic.syntax.nesting._
 
-      val baseBox = panel.boxNesting.baseValue
+    //   val baseBox = panel.boxNesting.baseValue
 
-      val viewboxStr = 
-        (baseBox.x - (panel.externalPadding * 4)).toString ++ " " ++ (baseBox.y - (panel.externalPadding * 4)).toString ++ " " ++
-          (baseBox.width + (panel.externalPadding * 8)).toString ++ " " ++ (baseBox.height + (panel.externalPadding * 8)).toString
+    //   val viewboxStr = 
+    //     (baseBox.x - (panel.externalPadding * 4)).toString ++ " " ++ (baseBox.y - (panel.externalPadding * 4)).toString ++ " " ++
+    //       (baseBox.width + (panel.externalPadding * 8)).toString ++ " " ++ (baseBox.height + (panel.externalPadding * 8)).toString
 
-      svg(viewBox:=viewboxStr,xmlns:="http://www.w3.org/2000/svg")(panel.render)
-    }
+    //   svg(viewBox:=viewboxStr,xmlns:="http://www.w3.org/2000/svg")(panel.render)
+    // }
 
-    val writer = new PrintWriter(new File(output))
-    writer.write(panelSvg.toString)
-    writer.close
+    // val writer = new PrintWriter(new File(output))
+    // writer.write(panelSvg.toString)
+    // writer.close
 
   }
 

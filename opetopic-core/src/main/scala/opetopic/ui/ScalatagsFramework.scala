@@ -11,23 +11,37 @@ import scalatags.generic._
 import opetopic._
 
 class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) 
-    extends RenderingFramework[Int] with PanelFramework[Int] {
+    extends RenderingFramework[Int] with PanelFramework[Int] with StaticPanelFramework[Int] {
 
   import bundle._
 
-  type Element = TypedTag[Builder, Output, FragT]
+  type ElementType = TypedTag[Builder, Output, FragT]
 
-  def translate(el: Element, x: Int, y: Int) : Element = {
+  type PathType = ElementType
+  type TextType = ElementType
+  type GroupType = ElementType
+  type RectangleType = ElementType
+
+  val defaultPanelConfig =
+    PanelConfig(
+      internalPadding = 200,
+      externalPadding = 200,
+      halfLeafWidth = 50,
+      halfStrokeWidth = 20,
+      cornerRadius = 100
+    )
+
+  def translate(el: ElementType, x: Int, y: Int) : ElementType = {
     import implicits._
     el(svgAttrs.transform:="translate(" ++ x.toString ++ ", " ++ y.toString ++ ")")
   }
 
-  def group(elems: Element*) : Element = {
+  def group(elems: ElementType*) : GroupType = {
     import svgTags._
     g(elems)
   }
 
-  def rect(x : Int, y: Int, width: Int, height: Int, cornerRadius: Int, strokeWidth: Int) : Element = {
+  def rect(x : Int, y: Int, width: Int, height: Int, cornerRadius: Int, strokeWidth: Int) : RectangleType = {
     import implicits._
 
     svgTags.rect(
@@ -44,7 +58,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
   }
 
-  def path(d: String, strokeWidth: Int) : Element = {
+  def path(d: String, strokeWidth: Int) : PathType = {
     import implicits._
 
     svgTags.path(
@@ -55,7 +69,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
     )
   }
 
-  def boundedText(str: String) : (Element, BBox) = {
+  def text(str: String) : BoundedElement[TextType] = {
 
     import svgAttrs._
     import implicits._
@@ -66,7 +80,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
     val glyphMap = AsanaMathMain.glyphMap
 
-    val paths : Seq[Element] = (str map (c => {
+    val paths : Seq[ElementType] = (str map (c => {
 
       if (glyphMap.isDefinedAt(c)) {
 
@@ -93,7 +107,12 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
     }
 
-    (svgTags.g(paths), bbox)
+    new BoundedElement[TextType] {
+
+      val element = svgTags.g(paths)
+      val bounds = bbox
+
+    }
 
   }
 

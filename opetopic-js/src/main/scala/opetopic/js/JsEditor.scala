@@ -50,7 +50,7 @@ object JsEditor extends js.JSApp {
   @JSExport
   def render : Unit = {
 
-    val panel = Panel(exotic)
+    val panel = StaticPanel(exotic)
 
     val panelSvg = {
       import bundle.implicits._
@@ -65,7 +65,7 @@ object JsEditor extends js.JSApp {
         (baseBox.x - (panel.externalPadding * 4)).toString ++ " " ++ (baseBox.y - (panel.externalPadding * 4)).toString ++ " " ++
           (baseBox.width + (panel.externalPadding * 8)).toString ++ " " ++ (baseBox.height + (panel.externalPadding * 8)).toString
 
-      svg(width:="400",height:="400",viewBox:=viewboxStr,xmlns:="http://www.w3.org/2000/svg")(panel.render)
+      svg(width:="400",height:="400",viewBox:=viewboxStr,xmlns:="http://www.w3.org/2000/svg")(panel.element)
 
     }
     

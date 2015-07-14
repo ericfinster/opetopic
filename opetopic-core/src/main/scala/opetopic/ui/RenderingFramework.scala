@@ -12,9 +12,19 @@ abstract class RenderingFramework[U : Numeric] {
   val isNumeric = implicitly[Numeric[U]]
   import isNumeric._
 
-  type Element
+  type ElementType
 
-  // Now, we need some drawing primitives.
+  type PathType <: ElementType
+  type TextType <: ElementType
+  type GroupType <: ElementType
+  type RectangleType <: ElementType
+
+  abstract class BoundedElement[E <: ElementType] {
+
+    def element: E
+    def bounds: BBox
+
+  }
 
   abstract class BBox {
 
@@ -29,27 +39,29 @@ abstract class RenderingFramework[U : Numeric] {
 
   }
 
-  def group(elem: Element*) : Element
-  def rect(x: U, y: U, width:U, height: U, r: U, strokeWidth: U) : Element
-  def path(d: String, strokeWidth: U) : Element
+  def group(elem: ElementType*) : GroupType
+  def rect(x: U, y: U, width:U, height: U, r: U, strokeWidth: U) : RectangleType
+  def path(d: String, strokeWidth: U) : PathType
+  def text(str: String) : BoundedElement[TextType]
 
-  def translate(el: Element, x: U, y: U) : Element
-  def boundedText(str: String) : (Element, BBox)
+  def translate(el: ElementType, x: U, y: U) : ElementType
 
-  trait Renderable[A] {
+  trait Renderable[A, E <: ElementType] {
 
-    def render(a: A) : (Element, BBox)
+    def render(a: A) : BoundedElement[E]
 
   }
 
+  // We should have another type class for color hints ...
+
   object Renderable {
 
-    implicit object StringRenderable extends Renderable[String] {
-      def render(str: String) = boundedText(str)
+    implicit object StringRenderable extends Renderable[String, TextType] {
+      def render(str: String) = text(str)
     }
 
-    implicit object IntRenderable extends Renderable[Int] {
-      def render(i: Int) = boundedText(i.toString)
+    implicit object IntRenderable extends Renderable[Int, TextType] {
+      def render(i: Int) = text(i.toString)
     }
 
   }
