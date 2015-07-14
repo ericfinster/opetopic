@@ -16,7 +16,6 @@ import scalafx.scene.layout._
 import scalafx.scene.control._
 
 import opetopic._
-import TypeDefs._
 import TypeLemmas._
 import syntax.complex._
 

@@ -1,0 +1,34 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
+
+<dom-module id="display-card">
+
+  <style is="custom-style">
+    
+    paper-material {
+      width: 600px;
+      height: 200px;
+    }
+
+  </style>
+  
+  <template>
+    <paper-material elevation="2">
+      <paper-header-panel>
+	<paper-toolbar>
+	  <p>Card</p>
+	</paper-toolbar>
+	<div>This is the content</div>
+      </paper-header-panel>
+    </paper-material>
+  </template>
+
+  <script>
+    Polymer({
+      is: "display-card"
+    });
+  </script>
+
+</dom-module>

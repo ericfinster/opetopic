@@ -27,10 +27,8 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(
     scalaJSProjects := clients,
     pipelineStages := Seq(scalaJSProd),
-    libraryDependencies ++= Seq(
-      "com.vmunier" %% "play-scalajs-scripts" % "0.2.1"
-    )
-  ).enablePlugins(PlayScala).
+    JsEngineKeys.engineType := JsEngineKeys.EngineType.Node
+  ).enablePlugins(PlayScala, SbtWeb).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
 
@@ -101,8 +99,5 @@ lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opeto
 
 lazy val opetopicMacrosJvm = opetopicMacros.jvm
 lazy val opetopicMacrosJs = opetopicMacros.js
-
-
-
 
 

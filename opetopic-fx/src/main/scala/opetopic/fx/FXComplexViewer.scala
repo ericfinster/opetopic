@@ -11,9 +11,7 @@ import scala.language.higherKinds
 import scala.collection.mutable.ListBuffer
 
 import opetopic._
-import opetopic.ui._
-
-import TypeDefs._
+import opetopic.oldui._
 import syntax.tree._
 import syntax.complex._
 import syntax.nesting._

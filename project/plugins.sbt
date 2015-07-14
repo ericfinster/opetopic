@@ -1,11 +1,16 @@
 // The Typesafe repository
-resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
+resolvers ++= Seq(
+  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/"
+)
+
+// For simplifying scala js export
+addSbtPlugin("com.vmunier" % "sbt-play-scalajs" % "0.2.6")
 
 // Use the Play sbt plugin for Play projects
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.3.8")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.2")
 
 // Use the scala-js pluging 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.2")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.3")
 
-// For scala-js/play interation
-addSbtPlugin("com.vmunier" % "sbt-play-scalajs" % "0.2.4")
+// Bower
+addSbtPlugin("com.github.dwickern" % "sbt-bower" % "1.0.3")

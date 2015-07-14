@@ -13,7 +13,6 @@ import scala.language.implicitConversions
 import scalaz.Applicative
 import opetopic._
 
-import TypeDefs._
 import TypeLemmas._
 import Complex._
 

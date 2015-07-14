@@ -13,8 +13,6 @@ import scala.language.implicitConversions
 import scalaz.Monad
 import scalaz.syntax.monad._
 
-import TypeDefs._
-
 trait ZipperFunctions {
 
   @natElim

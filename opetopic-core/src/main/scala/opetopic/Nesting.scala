@@ -15,8 +15,6 @@ import scalaz.Monad
 import scalaz.Applicative
 import scalaz.syntax.monad._
 
-import TypeDefs._
-
 sealed abstract class Nesting[+A, N <: Nat] { def dim : N }
 case class Obj[+A](a : A) extends Nesting[A, _0] { def dim = Z }
 case class Dot[+A, P <: Nat](a : A, d : S[P]) extends Nesting[A, S[P]] { def dim = d }

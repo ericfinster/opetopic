@@ -14,7 +14,6 @@ import scalaz.Traverse
 import scalaz.Applicative
 
 import opetopic._
-import TypeDefs._
 
 final class CardinalOps[A[_ <: Nat], N <: Nat](cardinal : Cardinal[A, N]) {
 

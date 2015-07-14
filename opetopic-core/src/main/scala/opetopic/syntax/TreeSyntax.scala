@@ -17,8 +17,6 @@ import scalaz.Traverse
 import scalaz.Applicative
 
 import opetopic._
-import TypeDefs._
-
 import syntax.tree._
 
 final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {

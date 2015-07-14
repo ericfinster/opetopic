@@ -12,7 +12,6 @@ import scala.language.implicitConversions
 
 import scalaz.Applicative
 
-import TypeDefs._
 import TypeLemmas._
 
 sealed trait Suite[F[_ <: Nat], L <: Nat] {

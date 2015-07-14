@@ -7,8 +7,6 @@
 
 package opetopic
 
-import TypeDefs._
-
 object Examples {
   
   val fred0 : Nesting[Int, _0] = 

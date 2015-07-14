@@ -13,7 +13,6 @@ import javafx.scene.paint.Color
 
 import opetopic._
 import opetopic.fx._
-import TypeDefs._
 
 abstract class FibredLabel[N <: Nat] {
 

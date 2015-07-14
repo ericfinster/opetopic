@@ -17,9 +17,7 @@ import javafx.scene.shape.Rectangle
 import javafx.scene.effect.ColorAdjust
 
 import opetopic._
-import opetopic.ui._
-
-import TypeDefs._
+import opetopic.oldui._
 import Cardinal._
 
 import syntax.complex._

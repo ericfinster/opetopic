@@ -13,9 +13,8 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 
 import opetopic._
-import opetopic.ui._
+import opetopic.oldui._
 import syntax.cardinal._
-import TypeDefs._
 
 case class ColoredLabel[N <: Nat](val label: String, val color: Color) {
 

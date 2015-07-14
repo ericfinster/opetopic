@@ -15,7 +15,6 @@ import scalaz.Traverse
 import scalaz.Applicative
 
 import opetopic._
-import TypeDefs._
 import syntax.tree._
 
 final class NestingOps[A, N <: Nat](nst: Nesting[A, N]) {

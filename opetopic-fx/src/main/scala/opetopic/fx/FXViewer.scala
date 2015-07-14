@@ -32,8 +32,7 @@ import javafx.util.Callback
 import java.util.function.Consumer
 
 import opetopic._
-import opetopic.ui._
-import TypeDefs._
+import opetopic.oldui._
 
 abstract class FXViewer[A[_ <: Nat]](implicit ev : Numeric[Double]) extends Region with Viewer[A, Double] { thisViewer =>
 

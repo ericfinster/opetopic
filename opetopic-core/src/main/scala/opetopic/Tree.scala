@@ -12,8 +12,6 @@ import scalaz.Monad
 import scalaz.Applicative
 import scalaz.syntax.monad._
 
-import TypeDefs._
-
 sealed abstract class Tree[+A, N <: Nat] { def dim : N }
 case class Pt[+A](a : A) extends Tree[A, _0] { def dim = Z }
 case class Leaf[N <: Nat](d : S[N]) extends Tree[Nothing, S[N]] { def dim = d }

@@ -1,0 +1,105 @@
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/paper-styles.html">
+<link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
+<link rel="import" href="../bower_components/paper-menu/paper-menu.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-drawer-panel/paper-drawer-panel.html">
+<link rel="import" href="../bower_components/paper-header-panel/paper-header-panel.html">
+<link rel="import" href="backend-test.html">
+<link rel="import" href="display-card.html">
+
+<dom-module id="main-editor">
+  
+  <style is="custom-style">
+
+    .paper-font-display4 {
+      @apply(--paper-font-display4);
+    }
+
+    .paper-font-display3 {
+      @apply(--paper-font-display3);
+    }
+
+    .paper-font-display2 {
+      @apply(--paper-font-display2);
+    }
+
+    .paper-font-display1 {
+      @apply(--paper-font-display1);
+    }
+
+    .paper-font-headline {
+      @apply(--paper-font-headline);
+    }
+
+    .paper-font-title {
+      @apply(--paper-font-title);
+    }
+
+    .paper-font-subhead {
+      @apply(--paper-font-subhead);
+    }
+
+    .paper-font-body2 {
+      @apply(--paper-font-body1);
+    }
+
+    .paper-font-body1 {
+      @apply(--paper-font-body1);
+    }
+
+    .paper-font-caption {
+      @apply(--paper-font-caption);
+    }
+
+    .paper-font-menu {
+      @apply(--paper-font-menu);
+    }
+
+    .paper-font-button {
+      @apply(--paper-font-button);
+    }
+
+    paper-drawer-panel {
+      margin-top: 64px;
+    }
+
+    paper-drawer-panel [main] {
+      padding-top: 20px;
+      background-color: var(--google-grey-100);
+    }
+
+    paper-drawer-panel [drawer] {
+      border-right: 1px solid var(--google-grey-300);
+    }
+
+  </style>
+
+  <template>
+    <paper-header-panel>
+      <paper-toolbar>
+	<p class="paper-font-display1">Opetopic</p>
+      </paper-toolbar>
+    </paper-header-panel>
+    <paper-drawer-panel id="my-drawer">
+      <div drawer class="paper-font-body1">
+	<paper-menu>
+	  <paper-item>First item</paper-item>
+	  <paper-item>Second item</paper-item>
+	  <paper-item>Third item</paper-item>
+	</paper-menu>
+      </div>
+      <div main class="paper-font-body1 horizontal center-justified layout">
+	<div id="my-content"></div>
+      </div>
+    </paper-drawer-panel>
+  </template>
+
+  <script>
+    Polymer({
+      is: "main-editor"
+    });
+  </script>
+
+</dom-module>
+

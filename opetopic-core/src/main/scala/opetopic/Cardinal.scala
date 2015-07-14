@@ -15,7 +15,6 @@ import scalaz.Applicative
 
 import scalaz.syntax.monad._
 
-import TypeDefs._
 import TypeLemmas._
 import Nats._
 

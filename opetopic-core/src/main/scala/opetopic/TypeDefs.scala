@@ -13,7 +13,7 @@ import scalaz.\/
 import scalaz.-\/
 import scalaz.\/-
 
-object TypeDefs extends NatConstants {
+trait TypeDefs extends NatConstants {
 
   //============================================================================================
   // SHAPE MONAD

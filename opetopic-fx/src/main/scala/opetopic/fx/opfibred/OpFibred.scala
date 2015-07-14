@@ -24,8 +24,7 @@ import javafx.scene.{control => jfxsc}
 import java.util.function.Consumer
 
 import opetopic._
-import opetopic.ui._
-import opetopic.TypeDefs._
+import opetopic.oldui._
 import opetopic.Cardinal._
 import opetopic.syntax.complex._
 import opetopic.syntax.cardinal._

@@ -24,8 +24,7 @@ import scalafx.scene.input.MouseEvent
 import scalafx.scene.control.Alert
 
 import opetopic._
-import opetopic.ui._
-import opetopic.TypeDefs._
+import opetopic.oldui._
 import opetopic.Cardinal._
 import opetopic.syntax.complex._
 import opetopic.syntax.cardinal._
@@ -173,32 +172,6 @@ object FXEditor extends JFXApp {
     }
   }
 
-  // val getSvgButton = new Button("Get Svg") {
-  //   onAction = () => {
-  //     for {
-  //       viewer <- activePreview
-  //     } {
-  //       val svgViewer = new FXDialogs.CodeDisplayDialog(viewer.toSvg.toString)
-  //       svgViewer.showAndWait
-  //     }
-  //   }
-  // }
-
-  val testFrameworkButton = new Button("Test Framework") {
-    onAction = () => {
-
-      import opetopic.Examples._
-      import opetopic.vf.backend.ScalatagsTextFramework._
-
-      import opetopic.syntax.nesting._
-
-      val panel : Panel[String, _2] = Panel(fred2 map (_.toString))
-
-      println(panel.render.toString)
-
-    }
-  }
-
   val toCardinalButton = new Button("To Cardinal") {
     onAction = () => {
       for {
@@ -215,7 +188,7 @@ object FXEditor extends JFXApp {
   }
 
   val buttonTray = new HBox {
-    children = List(getCodeButton, getJsonButton, toCardinalButton, testFrameworkButton)
+    children = List(getCodeButton, getJsonButton, toCardinalButton)
     spacing = 10
   }
 

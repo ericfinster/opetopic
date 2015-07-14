@@ -14,8 +14,6 @@ import scalaz.Applicative
 
 import scalaz.syntax.monad._
 
-import TypeDefs._
-
 trait ComplexFunctions {
 
   def complexToZipper[A[_ <: Nat], N <: Nat](c: Complex[A, N]) : ComplexZipper[A, N] = {

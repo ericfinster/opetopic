@@ -15,7 +15,6 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 
 import opetopic._
-import TypeDefs._
 
 trait FXRenderable[A[_ <: Nat]] {
   def render[N <: Nat](n: N)(an: A[N]) : Node

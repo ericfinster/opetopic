@@ -12,7 +12,6 @@ import javafx.scene.paint.Color
 
 import opetopic._
 import opetopic.fx._
-import TypeDefs._
 import syntax.complex._
 
 import FibredLabel._

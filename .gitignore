@@ -2,3 +2,4 @@ target/
 .ensime_cache/
 logs/
 *.agdai
+opetopic-play/public/bower_components
