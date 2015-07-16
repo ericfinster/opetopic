@@ -20,6 +20,23 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
   type GroupType <: ElementType
   type RectangleType <: ElementType
 
+  //============================================================================================
+  // CANVAS API
+  //
+
+  def half(u: U) : U
+
+  def group(elem: ElementType*) : GroupType
+  def rect(x: U, y: U, width:U, height: U, r: U, stroke: String, strokeWidth: U, fill: String) : RectangleType
+  def path(d: String, strokeWidth: U) : PathType
+  def text(str: String) : BoundedElement[TextType]
+
+  def translate(el: ElementType, x: U, y: U) : ElementType
+
+  //============================================================================================
+  // BOUNDS
+  //
+
   abstract class BoundedElement[E <: ElementType] {
 
     def element: E
@@ -44,49 +61,47 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
 
   }
 
-  def half(u: U) : U
+  //============================================================================================
+  // AFFIXABLE TYPECLASS
+  //
 
-  def group(elem: ElementType*) : GroupType
-  def rect(x: U, y: U, width:U, height: U, r: U, strokeWidth: U) : RectangleType
-  def path(d: String, strokeWidth: U) : PathType
-  def text(str: String) : BoundedElement[TextType]
+  case class Decoration[E <: ElementType](
+    val boundedElement : BoundedElement[E],
+    val colorHint : String = "white"
+  )
 
-  def translate(el: ElementType, x: U, y: U) : ElementType
+  trait Affixable[A, E <: ElementType] {
 
-  trait Renderable[A, E <: ElementType] {
-
-    def render(a: A) : BoundedElement[E]
-
-  }
-
-  // We should have another type class for color hints ...
-
-  object Renderable {
-
-    implicit object StringRenderable extends Renderable[String, TextType] {
-      def render(str: String) = text(str)
-    }
-
-    implicit object IntRenderable extends Renderable[Int, TextType] {
-      def render(i: Int) = text(i.toString)
-    }
+    def decoration(a: A) : Decoration[E]
 
   }
 
-  trait RenderableFamily[A[_ <: Nat], E <: ElementType] {
-    def apply[N <: Nat](n: N) : Renderable[A[N], E]
-  }
+  object Affixable {
 
-  object RenderableFamily {
-
-    implicit object ConstStringFamily extends RenderableFamily[ConstString, TextType] {
-      def apply[N <: Nat](n: N) : Renderable[String, TextType] = 
-        Renderable.StringRenderable
+    implicit object StringAffixable extends Affixable[String, TextType] {
+      def decoration(str: String) = Decoration(text(str))
     }
 
-    implicit object ConstIntFamily extends RenderableFamily[ConstInt, TextType] {
-      def apply[N <: Nat](n: N) : Renderable[Int, TextType] = 
-        Renderable.IntRenderable
+    implicit object IntAffixable extends Affixable[Int, TextType] {
+      def decoration(i: Int) = Decoration(text(i.toString))
+    }
+
+  }
+
+  trait AffixableFamily[A[_ <: Nat], E <: ElementType] {
+    def apply[N <: Nat](n: N) : Affixable[A[N], E]
+  }
+
+  object AffixableFamily {
+
+    implicit object ConstStringFamily extends AffixableFamily[ConstString, TextType] {
+      def apply[N <: Nat](n: N) : Affixable[String, TextType] = 
+        Affixable.StringAffixable
+    }
+
+    implicit object ConstIntFamily extends AffixableFamily[ConstInt, TextType] {
+      def apply[N <: Nat](n: N) : Affixable[Int, TextType] = 
+        Affixable.IntAffixable
     }
 
   }

@@ -12,87 +12,34 @@
   
   <style is="custom-style">
 
-    .paper-font-display4 {
-      @apply(--paper-font-display4);
-    }
-
-    .paper-font-display3 {
-      @apply(--paper-font-display3);
-    }
-
-    .paper-font-display2 {
-      @apply(--paper-font-display2);
-    }
-
-    .paper-font-display1 {
+    h1 {
       @apply(--paper-font-display1);
-    }
-
-    .paper-font-headline {
-      @apply(--paper-font-headline);
-    }
-
-    .paper-font-title {
-      @apply(--paper-font-title);
-    }
-
-    .paper-font-subhead {
-      @apply(--paper-font-subhead);
-    }
-
-    .paper-font-body2 {
-      @apply(--paper-font-body1);
-    }
-
-    .paper-font-body1 {
-      @apply(--paper-font-body1);
-    }
-
-    .paper-font-caption {
-      @apply(--paper-font-caption);
-    }
-
-    .paper-font-menu {
-      @apply(--paper-font-menu);
-    }
-
-    .paper-font-button {
-      @apply(--paper-font-button);
-    }
-
-    paper-drawer-panel {
-      margin-top: 64px;
-    }
-
-    paper-drawer-panel [main] {
-      padding-top: 20px;
-      background-color: var(--google-grey-100);
-    }
-
-    paper-drawer-panel [drawer] {
-      border-right: 1px solid var(--google-grey-300);
     }
 
   </style>
 
   <template>
-    <paper-header-panel>
-      <paper-toolbar>
-	<p class="paper-font-display1">Opetopic</p>
-      </paper-toolbar>
-    </paper-header-panel>
-    <paper-drawer-panel id="my-drawer">
-      <div drawer class="paper-font-body1">
-	<paper-menu>
-	  <paper-item>First item</paper-item>
-	  <paper-item>Second item</paper-item>
-	  <paper-item>Third item</paper-item>
-	</paper-menu>
+
+      <paper-header-panel>
+      	<paper-toolbar>
+      	  <h1>Opetopic</h1>
+      	</paper-toolbar>
+      </paper-header-panel>
+
+      <div class="layout vertical flex">
+	<paper-drawer-panel>
+      	  <paper-menu drawer>
+	    <paper-item>Item 1</paper-item>
+	    <paper-item>Item 2</paper-item>
+	  </paper-menu>
+      	  <div main class="layout vertical flex">
+	    <div class="testdiv"><p>First div</p></div>
+	    <div class="testdiv flex"><p>Second div</p></div>
+	    <div class="testdiv" style="height: 250px"><p>Third div</p></div>
+	  </div>
+	</paper-drawer-panel>
       </div>
-      <div main class="paper-font-body1 horizontal center-justified layout">
-	<div id="my-content"></div>
-      </div>
-    </paper-drawer-panel>
+
   </template>
 
   <script>

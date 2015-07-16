@@ -52,7 +52,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
     g(elems)
   }
 
-  def rect(x : Int, y: Int, width: Int, height: Int, cornerRadius: Int, strokeWidth: Int) : RectangleType = {
+  def rect(x : Int, y: Int, width: Int, height: Int, cornerRadius: Int, stroke: String, strokeWidth: Int, fill: String) : RectangleType = {
     import implicits._
 
     svgTags.rect(
@@ -62,8 +62,8 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
       svgAttrs.height:=height.toString,
       svgAttrs.rx:=cornerRadius.toString,
       svgAttrs.ry:=cornerRadius.toString,
-      svgAttrs.fill:="white",
-      svgAttrs.stroke:="black",
+      svgAttrs.fill:=fill,
+      svgAttrs.stroke:=stroke,
       svgAttrs.strokeWidth:=strokeWidth.toString
     )
 

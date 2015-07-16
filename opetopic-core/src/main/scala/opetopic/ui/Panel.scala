@@ -32,7 +32,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // ABSTRACT PANEL
   //
 
-  abstract class Panel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(implicit r: Renderable[A, E]) extends BoundedElement[ElementType] { thisPanel =>
+  abstract class Panel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(implicit r: Affixable[A, E]) extends BoundedElement[ElementType] { thisPanel =>
 
     def nesting: Nesting[A, N]
 
@@ -85,9 +85,9 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
       // Label data
       //
 
-      val (labelElement, labelBBox) = {
-        val be = r.render(lbl)
-        (be.element, be.bounds)
+      val (labelElement, labelBBox, colorHint) = {
+        val dec = r.decoration(lbl)
+        (dec.boundedElement.element, dec.boundedElement.bounds, dec.colorHint)
       }
 
       //

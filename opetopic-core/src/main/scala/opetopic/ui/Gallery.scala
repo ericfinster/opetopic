@@ -22,7 +22,7 @@ trait GalleryFramework[U] { frmwk: RenderingFramework[U] with PanelFramework[U] 
 
   def defaultGalleryConfig: GalleryConfig
 
-  abstract class Gallery[A[_ <: Nat], E <: ElementType](cfg: GalleryConfig)(implicit r: RenderableFamily[A, E]) 
+  abstract class Gallery[A[_ <: Nat], E <: ElementType](cfg: GalleryConfig)(implicit r: AffixableFamily[A, E]) 
       extends BoundedElement[ElementType] { thisGallery =>
 
     def complex: FiniteComplex[A]

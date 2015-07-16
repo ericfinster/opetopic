@@ -23,18 +23,12 @@ abstract class InteractiveFramework[U](implicit isNumeric: Numeric[U], isOrdered
   trait Path 
   trait Text 
 
-  // Now we need some subclasses of panel, etc which now retain links to their
-  // rendered elements.
+  // Okay, we have static galleries.  Now it's time to start implementing the interactivity
+  // portion.  The idea is that we are going to subclass the panel and the gallery in such
+  // a way that they keep track of and modify the created elements.
 
-  // In order to do this, we should pull out the rendering methods on the panel
-  // class and leave them abstract.  We should then re-implement them in a 
-  // "static" panel class which uses the old rendering technique.  A subclass here
-  // will then implement them differently ...
+  // Let's start looking at the panel first ...
 
-  // Also, the object and nesting distinctions should become *traits* which are 
-  // then mixed in dependeing on the dimension by a constructor...
 
-  // All this is now done.  Next you can either implement a gallery or move on 
-  // to the interactive/stateful panels.
 
 }

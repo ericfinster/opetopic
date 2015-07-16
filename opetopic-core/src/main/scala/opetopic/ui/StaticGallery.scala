@@ -17,7 +17,7 @@ trait StaticGalleryFramework[U] {
 
   import isNumeric._
 
-  class StaticGallery[A[_ <: Nat], E <: ElementType](cfg: GalleryConfig)(val complex : FiniteComplex[A])(implicit r: RenderableFamily[A, E]) 
+  class StaticGallery[A[_ <: Nat], E <: ElementType](cfg: GalleryConfig)(val complex : FiniteComplex[A])(implicit r: AffixableFamily[A, E]) 
       extends Gallery[A, E](cfg) {
 
     type PanelType[N <: Nat] = StaticPanel[A[N], E, N]
@@ -81,7 +81,7 @@ trait StaticGalleryFramework[U] {
 
   object StaticGallery {
 
-    def apply[A[_ <: Nat], E <: ElementType](cmplx: FiniteComplex[A])(implicit r: RenderableFamily[A, E]) : StaticGallery[A, E] = 
+    def apply[A[_ <: Nat], E <: ElementType](cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A, E]) : StaticGallery[A, E] = 
       new StaticGallery(defaultGalleryConfig)(cmplx)
 
   }

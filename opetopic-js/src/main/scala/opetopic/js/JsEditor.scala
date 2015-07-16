@@ -20,7 +20,7 @@ object JsEditor extends js.JSApp {
 
     println("Launched Opetopic.")
 
-    renderGallery
+    // renderGallery
 
   }
 
