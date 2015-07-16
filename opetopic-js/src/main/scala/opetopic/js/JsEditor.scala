@@ -20,7 +20,7 @@ object JsEditor extends js.JSApp {
 
     println("Launched Opetopic.")
 
-    // renderGallery
+    renderGallery
 
   }
 
@@ -45,7 +45,7 @@ object JsEditor extends js.JSApp {
 
     }
     
-    val div = document.getElementById("my-content")
+    val div = document.getElementById("middle-pane")
     div.appendChild(panelSvg.render)
 
   }
@@ -66,7 +66,7 @@ object JsEditor extends js.JSApp {
 
     }
 
-    val div = document.getElementById("my-content")
+    val div = document.getElementById("middle-pane")
     div.appendChild(gallerySvg.render)
 
   }
