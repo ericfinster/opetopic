@@ -20,7 +20,7 @@ object JsEditor extends js.JSApp {
 
     println("Launched Opetopic.")
 
-    renderGallery
+    renderPanel
 
   }
 
@@ -28,30 +28,29 @@ object JsEditor extends js.JSApp {
   // EXPERIMENTS
   //
 
-  import ScalatagsJsDomFramework._
   import opetopic.Examples._
 
   def renderPanel : Unit = {
 
-    val panel = StaticPanel(exotic)
+    import JsDomFramework._
 
-    val panelSvg = {
+    val panel = ActivePanel(exotic)
 
-      import bundle.implicits._
-      import bundle.svgTags._
-      import bundle.svgAttrs._
+    val panelSvg = document.createElementNS(svgns, "svg")
+    panelSvg.setAttributeNS(null, "width", "800")
+    panelSvg.setAttributeNS(null, "height", "600")
+    panelSvg.setAttributeNS(null, "viewBox", panel.bounds.dimString)
 
-      svg(width:="800",height:="600",viewBox:=panel.bounds.dimString,xmlns:="http://www.w3.org/2000/svg")(panel.element)
+    panelSvg.appendChild(panel.element.uiElement)
 
-    }
-    
     val div = document.getElementById("middle-pane")
-    div.appendChild(panelSvg.render)
+    div.appendChild(panelSvg)
 
   }
 
   def renderGallery : Unit = {
 
+    import ScalatagsJsDomFramework._
     import opetopic.syntax.complex._
 
     val gallery = StaticGallery(fredComplex)

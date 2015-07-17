@@ -13,12 +13,12 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
 
   import isNumeric._
 
-  type ElementType
+  type Element 
 
-  type PathType <: ElementType
-  type TextType <: ElementType
-  type GroupType <: ElementType
-  type RectangleType <: ElementType
+  type PathType <: Element
+  type TextType <: Element
+  type GroupType <: Element
+  type RectangleType <: Element
 
   //============================================================================================
   // CANVAS API
@@ -26,31 +26,34 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
 
   def half(u: U) : U
 
-  def group(elem: ElementType*) : GroupType
+  def group(elem: Element*) : GroupType
   def rect(x: U, y: U, width:U, height: U, r: U, stroke: String, strokeWidth: U, fill: String) : RectangleType
-  def path(d: String, strokeWidth: U) : PathType
+  def path(d: String, stroke: String, strokeWidth: U, fill: String) : PathType
   def text(str: String) : BoundedElement[TextType]
 
-  def translate(el: ElementType, x: U, y: U) : ElementType
+  case class Transform(
+    val translateX : U,
+    val translateY : U,
+    val scaleX : U,
+    val scaleY : U
+  ) 
+
+  def transform(el: Element, t: Transform) : Element
+  def translate(el: Element, x: U, y: U) : Element
+  def scale(el: Element, x: U, y: U) : Element
 
   //============================================================================================
   // BOUNDS
   //
 
-  abstract class BoundedElement[E <: ElementType] {
+  abstract class BoundedElement[E <: Element] {
 
     def element: E
     def bounds: BBox
 
   }
 
-  abstract class BBox {
-
-    def x: U
-    def y: U
-
-    def width: U 
-    def height: U 
+  case class BBox(val x: U, val y: U, val width: U, val height: U) {
 
     def halfWidth: U = half(width)
     def halfHeight: U = half(height)
@@ -65,12 +68,12 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
   // AFFIXABLE TYPECLASS
   //
 
-  case class Decoration[E <: ElementType](
+  case class Decoration[E <: Element](
     val boundedElement : BoundedElement[E],
     val colorHint : String = "white"
   )
 
-  trait Affixable[A, E <: ElementType] {
+  trait Affixable[A, E <: Element] {
 
     def decoration(a: A) : Decoration[E]
 
@@ -88,7 +91,7 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
 
   }
 
-  trait AffixableFamily[A[_ <: Nat], E <: ElementType] {
+  trait AffixableFamily[A[_ <: Nat], E <: Element] {
     def apply[N <: Nat](n: N) : Affixable[A[N], E]
   }
 
@@ -105,6 +108,47 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
     }
 
   }
+
+  //============================================================================================
+  // TEXT RENDERING
+  //
+
+  def renderTextGroup(str: String, font: ScalaSVGFont, stroke: String, strokeWidth: U, fill: String) : BoundedElement[GroupType] = {
+
+    var advance : U = zero
+    var ascent : U = zero
+    var descent : U = zero
+
+    val glyphMap = font.glyphMap
+
+    val paths : Seq[Element] = (str map (c => {
+
+      if (glyphMap.isDefinedAt(c)) {
+
+        val glyph = glyphMap(c)
+
+        val p = transform(path(glyph.pathStr, stroke, strokeWidth, fill),
+          Transform(advance, zero, fromInt(1), fromInt(-1)))
+
+        advance += fromInt(glyph.advance)
+        ascent = isOrdered.max(ascent, fromInt(glyph.ascent))
+        descent = isOrdered.max(descent, fromInt(glyph.descent))
+
+        Some(p)
+
+      } else None
+
+    })).flatten
+
+    new BoundedElement[GroupType] {
+
+      val element = group(paths: _*)
+      val bounds = BBox(zero, -ascent, advance, ascent + descent)
+
+    }
+
+  }
+
 
 }
 

@@ -12,12 +12,13 @@ import syntax.complex._
 import syntax.suite._
 import TypeLemmas._
 
-trait StaticGalleryFramework[U] { 
-  frmwk : RenderingFramework[U] with PanelFramework[U] with GalleryFramework[U] with StaticPanelFramework[U] =>
+abstract class StaticGalleryFramework[U](implicit isNumeric: Numeric[U], isOrdered: Ordering[U])
+  extends StaticPanelFramework[U] 
+  with GalleryFramework[U] {
 
   import isNumeric._
 
-  class StaticGallery[A[_ <: Nat], E <: ElementType](cfg: GalleryConfig)(val complex : FiniteComplex[A])(implicit r: AffixableFamily[A, E]) 
+  class StaticGallery[A[_ <: Nat], E <: Element](cfg: GalleryConfig)(val complex : FiniteComplex[A])(implicit r: AffixableFamily[A, E]) 
       extends Gallery[A, E](cfg) {
 
     type PanelType[N <: Nat] = StaticPanel[A[N], E, N]
@@ -31,9 +32,9 @@ trait StaticGalleryFramework[U] {
     val panels : Suite[PanelType, S[complex.N]] = 
       createPanels(complex.n)(complex.value)
 
-    val (galleryElement, galleryBounds) : (ElementType, BBox) = {
+    val (galleryElement, galleryBounds) : (Element, BBox) = {
 
-      val panelData : List[(ElementType, BBox)] = 
+      val panelData : List[(Element, BBox)] = 
         extractPanelData(panels).reverse
 
       val maxHeight : U = (panelData map (_._2.height)).max
@@ -41,7 +42,7 @@ trait StaticGalleryFramework[U] {
       var xPos : U = cfg.spacing
 
       // Now you should translate them into place
-      val locatedElements : List[ElementType] = 
+      val locatedElements : List[Element] = 
         for {
           (el, bnds) <- panelData
         } yield {
@@ -59,18 +60,13 @@ trait StaticGalleryFramework[U] {
         }
 
       val bbox : BBox = 
-        new BBox {
-          val x: U = zero
-          val y: U = -maxHeight
-          val width: U = xPos
-          val height: U = maxHeight
-        }
+        BBox(zero, -maxHeight, xPos, maxHeight)
 
       (group(locatedElements : _*), bbox)
 
     }
 
-    def element : ElementType = galleryElement
+    def element : Element = galleryElement
     def bounds: BBox = galleryBounds
 
   }
@@ -81,7 +77,7 @@ trait StaticGalleryFramework[U] {
 
   object StaticGallery {
 
-    def apply[A[_ <: Nat], E <: ElementType](cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A, E]) : StaticGallery[A, E] = 
+    def apply[A[_ <: Nat], E <: Element](cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A, E]) : StaticGallery[A, E] = 
       new StaticGallery(defaultGalleryConfig)(cmplx)
 
   }

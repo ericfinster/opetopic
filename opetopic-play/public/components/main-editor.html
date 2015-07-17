@@ -16,20 +16,24 @@
       @apply(--paper-font-display1);
     }
 
-    <!-- paper-drawer-panel { -->
-    <!--   margin-top: 64px; -->
-    <!-- } -->
+    #menu-pane {
+      border-bottom: 2px solid var(--google-grey-300);
+    }
+
+    #base-pane {
+      border-top: 2px solid var(--google-grey-300);
+    }
 
     #left-pane {
-      border-right: 1px solid var(--google-grey-300);
+      border-right: 2px solid var(--google-grey-300);
     }
 
-    paper-drawer-panel [main] {
+    #right-pane {
+      border-left: 2px solid var(--google-grey-300);
+    }
+
+    #middle-pane {
       background-color: var(--google-grey-100);
-    }
-
-    paper-drawer-panel [drawer] {
-      border-right: 1px solid var(--google-grey-300);
     }
 
   </style>
@@ -44,23 +48,22 @@
 
       <div class="layout vertical flex">
 
-	<div id="menu-pane">
-	  <p>Menu pane</p>
+	<div id="menu-pane" style="height:64px">
 	</div>
 
 	<div class="layout horizontal flex">
 
-	  <div id="left-pane" class="testdiv" style="width:200px">
+	  <div id="left-pane" style="width:200px">
       	    <papnner-menu>
 	      <paper-item>Item 1</paper-item>
 	      <paper-item>Item 2</paper-item>
 	    </paper-menu>
 	  </div>
 
-	  <div id="middle-pane" class="layout vertical flex center testdiv">
+	  <div id="middle-pane" class="layout vertical flex center">
 	  </div>
 
-	  <div id="right-pane" class="testdiv" style="width:200px">
+	  <div id="right-pane" style="width:200px">
       	    <papnner-menu>
 	      <paper-item>Item 1</paper-item>
 	      <paper-item>Item 2</paper-item>
@@ -70,7 +73,6 @@
 	</div>
 
 	<div id="base-pane" style="height:200px">
-	  <p>Base pane</p>
 	</div>
 
       </div>

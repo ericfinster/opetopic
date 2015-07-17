@@ -7,22 +7,6 @@
 
 package opetopic.ui
 
-// object FXSVGBundle
-//     extends scalatags.Text.Cap
-//     with scalatags.text.SvgTags
-//     with scalatags.DataConverters
-//     with scalatags.Text.Aggregate{ object svgattr extends scalatags.Text.Cap with scalatags.Text.SvgAttrs }
-
-// import FXSVGBundle._
-
-// case class BBox(x: Int, y: Int, width: Int, height: Int) {
-
-//   def coordStr : String = 
-//     x.toString ++ " " ++ y.toString ++ " " ++ 
-//       width.toString ++ " " ++ height.toString
-
-// }
-
 trait ScalaSVGFont {
 
   val name: String

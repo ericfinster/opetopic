@@ -22,8 +22,8 @@ trait GalleryFramework[U] { frmwk: RenderingFramework[U] with PanelFramework[U] 
 
   def defaultGalleryConfig: GalleryConfig
 
-  abstract class Gallery[A[_ <: Nat], E <: ElementType](cfg: GalleryConfig)(implicit r: AffixableFamily[A, E]) 
-      extends BoundedElement[ElementType] { thisGallery =>
+  abstract class Gallery[A[_ <: Nat], E <: Element](cfg: GalleryConfig)(implicit r: AffixableFamily[A, E]) 
+      extends BoundedElement[Element] { thisGallery =>
 
     def complex: FiniteComplex[A]
 
@@ -39,12 +39,12 @@ trait GalleryFramework[U] { frmwk: RenderingFramework[U] with PanelFramework[U] 
       case (S(p), Complex(tl, hd)) => createPanels(p)(tl) >> createNestingPanel(p)(hd, tl.head)
     }
 
-    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(ElementType, BBox)] = panels.fold(
-      new IndexedFold[PanelType, List[(ElementType, BBox)]] {
+    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, BBox)] = panels.fold(
+      new IndexedFold[PanelType, List[(Element, BBox)]] {
 
-        def caseZero : List[(ElementType, BBox)] = Nil
+        def caseZero : List[(Element, BBox)] = Nil
 
-        def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(ElementType, BBox)]) : List[(ElementType, BBox)] = 
+        def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(Element, BBox)]) : List[(Element, BBox)] = 
           (panel.element, panel.bounds) :: lst
 
       }

@@ -32,7 +32,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // ABSTRACT PANEL
   //
 
-  abstract class Panel[A, E <: ElementType, N <: Nat](cfg: PanelConfig)(implicit r: Affixable[A, E]) extends BoundedElement[ElementType] { thisPanel =>
+  abstract class Panel[A, E <: Element, N <: Nat](cfg: PanelConfig)(implicit r: Affixable[A, E]) extends BoundedElement[Element] { thisPanel =>
 
     def nesting: Nesting[A, N]
 
@@ -79,7 +79,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     // The box should already contain a component for the label ...
     abstract class CellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) extends Rooted {
 
-      def element: ElementType
+      def element: Element
 
       //
       // Label data
@@ -174,7 +174,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     //
 
 
-    class CellEdge extends EdgeLike {
+    abstract class CellEdge extends EdgeLike {
 
       def pathString : String = {
 
@@ -203,7 +203,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // OBJECT PANEL
   //
 
-  trait ObjectPanel[A, E <: ElementType] { thisPanel : Panel[A, E, _0] =>
+  trait ObjectPanel[A, E <: Element] { thisPanel : Panel[A, E, _0] =>
 
     def layoutObjects(nst : Nesting[CellBox, _0]) : CellBox =
       nst match {
@@ -234,7 +234,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // NESTING PANEL
   //
 
-  trait NestingPanel[A, E <: ElementType, P <: Nat] { thisPanel : Panel[A, E, S[P]] => 
+  trait NestingPanel[A, E <: Element, P <: Nat] { thisPanel : Panel[A, E, S[P]] => 
 
     //============================================================================================
     // EDGE NESTING GENERATION

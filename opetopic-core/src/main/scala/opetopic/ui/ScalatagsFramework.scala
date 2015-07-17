@@ -13,20 +13,16 @@ import scalatags.generic._
 import opetopic._
 
 class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) 
-    extends RenderingFramework[Int] 
-    with PanelFramework[Int] 
-    with StaticPanelFramework[Int] 
-    with GalleryFramework[Int] 
-    with StaticGalleryFramework[Int] {
+    extends StaticGalleryFramework[Int] {
 
   import bundle._
 
-  type ElementType = TypedTag[Builder, Output, FragT]
+  type Element = TypedTag[Builder, Output, FragT]
 
-  type PathType = ElementType
-  type TextType = ElementType
-  type GroupType = ElementType
-  type RectangleType = ElementType
+  type PathType = Element
+  type TextType = Element
+  type GroupType = Element
+  type RectangleType = Element
 
   val defaultPanelConfig =
     PanelConfig(
@@ -42,12 +38,26 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
   def half(i: Int) : Int = i / 2
 
-  def translate(el: ElementType, x: Int, y: Int) : ElementType = {
+  def transform(el: Element, t: Transform) : Element = {
+    import implicits._
+
+    val translateStr = "translate(" ++ t.translateX.toString ++ ", " ++ t.translateY.toString ++ ")"
+    val scaleStr = "scale(" ++ t.scaleX.toString ++ ", " ++ t.scaleY.toString ++ ")"
+
+    el(svgAttrs.transform:=(translateStr ++ " " ++ scaleStr))
+  }
+
+  def translate(el: Element, x: Int, y: Int) : Element = {
     import implicits._
     el(svgAttrs.transform:="translate(" ++ x.toString ++ ", " ++ y.toString ++ ")")
   }
 
-  def group(elems: ElementType*) : GroupType = {
+  def scale(el: Element, x: Int, y: Int) : Element = {
+    import implicits._
+    el(svgAttrs.transform:="scale(" ++ x.toString ++ ", " ++ y.toString ++ ")")
+  }
+
+  def group(elems: Element*) : GroupType = {
     import svgTags._
     g(elems)
   }
@@ -69,63 +79,20 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
   }
 
-  def path(d: String, strokeWidth: Int) : PathType = {
+  def path(d: String, stroke: String, strokeWidth: Int, fill: String) : PathType = {
     import implicits._
 
     svgTags.path(
       svgAttrs.d:=d,
-      svgAttrs.fill:="none",
-      svgAttrs.stroke:="black",
+      svgAttrs.fill:=fill,
+      svgAttrs.stroke:=stroke,
       svgAttrs.strokeWidth:=strokeWidth.toString
     )
-  }
-
-  def text(str: String) : BoundedElement[TextType] = {
-
-    import svgAttrs._
-    import implicits._
-
-    var advance = 0
-    var ascent = 0
-    var descent = 0
-
-    val glyphMap = AsanaMathMain.glyphMap
-
-    val paths : Seq[ElementType] = (str map (c => {
-
-      if (glyphMap.isDefinedAt(c)) {
-
-        val glyph = glyphMap(c)
-
-        val p = svgTags.path(d:=glyph.pathStr,transform:="translate(" ++ advance.toString ++") scale(1,-1)",fill:="black",stroke:="black")
-
-        advance += glyph.advance
-        ascent = Math.max(ascent,glyph.ascent)
-        descent = Math.max(descent,glyph.descent)
-
-        Some(p)
-
-      } else None
-
-    })).flatten
-
-    val bbox = new BBox {
-
-      def x = 0
-      def y = -ascent
-      def width = advance
-      def height = ascent + descent
-
-    }
-
-    new BoundedElement[TextType] {
-
-      val element = svgTags.g(paths)
-      val bounds = bbox
-
-    }
 
   }
+
+  def text(str: String) : BoundedElement[TextType] = 
+    renderTextGroup(str, AsanaMathMain, "black", 1, "black")
 
 }
 
