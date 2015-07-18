@@ -1,5 +1,5 @@
 /**
-  * PanelFramework.scala - A Framework which can render opetopic panels
+  * Panel.scala - Opetopic Panels
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -10,46 +10,45 @@ package opetopic.ui
 import scala.collection.mutable.ListBuffer
 
 import opetopic._
-
 import syntax.tree._
 import syntax.nesting._
 
-trait PanelFramework[U] { frmwk: RenderingFramework[U] => 
+trait HasPanels { self : UIFramework =>
 
   import isNumeric._
 
   case class PanelConfig(
-    val internalPadding : U,
-    val externalPadding : U,
-    val halfLeafWidth : U,
-    val halfStrokeWidth : U,
-    val cornerRadius : U
+    val internalPadding : Size,
+    val externalPadding : Size,
+    val leafWidth : Size,
+    val strokeWidth : Size,
+    val cornerRadius : Size
   )
 
-  def defaultPanelConfig : PanelConfig
+  trait Panel[A, E <: Element, N <: Nat] extends BoundedElement[Element] {
 
-  //============================================================================================
-  // ABSTRACT PANEL
-  //
+    val config : PanelConfig
+    import config._
 
-  abstract class Panel[A, E <: Element, N <: Nat](cfg: PanelConfig)(implicit r: Affixable[A, E]) extends BoundedElement[Element] { thisPanel =>
+    def panelDim: N
+
+    def halfLeafWidth : Size = half(leafWidth)
+    def halfStrokeWidth : Size = half(strokeWidth)
+
+    def affixable : Affixable[A, E]
 
     def nesting: Nesting[A, N]
+    def boxNesting: Nesting[BoxType, N]
 
     //============================================================================================
-    // RENDERING OPTIONS
+    // BOX AND EDGE CONSTRUCTORS
     //
 
-    def internalPadding : U = cfg.internalPadding
-    def externalPadding : U = cfg.externalPadding
+    type BoxType <: CellBox
+    type EdgeType <: CellEdge
 
-    def halfLeafWidth : U = cfg.halfLeafWidth
-    def halfStrokeWidth : U = cfg.halfStrokeWidth
-
-    def fullStrokeWidth = fromInt(2) * halfStrokeWidth
-    def leafWidth = fromInt(2) * halfLeafWidth
-
-    def cornerRadius : U = cfg.cornerRadius
+    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType
+    def cellEdge : EdgeType
 
     //============================================================================================
     // INITIALIZATION
@@ -63,46 +62,33 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
       })
 
     //============================================================================================
-    // BOX AND EDGE CONSTRUCTORS
-    //
-
-    type BoxType <: CellBox
-    type EdgeType <: CellEdge
-
-    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType
-    def cellEdge : EdgeType
-
-    //============================================================================================
     // CELL BOXES
     //
 
     // The box should already contain a component for the label ...
-    abstract class CellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) extends Rooted {
+    trait CellBox extends Rooted with BoundedElement[Element] {
 
-      def element: Element
+      def label: A
+      def address: Address[S[N]]
+      def isExternal : Boolean
 
-      //
-      // Label data
-      //
+      def labelElement : Element
+      def labelBounds : Bounds
+      def colorHint : String
 
-      val (labelElement, labelBBox, colorHint) = {
-        val dec = r.decoration(lbl)
-        (dec.boundedElement.element, dec.boundedElement.bounds, dec.colorHint)
-      }
+      def bounds: Bounds = Bounds(x, y, width, height)
 
       //
       // Mutable Values
       //
 
-      var rootX : U = zero
-      var rootY : U = zero
+      var rootX : Size = zero
+      var rootY : Size = zero
 
-      var isExternal : Boolean = isExt
+      var leftInteriorMargin : Size = zero
+      var rightInteriorMargin : Size = zero
 
-      var leftInteriorMargin : U = zero
-      var rightInteriorMargin : U = zero
-
-      var interiorHeight : U = zero
+      var interiorHeight : Size = zero
 
       // Now that this exists outside and with an index parameter, we should
       // be able to fix things up so that it's not an option in the correct dimensions ..
@@ -112,50 +98,50 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
       // Derived Values
       //
 
-      def x : U = rootX - leftMargin
-      def y : U = rootY - height
+      def x : Size = rootX - leftMargin
+      def y : Size = rootY - height
 
-      def interiorWidth : U = leftInteriorMargin + rightInteriorMargin
+      def interiorWidth : Size = leftInteriorMargin + rightInteriorMargin
 
-      def width : U = leftMargin + rightMargin
-      def height : U =
+      def width : Size = leftMargin + rightMargin
+      def height : Size =
         if (isExternal) {
-          fullStrokeWidth +
+          strokeWidth +
           internalPadding +
           labelHeight +
           internalPadding +
-          fullStrokeWidth
+          strokeWidth
         } else {
-          fullStrokeWidth +
+          strokeWidth +
           interiorHeight +
           internalPadding +
           labelHeight +
           internalPadding +
-          fullStrokeWidth
+          strokeWidth
         }
 
-      def leftMargin : U =
+      def leftMargin : Size =
         if (isExternal) {
-          fullStrokeWidth + internalPadding + halfLabelWidth
+          strokeWidth + internalPadding + halfLabelWidth
         } else {
-          fullStrokeWidth + leftInteriorMargin + internalPadding + fullStrokeWidth
+          strokeWidth + leftInteriorMargin + internalPadding + strokeWidth
         }
 
-      def rightMargin : U =
+      def rightMargin : Size =
         if (isExternal) {
-          halfLabelWidth + internalPadding + fullStrokeWidth
+          halfLabelWidth + internalPadding + strokeWidth
         } else {
           max(
-            internalPadding + labelWidth + internalPadding + fullStrokeWidth,
-            rightInteriorMargin + internalPadding + fullStrokeWidth
+            internalPadding + labelWidth + internalPadding + strokeWidth,
+            rightInteriorMargin + internalPadding + strokeWidth
           )
         }
 
-      def halfLabelWidth : U = labelBBox.halfWidth
-      def halfLabelHeight : U = labelBBox.halfHeight
+      def halfLabelWidth : Size = half(labelBounds.width)
+      def halfLabelHeight : Size = half(labelBounds.height)
 
-      def labelWidth : U = labelBBox.width
-      def labelHeight : U = labelBBox.height
+      def labelWidth : Size = labelBounds.width
+      def labelHeight : Size = labelBounds.height
 
       def clear : Unit = {
         rootX = zero
@@ -174,7 +160,20 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     //
 
 
-    abstract class CellEdge extends EdgeLike {
+    trait CellEdge extends EdgeLike with BoundedElement[Element] {
+
+      def bounds: Bounds = {
+
+        val (x, width) =
+          if (isOrdered.gt(edgeEndX, edgeStartX)) {
+            (edgeStartX, edgeEndX - edgeStartX)
+          } else {
+            (edgeStartX, edgeStartX - edgeEndX)
+          }
+
+        Bounds(x, edgeStartY, width, edgeEndY - edgeStartY)
+
+      }
 
       def pathString : String = {
 
@@ -197,13 +196,162 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
 
     }
 
+    //============================================================================================
+    // ROOTED HELPER TRAIT
+    //
+
+    trait Rooted {
+
+      var rootX : Size
+      var rootY : Size
+
+      val horizontalDependants : ListBuffer[Rooted] = ListBuffer.empty
+      val verticalDependants : ListBuffer[Rooted] = ListBuffer.empty
+
+      def shiftRight(amount : Size) : Unit = {
+        if (amount != 0) {
+          rootX = (rootX + amount)
+          horizontalDependants foreach (_.shiftRight(amount))
+        }
+      }
+
+      def shiftDown(amount : Size) : Unit = {
+        if (amount != 0) {
+          rootY = (rootY + amount)
+          verticalDependants foreach (_.shiftDown(amount))
+        }
+      }
+
+      def shiftLeft(amount : Size) : Unit = shiftRight(-amount)
+      def shiftUp(amount : Size) : Unit = shiftDown(-amount)
+
+    }
+
+    //============================================================================================
+    // EDGE HELPERS
+    //
+
+    trait EdgeLike {
+
+      var edgeStartX : Size = zero
+      var edgeStartY : Size = zero
+
+      var edgeEndX : Size = zero
+      var edgeEndY : Size = zero
+
+    }
+
+    class EdgeStartMarker(edge : EdgeLike) extends Rooted {
+
+      def rootX : Size = edge.edgeStartX
+      def rootX_=(u : Size) : Unit =
+        edge.edgeStartX = u
+
+      def rootY : Size = edge.edgeStartY
+      def rootY_=(u : Size) : Unit =
+        edge.edgeStartY = u
+
+    }
+
+    class EdgeEndMarker(edge : EdgeLike) extends Rooted {
+
+      def rootX : Size = edge.edgeEndX
+      def rootX_=(u : Size) : Unit =
+        edge.edgeEndX = u
+
+      def rootY : Size = edge.edgeEndY
+      def rootY_=(u : Size) : Unit =
+        edge.edgeEndY = u
+
+    }
+
+    //============================================================================================
+    // LAYOUT MARKER HELPER CLASS
+    //
+
+    // Why don't you clean this up and make it a case class?  This complicated version
+    // is really unnecessary .....
+
+    abstract class LayoutMarker { thisMarker =>
+
+      val element : Rooted
+      val exterior : Boolean  // This is really a bad name for this .. you should change it
+
+      val rootEdge : EdgeLike
+
+      def height : Size = zero
+
+      def leftSubtreeMargin : Size = zero
+      def rightSubtreeMargin : Size = zero
+      def leftInternalMargin : Size = zero
+      def rightInternalMargin : Size = zero
+
+      def leftMargin : Size = leftSubtreeMargin + leftInternalMargin
+      def rightMargin : Size = rightSubtreeMargin + rightInternalMargin
+
+      def leftEdge : Size = element.rootX - leftMargin
+      def rightEdge : Size = element.rootX + rightMargin
+
+      // Truncations
+
+      def truncateLeft : LayoutMarker =
+        new LayoutMarker {
+          val element = thisMarker.element
+          val exterior = true
+          val rootEdge = thisMarker.rootEdge
+          override def rightSubtreeMargin = thisMarker.rightSubtreeMargin
+          override def rightInternalMargin = thisMarker.rightInternalMargin
+        }
+
+      def truncateRight : LayoutMarker =
+        new LayoutMarker {
+          val element = thisMarker.element
+          val exterior = true
+          val rootEdge = thisMarker.rootEdge
+          override def leftSubtreeMargin = thisMarker.leftSubtreeMargin
+          override def leftInternalMargin = thisMarker.leftInternalMargin
+        }
+
+      def truncateUnique : LayoutMarker =
+        new LayoutMarker {
+          val element = thisMarker.element
+          val rootEdge = thisMarker.rootEdge
+          val exterior = true
+        }
+
+      def truncateMiddle : LayoutMarker =
+        new LayoutMarker {
+          val element = thisMarker.element
+          val exterior = true
+          val rootEdge = thisMarker.rootEdge
+          override def leftSubtreeMargin = thisMarker.leftSubtreeMargin
+          override def rightSubtreeMargin = thisMarker.rightSubtreeMargin
+          override def leftInternalMargin = thisMarker.leftInternalMargin
+          override def rightInternalMargin = thisMarker.rightInternalMargin
+        }
+
+      override def toString = "LM(" ++ element.toString ++ ")" ++
+      "(we = " ++ exterior.toString ++ ", ht = " ++ height.toString ++
+      ", re = " ++ rootEdge.toString ++
+      ", rx = " ++ element.rootX.toString ++
+      ", ry = " ++ element.rootY.toString ++
+      ", lsm = " ++ leftSubtreeMargin.toString ++
+      ", lim = " ++ leftInternalMargin.toString ++
+      ", rim = " ++ rightInternalMargin.toString ++
+      ", rsm = " ++ rightSubtreeMargin.toString ++ ")"
+
+    }
+
   }
 
+
   //============================================================================================
-  // OBJECT PANEL
+  // OBJECT PANELS
   //
 
-  trait ObjectPanel[A, E <: Element] { thisPanel : Panel[A, E, _0] =>
+  trait ObjectPanel[A, E <: Element] extends Panel[A, E, _0] {
+
+    import config._
 
     def layoutObjects(nst : Nesting[CellBox, _0]) : CellBox =
       nst match {
@@ -218,7 +366,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
           b.rightInteriorMargin = internalMarker.rightMargin
           b.interiorHeight = internalMarker.height + internalPadding
 
-          internalMarker.shiftUp(fullStrokeWidth + b.labelHeight + internalPadding + internalPadding)
+          internalMarker.shiftUp(strokeWidth + b.labelHeight + internalPadding + internalPadding)
 
           b.horizontalDependants += internalMarker
           b.verticalDependants += internalMarker
@@ -234,7 +382,11 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
   // NESTING PANEL
   //
 
-  trait NestingPanel[A, E <: Element, P <: Nat] { thisPanel : Panel[A, E, S[P]] => 
+  trait NestingPanel[A, E <: Element, P <: Nat] extends Panel[A, E, S[P]] {
+
+    import config._
+
+    def edgeNesting: Nesting[EdgeType, P]
 
     //============================================================================================
     // EDGE NESTING GENERATION
@@ -317,7 +469,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
     // LAYOUT
     //
 
-    def layout(nst: Nesting[BoxType, S[P]], et: Nesting[EdgeType, P]) : Unit = 
+    def layout(nst: Nesting[BoxType, S[P]], et: Nesting[EdgeType, P]) : Unit =
       for {
         elt <- edgeLayoutTree(et)
         mk <- layoutNesting(nst, elt)
@@ -412,7 +564,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
                   val leftChildShift = max(midLeftOffset + externalPadding + leftChild.rightMargin, bx.leftMargin + externalPadding)
                   val rightChildShift = max(midRightOffset + externalPadding + rightChild.leftMargin, bx.rightMargin + externalPadding)
 
-                  def doLeftPlacement(marker : LayoutMarker, shift : U) : Unit = {
+                  def doLeftPlacement(marker : LayoutMarker, shift : Size) : Unit = {
 
                     marker.element.shiftLeft(shift)
                     bx.horizontalDependants += marker.element
@@ -420,14 +572,14 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
                     val edgeMarker = new EdgeEndMarker(marker.rootEdge)
 
                     marker.rootEdge.edgeEndX = bx.x
-                    marker.rootEdge.edgeEndY = bx.y + fullStrokeWidth + internalPadding + bx.halfLabelHeight
+                    marker.rootEdge.edgeEndY = bx.y + strokeWidth + internalPadding + bx.halfLabelHeight
 
                     bx.horizontalDependants += edgeMarker
                     bx.verticalDependants += edgeMarker
 
                   }
 
-                  def doRightPlacement(marker : LayoutMarker, shift : U) : Unit = {
+                  def doRightPlacement(marker : LayoutMarker, shift : Size) : Unit = {
 
                     marker.element.shiftRight(shift)
                     bx.horizontalDependants += marker.element
@@ -435,7 +587,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
                     val edgeMarker = new EdgeEndMarker(marker.rootEdge)
 
                     marker.rootEdge.edgeEndX = bx.x + bx.width
-                    marker.rootEdge.edgeEndY = bx.y + fullStrokeWidth + internalPadding + bx.halfLabelHeight
+                    marker.rootEdge.edgeEndY = bx.y + strokeWidth + internalPadding + bx.halfLabelHeight
 
                     bx.horizontalDependants += edgeMarker
                     bx.verticalDependants += edgeMarker
@@ -593,7 +745,7 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
             bx.horizontalDependants += layout.element
 
             if (! layout.exterior) {
-              layout.element.shiftUp(fullStrokeWidth + bx.labelHeight + internalPadding + internalPadding)
+              layout.element.shiftUp(strokeWidth + bx.labelHeight + internalPadding + internalPadding)
               bx.verticalDependants += layout.element
             }
 
@@ -615,152 +767,6 @@ trait PanelFramework[U] { frmwk: RenderingFramework[U] =>
           }
         }
       }
-
-  }
-
-  //============================================================================================
-  // ROOTED HELPER TRAIT
-  //
-
-  trait Rooted {
-
-    var rootX : U
-    var rootY : U
-
-    val horizontalDependants : ListBuffer[Rooted] = ListBuffer.empty
-    val verticalDependants : ListBuffer[Rooted] = ListBuffer.empty
-
-    def shiftRight(amount : U) : Unit = {
-      if (amount != 0) {
-        rootX = (rootX + amount)
-        horizontalDependants foreach (_.shiftRight(amount))
-      }
-    }
-
-    def shiftDown(amount : U) : Unit = {
-      if (amount != 0) {
-        rootY = (rootY + amount)
-        verticalDependants foreach (_.shiftDown(amount))
-      }
-    }
-
-    def shiftLeft(amount : U) : Unit = shiftRight(-amount)
-    def shiftUp(amount : U) : Unit = shiftDown(-amount)
-
-  }
-
-  //============================================================================================
-  // LAYOUT MARKER HELPER CLASS
-  //
-
-  // Why don't you clean this up and make it a case class?  This complicated version
-  // is really unnecessary .....
-
-  abstract class LayoutMarker { thisMarker =>
-
-    val element : Rooted
-    val exterior : Boolean  // This is really a bad name for this .. you should change it
-
-    val rootEdge : EdgeLike
-
-    def height : U = zero
-
-    def leftSubtreeMargin : U = zero
-    def rightSubtreeMargin : U = zero
-    def leftInternalMargin : U = zero
-    def rightInternalMargin : U = zero
-
-    def leftMargin : U = leftSubtreeMargin + leftInternalMargin
-    def rightMargin : U = rightSubtreeMargin + rightInternalMargin
-
-    def leftEdge : U = element.rootX - leftMargin
-    def rightEdge : U = element.rootX + rightMargin
-
-    // Truncations
-
-    def truncateLeft : LayoutMarker =
-      new LayoutMarker {
-        val element = thisMarker.element
-        val exterior = true
-        val rootEdge = thisMarker.rootEdge
-        override def rightSubtreeMargin = thisMarker.rightSubtreeMargin
-        override def rightInternalMargin = thisMarker.rightInternalMargin
-      }
-
-    def truncateRight : LayoutMarker =
-      new LayoutMarker {
-        val element = thisMarker.element
-        val exterior = true
-        val rootEdge = thisMarker.rootEdge
-        override def leftSubtreeMargin = thisMarker.leftSubtreeMargin
-        override def leftInternalMargin = thisMarker.leftInternalMargin
-      }
-
-    def truncateUnique : LayoutMarker =
-      new LayoutMarker {
-        val element = thisMarker.element
-        val rootEdge = thisMarker.rootEdge
-        val exterior = true
-      }
-
-    def truncateMiddle : LayoutMarker =
-      new LayoutMarker {
-        val element = thisMarker.element
-        val exterior = true
-        val rootEdge = thisMarker.rootEdge
-        override def leftSubtreeMargin = thisMarker.leftSubtreeMargin
-        override def rightSubtreeMargin = thisMarker.rightSubtreeMargin
-        override def leftInternalMargin = thisMarker.leftInternalMargin
-        override def rightInternalMargin = thisMarker.rightInternalMargin
-      }
-
-    override def toString = "LM(" ++ element.toString ++ ")" ++
-    "(we = " ++ exterior.toString ++ ", ht = " ++ height.toString ++
-    ", re = " ++ rootEdge.toString ++
-    ", rx = " ++ element.rootX.toString ++
-    ", ry = " ++ element.rootY.toString ++
-    ", lsm = " ++ leftSubtreeMargin.toString ++
-    ", lim = " ++ leftInternalMargin.toString ++
-    ", rim = " ++ rightInternalMargin.toString ++
-    ", rsm = " ++ rightSubtreeMargin.toString ++ ")"
-
-  }
-
-  //============================================================================================
-  // EDGE HELPERS
-  //
-
-  trait EdgeLike {
-
-    var edgeStartX : U = zero
-    var edgeStartY : U = zero
-
-    var edgeEndX : U = zero
-    var edgeEndY : U = zero
-
-  }
-
-  class EdgeStartMarker(edge : EdgeLike) extends Rooted {
-
-    def rootX : U = edge.edgeStartX
-    def rootX_=(u : U) : Unit =
-      edge.edgeStartX = u
-
-    def rootY : U = edge.edgeStartY
-    def rootY_=(u : U) : Unit =
-      edge.edgeStartY = u
-
-  }
-
-  class EdgeEndMarker(edge : EdgeLike) extends Rooted {
-
-    def rootX : U = edge.edgeEndX
-    def rootX_=(u : U) : Unit =
-      edge.edgeEndX = u
-
-    def rootY : U = edge.edgeEndY
-    def rootY_=(u : U) : Unit =
-      edge.edgeEndY = u
 
   }
 

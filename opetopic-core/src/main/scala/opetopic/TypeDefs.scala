@@ -30,6 +30,11 @@ trait TypeDefs extends NatConstants {
   def succeed[A](a: A) : ShapeM[A] = 
     \/-(a)
 
+  def toOpt[A](s: ShapeM[A]) : Option[A] = 
+    s match {
+      case -\/(_) => None
+      case \/-(a) => Some(a)
+    }
 
   def fromOpt[A](opt: Option[A], se: ShapeError) : ShapeM[A] = 
     opt match {

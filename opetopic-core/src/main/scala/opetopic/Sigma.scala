@@ -29,3 +29,22 @@ object Sigma {
 
 }
 
+trait SuccSigma[T[_ <: Nat]] {
+
+  type P <: Nat
+  val p : P
+
+  val value : T[S[P]]
+
+}
+
+object SuccSigma {
+
+  def apply[T[_ <: Nat], Q <: Nat](q: Q)(sv: T[S[Q]]) : SuccSigma[T] = 
+    new SuccSigma[T] {
+      type P = Q
+      val p = q
+      val value = sv
+    }
+
+}

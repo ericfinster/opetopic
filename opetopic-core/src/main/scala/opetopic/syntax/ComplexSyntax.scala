@@ -93,12 +93,6 @@ trait ToComplexOps {
     new ComplexOps[({ type L[K <: Nat] = Complex[A, K] })#L, N](dc)
 
   implicit def complexToFiniteComplex[A[_ <: Nat], D <: Nat](cmplx: Complex[A, D]) : FiniteComplex[A] = 
-    new Sigma[({ type L[K <: Nat] = Complex[A, K] })#L] {
-
-      type N = D
-      val n = cmplx.length.pred
-      val value = cmplx
-
-    }
+    Sigma[Lambda[`N <: Nat` => Complex[A, N]], D](cmplx.length.pred)(cmplx)
 
 }

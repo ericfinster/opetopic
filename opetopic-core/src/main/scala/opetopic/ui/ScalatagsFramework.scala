@@ -1,5 +1,5 @@
 /**
-  * ScalatagsFramework.scala - Backend for Scalatags Generation
+  * ScalatagsFramework.scala - Scalatags framework implementation
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -13,28 +13,20 @@ import scalatags.generic._
 import opetopic._
 
 class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) 
-    extends StaticGalleryFramework[Int] {
+    extends UIFramework with HasStaticGalleries {
 
   import bundle._
 
+  type Size = Int
   type Element = TypedTag[Builder, Output, FragT]
+
+  val isNumeric: Numeric[Int] = implicitly[Numeric[Int]]
+  val isOrdered: Ordering[Int] = implicitly[Ordering[Int]]
 
   type PathType = Element
   type TextType = Element
   type GroupType = Element
   type RectangleType = Element
-
-  val defaultPanelConfig =
-    PanelConfig(
-      internalPadding = 200,
-      externalPadding = 400,
-      halfLeafWidth = 50,
-      halfStrokeWidth = 30,
-      cornerRadius = 100
-    )
-
-  val defaultGalleryConfig = 
-    GalleryConfig(defaultPanelConfig, 800)
 
   def half(i: Int) : Int = i / 2
 
@@ -55,6 +47,11 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
   def scale(el: Element, x: Int, y: Int) : Element = {
     import implicits._
     el(svgAttrs.transform:="scale(" ++ x.toString ++ ", " ++ y.toString ++ ")")
+  }
+
+  def makeMouseInvisible(el: Element) : Element = {
+    import implicits._
+    el(svgAttrs.pointerEvents:="none")
   }
 
   def group(elems: Element*) : GroupType = {

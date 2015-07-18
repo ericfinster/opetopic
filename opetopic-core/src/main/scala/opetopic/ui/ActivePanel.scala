@@ -10,70 +10,63 @@ package opetopic.ui
 import opetopic._
 import syntax.nesting._
 
-trait ActivePanelFramework[U] { frmwk: ActiveFramework[U] with PanelFramework[U] =>
+trait HasActivePanels extends HasPanels { self : ActiveFramework =>
 
   import isNumeric._
 
-  // It would be nice to take the initial nesting out of the constructor so that 
-  // the memory can be freed.  That is, we should start with an empty panel ....
-  abstract class ActivePanel[A, E <: Element, N <: Nat](cfg: PanelConfig)(nst: Nesting[A, N])(implicit r: Affixable[A, E])
-    extends Panel[A, E, N](cfg) {
+  trait ActivePanel[A, E <: Element, N <: Nat] extends Panel[A, E, N] {
+
+    import config._
 
     val panelGroup = group
     val element = panelGroup
-
-    // This will be stateful since we expect
-    // active panels to be able to update ...
-    var nesting = nst
-    var boxNesting = generateBoxes(nst.dim)(nst)
       
-    var needsLayout : Boolean = true
-    var needsRefresh : Boolean = true
+    type BoxType <: ActiveCellBox
+    type EdgeType <: ActiveCellEdge
 
-    type BoxType = ActiveCellBox
-    type EdgeType = ActiveCellEdge
-
-    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType = 
-      new ActiveCellBox(lbl, addr, isExt)
-
-    def cellEdge : EdgeType = 
-      new ActiveCellEdge
-
-    class ActiveCellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) extends CellBox(lbl, addr, isExt) {
+    trait ActiveCellBox extends CellBox {
 
       val boxRect = {
         val r = rect
         r.r = cornerRadius
         r.stroke = "black"
-        r.strokeWidth = fullStrokeWidth
-        r.fill = colorHint
+        r.strokeWidth = strokeWidth
         r
       }
 
-      val boxGroup = group(boxRect, labelElement)
+      boxRect.onClick = { (e : UIEventType) => println("Clicked on cell " ++ label.toString) }
+      boxRect.onMouseOver = { (e : UIEventType) => boxRect.fill = "blue" }
+      boxRect.onMouseOut = { (e : UIEventType) => boxRect.fill = "white" }
 
+      val boxGroup = group
       val element = boxGroup
 
       def render : Unit = {
 
+        // We need a more systematic approach to handling the
+        // child tree structure ...
+        boxRect.fill = colorHint
+        boxGroup.children = Seq(boxRect, labelElement)
+
         boxRect.x = x ; boxRect.y = y ; boxRect.width = width ; boxRect.height = height
 
-        val labelXPos = x + width - fullStrokeWidth - internalPadding - labelWidth
-        val labelYPos = y + height - fullStrokeWidth - internalPadding - labelHeight
+        val labelXPos = x + width - strokeWidth - internalPadding - labelWidth
+        val labelYPos = y + height - strokeWidth - internalPadding - labelHeight
 
-        translate(labelElement, labelXPos - labelBBox.x, labelYPos - labelBBox.y)
+        translate(labelElement, labelXPos - labelBounds.x, labelYPos - labelBounds.y)
 
       }
 
     }
 
-    class ActiveCellEdge extends CellEdge {
+    trait ActiveCellEdge extends CellEdge {
 
       val edgePath = {
         val p = path
         p.stroke = "black"
-        p.strokeWidth = fullStrokeWidth
+        p.strokeWidth = strokeWidth
         p.fill = "none"
+        makeMouseInvisible(p)
         p
       }
 
@@ -87,23 +80,27 @@ trait ActivePanelFramework[U] { frmwk: ActiveFramework[U] with PanelFramework[U]
 
   }
 
-  class ActiveObjectPanel[A, E <: Element](cfg: PanelConfig)(nst: Nesting[A, _0])(implicit r: Affixable[A, E]) 
-      extends ActivePanel[A, E, _0](cfg)(nst) with ObjectPanel[A, E] {
+  trait ActiveObjectPanel[A, E <: Element] extends ObjectPanel[A, E] {
+    self : ActivePanel[A, E, _0] =>
 
-    def bounds: BBox = {
+    def bounds: Bounds = {
       val baseBox = boxNesting.baseValue
-      BBox(baseBox.x, baseBox.y, baseBox.width, baseBox.height)
+      Bounds(baseBox.x, baseBox.y, baseBox.width, baseBox.height)
     }
 
-    layoutObjects(boxNesting)
-    panelGroup.children = (boxNesting.nodes map (b => { b.render ; b.element }))
+    def refresh: Unit = {
+      layoutObjects(boxNesting)
+      panelGroup.children = (boxNesting.nodes map (b => { b.render ; b.element }))
+    }
 
   }
 
-  class ActiveNestingPanel[A, B, E <: Element, P <: Nat](cfg: PanelConfig)(nst: Nesting[A, S[P]], edgeOpt : Option[Nesting[B, P]])(implicit r: Affixable[A, E]) 
-      extends ActivePanel[A, E, S[P]](cfg)(nst) with NestingPanel[A, E, P] {
+  trait ActiveNestingPanel[A, E <: Element, P <: Nat] extends NestingPanel[A, E, P] {
+    self : ActivePanel[A, E, S[P]] =>
 
-    def bounds: BBox = {
+    import config._
+
+    def bounds: Bounds = {
       val baseBox = boxNesting.baseValue
 
       val (panelX, panelWidth) = 
@@ -122,19 +119,13 @@ trait ActivePanelFramework[U] { frmwk: ActiveFramework[U] with PanelFramework[U]
           case Box(box, _) => (box.x, box.width)
         }
 
-      BBox(
+      Bounds(
         panelX,
         baseBox.y - (fromInt(2) * externalPadding),
         panelWidth,
         baseBox.height + (fromInt(4) * externalPadding)
       )
     }
-
-    val edgeNesting : Nesting[EdgeType, P] =
-      edgeOpt match {
-        case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
-        case Some(et) => connectEdges(et, boxNesting)
-      }
 
     def collectNodes : Unit = {
       val (externalNodes, internalNodes) = boxNesting.nodes.partition(_.isExternal)
@@ -145,8 +136,64 @@ trait ActivePanelFramework[U] { frmwk: ActiveFramework[U] with PanelFramework[U]
           externalNodes.map(b => { b.render ; b.element})
     }
 
-    layout(boxNesting, edgeNesting)
-    collectNodes
+    def refresh: Unit = {
+      layout(boxNesting, edgeNesting)
+      collectNodes
+    }
+
+  }
+
+  abstract class SimpleActivePanel[A, E <: Element, N <: Nat] extends ActivePanel[A, E, N] {
+
+    type BoxType = ActiveCellBox
+    type EdgeType = ActiveCellEdge
+
+    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType =
+      new SimpleActiveCellBox(lbl, addr, isExt)
+
+    def cellEdge : EdgeType =
+      new SimpleActiveCellEdge
+
+    class SimpleActiveCellBox(val label: A, val address: Address[S[N]], val isExternal: Boolean) extends ActiveCellBox {
+
+      val (labelElement, labelBounds, colorHint) = {
+        val dec = affixable.decoration(label)
+        (dec.boundedElement.element, dec.boundedElement.bounds, dec.colorHint)
+      }
+
+      makeMouseInvisible(labelElement)
+
+    }
+
+    class SimpleActiveCellEdge extends ActiveCellEdge 
+
+  }
+
+  class SimpleActiveObjectPanel[A, E <: Element](val config: PanelConfig, val nesting: Nesting[A, _0])(implicit val affixable: Affixable[A, E])
+      extends SimpleActivePanel[A, E, _0] with ActiveObjectPanel[A, E] { 
+
+    def panelDim = Z
+    val boxNesting = generateBoxes(nesting.dim)(nesting)
+    refresh 
+
+  }
+
+  class SimpleActiveNestingPanel[A, B, E <: Element, P <: Nat](p: P)(
+    val config: PanelConfig,
+    val nesting: Nesting[A, S[P]], 
+    edgeOpt : Option[Nesting[B, P]]
+  )(implicit val affixable: Affixable[A, E]) extends SimpleActivePanel[A, E, S[P]] with ActiveNestingPanel[A, E, P] {
+
+    def panelDim = S(p)
+    val boxNesting = generateBoxes(nesting.dim)(nesting)
+
+    val edgeNesting : Nesting[EdgeType, P] =
+      edgeOpt match {
+        case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
+        case Some(et) => connectEdges(et, boxNesting)
+      }
+
+    refresh
 
   }
 
@@ -157,16 +204,16 @@ trait ActivePanelFramework[U] { frmwk: ActiveFramework[U] with PanelFramework[U]
   object ActivePanel {
 
     @natElim
-    def apply[A, E <: Element, N <: Nat](n: N)(nst: Nesting[A, N])(implicit r: Affixable[A, E]) : ActivePanel[A, E, N] = {
-      case (Z, nst) => new ActiveObjectPanel(defaultPanelConfig)(nst)
-      case (S(p), nst) => new ActiveNestingPanel(defaultPanelConfig)(nst, None)
+    def apply[A, E <: Element, N <: Nat](n: N)(nst: Nesting[A, N])(implicit cfg: PanelConfig, r: Affixable[A, E]) : ActivePanel[A, E, N] = {
+      case (Z, nst) => new SimpleActiveObjectPanel(cfg, nst)
+      case (S(p), nst) => new SimpleActiveNestingPanel(p)(cfg, nst, None)
     }
 
-    def apply[A, E <: Element, N <: Nat](nst: Nesting[A, N])(implicit r: Affixable[A, E]) : ActivePanel[A, E, N] = 
+    def apply[A, E <: Element, N <: Nat](nst: Nesting[A, N])(implicit cfg: PanelConfig, r: Affixable[A, E]) : ActivePanel[A, E, N] = 
       ActivePanel(nst.dim)(nst)
 
-    def apply[A, E <: Element, P <: Nat](nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit r: Affixable[A, E]) : ActivePanel[A, E, S[P]] = 
-      new ActiveNestingPanel(defaultPanelConfig)(nst, Some(et))
+    def apply[A, E <: Element, P <: Nat](nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit cfg: PanelConfig, r: Affixable[A, E]) : ActivePanel[A, E, S[P]] = 
+      new SimpleActiveNestingPanel(et.dim)(cfg, nst, Some(et))
 
   }
 

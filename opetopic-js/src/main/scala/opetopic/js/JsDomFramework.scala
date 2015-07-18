@@ -18,22 +18,31 @@ import org.scalajs.dom.raw.SVGTransformable
 
 import opetopic.ui._
 
-object JsDomFramework extends ActiveFramework[Int] with PanelFramework[Int] with ActivePanelFramework[Int] {
+object JsDomFramework extends ActiveFramework with HasActiveGalleries {
 
   val svgns = "http://www.w3.org/2000/svg"
 
-  val defaultPanelConfig =
+  implicit val defaultPanelConfig =
     PanelConfig(
       internalPadding = 200,
       externalPadding = 400,
-      halfLeafWidth = 50,
-      halfStrokeWidth = 30,
+      leafWidth = 100,
+      strokeWidth = 60,
       cornerRadius = 100
     )
+
+  implicit val defaultGalleryConfig =
+    GalleryConfig(defaultPanelConfig, 800)
+
+  val isNumeric: Numeric[Int] = implicitly[Numeric[Int]]
+  val isOrdered: Ordering[Int] = implicitly[Ordering[Int]]
+
+  type Size = Int
 
   def half(u: Int) : Int = u / 2
 
   type UIElementType = SVGElement
+  type UIEventType = Event
 
   type PathType = JsDomPath
   type TextType = JsDomText
@@ -49,6 +58,20 @@ object JsDomFramework extends ActiveFramework[Int] with PanelFramework[Int] with
       uiElement.setAttributeNS(null, "transform", translateStr ++ " " ++ scaleStr)
     }
 
+    var onClick : Event => Unit = { _ => () }
+    var onMouseOut : Event => Unit = { _ => () }
+    var onMouseOver : Event => Unit = { _ => () }
+
+    def installHandlers(el: SVGElement) : Unit = {
+      el.onclick = { (e : Event) => onClick(e) }
+      el.onmouseover = { (e : Event) => onMouseOver(e) }
+      el.onmouseout = { (e : Event) => onMouseOut(e) }
+    }
+
+  }
+
+  def makeMouseInvisible(el: Element) : Element = {
+    el.uiElement.setAttributeNS(null, "pointer-events", "none") ; el
   }
 
   //============================================================================================
@@ -71,6 +94,8 @@ object JsDomFramework extends ActiveFramework[Int] with PanelFramework[Int] with
     val svgRect = 
       document.createElementNS(svgns, "rect").
         asInstanceOf[SVGRectElement]
+
+    installHandlers(svgRect)
 
     val uiElement = svgRect
 
@@ -202,7 +227,7 @@ object JsDomFramework extends ActiveFramework[Int] with PanelFramework[Int] with
     def uiElement = myGroup.svgGroup
 
     private var myText: String = ""
-    private var myBounds: BBox = BBox(0,0,0,0)
+    private var myBounds: Bounds = Bounds(0,0,0,0)
     private var myGroup: JsDomGroup = null
 
     def text: String = myText 
@@ -217,7 +242,7 @@ object JsDomFramework extends ActiveFramework[Int] with PanelFramework[Int] with
 
     }
 
-    def bounds: BBox = myBounds
+    def bounds: Bounds = myBounds
 
   }
 

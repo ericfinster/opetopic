@@ -1,5 +1,5 @@
 /**
-  * RenderingFramework.scala - An abstraction of required tools for rendering opetopic diagrams
+  * UIFramework.scala - Generic UI Backend for Opetopic Displays
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -9,59 +9,74 @@ package opetopic.ui
 
 import opetopic._
 
-abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isOrdered: Ordering[U]) {
+abstract class UIFramework {
 
-  import isNumeric._
-
-  type Element 
+  type Size
+  type Element
 
   type PathType <: Element
   type TextType <: Element
   type GroupType <: Element
   type RectangleType <: Element
 
+  implicit val isNumeric: Numeric[Size]
+  implicit val isOrdered: Ordering[Size]
+
+  import isNumeric._
+
   //============================================================================================
-  // CANVAS API
+  // CANVAS ELEMENTS
   //
 
-  def half(u: U) : U
-
   def group(elem: Element*) : GroupType
-  def rect(x: U, y: U, width:U, height: U, r: U, stroke: String, strokeWidth: U, fill: String) : RectangleType
-  def path(d: String, stroke: String, strokeWidth: U, fill: String) : PathType
+  def rect(x: Size, y: Size, width: Size, height: Size, r: Size, stroke: String, strokeWidth: Size, fill: String) : RectangleType
+  def path(d: String, stroke: String, strokeWidth: Size, fill: String) : PathType
   def text(str: String) : BoundedElement[TextType]
 
   case class Transform(
-    val translateX : U,
-    val translateY : U,
-    val scaleX : U,
-    val scaleY : U
+    val translateX : Size,
+    val translateY : Size,
+    val scaleX : Size,
+    val scaleY : Size
   ) 
 
   def transform(el: Element, t: Transform) : Element
-  def translate(el: Element, x: U, y: U) : Element
-  def scale(el: Element, x: U, y: U) : Element
+  def translate(el: Element, x: Size, y: Size) : Element
+  def scale(el: Element, x: Size, y: Size) : Element
+
+  def makeMouseInvisible(el: Element) : Element
 
   //============================================================================================
-  // BOUNDS
+  // BOUNDS AND SIZES
   //
 
-  abstract class BoundedElement[E <: Element] {
+  def half(size: Size) : Size
 
-    def element: E
-    def bounds: BBox
-
-  }
-
-  case class BBox(val x: U, val y: U, val width: U, val height: U) {
-
-    def halfWidth: U = half(width)
-    def halfHeight: U = half(height)
+  case class Bounds(
+    val x: Size,
+    val y: Size,
+    val width: Size,
+    val height: Size
+  ) {
 
     def dimString: String = 
       x.toString ++ " " ++ y.toString ++ " " ++
         width.toString ++ " " ++ height.toString
 
+  }
+
+  trait BoundedElement[E <: Element] {
+    def element: E
+    def bounds: Bounds
+  }
+
+  object BoundedElement {
+
+    def apply[E <: Element](el: E, bnds: Bounds) = 
+      new BoundedElement[E] {
+        val element = el
+        val bounds = bnds
+      }
   }
 
   //============================================================================================
@@ -74,9 +89,7 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
   )
 
   trait Affixable[A, E <: Element] {
-
     def decoration(a: A) : Decoration[E]
-
   }
 
   object Affixable {
@@ -113,11 +126,11 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
   // TEXT RENDERING
   //
 
-  def renderTextGroup(str: String, font: ScalaSVGFont, stroke: String, strokeWidth: U, fill: String) : BoundedElement[GroupType] = {
+  def renderTextGroup(str: String, font: ScalaSVGFont, stroke: String, strokeWidth: Size, fill: String) : BoundedElement[GroupType] = {
 
-    var advance : U = zero
-    var ascent : U = zero
-    var descent : U = zero
+    var advance : Size = zero
+    var ascent : Size = zero
+    var descent : Size = zero
 
     val glyphMap = font.glyphMap
 
@@ -140,15 +153,11 @@ abstract class RenderingFramework[U](implicit val isNumeric: Numeric[U], val isO
 
     })).flatten
 
-    new BoundedElement[GroupType] {
-
-      val element = group(paths: _*)
-      val bounds = BBox(zero, -ascent, advance, ascent + descent)
-
-    }
+    BoundedElement(
+      group(paths: _*),
+      Bounds(zero, -ascent, advance, ascent + descent)
+    )
 
   }
 
-
 }
-

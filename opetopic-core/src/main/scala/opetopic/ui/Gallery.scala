@@ -11,24 +11,26 @@ import opetopic._
 import syntax.suite._
 import syntax.complex._
 
-trait GalleryFramework[U] { frmwk: RenderingFramework[U] with PanelFramework[U] =>
+trait HasGalleries extends HasPanels { self: UIFramework => 
 
   import isNumeric._
 
   case class GalleryConfig(
     val panelConfig: PanelConfig,
-    val spacing : U
+    val spacing : Size
   )
 
-  def defaultGalleryConfig: GalleryConfig
+  trait Gallery[A[_ <: Nat], E <: Element] {
 
-  abstract class Gallery[A[_ <: Nat], E <: Element](cfg: GalleryConfig)(implicit r: AffixableFamily[A, E]) 
-      extends BoundedElement[Element] { thisGallery =>
+    val config: GalleryConfig
+    import config._
 
     def complex: FiniteComplex[A]
+    def panels: NonemptySuite[PanelType]
 
     type AComplex[N <: Nat] = Complex[A, N]
     type PanelType[N <: Nat] <: Panel[A[N], E, N]
+    type PanelBoxType[N <: Nat] = PanelType[N]#BoxType
 
     def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0]
     def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : PanelType[S[P]]
@@ -39,16 +41,67 @@ trait GalleryFramework[U] { frmwk: RenderingFramework[U] with PanelFramework[U] 
       case (S(p), Complex(tl, hd)) => createPanels(p)(tl) >> createNestingPanel(p)(hd, tl.head)
     }
 
-    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, BBox)] = panels.fold(
-      new IndexedFold[PanelType, List[(Element, BBox)]] {
+    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, Bounds)] = panels.fold(
+      new IndexedFold[PanelType, List[(Element, Bounds)]] {
 
-        def caseZero : List[(Element, BBox)] = Nil
+        def caseZero : List[(Element, Bounds)] = Nil
 
-        def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(Element, BBox)]) : List[(Element, BBox)] = 
+        def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(Element, Bounds)]) : List[(Element, Bounds)] = 
           (panel.element, panel.bounds) :: lst
 
       }
     )
+
+    def boxComplex : FiniteComplex[PanelBoxType] = {
+
+      type NestingType[N <: Nat] = Nesting[PanelBoxType[N], N]
+
+      val ps = panels
+
+      val res : Suite[NestingType, S[ps.P]] = ps.map(
+        new IndexedMap[PanelType, NestingType] {
+          def apply[N <: Nat](n: N)(p: PanelType[N]) : NestingType[N] = 
+            p.boxNesting
+        }
+      )
+
+      complexToFiniteComplex[PanelBoxType, ps.P](res)
+
+    }
+
+    def elementsAndBounds : (List[Element], Bounds) = {
+
+      val panelData : List[(Element, Bounds)] = 
+        extractPanelData(panels.value).reverse
+
+      val maxHeight : Size = (panelData map (_._2.height)).max
+
+      var xPos : Size = spacing
+
+      // Now you should translate them into place
+      val locatedElements : List[Element] = 
+        for {
+          (el, bnds) <- panelData
+        } yield {
+
+          val xTrans = (-bnds.x) + xPos
+          val yTrans = (-bnds.y) - bnds.height - half(maxHeight - bnds.height)
+
+          val locatedElement = 
+            translate(el, xTrans, yTrans)
+
+          xPos = xPos + bnds.width + spacing
+
+          locatedElement
+
+        }
+
+      val bbox : Bounds = 
+        Bounds(zero, -maxHeight, xPos, maxHeight)
+
+      (locatedElements, bbox)
+
+    }
 
   }
 
