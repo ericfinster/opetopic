@@ -10,11 +10,11 @@ package opetopic.ui
 import opetopic._
 import syntax.nesting._
 
-trait HasActivePanels extends HasPanels { self : ActiveFramework =>
+trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
   import isNumeric._
 
-  trait ActivePanel[A, E <: Element, N <: Nat] extends Panel[A, E, N] {
+  trait ActivePanel[A, E <: Element, N <: Nat] extends Panel[A, E, N] with SelectablePanel[A, E, N] {
 
     import config._
 
@@ -24,7 +24,7 @@ trait HasActivePanels extends HasPanels { self : ActiveFramework =>
     type BoxType <: ActiveCellBox
     type EdgeType <: ActiveCellEdge
 
-    trait ActiveCellBox extends CellBox {
+    trait ActiveCellBox extends SelectableBox {
 
       val boxRect = {
         val r = rect
@@ -34,12 +34,16 @@ trait HasActivePanels extends HasPanels { self : ActiveFramework =>
         r
       }
 
-      boxRect.onClick = { (e : UIEventType) => println("Clicked on cell " ++ label.toString) }
       boxRect.onMouseOver = { (e : UIEventType) => boxRect.fill = "blue" }
-      boxRect.onMouseOut = { (e : UIEventType) => boxRect.fill = "white" }
+      boxRect.onMouseOut = { (e : UIEventType) => boxRect.fill = colorHint }
 
       val boxGroup = group
       val element = boxGroup
+
+      def setHoveredStyle: Unit = boxRect.fill = "blue"
+      def setUnhoveredStyle: Unit = boxRect.fill = if (isSelected) "red" else "white"
+      def setSelectedStyle: Unit = boxRect.fill = "red"
+      def setDeselectedStyle: Unit = boxRect.fill = colorHint
 
       def render : Unit = {
 
@@ -143,7 +147,13 @@ trait HasActivePanels extends HasPanels { self : ActiveFramework =>
 
   }
 
+  //============================================================================================
+  // SIMPLE ACTIVE PANEL IMPLEMENTATION
+  //
+
   abstract class SimpleActivePanel[A, E <: Element, N <: Nat] extends ActivePanel[A, E, N] {
+
+    type AddressType = Address[S[N]]
 
     type BoxType = ActiveCellBox
     type EdgeType = ActiveCellEdge
@@ -154,13 +164,19 @@ trait HasActivePanels extends HasPanels { self : ActiveFramework =>
     def cellEdge : EdgeType =
       new SimpleActiveCellEdge
 
+    def generateBoxes(n: N)(nst: Nesting[A, N]) : Nesting[BoxType, N] =
+      Nesting.elimWithAddress[A, Nesting[BoxType, N], N](n)(nst)({
+        case (a, addr) => Nesting.external(n)(cellBox(a, addr, true))
+      })({
+        case (a, addr, cn) => Box(cellBox(a, addr, false), cn)
+      })
+
+    def seekToAddress(addr: Address[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
+      boxNesting.seekTo(addr)
+
     class SimpleActiveCellBox(val label: A, val address: Address[S[N]], val isExternal: Boolean) extends ActiveCellBox {
 
-      val (labelElement, labelBounds, colorHint) = {
-        val dec = affixable.decoration(label)
-        (dec.boundedElement.element, dec.boundedElement.bounds, dec.colorHint)
-      }
-
+      val decoration = affixable.decoration(label)
       makeMouseInvisible(labelElement)
 
     }
@@ -190,7 +206,7 @@ trait HasActivePanels extends HasPanels { self : ActiveFramework =>
     val edgeNesting : Nesting[EdgeType, P] =
       edgeOpt match {
         case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
-        case Some(et) => connectEdges(et, boxNesting)
+        case Some(et) => connectEdges(et map (_ => cellEdge), boxNesting)
       }
 
     refresh

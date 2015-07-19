@@ -8,10 +8,9 @@
 package opetopic.syntax
 
 import opetopic._
+import TypeLemmas._
 
 class SuiteOps[A[_ <: Nat], N <: Nat](suite: Suite[A, N]) {
-
-  import TypeLemmas._
 
   def fold[B](fld: IndexedFold[A, B]) : B = 
     Suite.fold[A, B, N](suite)(fld)
@@ -22,6 +21,7 @@ class SuiteOps[A[_ <: Nat], N <: Nat](suite: Suite[A, N]) {
   def truncate[K <: Nat](k: K)(implicit ev: Diff[K, N]) : Suite[A, K] = 
     Suite.drop[A, ev.D, N, K](lteInvert(ev.lte))(suite)
 
+
 }
 
 final class SuiteSuccOps[A[_ <: Nat], P <: Nat](suite: Suite[A, S[P]]) extends SuiteOps[A, S[P]](suite) {
@@ -31,6 +31,9 @@ final class SuiteSuccOps[A[_ <: Nat], P <: Nat](suite: Suite[A, S[P]]) extends S
 
   def tail: Suite[A, P] = 
     Suite.tail(suite)
+
+  def get[K <: Nat](k: K)(implicit ev: Diff[K, P]) : A[K] = 
+    Suite.getAt[A,K,P,ev.D](suite)(ev.lte)
 
 }
 

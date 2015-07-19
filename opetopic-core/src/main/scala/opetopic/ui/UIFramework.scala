@@ -65,7 +65,7 @@ abstract class UIFramework {
 
   }
 
-  trait BoundedElement[E <: Element] {
+  trait BoundedElement[+E <: Element] {
     def element: E
     def bounds: Bounds
   }
@@ -83,7 +83,7 @@ abstract class UIFramework {
   // AFFIXABLE TYPECLASS
   //
 
-  case class Decoration[E <: Element](
+  case class Decoration[+E <: Element](
     val boundedElement : BoundedElement[E],
     val colorHint : String = "white"
   )
@@ -101,6 +101,25 @@ abstract class UIFramework {
     implicit object IntAffixable extends Affixable[Int, TextType] {
       def decoration(i: Int) = Decoration(text(i.toString))
     }
+
+    implicit def optionAffixable[A, E <: Element](implicit r: Affixable[A, E]) : Affixable[Option[A], Element] = 
+      new Affixable[Option[A], Element] {
+        def decoration(opt: Option[A]) =
+          opt match {
+            case None => Decoration(text(" "))
+            case Some(a) => r.decoration(a)
+          }
+      }
+
+    implicit def polarityAffixable[A, E <: Element](implicit r: Affixable[A, E]) : Affixable[Polarity[A], Element] = 
+      new Affixable[Polarity[A], Element] {
+        def decoration(pol: Polarity[A]) = 
+          pol match {
+            case Positive() => Decoration(text("+"))
+            case Negative() => Decoration(text("-"))
+            case Neutral(a) => r.decoration(a)
+          }
+      }
 
   }
 

@@ -165,7 +165,7 @@ module Complex where
 
     pastingDiagramToNesting : {n : ℕ} → Tree (Complex A (suc n)) (suc n) → Error (Nesting (Complex A n) n × Tree (Nesting (A (suc n)) (suc n)) (suc n))
     pastingDiagramToNesting tr = let (cmplxTree , pdTree) = splitWith (λ c → (tail c , head c)) tr
-                    in toNesting cmplxTree (λ { [] → fail "This should have been a leaf ..." 
+                    in treeToNesting cmplxTree (λ { [] → fail "This should have been a leaf ..." 
                                               ; (dir ∷ addr) → seekTo cmplxTree addr 
                                                                >>= (λ { (leaf , _) → fail "Was hoping to see a complex here ..." 
                                                                       ; (node c _ , _) → sourceAt c (dir ∷ []) }) }) 
@@ -182,7 +182,7 @@ module Complex where
       traverseTree ⦃ monadIsApp errorM ⦄ cn graftNesting 
       >>= (λ cmplxSh →  matchWithAddress ⦃ errorE ⦄ graftNestingLocal cn₀ cmplxSh 
                         >>= (λ prTr → let newCnpy , fillerTr = unzip prTr 
-                                      in toNesting fillerTr (λ addr → seekNesting (head c , []) addr >>= (λ zp → succeed (proj₁ zp))) 
+                                      in treeToNesting fillerTr (λ addr → seekNesting (head c , []) addr >>= (λ zp → succeed (proj₁ zp))) 
                                          >>= (λ nstNst → nestingJoin nstNst 
                                          >>= (λ cdim2 → succeed (tail c ▶ cdim2 ▶ box t₀ newCnpy)))))
 

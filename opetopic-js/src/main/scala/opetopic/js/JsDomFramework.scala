@@ -18,7 +18,10 @@ import org.scalajs.dom.raw.SVGTransformable
 
 import opetopic.ui._
 
-object JsDomFramework extends ActiveFramework with HasActiveGalleries {
+object JsDomFramework extends ActiveFramework 
+    with HasSelectableGalleries 
+    with HasActiveGalleries 
+    with HasEditor {
 
   val svgns = "http://www.w3.org/2000/svg"
 

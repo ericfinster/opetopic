@@ -25,21 +25,17 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
     val config: GalleryConfig
     import config._
 
-    def complex: FiniteComplex[A]
-    def panels: NonemptySuite[PanelType]
-
-    type AComplex[N <: Nat] = Complex[A, N]
-    type PanelType[N <: Nat] <: Panel[A[N], E, N]
+    type PanelType[N <: Nat] <: Panel[A[N], E, N] with GalleryPanel[N]
     type PanelBoxType[N <: Nat] = PanelType[N]#BoxType
+    type PanelAddressType[N <: Nat]
 
-    def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0]
-    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : PanelType[S[P]]
+    trait GalleryPanel[N <: Nat] { thisPanel: Panel[A[N], E, N] =>
 
-    @natElim
-    def createPanels[N <: Nat](n: N)(cmplx: Complex[A, N]) : Suite[PanelType, S[N]] = {
-      case (Z, Complex(_, objNst)) => SNil[PanelType] >> createObjectPanel(objNst)
-      case (S(p), Complex(tl, hd)) => createPanels(p)(tl) >> createNestingPanel(p)(hd, tl.head)
+      type AddressType = PanelAddressType[N]
+
     }
+
+    def panels: NonemptySuite[PanelType]
 
     def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, Bounds)] = panels.fold(
       new IndexedFold[PanelType, List[(Element, Bounds)]] {
@@ -51,23 +47,6 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
 
       }
     )
-
-    def boxComplex : FiniteComplex[PanelBoxType] = {
-
-      type NestingType[N <: Nat] = Nesting[PanelBoxType[N], N]
-
-      val ps = panels
-
-      val res : Suite[NestingType, S[ps.P]] = ps.map(
-        new IndexedMap[PanelType, NestingType] {
-          def apply[N <: Nat](n: N)(p: PanelType[N]) : NestingType[N] = 
-            p.boxNesting
-        }
-      )
-
-      complexToFiniteComplex[PanelBoxType, ps.P](res)
-
-    }
 
     def elementsAndBounds : (List[Element], Bounds) = {
 

@@ -290,7 +290,7 @@ trait ComplexFunctions {
     val (cmplxTree, pdTree) = Tree.splitWith(pd)(c => (complexTail(c), complexHead(c)))
 
     for {
-      graftNst <- Nesting.toNesting(cmplxTree)({
+      graftNst <- Nesting.treeToNesting(cmplxTree)({
         case Nil => fail("This should have been a leaf!")
         case (dir :: addr) => 
           for {
@@ -330,7 +330,7 @@ trait ComplexFunctions {
           case _ => fail("Malformed complex")
         })
         (newCnpy, fillerTr) = Tree.unzip(prTr)
-        nstNst <- Nesting.toNesting(fillerTr)(addr => {
+        nstNst <- Nesting.treeToNesting(fillerTr)(addr => {
           for {
             zp <- Nesting.seekNesting(p)((complexHead(c), Nil), addr)
           } yield zp._1

@@ -72,14 +72,14 @@ module Nesting where
   fromTree {A} {n} tr = graftRec (λ a cn → succeed (box (inj₁ a) cn)) (λ addr → succeed (external (inj₂ addr))) tr
     where open GraftRec {A} {Nesting (A ⊎ (Address n)) n}
 
-  toNesting₀ : {A : Set} → {n : ℕ} → Tree A (suc n) → Address (suc n) → (f : Address (suc n) → Error A) → Error (Nesting A n)
-  toNesting₀ leaf base f = f base >>= (λ a → succeed (external a)) 
-  toNesting₀ (node a sh) base f = 
-    traverseWithAddress ⦃ monadIsApp errorM ⦄ sh (λ b d → toNesting₀ b (d ∷ base) f) 
+  treeToNesting₀ : {A : Set} → {n : ℕ} → Tree A (suc n) → Address (suc n) → (f : Address (suc n) → Error A) → Error (Nesting A n)
+  treeToNesting₀ leaf base f = f base >>= (λ a → succeed (external a)) 
+  treeToNesting₀ (node a sh) base f = 
+    traverseWithAddress ⦃ monadIsApp errorM ⦄ sh (λ b d → treeToNesting₀ b (d ∷ base) f) 
     >>= (λ newSh → succeed (box a newSh)) 
 
-  toNesting : {A : Set} → {n : ℕ} → Tree A (suc n) → (f : Address (suc n) → Error A) → Error (Nesting A n)
-  toNesting tr f = toNesting₀ tr [] f
+  treeToNesting : {A : Set} → {n : ℕ} → Tree A (suc n) → (f : Address (suc n) → Error A) → Error (Nesting A n)
+  treeToNesting tr f = treeToNesting₀ tr [] f
 
   extendNestingWith : {A B : Set} → {n : ℕ} → Nesting A n → B → Tree (Nesting B (suc n)) (suc n)
   extendNestingWith (obj a) b = leaf

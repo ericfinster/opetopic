@@ -118,11 +118,42 @@ module Cardinal where
   toShell : {A : Set} → {n : ℕ} → CardinalTree A (suc n) → Tree (Tree A (suc n)) n
   toShell ct = completeWith ct leaf
 
+  -- fromShell : {A : Set} → {n : ℕ} → Tree (Tree A (suc n)) n → Error (CardinalTree A (suc n))
+  -- fromShell (pt tr) = {!!}
+  -- fromShell leaf = {!!}
+  -- fromShell {n = suc n} (node leaf sh) = traverseTree ⦃ errorA ⦄ sh {!fromShell {n = n}!} >>= (λ t → {!!})
+  -- fromShell (node (node _ _) sh) = fail "Not obtained from a cardinal"
+
+  toNesting : {A : Set} → {n : ℕ} → CardinalNesting A n → A → A → Nesting A n
+  toNesting {n = zero} cn src tgt = box tgt cn
+  toNesting {n = suc n} cn src tgt = box tgt (node (dot src) (toShell cn))
+
+  toPolarityNesting : {A : Set} → {n : ℕ} → CardinalNesting A n → Nesting (Polarity A) n
+  toPolarityNesting {n = zero} (pt nst) = box pos (pt (mapNesting nst neutral))
+  toPolarityNesting {n = suc n} cn = box pos (node (dot neg) shell)
+    where shell : Tree (Tree (Nesting (Polarity _) (suc n)) (suc n)) n
+          shell = toShell {n = n} (mapCardinalTree {n = suc n} cn (λ nst → mapNesting nst neutral))
+
   toComplex : {A : ℕ → Set} → {n : ℕ} → Cardinal A n → Complex (λ k → Polarity (A k)) n
-  toComplex {n = zero} (∥ ▶ pt (nst)) = ∥ ▶ (box pos (pt (mapNesting nst neutral)))
-  toComplex {A} {n = suc n} (tl ▶ hd) = toComplex tl ▶ box pos (node (dot neg) shell)
-    where shell : Tree (Tree (Nesting (Polarity (A (suc n))) (suc n)) (suc n)) n
-          shell = toShell {n = n} (mapCardinalTree {n = suc n} hd (λ nst → mapNesting nst neutral))
+  toComplex {n = zero} (∥ ▶ hd) = ∥ ▶ toPolarityNesting hd
+  toComplex {A} {n = suc n} (tl ▶ hd) = toComplex tl ▶ toPolarityNesting hd
+
+  toNeutral : {A : Set} → {n : ℕ} → Nesting (Polarity A) n → Error (Nesting A n)
+  toNeutral (obj (neutral a)) = succeed (obj a)
+  toNeutral (obj _) = fail "not neutral"
+  toNeutral (dot (neutral a)) = succeed (dot a)
+  toNeutral (dot _) = fail "not neutral"
+  toNeutral (box (neutral a) cn) = traverseTree ⦃ errorA ⦄ cn toNeutral >>= (λ t → succeed (box a t))
+  toNeutral (box _ cn) = fail "not neutral"
+
+  -- fromNesting : {A : Set} → {n : ℕ} → Nesting (Polarity A) n → Error (CardinalNesting A n)
+  -- fromNesting (obj a) = fail "External can not be a cardinal"
+  -- fromNesting (dot a) = fail "External can not be a cardinal"
+  -- fromNesting (box neg cn) = fail "Base cell was negative"
+  -- fromNesting (box (neutral x) cn) = fail "Base cell was neutral"
+  -- fromNesting (box pos leaf) = fail "Cannot be a loop"
+  -- fromNesting (box pos (pt n)) = toNeutral n >>= (λ nn → succeed (pt nn))
+  -- fromNesting (box pos (node a cn)) = {!!}
 
   completeToComplex : {A : ℕ → Set} → {n : ℕ} → Cardinal A n → Suite (λ k → (A k × A k)) (suc n) → Complex A n
   completeToComplex {n = zero} (∥ ▶ hd) (∥ ▶ (_ , a₊)) = ∥ ▶ (box a₊ hd)

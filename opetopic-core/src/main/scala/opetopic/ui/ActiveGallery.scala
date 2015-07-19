@@ -13,11 +13,14 @@ import syntax.nesting._
 import syntax.complex._
 import TypeLemmas._
 
-trait HasActiveGalleries extends HasActivePanels with HasGalleries { self: ActiveFramework =>
+trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries { 
+  self: ActiveFramework with HasSelectableGalleries =>
 
   import isNumeric._
 
-  trait ActiveGallery[A[_ <: Nat], E <: Element] extends Gallery[A, E] {
+  trait ActiveGallery[A[_ <: Nat], E <: Element] 
+      extends ComplexGallery[A, E] 
+      with SelectableGallery[A, E] {
 
     type PanelType[N <: Nat] <: ActiveGalleryPanel[N]
 
@@ -25,9 +28,23 @@ trait HasActiveGalleries extends HasActivePanels with HasGalleries { self: Activ
     def element: Element = galleryGroup
     def bounds: Bounds = elementsAndBounds._2
 
-    trait ActiveGalleryPanel[N <: Nat] extends ActivePanel[A[N], E, N] {
+    trait ActiveGalleryPanel[N <: Nat] 
+        extends ActivePanel[A[N], E, N] with ComplexPanel[N] {
 
       type BoxType <: ActiveGalleryCellBox
+
+      def cellBox(lbl: A[N], addr: Address[S[N]], isExt: Boolean) : BoxType
+
+      //============================================================================================
+      // INITIALIZATION
+      //
+
+      def generateBoxes(n: N)(nst: Nesting[A[N], N]) : Nesting[BoxType, N] =
+        Nesting.elimWithAddress[A[N], Nesting[BoxType, N], N](n)(nst)({
+          case (a, addr) => Nesting.external(n)(cellBox(a, addr, true))
+        })({
+          case (a, addr, cn) => Box(cellBox(a, addr, false), cn)
+        })
 
       trait ActiveGalleryCellBox extends ActiveCellBox {
 
@@ -84,6 +101,8 @@ trait HasActiveGalleries extends HasActivePanels with HasGalleries { self: Activ
 
     type PanelType[N <: Nat] = SimpleActiveGalleryPanel[N]
 
+    var selection : Option[Selection] = None
+
     val panels : NonemptySuite[PanelType] =
       createPanels(complex.n)(complex.value)
 
@@ -112,11 +131,7 @@ trait HasActiveGalleries extends HasActivePanels with HasGalleries { self: Activ
       class SimpleActiveGalleryCellBox(val label: A[N], val address: Address[S[N]], val isExternal: Boolean) 
           extends ActiveGalleryCellBox {
 
-        val (labelElement, labelBounds, colorHint) = {
-          val dec = affixable.decoration(label)
-          (dec.boundedElement.element, dec.boundedElement.bounds, dec.colorHint)
-        }
-
+        val decoration = affixable.decoration(label)
         makeMouseInvisible(labelElement)
 
       }
@@ -149,7 +164,7 @@ trait HasActiveGalleries extends HasActivePanels with HasGalleries { self: Activ
       val edgeNesting : Nesting[EdgeType, P] =
         edgeOpt match {
           case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
-          case Some(et) => connectEdges(et, boxNesting)
+          case Some(et) => connectEdges(et map (_ => cellEdge), boxNesting)
         }
 
       refresh

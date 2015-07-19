@@ -41,25 +41,24 @@ trait HasPanels { self : UIFramework =>
     def boxNesting: Nesting[BoxType, N]
 
     //============================================================================================
+    // ADDRESSING
+    //
+
+    type AddressType
+
+    def cellAtAddress(addr: AddressType) : ShapeM[BoxType] = 
+      for { z <- seekToAddress(addr) } yield { z._1.baseValue }
+      
+    def seekToAddress(addr: AddressType) : ShapeM[NestingZipper[BoxType, N]]
+
+    //============================================================================================
     // BOX AND EDGE CONSTRUCTORS
     //
 
     type BoxType <: CellBox
     type EdgeType <: CellEdge
 
-    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType
     def cellEdge : EdgeType
-
-    //============================================================================================
-    // INITIALIZATION
-    //
-
-    def generateBoxes(n: N)(nst: Nesting[A, N]) : Nesting[BoxType, N] =
-      Nesting.elimWithAddress[A, Nesting[BoxType, N], N](n)(nst)({
-        case (a, addr) => Nesting.external(n)(cellBox(a, addr, true))
-      })({
-        case (a, addr, cn) => Box(cellBox(a, addr, false), cn)
-      })
 
     //============================================================================================
     // CELL BOXES
@@ -69,12 +68,14 @@ trait HasPanels { self : UIFramework =>
     trait CellBox extends Rooted with BoundedElement[Element] {
 
       def label: A
-      def address: Address[S[N]]
-      def isExternal : Boolean
+      def boxDim: N = panelDim
+      def address: AddressType
+      def isExternal: Boolean
+      def decoration: Decoration[E]
 
-      def labelElement : Element
-      def labelBounds : Bounds
-      def colorHint : String
+      def labelElement : Element = decoration.boundedElement.element
+      def labelBounds : Bounds = decoration.boundedElement.bounds
+      def colorHint : String = decoration.colorHint
 
       def bounds: Bounds = Bounds(x, y, width, height)
 
@@ -392,9 +393,7 @@ trait HasPanels { self : UIFramework =>
     // EDGE NESTING GENERATION
     //
 
-    def connectEdges[B](seed: Nesting[B, P], nst: Nesting[BoxType, S[P]]) : Nesting[EdgeType, P] = {
-
-      val en = seed map (_ => cellEdge)
+    def connectEdges(en: Nesting[EdgeType, P], nst: Nesting[BoxType, S[P]]) : Nesting[EdgeType, P] = {
 
       nst match {
         case Dot(mk, _) => mk.outgoingEdge = Some(en.baseValue)

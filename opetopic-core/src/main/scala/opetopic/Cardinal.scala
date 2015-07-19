@@ -157,6 +157,33 @@ trait CardinalFunctions {
   }
 
   //============================================================================================
+  // TO NESTING
+  //
+
+  @natElim
+  def toPolarityNesting[A, N <: Nat](n: N)(cn: CardinalNesting[A, N]) : Nesting[Polarity[A], N] = {
+    case (Z, Pt(nst)) => Box(Positive(), Pt(Nesting.map(nst)(Neutral(_))))
+    case (S(p: P), cn) => {
+
+      val polarizedNesting: CardinalNesting[Polarity[A], S[P]] = 
+        mapCardinalTree[Nesting[A, S[P]], Nesting[Polarity[A], S[P]], S[P]](S(p))(cn)(Nesting.map(_)(Neutral(_)))
+
+      Box(Positive(), Node(Dot(Negative(), S(p)), toShell(p)(polarizedNesting)))
+
+    }
+  }
+
+  //============================================================================================
+  // TO NESTING
+  //
+
+  @natElim
+  def toNesting[A, N <: Nat](n: N)(cn: CardinalNesting[A, N], src: A, tgt: A) : Nesting[A, N] = {
+    case (Z, cn, src, tgt) => Box(tgt, cn)
+    case (S(p: P), cn, src, tgt) => Box(tgt, Node(Dot(src, S(p)), toShell[Nesting[A, S[P]], P](p)(cn)))
+  }
+
+  //============================================================================================
   // TO COMPLEX
   //
 

@@ -78,6 +78,9 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
   def apply[K <: Nat](k: K)(implicit diff: Diff[K, N]) : Nesting[A[K], K] = 
     Suite.getAt[INst, K, N, diff.D](cmplx)(diff.lte)
 
+  def toCardinal : Cardinal[A, N] = 
+    Cardinal.complexToCardinal(cmplx.length.pred)(cmplx)._1
+
 }
 
 trait ToComplexOps {

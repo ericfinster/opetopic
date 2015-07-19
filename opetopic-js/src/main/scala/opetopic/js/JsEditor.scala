@@ -37,7 +37,7 @@ object JsEditor extends js.JSApp {
 
     println("Launched Opetopic.")
 
-    renderActiveGallery
+    renderCardinal
 
   }
 
@@ -46,6 +46,37 @@ object JsEditor extends js.JSApp {
   //
 
   import opetopic.Examples._
+
+  def renderCardinal : Unit = {
+
+    import JsDomFramework._
+    import opetopic._
+    import syntax.complex._
+    import syntax.cardinal._
+
+    type OptConstInt[N <: Nat] = Option[Int]
+
+    val fredOpt : Complex[OptConstInt, _4] = 
+      fredComplex.map(new IndexedMap[ConstInt, OptConstInt] {
+        def apply[N <: Nat](n: N)(i: Int) = Some(i)
+      })
+
+    // Right, well, the constructor is a bit ugly, but I guess you
+    // could fix this with either some "unapply" magic or by making
+    // the element type a dependent guy somehow ...
+    val editor = new CardinalEditor[ConstInt, TextType](fredOpt.toCardinal)
+
+    val editorSvg = document.createElementNS(svgns, "svg")
+    editorSvg.setAttributeNS(null, "width", "800")
+    editorSvg.setAttributeNS(null, "height", "600")
+    editorSvg.setAttributeNS(null, "viewBox", editor.bounds.dimString)
+
+    editorSvg.appendChild(editor.element.uiElement)
+
+    val div = document.getElementById("middle-pane")
+    div.appendChild(editorSvg)
+
+  }
 
   def renderActivePanel : Unit = {
 
@@ -105,27 +136,27 @@ object JsEditor extends js.JSApp {
 
   }
 
-  def renderStaticGallery : Unit = {
+  // def renderStaticGallery : Unit = {
 
-    import ScalatagsJsDomFramework._
-    import opetopic.syntax.complex._
+  //   import ScalatagsJsDomFramework._
+  //   import opetopic.syntax.complex._
 
-    val gallery = StaticGallery(fredComplex)
+  //   val gallery = StaticGallery(fredComplex)
 
-    val gallerySvg = {
+  //   val gallerySvg = {
 
-      import bundle.implicits._
-      import bundle.svgTags._
-      import bundle.svgAttrs._
+  //     import bundle.implicits._
+  //     import bundle.svgTags._
+  //     import bundle.svgAttrs._
 
-      svg(width:="800",height:="600",viewBox:=gallery.bounds.dimString,xmlns:="http://www.w3.org/2000/svg")(gallery.element)
+  //     svg(width:="800",height:="600",viewBox:=gallery.bounds.dimString,xmlns:="http://www.w3.org/2000/svg")(gallery.element)
 
-    }
+  //   }
 
-    val div = document.getElementById("middle-pane")
-    div.appendChild(gallerySvg.render)
+  //   val div = document.getElementById("middle-pane")
+  //   div.appendChild(gallerySvg.render)
 
-  }
+  // }
 
 }
 

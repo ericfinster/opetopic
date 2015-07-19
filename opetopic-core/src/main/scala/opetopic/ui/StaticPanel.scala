@@ -15,31 +15,32 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
   import isNumeric._
 
-  abstract class StaticPanel[A, E <: Element, N <: Nat](val nesting: Nesting[A, N]) extends Panel[A, E, N] {
+  trait StaticPanel[A, E <: Element, N <: Nat] extends Panel[A, E, N] {
 
     import config._
 
-    val boxNesting : Nesting[BoxType, N] =
-      generateBoxes(nesting.dim)(nesting)
+    type AddressType = Address[S[N]]
 
-    type BoxType = StaticCellBox
-    type EdgeType = StaticCellEdge
+    type BoxType <: StaticCellBox
+    type EdgeType <: StaticCellEdge
 
-    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType =
-      new StaticCellBox(lbl, addr, isExt)
+    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType 
+    def cellEdge : EdgeType 
 
-    def cellEdge : EdgeType =
-      new StaticCellEdge
+    def generateBoxes(n: N)(nst: Nesting[A, N]) : Nesting[BoxType, N] =
+      Nesting.elimWithAddress[A, Nesting[BoxType, N], N](n)(nst)({
+        case (a, addr) => Nesting.external(n)(cellBox(a, addr, true))
+      })({
+        case (a, addr, cn) => Box(cellBox(a, addr, false), cn)
+      })
+
+    def seekToAddress(addr: Address[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
+      boxNesting.seekTo(addr)
 
     def element: Element
     def bounds: Bounds
 
-    class StaticCellBox(val label: A, val address: Address[S[N]], val isExternal: Boolean) extends CellBox {
-
-      val (labelElement, labelBounds, colorHint) = {
-        val dec = affixable.decoration(label)
-        (dec.boundedElement.element, dec.boundedElement.bounds, dec.colorHint)
-      }
+    trait StaticCellBox extends CellBox {
 
       def element: Element = {
 
@@ -54,7 +55,7 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
     }
 
-    class StaticCellEdge extends CellEdge {
+    trait StaticCellEdge extends CellEdge {
 
       def element: Element = {
         path(pathString, "black", strokeWidth, "none")
@@ -64,13 +65,10 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
   }
 
-  class StaticObjectPanel[A, E <: Element](val config: PanelConfig, nst: Nesting[A, _0])(
-    implicit val affixable : Affixable[A, E]
-  ) extends StaticPanel[A, E, _0](nst) with ObjectPanel[A, E] {
+  trait StaticObjectPanel[A, E <: Element]
+      extends StaticPanel[A, E, _0] with ObjectPanel[A, E] {
 
     import config._
-
-    def panelDim = Z
 
     def element: Element = {
       group (boxNesting.nodes map (_.element) : _*)
@@ -81,19 +79,12 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
       Bounds(baseBox.x, baseBox.y, baseBox.width, baseBox.height)
     }
 
-    layoutObjects(boxNesting)
-
   }
 
-  class StaticNestingPanel[A, B, E <: Element, P <: Nat](p: P)(
-    val config: PanelConfig, 
-    nst: Nesting[A, S[P]], 
-    edgeOpt : Option[Nesting[B, P]]
-  )(implicit val affixable: Affixable[A, E]) extends StaticPanel[A, E, S[P]](nst) with NestingPanel[A, E, P] {
+  trait StaticNestingPanel[A, E <: Element, P <: Nat]
+      extends StaticPanel[A, E, S[P]] with NestingPanel[A, E, P] {
 
     import config._
-
-    def panelDim = S(p)
 
     def element: Element = {
 
@@ -133,10 +124,60 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
       )
     }
 
+  }
+
+  //============================================================================================
+  // SIMPLE STATIC PANEL IMPLEMENTATION
+  //
+
+  abstract class SimpleStaticPanel[A, E <: Element, N <: Nat](val nesting: Nesting[A, N]) 
+    extends StaticPanel[A, E, N] {
+
+    val boxNesting : Nesting[BoxType, N] =
+      generateBoxes(nesting.dim)(nesting)
+
+    type BoxType = SimpleStaticCellBox
+    type EdgeType = SimpleStaticCellEdge
+
+    def cellBox(lbl: A, addr: Address[S[N]], isExt: Boolean) : BoxType =
+      new SimpleStaticCellBox(lbl, addr, isExt)
+
+    def cellEdge : EdgeType =
+      new SimpleStaticCellEdge
+
+    class SimpleStaticCellBox(val label: A, val address: Address[S[N]], val isExternal: Boolean) 
+        extends CellBox with StaticCellBox {
+
+      val decoration = affixable.decoration(label)
+
+    }
+
+    class SimpleStaticCellEdge extends StaticCellEdge 
+
+  }
+
+  class SimpleStaticObjectPanel[A, E <: Element](val config: PanelConfig, nst: Nesting[A, _0])(
+    implicit val affixable : Affixable[A, E]
+  ) extends SimpleStaticPanel[A, E, _0](nst) with StaticObjectPanel[A, E] {
+
+    def panelDim = Z
+
+    layoutObjects(boxNesting)
+
+  }
+
+  class SimpleStaticNestingPanel[A, B, E <: Element, P <: Nat](p: P)(
+    val config: PanelConfig, 
+    nst: Nesting[A, S[P]], 
+    edgeOpt : Option[Nesting[B, P]]
+  )(implicit val affixable: Affixable[A, E]) extends SimpleStaticPanel[A, E, S[P]](nst) with StaticNestingPanel[A, E, P] {
+
+    def panelDim = S(p)
+
     val edgeNesting : Nesting[EdgeType, P] =
       edgeOpt match {
         case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
-        case Some(et) => connectEdges(et, boxNesting)
+        case Some(et) => connectEdges(et map (_ => cellEdge), boxNesting)
       }
 
     layout(boxNesting, edgeNesting)
@@ -151,8 +192,8 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
     @natElim
     def apply[A, E <: Element, N <: Nat](n: N)(cfg: PanelConfig, nst: Nesting[A, N])(implicit affix: Affixable[A, E]) : StaticPanel[A, E, N] = {
-      case (Z, cfg, nst) => new StaticObjectPanel(cfg, nst)
-      case (S(p), xfg, nst) => new StaticNestingPanel(p)(cfg, nst, None)
+      case (Z, cfg, nst) => new SimpleStaticObjectPanel(cfg, nst)
+      case (S(p), xfg, nst) => new SimpleStaticNestingPanel(p)(cfg, nst, None)
     }
 
     def apply[A, E <: Element, N <: Nat](cfg: PanelConfig, nst: Nesting[A, N])(implicit affix: Affixable[A, E]) : StaticPanel[A, E, N] =
@@ -162,7 +203,7 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
       StaticPanel(nst.dim)(cfg, nst)
 
     def apply[A, E <: Element, P <: Nat](cfg: PanelConfig, nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit affix: Affixable[A, E]) : StaticPanel[A, E, S[P]] =
-      new StaticNestingPanel(et.dim)(cfg, nst, Some(et))
+      new SimpleStaticNestingPanel(et.dim)(cfg, nst, Some(et))
 
   }
 

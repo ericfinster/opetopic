@@ -159,13 +159,13 @@ trait NestingFunctions {
       case Box(a, cn) => Node(a, Tree.map(cn)(toTree(_)))
     }
 
-  def toNesting[A, N <: Nat](tr: Tree[A, S[N]], addr: Address[S[N]] = Nil)(f: Address[S[N]] => ShapeM[A]) : ShapeM[Nesting[A, N]] = 
+  def treeToNesting[A, N <: Nat](tr: Tree[A, S[N]], addr: Address[S[N]] = Nil)(f: Address[S[N]] => ShapeM[A]) : ShapeM[Nesting[A, N]] = 
     tr match {
       case Leaf(d) => for { a <- f(addr) } yield external(d.pred)(a)
       case Node(a, sh) => 
         for {
           newSh <- Tree.traverseWithAddress(sh)({
-            case (b, d) => toNesting(b, d :: addr)(f)
+            case (b, d) => treeToNesting(b, d :: addr)(f)
           })
         } yield Box(a, newSh)
     }
