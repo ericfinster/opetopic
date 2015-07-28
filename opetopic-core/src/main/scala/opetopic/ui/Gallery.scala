@@ -22,18 +22,24 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
     val spacing : Size
   )
 
-  trait Gallery[A[_ <: Nat], E <: Element] {
+  trait Gallery[A[_ <: Nat]] {
 
     val config: GalleryConfig
     import config._
 
-    type PanelType[N <: Nat] <: Panel[A[N], E, N] with GalleryPanel[N]
-    type PanelBoxType[N <: Nat] = PanelType[N]#BoxType
-    type PanelAddressType[N <: Nat]
+    type PanelType[N <: Nat] <: GalleryPanel[N]
+    type GalleryBoxType[N <: Nat] <: CellBox[A[N], N] { type BoxAddressType = GalleryAddressType[N] }
+    type GalleryEdgeType[N <: Nat] <: CellEdge[A[N], N]
+    type GalleryAddressType[N <: Nat]
+    type GalleryLabelType <: Element
 
-    trait GalleryPanel[N <: Nat] { thisPanel: Panel[A[N], E, N] =>
+    trait GalleryPanel[N <: Nat] extends Panel[A[N], N] { 
 
-      type AddressType = PanelAddressType[N]
+      type PanelAddressType = GalleryAddressType[N]
+      type LabelElementType = GalleryLabelType
+
+      type BoxType <: GalleryBoxType[N] 
+      type EdgeType <: GalleryEdgeType[N]
 
     }
 

@@ -16,14 +16,14 @@ trait HasComplexGalleries { self: UIFramework with HasPanels with HasGalleries =
 
   import isNumeric._
 
-  trait ComplexGallery[A[_ <: Nat], E <: Element] extends Gallery[A, E] {
+  trait ComplexGallery[A[_ <: Nat]] extends Gallery[A] {
 
     def complex: FiniteComplex[A]
 
     type AComplex[N <: Nat] = Complex[A, N]
 
-    type PanelType[N <: Nat] <: Panel[A[N], E, N] with ComplexPanel[N]
-    type PanelAddressType[N <: Nat] = Address[S[N]]
+    type PanelType[N <: Nat] <: ComplexPanel[N]
+    type GalleryAddressType[N <: Nat] = Address[S[N]]
 
     def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0]
     def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : PanelType[S[P]]
@@ -34,16 +34,16 @@ trait HasComplexGalleries { self: UIFramework with HasPanels with HasGalleries =
       case (S(p), Complex(tl, hd)) => createPanels(p)(tl) >> createNestingPanel(p)(hd, tl.head)
     }
 
-    trait ComplexPanel[N <: Nat] extends GalleryPanel[N] { self: Panel[A[N], E, N] =>
+    trait ComplexPanel[N <: Nat] extends GalleryPanel[N] { 
 
       def seekToAddress(addr: Address[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
         boxNesting.seekTo(addr)
 
     }
 
-    def boxComplex : FiniteComplex[PanelBoxType] = {
+    def boxComplex : FiniteComplex[GalleryBoxType] = {
 
-      type NestingType[N <: Nat] = Nesting[PanelBoxType[N], N]
+      type NestingType[N <: Nat] = Nesting[GalleryBoxType[N], N]
 
       val ps = panels
 
@@ -54,7 +54,7 @@ trait HasComplexGalleries { self: UIFramework with HasPanels with HasGalleries =
         }
       )
 
-      complexToFiniteComplex[PanelBoxType, ps.P](res)
+      complexToFiniteComplex[GalleryBoxType, ps.P](res)
 
     }
 

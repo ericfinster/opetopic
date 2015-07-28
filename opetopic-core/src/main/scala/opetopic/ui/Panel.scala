@@ -25,7 +25,7 @@ trait HasPanels { self : UIFramework =>
     val cornerRadius : Size
   )
 
-  trait Panel[A, E <: Element, N <: Nat] extends BoundedElement[Element] {
+  trait Panel[A, N <: Nat] extends BoundedElement[Element] {
 
     val config : PanelConfig
     import config._
@@ -35,7 +35,8 @@ trait HasPanels { self : UIFramework =>
     def halfLeafWidth : Size = half(leafWidth)
     def halfStrokeWidth : Size = half(strokeWidth)
 
-    def affixable : Affixable[A, E]
+    type LabelElementType <: Element
+    def affixable : Affixable[A, LabelElementType]
 
     def nesting: Nesting[A, N]
     def boxNesting: Nesting[BoxType, N]
@@ -44,231 +45,26 @@ trait HasPanels { self : UIFramework =>
     // ADDRESSING
     //
 
-    type AddressType
+    type PanelAddressType
 
-    def cellAtAddress(addr: AddressType) : ShapeM[BoxType] = 
+    def cellAtAddress(addr: PanelAddressType) : ShapeM[BoxType] = 
       for { z <- seekToAddress(addr) } yield { z._1.baseValue }
       
-    def seekToAddress(addr: AddressType) : ShapeM[NestingZipper[BoxType, N]]
+    def seekToAddress(addr: PanelAddressType) : ShapeM[NestingZipper[BoxType, N]]
 
     //============================================================================================
     // BOX AND EDGE CONSTRUCTORS
     //
 
-    type BoxType <: CellBox
-    type EdgeType <: CellEdge
+    type BoxType <: CellBox[A, N] { type BoxAddressType = PanelAddressType }
+    type EdgeType <: CellEdge[A, N]
 
     def cellEdge : EdgeType
 
     //============================================================================================
-    // CELL BOXES
-    //
-
-    // The box should already contain a component for the label ...
-    trait CellBox extends Rooted with BoundedElement[Element] {
-
-      def label: A
-      def boxDim: N = panelDim
-      def address: AddressType
-      def isExternal: Boolean
-      def decoration: Decoration[E]
-
-      def labelElement : Element = decoration.boundedElement.element
-      def labelBounds : Bounds = decoration.boundedElement.bounds
-      def colorHint : String = decoration.colorHint
-
-      def bounds: Bounds = Bounds(x, y, width, height)
-
-      //
-      // Mutable Values
-      //
-
-      var rootX : Size = zero
-      var rootY : Size = zero
-
-      var leftInteriorMargin : Size = zero
-      var rightInteriorMargin : Size = zero
-
-      var interiorHeight : Size = zero
-
-      // Now that this exists outside and with an index parameter, we should
-      // be able to fix things up so that it's not an option in the correct dimensions ..
-      var outgoingEdge : Option[CellEdge] = None
-
-      //
-      // Derived Values
-      //
-
-      def x : Size = rootX - leftMargin
-      def y : Size = rootY - height
-
-      def interiorWidth : Size = leftInteriorMargin + rightInteriorMargin
-
-      def width : Size = leftMargin + rightMargin
-      def height : Size =
-        if (isExternal) {
-          strokeWidth +
-          internalPadding +
-          labelHeight +
-          internalPadding +
-          strokeWidth
-        } else {
-          strokeWidth +
-          interiorHeight +
-          internalPadding +
-          labelHeight +
-          internalPadding +
-          strokeWidth
-        }
-
-      def leftMargin : Size =
-        if (isExternal) {
-          strokeWidth + internalPadding + halfLabelWidth
-        } else {
-          strokeWidth + leftInteriorMargin + internalPadding + strokeWidth
-        }
-
-      def rightMargin : Size =
-        if (isExternal) {
-          halfLabelWidth + internalPadding + strokeWidth
-        } else {
-          max(
-            internalPadding + labelWidth + internalPadding + strokeWidth,
-            rightInteriorMargin + internalPadding + strokeWidth
-          )
-        }
-
-      def halfLabelWidth : Size = half(labelBounds.width)
-      def halfLabelHeight : Size = half(labelBounds.height)
-
-      def labelWidth : Size = labelBounds.width
-      def labelHeight : Size = labelBounds.height
-
-      def clear : Unit = {
-        rootX = zero
-        rootY = zero
-        leftInteriorMargin = zero
-        rightInteriorMargin = zero
-        interiorHeight = zero
-        horizontalDependants.clear
-        verticalDependants.clear
-      }
-
-    }
-
-    //============================================================================================
-    // CELL EDGES
-    //
-
-
-    trait CellEdge extends EdgeLike with BoundedElement[Element] {
-
-      def bounds: Bounds = {
-
-        val (x, width) =
-          if (isOrdered.gt(edgeEndX, edgeStartX)) {
-            (edgeStartX, edgeEndX - edgeStartX)
-          } else {
-            (edgeStartX, edgeStartX - edgeEndX)
-          }
-
-        Bounds(x, edgeStartY, width, edgeEndY - edgeStartY)
-
-      }
-
-      def pathString : String = {
-
-        val isVertical : Boolean = edgeStartX == edgeEndX
-
-        var pathString : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
-
-        if (isVertical) {
-          pathString ++= "V " ++ edgeEndY.toString
-        } else {
-          pathString ++= "V " ++ (edgeEndY - cornerRadius).toString ++ " "
-          pathString ++= "A " ++ cornerRadius.toString ++ " " ++ cornerRadius.toString ++ " 0 0 " ++ (if (edgeStartX > edgeEndX) "1 " else "0 ") ++
-            (if (edgeStartX > edgeEndX) (edgeStartX - cornerRadius) else (edgeStartX + cornerRadius)).toString ++ " " ++ edgeEndY.toString ++ " "
-          pathString ++= "H " ++ edgeEndX.toString
-        }
-
-        pathString
-
-      }
-
-    }
-
-    //============================================================================================
-    // ROOTED HELPER TRAIT
-    //
-
-    trait Rooted {
-
-      var rootX : Size
-      var rootY : Size
-
-      val horizontalDependants : ListBuffer[Rooted] = ListBuffer.empty
-      val verticalDependants : ListBuffer[Rooted] = ListBuffer.empty
-
-      def shiftRight(amount : Size) : Unit = {
-        if (amount != 0) {
-          rootX = (rootX + amount)
-          horizontalDependants foreach (_.shiftRight(amount))
-        }
-      }
-
-      def shiftDown(amount : Size) : Unit = {
-        if (amount != 0) {
-          rootY = (rootY + amount)
-          verticalDependants foreach (_.shiftDown(amount))
-        }
-      }
-
-      def shiftLeft(amount : Size) : Unit = shiftRight(-amount)
-      def shiftUp(amount : Size) : Unit = shiftDown(-amount)
-
-    }
-
-    //============================================================================================
-    // EDGE HELPERS
-    //
-
-    trait EdgeLike {
-
-      var edgeStartX : Size = zero
-      var edgeStartY : Size = zero
-
-      var edgeEndX : Size = zero
-      var edgeEndY : Size = zero
-
-    }
-
-    class EdgeStartMarker(edge : EdgeLike) extends Rooted {
-
-      def rootX : Size = edge.edgeStartX
-      def rootX_=(u : Size) : Unit =
-        edge.edgeStartX = u
-
-      def rootY : Size = edge.edgeStartY
-      def rootY_=(u : Size) : Unit =
-        edge.edgeStartY = u
-
-    }
-
-    class EdgeEndMarker(edge : EdgeLike) extends Rooted {
-
-      def rootX : Size = edge.edgeEndX
-      def rootX_=(u : Size) : Unit =
-        edge.edgeEndX = u
-
-      def rootY : Size = edge.edgeEndY
-      def rootY_=(u : Size) : Unit =
-        edge.edgeEndY = u
-
-    }
-
-    //============================================================================================
     // LAYOUT MARKER HELPER CLASS
     //
+
 
     // Why don't you clean this up and make it a case class?  This complicated version
     // is really unnecessary .....
@@ -343,18 +139,190 @@ trait HasPanels { self : UIFramework =>
 
     }
 
+    //============================================================================================
+    // EDGE MARKERS
+    //
+
+    class EdgeStartMarker(edge : EdgeLike) extends Rooted {
+
+      def rootX : Size = edge.edgeStartX
+      def rootX_=(u : Size) : Unit =
+        edge.edgeStartX = u
+
+      def rootY : Size = edge.edgeStartY
+      def rootY_=(u : Size) : Unit =
+        edge.edgeStartY = u
+
+    }
+
+    class EdgeEndMarker(edge : EdgeLike) extends Rooted {
+
+      def rootX : Size = edge.edgeEndX
+      def rootX_=(u : Size) : Unit =
+        edge.edgeEndX = u
+
+      def rootY : Size = edge.edgeEndY
+      def rootY_=(u : Size) : Unit =
+        edge.edgeEndY = u
+
+    }
+
   }
 
+  //============================================================================================
+  // CELL BOXES
+  //
+
+  // The box should already contain a component for the label ...
+  trait CellBox[A, N <: Nat] extends Rooted with BoundedElement[Element] {
+
+    type BoxAddressType
+
+    val panel: Panel[A, N]
+    import panel.config._
+
+    def label: A
+    def boxDim: N = panel.panelDim
+    def address: BoxAddressType
+    def isExternal: Boolean
+    def decoration: Decoration[panel.LabelElementType]
+
+    def labelElement : Element = decoration.boundedElement.element
+    def labelBounds : Bounds = decoration.boundedElement.bounds
+    def colorHint : String = decoration.colorHint
+
+    def bounds: Bounds = Bounds(x, y, width, height)
+
+    //
+    // Mutable Values
+    //
+
+    var rootX : Size = zero
+    var rootY : Size = zero
+
+    var leftInteriorMargin : Size = zero
+    var rightInteriorMargin : Size = zero
+
+    var interiorHeight : Size = zero
+
+    // Now that this exists outside and with an index parameter, we should
+    // be able to fix things up so that it's not an option in the correct dimensions ..
+    var outgoingEdge : Option[CellEdge[A, N]] = None
+
+    //
+    // Derived Values
+    //
+
+    def x : Size = rootX - leftMargin
+    def y : Size = rootY - height
+
+    def interiorWidth : Size = leftInteriorMargin + rightInteriorMargin
+
+    def width : Size = leftMargin + rightMargin
+    def height : Size =
+      if (isExternal) {
+        strokeWidth +
+        internalPadding +
+        labelHeight +
+        internalPadding +
+        strokeWidth
+      } else {
+        strokeWidth +
+        interiorHeight +
+        internalPadding +
+        labelHeight +
+        internalPadding +
+        strokeWidth
+      }
+
+    def leftMargin : Size =
+      if (isExternal) {
+        strokeWidth + internalPadding + halfLabelWidth
+      } else {
+        strokeWidth + leftInteriorMargin + internalPadding + strokeWidth
+      }
+
+    def rightMargin : Size =
+      if (isExternal) {
+        halfLabelWidth + internalPadding + strokeWidth
+      } else {
+        max(
+          internalPadding + labelWidth + internalPadding + strokeWidth,
+          rightInteriorMargin + internalPadding + strokeWidth
+        )
+      }
+
+    def halfLabelWidth : Size = half(labelBounds.width)
+    def halfLabelHeight : Size = half(labelBounds.height)
+
+    def labelWidth : Size = labelBounds.width
+    def labelHeight : Size = labelBounds.height
+
+    def clear : Unit = {
+      rootX = zero
+      rootY = zero
+      leftInteriorMargin = zero
+      rightInteriorMargin = zero
+      interiorHeight = zero
+      horizontalDependants.clear
+      verticalDependants.clear
+    }
+
+  }
+
+  //============================================================================================
+  // CELL EDGES
+  //
+
+
+  trait CellEdge[A, N <: Nat] extends EdgeLike with BoundedElement[Element] {
+
+    val panel: Panel[A, N]
+    import panel.config._
+
+    def bounds: Bounds = {
+
+      val (x, width) =
+        if (isOrdered.gt(edgeEndX, edgeStartX)) {
+          (edgeStartX, edgeEndX - edgeStartX)
+        } else {
+          (edgeStartX, edgeStartX - edgeEndX)
+        }
+
+      Bounds(x, edgeStartY, width, edgeEndY - edgeStartY)
+
+    }
+
+    def pathString : String = {
+
+      val isVertical : Boolean = edgeStartX == edgeEndX
+
+      var pathString : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
+
+      if (isVertical) {
+        pathString ++= "V " ++ edgeEndY.toString
+      } else {
+        pathString ++= "V " ++ (edgeEndY - cornerRadius).toString ++ " "
+        pathString ++= "A " ++ cornerRadius.toString ++ " " ++ cornerRadius.toString ++ " 0 0 " ++ (if (edgeStartX > edgeEndX) "1 " else "0 ") ++
+          (if (edgeStartX > edgeEndX) (edgeStartX - cornerRadius) else (edgeStartX + cornerRadius)).toString ++ " " ++ edgeEndY.toString ++ " "
+        pathString ++= "H " ++ edgeEndX.toString
+      }
+
+      pathString
+
+    }
+
+  }
 
   //============================================================================================
   // OBJECT PANELS
   //
 
-  trait ObjectPanel[A, E <: Element] extends Panel[A, E, _0] {
+  trait ObjectPanel[A] extends Panel[A, _0] {
 
     import config._
 
-    def layoutObjects(nst : Nesting[CellBox, _0]) : CellBox =
+    def layoutObjects(nst : Nesting[BoxType, _0]) : BoxType =
       nst match {
         case Obj(b) => { b.clear ; b }
         case Box(b, Pt(n)) => {
@@ -383,7 +351,7 @@ trait HasPanels { self : UIFramework =>
   // NESTING PANEL
   //
 
-  trait NestingPanel[A, E <: Element, P <: Nat] extends Panel[A, E, S[P]] {
+  trait NestingPanel[A, P <: Nat] extends Panel[A, S[P]] {
 
     import config._
 
@@ -766,6 +734,51 @@ trait HasPanels { self : UIFramework =>
           }
         }
       }
+
+  }
+
+  //============================================================================================
+  // ROOTED HELPER TRAIT
+  //
+
+  trait Rooted {
+
+    var rootX : Size
+    var rootY : Size
+
+    val horizontalDependants : ListBuffer[Rooted] = ListBuffer.empty
+    val verticalDependants : ListBuffer[Rooted] = ListBuffer.empty
+
+    def shiftRight(amount : Size) : Unit = {
+      if (amount != 0) {
+        rootX = (rootX + amount)
+        horizontalDependants foreach (_.shiftRight(amount))
+      }
+    }
+
+    def shiftDown(amount : Size) : Unit = {
+      if (amount != 0) {
+        rootY = (rootY + amount)
+        verticalDependants foreach (_.shiftDown(amount))
+      }
+    }
+
+    def shiftLeft(amount : Size) : Unit = shiftRight(-amount)
+    def shiftUp(amount : Size) : Unit = shiftDown(-amount)
+
+  }
+
+  //============================================================================================
+  // EDGE HELPERS
+  //
+
+  trait EdgeLike {
+
+    var edgeStartX : Size = zero
+    var edgeStartY : Size = zero
+
+    var edgeEndX : Size = zero
+    var edgeEndY : Size = zero
 
   }
 

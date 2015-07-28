@@ -14,30 +14,32 @@ import syntax.suite._
 
 trait HasSelectablePanels extends HasPanels { self: UIFramework =>
 
-  trait SelectablePanel[A, E <: Element, N <: Nat] { thisPanel: Panel[A, E, N] =>
+  trait SelectablePanel[A, N <: Nat] { self : Panel[A, N] =>
 
-    type BoxType <: SelectableBox
-
-    trait SelectableBox extends CellBox {
-
-      def canSelect: Boolean = true
-      var isSelected: Boolean = false
-
-      def select: Unit = ()
-      def deselect: Unit = ()
-
-    }
+    type BoxType <: SelectableBox[A, N] { type BoxAddressType = PanelAddressType }
 
   }
+
+  trait SelectableBox[A, N <: Nat] extends CellBox[A, N] {
+
+    def canSelect: Boolean = true
+    var isSelected: Boolean = false
+
+    def select: Unit = ()
+    def deselect: Unit = ()
+
+  }
+
 
 }
 
 
 trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSelectablePanels =>
 
-  trait SelectableGallery[A[_ <: Nat], E <: Element] extends Gallery[A, E] {
+  trait SelectableGallery[A[_ <: Nat]] extends Gallery[A] {
 
-    type PanelType[N <: Nat] <: Panel[A[N], E, N] with SelectablePanel[A[N], E, N] with GalleryPanel[N]
+    type PanelType[N <: Nat] <: SelectablePanel[A[N], N] with GalleryPanel[N]
+    type GalleryBoxType[N <: Nat] <: SelectableBox[A[N], N] { type BoxAddressType = GalleryAddressType[N] }
 
     var selection: Option[Selection]
 
@@ -46,19 +48,19 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
       type Dim <: Nat
 
       val dim: Dim
-      val root: PanelBoxType[Dim]
-      val companions: ListBuffer[PanelBoxType[Dim]]
+      val root: GalleryBoxType[Dim]
+      val companions: ListBuffer[GalleryBoxType[Dim]]
 
     }
 
     object Selection {
 
-      def apply[N <: Nat](box: PanelBoxType[N]) : Selection =
+      def apply[N <: Nat](box: GalleryBoxType[N]) : Selection =
         new Selection {
           type Dim = N
           val dim = box.boxDim
           val root = box
-          val companions = ListBuffer[PanelBoxType[Dim]]()
+          val companions = ListBuffer[GalleryBoxType[Dim]]()
         }
 
     }
@@ -75,7 +77,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
       selection = None
     }
     
-    def selectAsRoot[N <: Nat](box : PanelBoxType[N]) : Unit =
+    def selectAsRoot[N <: Nat](box : GalleryBoxType[N]) : Unit =
       if (box.canSelect) {
         deselectAll
         box.select
@@ -83,8 +85,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
         selection = Some(Selection(box))
       }
 
-
-    def select[N <: Nat](box: PanelBoxType[N]) : Unit = 
+    def select[N <: Nat](box: GalleryBoxType[N]) : Unit = 
       if (box.canSelect) {
         selection match {
           case None => selectAsRoot(box)
@@ -96,7 +97,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
               case None => selectAsRoot(box)
               case Some(ev) => {
 
-                val candidates: ListBuffer[PanelBoxType[N]] = 
+                val candidates: ListBuffer[GalleryBoxType[N]] = 
                   ListBuffer()
 
                 val thePanels = panels
