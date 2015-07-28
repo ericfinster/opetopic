@@ -12,6 +12,7 @@ import org.scalajs.dom._
 
 import org.scalajs.dom.raw.SVGElement
 import org.scalajs.dom.raw.SVGGElement
+import org.scalajs.dom.raw.SVGSVGElement
 import org.scalajs.dom.raw.SVGPathElement
 import org.scalajs.dom.raw.SVGRectElement
 import org.scalajs.dom.raw.SVGTransformable
@@ -27,15 +28,18 @@ object JsDomFramework extends ActiveFramework
 
   implicit val defaultPanelConfig =
     PanelConfig(
-      internalPadding = 200,
-      externalPadding = 400,
-      leafWidth = 100,
-      strokeWidth = 60,
-      cornerRadius = 100
+      internalPadding = 400,
+      externalPadding = 600,
+      leafWidth = 200,
+      strokeWidth = 100,
+      cornerRadius = 200
     )
 
   implicit val defaultGalleryConfig =
-    GalleryConfig(defaultPanelConfig, 800)
+    GalleryConfig(
+      defaultPanelConfig, 
+      1000, 650, 800
+    )
 
   val isNumeric: Numeric[Int] = implicitly[Numeric[Int]]
   val isOrdered: Ordering[Int] = implicitly[Ordering[Int]]
@@ -45,11 +49,11 @@ object JsDomFramework extends ActiveFramework
   def half(u: Int) : Int = u / 2
 
   type UIElementType = SVGElement
-  type UIEventType = Event
 
   type PathType = JsDomPath
   type TextType = JsDomText
   type GroupType = JsDomGroup
+  type ViewportType = JsDomViewport
   type RectangleType = JsDomRectangle
 
   abstract class JsDomElement extends Element {
@@ -61,20 +65,112 @@ object JsDomFramework extends ActiveFramework
       uiElement.setAttributeNS(null, "transform", translateStr ++ " " ++ scaleStr)
     }
 
-    var onClick : Event => Unit = { _ => () }
-    var onMouseOut : Event => Unit = { _ => () }
-    var onMouseOver : Event => Unit = { _ => () }
+    implicit def mouseEventEncode(ev: MouseEvent) : UIMouseEvent = 
+      new UIMouseEvent {
+        def button = ev.button
+        def altKey = ev.altKey
+        def ctrlKey = ev.ctrlKey
+        def shiftKey = ev.shiftKey
+      }
+
+    var onClick : UIMouseEvent => Unit = { _ => () }
+    var onMouseOut : UIMouseEvent => Unit = { _ => () }
+    var onMouseOver : UIMouseEvent => Unit = { _ => () }
+    var onKeyDown : UIKeyEvent => Unit = { _ => () }
 
     def installHandlers(el: SVGElement) : Unit = {
-      el.onclick = { (e : Event) => onClick(e) }
-      el.onmouseover = { (e : Event) => onMouseOver(e) }
-      el.onmouseout = { (e : Event) => onMouseOut(e) }
+      el.onclick = { (e : MouseEvent) => onClick(e) }
+      el.onmouseover = { (e : MouseEvent) => onMouseOver(e) }
+      el.onmouseout = { (e : MouseEvent) => onMouseOut(e) }
     }
 
   }
 
   def makeMouseInvisible(el: Element) : Element = {
     el.uiElement.setAttributeNS(null, "pointer-events", "none") ; el
+  }
+
+  abstract class JsDomParentElement extends JsDomElement {
+
+    private var myChildren: Seq[Element] = Seq()
+
+    def children: Seq[Element] = myChildren
+    def children_=(els: Seq[Element]) : Unit = {
+      var last = uiElement.lastChild
+
+      while (last != null) { 
+        uiElement.removeChild(last)
+        last = uiElement.lastChild
+      }
+
+      for { el <- els } {
+        uiElement.appendChild(el.uiElement) 
+      }
+
+      myChildren = els
+    }
+
+  }
+
+  //============================================================================================
+  // VIEWPORTS
+  //
+
+  def viewport : ViewportType = 
+    new JsDomViewport
+
+  def viewport(bounds: Bounds, elems: Element*) : ViewportType = 
+    new JsDomViewport(bounds, elems)
+
+  class JsDomViewport extends JsDomParentElement with Viewport {
+
+    def this(bounds: Bounds, elems: Seq[Element]) = {
+      this ; viewX = bounds.x ; viewY = bounds.y 
+      viewWidth = bounds.width ; viewHeight = bounds.height
+      children = elems
+    }
+
+    val svgSvg = 
+      document.createElementNS(svgns, "svg").
+        asInstanceOf[SVGSVGElement]
+
+    installHandlers(svgSvg)
+
+    val uiElement = svgSvg
+
+    def width: Int = svgSvg.getAttributeNS(null, "width").toInt
+    def width_=(i: Int) = svgSvg.setAttributeNS(null, "width", i.toString)
+
+    def height: Int = svgSvg.getAttributeNS(null, "height").toInt
+    def height_=(i: Int) = svgSvg.setAttributeNS(null, "height", i.toString)
+
+    private var myViewX: Int = 0
+    private var myViewY: Int = 0
+    private var myViewWidth: Int = 0
+    private var myViewHeight: Int = 0
+
+    def viewX: Int = myViewX
+    def viewX_=(i: Int) = { myViewX = i ; setViewboxString }
+
+    def viewY: Int = myViewY
+    def viewY_=(i: Int) = { myViewY = i ; setViewboxString }
+
+    def viewWidth: Int = myViewWidth
+    def viewWidth_=(i: Int) = { myViewWidth = i ; setViewboxString }
+
+    def viewHeight: Int = myViewHeight
+    def viewHeight_=(i: Int) = { myViewHeight = i ; setViewboxString }
+
+    def viewBoxString : String = 
+      viewX.toString ++ " " ++ viewY.toString ++ " " ++
+        viewWidth.toString ++ " " ++ viewHeight.toString
+
+    def setViewboxString : Unit =
+      svgSvg.setAttributeNS(null, "viewBox", viewBoxString)
+
+    def getViewboxString : String = 
+      svgSvg.getAttributeNS(null, "viewBox")
+
   }
 
   //============================================================================================
@@ -102,31 +198,31 @@ object JsDomFramework extends ActiveFramework
 
     val uiElement = svgRect
 
-    def x: Int = svgRect.getAttributeNS(svgns, "x").toInt
+    def x: Int = svgRect.getAttributeNS(null, "x").toInt
     def x_=(i : Int): Unit = svgRect.setAttributeNS(null, "x", i.toString)
 
-    def y: Int = svgRect.getAttributeNS(svgns, "y").toInt
+    def y: Int = svgRect.getAttributeNS(null, "y").toInt
     def y_=(i : Int): Unit = svgRect.setAttributeNS(null, "y", i.toString)
 
-    def width: Int = svgRect.getAttributeNS(svgns, "width").toInt
+    def width: Int = svgRect.getAttributeNS(null, "width").toInt
     def width_=(i : Int): Unit = svgRect.setAttributeNS(null, "width", i.toString)
 
-    def height: Int = svgRect.getAttributeNS(svgns, "height").toInt
+    def height: Int = svgRect.getAttributeNS(null, "height").toInt
     def height_=(i : Int): Unit = svgRect.setAttributeNS(null, "height", i.toString)
 
-    def r: Int = svgRect.getAttributeNS(svgns, "rx").toInt
+    def r: Int = svgRect.getAttributeNS(null, "rx").toInt
     def r_=(i: Int) = {
       svgRect.setAttributeNS(null, "rx", i.toString)
       svgRect.setAttributeNS(null, "ry", i.toString)
     }
 
-    def stroke: String = svgRect.getAttributeNS(svgns, "stroke")
+    def stroke: String = svgRect.getAttributeNS(null, "stroke")
     def stroke_=(s: String): Unit = svgRect.setAttributeNS(null, "stroke", s)
 
-    def strokeWidth: Int = svgRect.getAttributeNS(svgns, "stroke-width").toInt
+    def strokeWidth: Int = svgRect.getAttributeNS(null, "stroke-width").toInt
     def strokeWidth_=(i : Int): Unit = svgRect.setAttributeNS(null, "stroke-width", i.toString)
 
-    def fill: String = svgRect.getAttributeNS(svgns, "fill")
+    def fill: String = svgRect.getAttributeNS(null, "fill")
     def fill_=(s: String): Unit = svgRect.setAttributeNS(null, "fill", s)
 
   }
@@ -135,13 +231,15 @@ object JsDomFramework extends ActiveFramework
   // GROUPS
   //
 
+
+
   def group : GroupType = 
     new JsDomGroup 
 
   def group(els: Element*) : GroupType = 
     new JsDomGroup(els)
 
-  class JsDomGroup extends JsDomElement with Group {
+  class JsDomGroup extends JsDomParentElement with Group {
 
     def this(els: Seq[Element]) = {
       this ; children = els
@@ -152,24 +250,6 @@ object JsDomFramework extends ActiveFramework
         asInstanceOf[SVGGElement]
 
     val uiElement = svgGroup
-
-    private var myChildren: Seq[Element] = Seq()
-
-    def children: Seq[Element] = myChildren
-    def children_=(els: Seq[Element]) : Unit = {
-      var last = svgGroup.lastChild
-
-      while (last != null) { 
-        svgGroup.removeChild(last)
-        last = svgGroup.lastChild
-      }
-
-      for { el <- els } {
-        svgGroup.appendChild(el.uiElement) 
-      }
-
-      myChildren = els
-    }
 
   }
 
@@ -195,16 +275,16 @@ object JsDomFramework extends ActiveFramework
 
     val uiElement = svgPath
 
-    def d: String = svgPath.getAttributeNS(svgns, "d")
+    def d: String = svgPath.getAttributeNS(null, "d")
     def d_=(s: String): Unit = svgPath.setAttributeNS(null, "d", s)
 
-    def stroke: String = svgPath.getAttributeNS(svgns, "stroke")
+    def stroke: String = svgPath.getAttributeNS(null, "stroke")
     def stroke_=(s: String): Unit = svgPath.setAttributeNS(null, "stroke", s)
 
-    def strokeWidth: Int = svgPath.getAttributeNS(svgns, "stroke-width").toInt
+    def strokeWidth: Int = svgPath.getAttributeNS(null, "stroke-width").toInt
     def strokeWidth_=(i : Int): Unit = svgPath.setAttributeNS(null, "stroke-width", i.toString)
 
-    def fill: String = svgPath.getAttributeNS(svgns, "fill")
+    def fill: String = svgPath.getAttributeNS(null, "fill")
     def fill_=(s: String): Unit = svgPath.setAttributeNS(null, "fill", s)
 
   }

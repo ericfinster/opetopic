@@ -27,6 +27,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
   type TextType = Element
   type GroupType = Element
   type RectangleType = Element
+  type ViewportType = Element
 
   def half(i: Int) : Int = i / 2
 
@@ -52,6 +53,12 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
   def makeMouseInvisible(el: Element) : Element = {
     import implicits._
     el(svgAttrs.pointerEvents:="none")
+  }
+
+  def viewport(bounds: Bounds, elems: Element*) : ViewportType = {
+    import svgTags._
+    import implicits._
+    svg(svgAttrs.viewBox:=bounds.dimString)(elems)
   }
 
   def group(elems: Element*) : GroupType = {

@@ -17,6 +17,8 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
 
   case class GalleryConfig(
     val panelConfig: PanelConfig,
+    val width: Size,
+    val height: Size,
     val spacing : Size
   )
 

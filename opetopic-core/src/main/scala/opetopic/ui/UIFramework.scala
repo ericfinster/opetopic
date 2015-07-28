@@ -17,6 +17,7 @@ abstract class UIFramework {
   type PathType <: Element
   type TextType <: Element
   type GroupType <: Element
+  type ViewportType <: Element
   type RectangleType <: Element
 
   implicit val isNumeric: Numeric[Size]
@@ -28,6 +29,7 @@ abstract class UIFramework {
   // CANVAS ELEMENTS
   //
 
+  def viewport(bounds: Bounds, elem: Element*) : ViewportType
   def group(elem: Element*) : GroupType
   def rect(x: Size, y: Size, width: Size, height: Size, r: Size, stroke: String, strokeWidth: Size, fill: String) : RectangleType
   def path(d: String, stroke: String, strokeWidth: Size, fill: String) : PathType

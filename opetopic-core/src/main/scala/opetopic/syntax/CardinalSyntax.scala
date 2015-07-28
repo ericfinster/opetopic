@@ -14,6 +14,7 @@ import scalaz.Traverse
 import scalaz.Applicative
 
 import opetopic._
+import TypeLemmas._
 
 final class CardinalOps[A[_ <: Nat], N <: Nat](cardinal : Cardinal[A, N]) {
 
@@ -28,6 +29,9 @@ final class CardinalOps[A[_ <: Nat], N <: Nat](cardinal : Cardinal[A, N]) {
   def toComplexWith[B[K <: Nat] >: A[K], C[K <: Nat] <: B[K]](p: PolaritySuite[C, N]) : Complex[B, N] = 
     Cardinal.completeToComplex(dim)(cardinal, p)
   
+  def extrudeSelection[K <: Nat](k: K)(ca: CardinalAddress[K], a0: A[K], a1: A[S[K]])(pred: A[K] => Boolean)(implicit diff : Diff[S[K], N]) = 
+    Cardinal.extrudeSelection[A, K, N, diff.D](diff.lte)(cardinal, ca, a0, a1)(pred)
+
 }
 
 trait ToCardinalOps {
@@ -55,5 +59,8 @@ trait ToCardinalOps {
 
   implicit def toFiniteCardinal[A[_ <: Nat], N <: Nat](cardinal: Cardinal[A, N]) : FiniteCardinal[A] = 
     Sigma[({ type L[K <: Nat] = Cardinal[A, K] })#L, N](cardinal.length.pred)(cardinal)
+
+  implicit def cardinalToSuiteOps[A[_ <: Nat], N <: Nat](cardinal: Cardinal[A, N]) : SuiteOps[Lambda[`K <: Nat` => CardinalNesting[A[K], K]], S[N]] = 
+    new SuiteOps[Lambda[`K <: Nat` => CardinalNesting[A[K], K]], S[N]](cardinal)
 
 }

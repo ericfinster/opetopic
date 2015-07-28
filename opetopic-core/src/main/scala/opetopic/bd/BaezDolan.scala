@@ -14,31 +14,31 @@ import opetopic._
 //
 
 sealed trait Term[N <: Nat]
-case class Lam[K <: Nat, N <: Nat](val idx: Int, val ty: Type[K], val u: Term[N]) extends Term[N]
-case class App[K <: Nat, N <: Nat](val u: Term[K], val v: Term[N]) extends Term[N]
+case class Lam[K <: Nat, N <: Nat](val name: String, val ty: Type[K], val u: Term[N]) extends Term[N]
+case class App[K <: Nat, N <: Nat](val u: Term[N], val v: Term[K]) extends Term[N]
+case class Var[N <: Nat](val idx : Int) extends Term[N]
 
 sealed trait Cell[N <: Nat] extends Term[N]
-case class VarCell[N <: Nat](val idx: Int, val shell: Shell[N]) extends Cell[N]
 case class CompCell[N <: Nat](val pd: Tree[Term[N], N]) extends Cell[N]
 case class FillCell[N <: Nat](val pd: Tree[Term[N], N]) extends Cell[S[N]]
 
 sealed trait Proof[N <: Nat] extends Term[N]
 case class IsFiller[N <: Nat](val term: Term[N]) extends Proof[N]
-case class UnivComp[N <: Nat](val tree: Tree[Term[N], N]) extends Proof[N]
+case class UnivComp[N <: Nat](val tree: Tree[Proof[N], N]) extends Proof[N]
 case class UnivToBal[N <: Nat](val tgtCell: Term[N], val univCell: Term[S[N]], val ev: Term[S[N]]) extends Proof[S[N]]
 case class BalToUniv[N <: Nat](val tgtCell: Term[N], val hole: Derivative[Term[N], N], val ev: Term[N]) extends Proof[S[N]]
 
 case class UnivCon[N <: Nat](
   val cell: Term[N], 
-  val proof: Term[S[N]]     // (x : TgtShape(cell)) -> IsBalanced (TargetExt(x, u))
+  val proof: Term[S[N]]     // (x : TgtShellOf(cell)) -> IsBalanced (TargetExt(x, cell))
 ) extends Proof[N]
 
 case class BalCon[N <: Nat](
   val pd: Derivative[Term[N], N],
-  val lift: Term[N],        // (x : TargetShape(pd)) -> HoleShape(pd)
-  val fill: Term[S[N]],     // (x : TargetShape(pd)) -> Shell(plug(pd, lift(x)), x)
-  val isUniv: Term[S[N]],   // (x : TargetShape(pd)) -> IsUniversal(fill(x))
-  val isBal: Term[S[N]]     // (x : TargetShape(pd)) -> (u : Shell(plug(pd, lift(x)), x)) -> (univ : IsUniversal u) -> (y : HoleShape(pd)) -> IsBalanced(SrcExt(y, u))
+  val lift: Term[N],        // (x : TargetShellOf(pd)) -> HoleShape(pd)
+  val fill: Term[S[N]],     // (x : TargetShellOf(pd)) -> Shell(plug(pd, lift(x)), x)
+  val isUniv: Term[S[N]],   // (x : TargetShellOf(pd)) -> IsUniversal(fill(x))
+  val isBal: Term[S[N]]     // (x : TargetShellOf(pd)) -> (u : Shell(plug(pd, lift(x)), x)) -> (univ : IsUniversal u) -> (y : HoleShape(pd)) -> IsBalanced(SrcExt(y, u))
 ) extends Proof[N]
 
 //============================================================================================

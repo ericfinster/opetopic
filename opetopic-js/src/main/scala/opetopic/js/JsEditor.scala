@@ -29,7 +29,7 @@ object JsEditor extends js.JSApp {
       )
 
     implicit val defaultGalleryConfig = 
-      GalleryConfig(defaultPanelConfig, 800)
+      GalleryConfig(defaultPanelConfig, 800, 600, 800)
 
   }
 
@@ -66,15 +66,15 @@ object JsEditor extends js.JSApp {
     // the element type a dependent guy somehow ...
     val editor = new CardinalEditor[ConstInt, TextType](fredOpt.toCardinal)
 
-    val editorSvg = document.createElementNS(svgns, "svg")
-    editorSvg.setAttributeNS(null, "width", "800")
-    editorSvg.setAttributeNS(null, "height", "600")
-    editorSvg.setAttributeNS(null, "viewBox", editor.bounds.dimString)
-
-    editorSvg.appendChild(editor.element.uiElement)
+    document.onkeydown = ((e: KeyboardEvent) => {
+      e.keyCode match {
+        case 69 => editor.extrudeSelection
+        case _ => ()
+      }
+    })
 
     val div = document.getElementById("middle-pane")
-    div.appendChild(editorSvg)
+    div.appendChild(editor.element.uiElement)
 
   }
 

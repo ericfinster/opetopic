@@ -24,12 +24,12 @@ sealed trait Suite[F[_ <: Nat], L <: Nat] {
 }
 
 case class SNil[F[_ <: Nat]]() extends Suite[F, _0] { 
-  def length = Z 
+  val length = Z 
   override def toString = "[]"
 }
 
 case class >>[F[_ <: Nat], P <: Nat](tl : Suite[F, P], hd : F[P]) extends Suite[F, S[P]] { 
-  def length = S(tl.length) 
+  val length = S(tl.length) 
   override def toString = tl.toString ++ " >> " ++ hd.toString
 }
 
@@ -50,6 +50,15 @@ object Suite {
       case SNil() => SNil()
       case tail >> hd => map(tail)(f) >> f(tail.length)(hd)
     }
+
+  def zip[F[_ <: Nat], G[_ <: Nat], L <: Nat](fs: Suite[F, L], gs: Suite[G, L]) : Suite[Lambda[`K <: Nat` => (F[K], G[K])], L] = {
+    type FG[K <: Nat] = (F[K], G[K])
+    (fs, gs) match {
+      case (SNil(), SNil()) => SNil[FG]()
+      case (ft >> fh, gt >> gh) => zip(ft, gt) >> (fh, gh)
+      case _ => ???  // Not really dependent pattern matching ...
+    }
+  }
 
   @lteElim
   def grab[F[_ <: Nat], K <: Nat, N <: Nat, D <: Nat](lte: Lte[K, N, D])(suite: Suite[F, N]) 

@@ -18,9 +18,14 @@ class SuiteOps[A[_ <: Nat], N <: Nat](suite: Suite[A, N]) {
   def map[B[_ <: Nat]](mp: IndexedMap[A, B]) : Suite[B, N] = 
     Suite.map[A, B, N](suite)(mp)
 
+  def zipWith[B[_ <: Nat]](bs: Suite[B, N]) : Suite[Lambda[`K <: Nat` => (A[K], B[K])], N] = 
+    Suite.zip[A, B, N](suite, bs)
+
   def truncate[K <: Nat](k: K)(implicit ev: Diff[K, N]) : Suite[A, K] = 
     Suite.drop[A, ev.D, N, K](lteInvert(ev.lte))(suite)
 
+  def foreach(op: IndexedOp[A]) : Unit = 
+    Suite.foreach[A, N](suite)(op)
 
 }
 
@@ -34,6 +39,9 @@ final class SuiteSuccOps[A[_ <: Nat], P <: Nat](suite: Suite[A, S[P]]) extends S
 
   def get[K <: Nat](k: K)(implicit ev: Diff[K, P]) : A[K] = 
     Suite.getAt[A,K,P,ev.D](suite)(ev.lte)
+
+  def getOpt[K <: Nat](k: K) : Option[A[K]] = 
+    for { diff <- diffOpt(k, suite.length.pred) } yield { get(k)(diff) }
 
 }
 

@@ -34,8 +34,8 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
         r
       }
 
-      boxRect.onMouseOver = { (e : UIEventType) => boxRect.fill = "blue" }
-      boxRect.onMouseOut = { (e : UIEventType) => boxRect.fill = colorHint }
+      boxRect.onMouseOver = { (e : UIMouseEvent) => boxRect.fill = "blue" }
+      boxRect.onMouseOut = { (e : UIMouseEvent) => boxRect.fill = colorHint }
 
       val boxGroup = group
       val element = boxGroup

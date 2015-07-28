@@ -50,8 +50,8 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
         var faceComplex : Option[Complex[PanelBoxType, N]] = None
 
-        boxRect.onMouseOver = { (e: UIEventType) => { hoverFaces } }
-        boxRect.onMouseOut = { (e: UIEventType) => { unhoverFaces } }
+        boxRect.onMouseOver = { (e: UIMouseEvent) => { hoverFaces } }
+        boxRect.onMouseOut = { (e: UIMouseEvent) => { unhoverFaces } }
 
         def hover : Unit = boxRect.fill = "red"
         def unhover : Unit = boxRect.fill = "white"

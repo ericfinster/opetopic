@@ -26,21 +26,51 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     type PolOptA[N <: Nat] = Polarity[Option[A[N]]]
 
     type PanelType[N <: Nat] = CardinalPanel[N]
+    type PanelSuite[N <: Nat] = Suite[PanelType, S[N]]
     type PanelAddressType[N <: Nat] = CardinalAddress[S[N]]
+    type EditorStateAux[N <: Nat] = EditorState { type Dim = N }
+    type NeutralBoxType[N <: Nat] = CardinalPanel[N]#NeutralCellBox
 
-    var cardinal: FiniteCardinal[OptA] = c
-    var panels: NonemptySuite[CardinalPanel] = 
-      createPanels(c.n)(c.value)
+    trait EditorState {
+
+      type Dim <: Nat
+      val dim : Dim
+
+      val cardinal : Cardinal[OptA, Dim]
+      val panels: PanelSuite[Dim]
+
+    }
+
+    object EditorState {
+
+      def apply[N <: Nat](c: Cardinal[OptA, N], ps: PanelSuite[N]) : EditorState = 
+        new EditorState {
+          type Dim = N
+          val dim = c.length.pred
+          val cardinal = c
+          val panels = ps
+        }
+
+    }
+
+    var editorState : EditorState = 
+      EditorState[c.N](c.value, createPanels(c.n)(c.value))
+
+    def panels: NonemptySuite[CardinalPanel] = 
+      editorState.panels
 
     var selection: Option[Selection] = None
 
-    val galleryGroup = group 
-    def element: Element = galleryGroup
+    val galleryViewport = viewport
+    def element: Element = galleryViewport
     var bounds = Bounds(zero, zero, zero, zero)
 
     def initialize : Unit = {
       val (panelEls, bnds) = elementsAndBounds
-      galleryGroup.children = panelEls
+      galleryViewport.width = config.width
+      galleryViewport.height = config.height
+      galleryViewport.setBounds(bnds)
+      galleryViewport.children = panelEls
       bounds = bnds
     }
 
@@ -55,6 +85,116 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
         newTail >> newHead
       }
     }
+
+    def boxCardinal[N <: Nat](st: EditorStateAux[N]) : Cardinal[NeutralBoxType, N] = {
+
+      type NestingType[K <: Nat] = CardinalNesting[NeutralBoxType[K], K]
+
+      val ps = st.panels
+
+      ps.map(
+        new IndexedMap[PanelType, NestingType] {
+          def apply[K <: Nat](k: K)(p: PanelType[K]) : NestingType[K] = 
+            p.cardinalBoxNesting
+        }
+      )
+
+    }
+
+    //============================================================================================
+    // MUTABILITY ROUTINES
+    //
+
+    def extendEditorState(st: EditorState) : EditorState = {
+
+      implicit val n = st.dim
+
+      val extendedNesting = st.panels.head.cardinalNesting map {
+        case nst => Nesting.extendNesting(nst)(_ => None)
+      }
+
+      EditorState(
+        st.cardinal >> extendedNesting,
+        st.panels >> new CardinalNestingPanel(n)(extendedNesting, st.panels.head)
+      )
+    }
+
+    def extrudeSelection : Unit = {
+
+      println("Starting extrusion ...")
+
+      selection match {
+        case None => ()
+        case Some(sel) =>
+          if (! sel.root.isExtrudable) println("Selection not extrudable") else {
+
+            val selectionDim : Int = natToInt(sel.dim)
+            val currentDim : Int = natToInt(panels.p)
+
+            val extrusionState = 
+              if (selectionDim == currentDim) {
+                extendEditorState(editorState)
+              } else editorState
+
+            val extrusionCardinal : Cardinal[NeutralBoxType, extrusionState.Dim] = 
+              boxCardinal(extrusionState)
+
+            val extrusionAddress : CardinalAddress[sel.Dim] = 
+              Suite.tail[Address, S[sel.Dim]](sel.root.address)
+
+            for {
+              diff <- fromOpt(diffOpt(S(sel.dim), extrusionState.dim))
+              tgtPanel <- fromOpt(extrusionState.panels.getOpt(sel.dim))
+              fillPanel = extrusionState.panels.get(S(sel.dim))(diff)
+              tgtBox = tgtPanel.neutralCellBox(None, sel.root.address, false)
+              fillBox = fillPanel.neutralCellBox(None, sel.root.address >> Nil, true)
+              extrudedCardinal <- extrusionCardinal.extrudeSelection(sel.dim)(
+                extrusionAddress, tgtBox, fillBox
+              )(box => box.isSelected)(diff)
+            } yield {
+
+              println("Extrusion successful!!!")
+
+              type ResType[K <: Nat] = (CardinalNesting[NeutralBoxType[K], K], PanelType[K])
+              type ResDim = S[extrusionState.Dim]
+
+              val test : Unit = 
+                Suite.foreach[ResType, ResDim](extrudedCardinal.zipWith(extrusionState.panels))(
+                  new IndexedOp[ResType] {
+                    def apply[N <: Nat](n: N)(r: ResType[N]) = {
+                      val (nst, pn) = r
+                      type LocalType[K <: Nat] = CardinalNesting[pn.NeutralCellBox, K]
+                      pn.cardinalBoxNesting = nst.asInstanceOf[LocalType[N]] // AHHHHHH!!!
+                    }
+                  }
+                )
+
+              // Now, the last step is to rebuild what parts of the interface have been
+              // broken by the extension ...
+
+              // First I think we should zip the resulting cardinals with the panel and
+              // then we should replace the cardinal nesting there with the new one, then
+              // refresh, etc ...
+
+              //         deselectAll
+
+              //         editorState.refreshCardinalAddresses
+              //         editorState.refreshComplexAddresses
+              //         editorState.refreshFaceComplexes
+
+              //         render
+
+              //         selectAsRoot(mk0)
+
+            }
+          }
+      }
+    }
+
+
+    //============================================================================================
+    // PANEL IMPLEMENTATION
+    //
 
     trait CardinalPanel[N <: Nat] extends ActivePanel[PolOptA[N], Element, N] with GalleryPanel[N] {
 
@@ -99,7 +239,18 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           case (nst, pref) => generateNestingData(nst, pref)
         })
 
-      trait CardinalCellBox extends ActiveCellBox 
+      trait CardinalCellBox extends ActiveCellBox {
+
+        def isPolarized : Boolean
+
+        def isExtrudable : Boolean =
+          address match {
+            case (_ >> Nil) => ! isPolarized
+            case _ => false
+          }
+
+      }
+
       class CardinalCellEdge extends ActiveCellEdge
 
       class NeutralCellBox(val optLabel: OptA[N], val address: CardinalAddress[S[N]], val isExternal: Boolean)  
@@ -107,11 +258,12 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
         def label: PolOptA[N] = Neutral(optLabel)
         val decoration = affixable.decoration(label)
+        val isPolarized = false
         makeMouseInvisible(labelElement)
 
-        boxRect.onClick = { (e: UIEventType) => thisEditor.select(thisBox) }
-        boxRect.onMouseOver = { (e : UIEventType) => setHoveredStyle }
-        boxRect.onMouseOut = { (e : UIEventType) => setUnhoveredStyle }
+        boxRect.onClick = { (e: UIMouseEvent) => thisEditor.select(thisBox) }
+        boxRect.onMouseOver = { (e : UIMouseEvent) => setHoveredStyle }
+        boxRect.onMouseOut = { (e : UIMouseEvent) => setUnhoveredStyle }
 
         override def select = { isSelected = true ; setSelectedStyle }
         override def deselect = { isSelected = false ; setDeselectedStyle }
@@ -123,15 +275,16 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
         val label: PolOptA[N] = Positive()
         val address: CardinalAddress[S[N]] = null // No address for polarized cells
         val isExternal: Boolean = false
+        val isPolarized: Boolean = true
         val decoration = affixable.decoration(label)
         makeMouseInvisible(labelElement)
 
-        boxRect.onClick = { (e : UIEventType) => thisEditor.deselectAll }
-        boxRect.onMouseOver = { (e : UIEventType) => () }
-        boxRect.onMouseOut = { (e : UIEventType) => () }
+        boxRect.onClick = { (e : UIMouseEvent) => thisEditor.deselectAll }
+        boxRect.onMouseOver = { (e : UIMouseEvent) => () }
+        boxRect.onMouseOut = { (e : UIMouseEvent) => () }
 
         override def canSelect = false
-        override def colorHint = "grey"
+        override def colorHint = "lightgrey"
 
       }
 
@@ -173,15 +326,16 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
         val label: PolOptA[S[P]] = Negative()
         val address: CardinalAddress[S[S[P]]] = null  // No address for the polarized cells ...
         val isExternal: Boolean = true
+        val isPolarized: Boolean = true
         val decoration = affixable.decoration(label)
         makeMouseInvisible(labelElement)
 
-        boxRect.onClick = { (e : UIEventType) => thisEditor.deselectAll }
-        boxRect.onMouseOver = { (e : UIEventType) => () }
-        boxRect.onMouseOut = { (e : UIEventType) => () }
+        boxRect.onClick = { (e : UIMouseEvent) => thisEditor.deselectAll }
+        boxRect.onMouseOver = { (e : UIMouseEvent) => () }
+        boxRect.onMouseOut = { (e : UIMouseEvent) => () }
 
         override def canSelect = false
-        override def colorHint = "grey"
+        override def colorHint = "lightgrey"
 
       }
 
