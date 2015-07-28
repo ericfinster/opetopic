@@ -151,9 +151,9 @@ trait CardinalFunctions {
   // Never really debugged or looked at this guy ...
 
   @natElim
-  def cardinalAddressComplete[N <: Nat](n: N)(ca: CardinalAddress[N]) : Address[S[N]] = {
-    case (Z, _ >> hd) => () :: Nil
-    case (S(p), tl >> hd) => cardinalAddressComplete(p)(tl) :: hd :: Nil
+  def cardinalAddressComplete[N <: Nat](n: N)(ca: CardinalAddress[N]) : Address[N] = {
+    case (Z, _ >> hd) => () 
+    case (S(p), tl >> hd) => hd ++ List(cardinalAddressComplete(p)(tl))
   }
 
   //============================================================================================

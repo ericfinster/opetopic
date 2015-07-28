@@ -18,8 +18,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
   import isNumeric._
 
-  abstract class CardinalEditor[A[_ <: Nat], E <: Element](c: FiniteCardinal[Lambda[`N <: Nat` => Option[A[N]]]])(
-    implicit val config: GalleryConfig, val r: AffixableFamily[A, E]
+  class CardinalEditor[A[_ <: Nat]](c: FiniteCardinal[Lambda[`N <: Nat` => Option[A[N]]]])(
+    implicit val config: GalleryConfig, val r: AffixableFamily[A]
   ) extends SelectableGallery[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] { thisEditor =>
 
     type OptA[N <: Nat] = Option[A[N]]
@@ -32,35 +32,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     type GalleryAddressType[N <: Nat] = CardinalAddress[S[N]]
     type GalleryLabelType = Element
 
-    type EditorStateAux[N <: Nat] = EditorState { type Dim = N }
-
-    trait EditorState {
-
-      type Dim <: Nat
-      val dim : Dim
-
-      val cardinal : Cardinal[OptA, Dim]
-      val panels: PanelSuite[Dim]
-
-    }
-
-    object EditorState {
-
-      def apply[N <: Nat](c: Cardinal[OptA, N], ps: PanelSuite[N]) : EditorState = 
-        new EditorState {
-          type Dim = N
-          val dim = c.length.pred
-          val cardinal = c
-          val panels = ps
-        }
-
-    }
-
-    var editorState : EditorState = 
-      EditorState[c.N](c.value, createPanels(c.n)(c.value))
-
-    def panels: NonemptySuite[CardinalPanel] = 
-      editorState.panels
+    var panels: NonemptySuite[CardinalPanel] = 
+      createPanels(c.n)(c.value)
 
     var selection: Option[Selection] = None
 
@@ -68,7 +41,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     def element: Element = galleryViewport
     var bounds = Bounds(zero, zero, zero, zero)
 
-    def initialize : Unit = {
+    def refreshGallery : Unit = {
       val (panelEls, bnds) = elementsAndBounds
       galleryViewport.width = config.width
       galleryViewport.height = config.height
@@ -77,7 +50,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       bounds = bnds
     }
 
-    initialize
+    refreshGallery
 
     @natElim
     def createPanels[N <: Nat](n: N)(cardinal: Cardinal[OptA, N]) : Suite[CardinalPanel, S[N]] = {
@@ -89,11 +62,9 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       }
     }
 
-    def boxCardinal[N <: Nat](st: EditorStateAux[N]) : Cardinal[NeutralCellBox, N] = {
+    def boxCardinal[N <: Nat](ps: PanelSuite[N]) : Cardinal[NeutralCellBox, N] = {
 
       type NestingType[K <: Nat] = CardinalNesting[NeutralCellBox[K], K]
-
-      val ps = st.panels
 
       ps.map(
         new IndexedMap[PanelType, NestingType] {
@@ -108,91 +79,85 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     // MUTABILITY ROUTINES
     //
 
-//     def extendEditorState(st: EditorState) : EditorState = {
+    def extendPanels(ps: NonemptySuite[CardinalPanel]) : NonemptySuite[CardinalPanel] = {
 
-//       implicit val n = st.dim
+      implicit val p = ps.p
 
-//       val extendedNesting = st.panels.head.cardinalNesting map {
-//         case nst => Nesting.extendNesting(nst)(_ => None)
-//       }
+      val extendedNesting = ps.head.cardinalNesting map {
+        case nst => Nesting.extendNesting(nst)(_ => None)
+      }
 
-//       EditorState(
-//         st.cardinal >> extendedNesting,
-//         st.panels >> new CardinalNestingPanel(n)(extendedNesting, st.panels.head)
-//       )
-//     }
+      val extendedPanel = 
+        new CardinalNestingPanel(p)(extendedNesting, ps.head)
 
-//     def extrudeSelection : Unit = {
+      ps.value >> extendedPanel
 
-//       println("Starting extrusion ...")
+    }
 
-//       selection match {
-//         case None => ()
-//         case Some(sel) =>
-//           if (! sel.root.isExtrudable) println("Selection not extrudable") else {
+    def extrudeSelection : Unit = {
 
-//             val selectionDim : Int = natToInt(sel.dim)
-//             val currentDim : Int = natToInt(panels.p)
+      selection match {
+        case None => ()
+        case Some(sel) =>
+          if (! sel.root.isExtrudable) println("Selection not extrudable") else {
 
-//             val extrusionState = 
-//               if (selectionDim == currentDim) {
-//                 extendEditorState(editorState)
-//               } else editorState
+            val selectionDim : Int = natToInt(sel.dim)
+            val currentDim : Int = natToInt(panels.p)
 
-//             val extrusionCardinal : Cardinal[NeutralBoxType, extrusionState.Dim] = 
-//               boxCardinal(extrusionState)
+            val extrusionSuite = 
+              if (selectionDim == currentDim) {
+                extendPanels(panels)
+              } else panels
 
-//             val extrusionAddress : CardinalAddress[sel.Dim] = 
-//               Suite.tail[Address, S[sel.Dim]](sel.root.address)
+            val extrusionCardinal : Cardinal[NeutralCellBox, extrusionSuite.P] = 
+              boxCardinal(extrusionSuite.value)
 
-//             for {
-//               diff <- fromOpt(diffOpt(S(sel.dim), extrusionState.dim))
-//               tgtPanel <- fromOpt(extrusionState.panels.getOpt(sel.dim))
-//               fillPanel = extrusionState.panels.get(S(sel.dim))(diff)
-//               tgtBox = tgtPanel.neutralCellBox(None, sel.root.address, false)
-//               fillBox = fillPanel.neutralCellBox(None, sel.root.address >> Nil, true)
-//               extrudedCardinal <- extrusionCardinal.extrudeSelection(sel.dim)(
-//                 extrusionAddress, tgtBox, fillBox
-//               )(box => box.isSelected)(diff)
-//             } yield {
+            val extrusionAddress : CardinalAddress[sel.Dim] = 
+              Suite.tail[Address, S[sel.Dim]](sel.root.address)
 
-//               println("Extrusion successful!!!")
+            for {
+              diff <- fromOpt(diffOpt(S(sel.dim), extrusionSuite.p))
+              tgtPanel <- fromOpt(extrusionSuite.getOpt(sel.dim))
+              fillPanel = extrusionSuite.get(S(sel.dim))(diff)
+              tgtBox = tgtPanel.neutralCellBox(None, sel.root.address, false)
+              fillBox = fillPanel.neutralCellBox(None, sel.root.address >> Nil, true)
+              extrudedCardinal <- extrusionCardinal.extrudeSelection(sel.dim)(
+                extrusionAddress, tgtBox, fillBox
+              )(box => box.isSelected)(diff)
+            } yield {
 
-//               type ResType[K <: Nat] = (CardinalNesting[NeutralBoxType[K], K], PanelType[K])
-//               type ResDim = S[extrusionState.Dim]
+              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], PanelType[K])
+              type ResDim = S[extrusionSuite.P]
 
-//               val test : Unit = 
-//                 Suite.foreach[ResType, ResDim](extrudedCardinal.zipWith(extrusionState.panels))(
-//                   new IndexedOp[ResType] {
-//                     def apply[N <: Nat](n: N)(r: ResType[N]) = {
-//                       val (nst, pn) = r
-//                       type LocalType[K <: Nat] = CardinalNesting[pn.NeutralCellBox, K]
-//                       pn.cardinalBoxNesting = nst.asInstanceOf[LocalType[N]] // AHHHHHH!!!
-//                     }
-//                   }
-//                 )
+              deselectAll
 
-//               // Now, the last step is to rebuild what parts of the interface have been
-//               // broken by the extension ...
+              Suite.foreach[ResType, ResDim](extrudedCardinal.zipWith(extrusionSuite.value))(
+                new IndexedOp[ResType] {
+                  def apply[N <: Nat](n: N)(r: ResType[N]) = {
+                    for {
+                      d <- diffOpt(sel.dim, n) // Only refresh above affected dimensions
+                    } {
+                      val (nst, pn) = r
 
-//               // First I think we should zip the resulting cardinals with the panel and
-//               // then we should replace the cardinal nesting there with the new one, then
-//               // refresh, etc ...
+                      pn.cardinalBoxNesting = nst
+                      pn.refreshAddresses
+                      pn.refresh
+                    }
+                  }
+                }
+              )
 
-//               //         deselectAll
+              panels = extrusionSuite
 
-//               //         editorState.refreshCardinalAddresses
-//               //         editorState.refreshComplexAddresses
-//               //         editorState.refreshFaceComplexes
+              refreshGallery
 
-//               //         render
+              selectAsRoot(tgtBox)
 
-//               //         selectAsRoot(mk0)
+            }
+          }
+      }
 
-//             }
-//           }
-//       }
-//     }
+    }
 
     //============================================================================================
     // CELL BOX IMPLEMENTATION
@@ -220,11 +185,15 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     class NeutralCellBox[N <: Nat](
       val panel: CardinalPanel[N],
       val optLabel: OptA[N], 
-      val address: CardinalAddress[S[N]], 
+      addr: CardinalAddress[S[N]],
       val isExternal: Boolean
     ) extends CardinalCellBox[N] { thisBox =>
 
       var label: PolOptA[N] = Neutral(optLabel)
+      var address: CardinalAddress[S[N]] = addr
+      def nestingAddress: Address[S[N]] = 
+        Cardinal.cardinalAddressComplete(S(boxDim))(address)
+
       val decoration = panel.affixable.decoration(label)
       val isPolarized = false
       makeMouseInvisible(labelElement)
@@ -244,6 +213,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       val label: PolOptA[N] = Positive()
       val address: CardinalAddress[S[N]] = null // No address for polarized cells
+      val nestingAddress: Address[S[N]] = List()
       val isExternal: Boolean = false
       val isPolarized: Boolean = true
       val decoration = panel.affixable.decoration(label)
@@ -264,6 +234,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       val label: PolOptA[S[P]] = Negative()
       val address: CardinalAddress[S[S[P]]] = null  // No address for the polarized cells ...
+      val nestingAddress: Address[S[S[P]]] = List(List())
       val isExternal: Boolean = true
       val isPolarized: Boolean = true
       val decoration = panel.affixable.decoration(label)
@@ -287,8 +258,12 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       type BoxType = CardinalCellBox[N]
       type EdgeType = CardinalCellEdge[N]
 
-      var cardinalNesting: CardinalNesting[OptA[N], N]
       var cardinalBoxNesting: CardinalNesting[NeutralCellBox[N], N]
+
+      def cardinalNesting: CardinalNesting[OptA[N], N] = 
+        cardinalBoxNesting map {
+          case nst => nst map (_.optLabel)
+        }
 
       val positiveBox : CardinalCellBox[N] 
       val negativeBox : CardinalCellBox[N] 
@@ -301,7 +276,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       val config = thisEditor.config.panelConfig
 
-      val affixable : Affixable[PolOptA[N], Element] = 
+      val affixable : Affixable[PolOptA[N]] = 
         Affixable.polarityAffixable(
           Affixable.optionAffixable(
             r(panelDim)
@@ -326,6 +301,18 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           case (nst, pref) => generateNestingData(nst, pref)
         })
 
+      def refreshAddresses : Unit = {
+
+        import scalaz.Id._
+
+        Cardinal.traverseCardinalTreeWithAddr(panelDim)(cardinalBoxNesting)({
+          case (nst, pref) => nst.traverseWithAddress[Id, Unit]({
+            case (box, addr) => box.address = pref >> addr
+          })
+        })
+
+      }
+
     }
 
     class CardinalObjectPanel(cn: CardinalNesting[OptA[_0], _0]) 
@@ -333,8 +320,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       def panelDim = Z
 
-      var cardinalNesting: CardinalNesting[OptA[_0], _0] = cn
-      var cardinalBoxNesting: CardinalNesting[NeutralCellBox[_0], _0] = generateBoxes(cn)
+      var cardinalBoxNesting: CardinalNesting[NeutralCellBox[_0], _0] = 
+        generateBoxes(cn)
 
       val positiveBox : CardinalCellBox[_0] = new PositiveBox(this)
       val negativeBox : CardinalCellBox[_0] = new PositiveBox(this)
@@ -357,11 +344,11 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       def panelDim = S(p)
 
-      var cardinalNesting: CardinalNesting[OptA[S[P]], S[P]] = cn
-      var cardinalBoxNesting: CardinalNesting[NeutralCellBox[S[P]], S[P]] = generateBoxes(cn)
+      var cardinalBoxNesting: CardinalNesting[NeutralCellBox[S[P]], S[P]] = 
+        generateBoxes(cn)
 
       val positiveBox : CardinalCellBox[S[P]] = new PositiveBox(this)
-      val negativeBox : CardinalCellBox[S[P]] = new PositiveBox(this)
+      val negativeBox : CardinalCellBox[S[P]] = new NegativeBox(this)
 
       def generateNestingData(nst: Nesting[OptA[S[P]], S[P]], pref: CardinalAddress[S[P]]): Nesting[NeutralCellBox[S[P]], S[P]] =
         Nesting.elimWithAddress[OptA[S[P]], Nesting[NeutralCellBox[S[P]], S[P]], S[P]](panelDim)(nst)({
@@ -371,11 +358,24 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
         })
 
       // This will need to be updated on a refresh
-      var edgeNesting : Nesting[CardinalCellEdge[S[P]], P] = 
-        connectEdges(prevPanel.boxNesting map (_ => cellEdge), boxNesting)
+      var edgeNesting : Nesting[CardinalCellEdge[S[P]], P] = null
+
+      override def refresh : Unit = {
+        edgeNesting = connectEdges(prevPanel.boxNesting map (_ => cellEdge), boxNesting)
+        super.refresh
+      }
 
       refresh
 
+    }
+
+  }
+
+  object CardinalEditor {
+
+    def apply[A[_ <: Nat]](implicit config: GalleryConfig, r: AffixableFamily[A]) : CardinalEditor[A] = {
+      type OptA[K <: Nat] = Option[A[K]]
+      new CardinalEditor[A](toFiniteCardinal[OptA, _0](Cardinal[OptA] >> Pt(Obj(None))))
     }
 
   }

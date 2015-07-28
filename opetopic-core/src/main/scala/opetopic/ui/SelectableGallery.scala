@@ -11,6 +11,7 @@ import scala.collection.mutable.ListBuffer
 
 import opetopic._
 import syntax.suite._
+import syntax.nesting._
 
 trait HasSelectablePanels extends HasPanels { self: UIFramework =>
 
@@ -85,6 +86,12 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
         selection = Some(Selection(box))
       }
 
+    // for {
+    //   zipper <- panel.nesting.seekTo(nestingAddress)
+    // } yield {
+    //   println("Complex address gives cell: " ++ zipper._1.baseValue.toString)
+    // }
+
     def select[N <: Nat](box: GalleryBoxType[N]) : Unit = 
       if (box.canSelect) {
         selection match {
@@ -105,7 +112,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
                 for {
                   diff <- fromOpt(diffOpt(box.boxDim, thePanels.value.length.pred))
                   thePanel = thePanels.get(box.boxDim)(diff)
-                  zipper <- thePanel.seekToAddress(box.address)
+                  zipper <- thePanel.boxNesting.seekTo(box.nestingAddress)
                 } yield {
 
                   import scalaz.-\/

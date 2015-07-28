@@ -12,7 +12,7 @@ import syntax.complex._
 import syntax.suite._
 import TypeLemmas._
 
-// trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries { self: UIFramework with HasGalleries =>
+trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries { self: UIFramework with HasGalleries =>
 
 //   import isNumeric._
 
@@ -53,4 +53,4 @@ import TypeLemmas._
 
 //   // }
 
-// }
+}

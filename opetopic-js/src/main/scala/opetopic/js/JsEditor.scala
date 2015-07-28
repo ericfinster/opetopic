@@ -54,17 +54,7 @@ object JsEditor extends js.JSApp {
     import syntax.complex._
     import syntax.cardinal._
 
-    type OptConstInt[N <: Nat] = Option[Int]
-
-    val fredOpt : Complex[OptConstInt, _4] = 
-      fredComplex.map(new IndexedMap[ConstInt, OptConstInt] {
-        def apply[N <: Nat](n: N)(i: Int) = Some(i)
-      })
-
-    // Right, well, the constructor is a bit ugly, but I guess you
-    // could fix this with either some "unapply" magic or by making
-    // the element type a dependent guy somehow ...
-    val editor = new CardinalEditor[ConstInt, TextType](fredOpt.toCardinal)
+    val editor = CardinalEditor[ConstString]
 
     document.onkeydown = ((e: KeyboardEvent) => {
       e.keyCode match {

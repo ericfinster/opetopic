@@ -57,6 +57,8 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       def hover : Unit = boxRect.fill = "red"
       def unhover : Unit = boxRect.fill = "white"
 
+      def nestingAddress = address
+
       def hoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
           def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.hover
@@ -94,14 +96,13 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   }
 
-  class SimpleActiveGallery[A[_ <: Nat], E <: Element](val config: GalleryConfig, val complex: FiniteComplex[A])(
-    implicit r: AffixableFamily[A, E]
+  class SimpleActiveGallery[A[_ <: Nat]](val config: GalleryConfig, val complex: FiniteComplex[A])(
+    implicit r: AffixableFamily[A]
   ) extends ActiveGallery[A] { thisGallery =>
 
     type PanelType[N <: Nat] = SimpleActiveGalleryPanel[N]
     type GalleryBoxType[N <: Nat] = SimpleActiveGalleryCellBox[N]
     type GalleryEdgeType[N <: Nat] = SimpleActiveGalleryCellEdge[N]
-    type GalleryLabelType = E
 
     var selection : Option[Selection] = None
 
@@ -187,7 +188,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   object ActiveGallery {
 
-    def apply[A[_ <: Nat], E <: Element](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A, E]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat], E <: Element](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A]) : ActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
   }

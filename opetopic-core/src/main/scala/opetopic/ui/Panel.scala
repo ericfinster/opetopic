@@ -27,16 +27,15 @@ trait HasPanels { self : UIFramework =>
 
   trait Panel[A, N <: Nat] extends BoundedElement[Element] {
 
+    val affixable : Affixable[A]
+
     val config : PanelConfig
     import config._
 
-    def panelDim: N
+    implicit def panelDim: N
 
     def halfLeafWidth : Size = half(leafWidth)
     def halfStrokeWidth : Size = half(strokeWidth)
-
-    type LabelElementType <: Element
-    def affixable : Affixable[A, LabelElementType]
 
     def nesting: Nesting[A, N]
     def boxNesting: Nesting[BoxType, N]
@@ -184,8 +183,9 @@ trait HasPanels { self : UIFramework =>
     def label: A
     def boxDim: N = panel.panelDim
     def address: BoxAddressType
+    def nestingAddress: Address[S[N]]
     def isExternal: Boolean
-    def decoration: Decoration[panel.LabelElementType]
+    def decoration: Decoration[panel.affixable.ElementType]
 
     def labelElement : Element = decoration.boundedElement.element
     def labelBounds : Bounds = decoration.boundedElement.bounds

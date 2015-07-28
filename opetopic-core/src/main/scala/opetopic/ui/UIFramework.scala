@@ -90,22 +90,26 @@ abstract class UIFramework {
     val colorHint : String = "white"
   )
 
-  trait Affixable[A, E <: Element] {
-    def decoration(a: A) : Decoration[E]
+  trait Affixable[A] {
+    type ElementType <: Element
+    def decoration(a: A) : Decoration[ElementType]
   }
 
   object Affixable {
 
-    implicit object StringAffixable extends Affixable[String, TextType] {
+    implicit object StringAffixable extends Affixable[String] {
+      type ElementType = TextType
       def decoration(str: String) = Decoration(text(str))
     }
 
-    implicit object IntAffixable extends Affixable[Int, TextType] {
+    implicit object IntAffixable extends Affixable[Int] {
+      type ElementType = TextType
       def decoration(i: Int) = Decoration(text(i.toString))
     }
 
-    implicit def optionAffixable[A, E <: Element](implicit r: Affixable[A, E]) : Affixable[Option[A], Element] = 
-      new Affixable[Option[A], Element] {
+    implicit def optionAffixable[A](implicit r: Affixable[A]) : Affixable[Option[A]] = 
+      new Affixable[Option[A]] {
+        type ElementType = Element
         def decoration(opt: Option[A]) =
           opt match {
             case None => Decoration(text(" "))
@@ -113,8 +117,9 @@ abstract class UIFramework {
           }
       }
 
-    implicit def polarityAffixable[A, E <: Element](implicit r: Affixable[A, E]) : Affixable[Polarity[A], Element] = 
-      new Affixable[Polarity[A], Element] {
+    implicit def polarityAffixable[A](implicit r: Affixable[A]) : Affixable[Polarity[A]] = 
+      new Affixable[Polarity[A]] {
+        type ElementType = Element
         def decoration(pol: Polarity[A]) = 
           pol match {
             case Positive() => Decoration(text("+"))
@@ -125,19 +130,19 @@ abstract class UIFramework {
 
   }
 
-  trait AffixableFamily[A[_ <: Nat], E <: Element] {
-    def apply[N <: Nat](n: N) : Affixable[A[N], E]
+  trait AffixableFamily[A[_ <: Nat]] {
+    def apply[N <: Nat](n: N) : Affixable[A[N]]
   }
 
   object AffixableFamily {
 
-    implicit object ConstStringFamily extends AffixableFamily[ConstString, TextType] {
-      def apply[N <: Nat](n: N) : Affixable[String, TextType] = 
+    implicit object ConstStringFamily extends AffixableFamily[ConstString] {
+      def apply[N <: Nat](n: N) : Affixable[String] = 
         Affixable.StringAffixable
     }
 
-    implicit object ConstIntFamily extends AffixableFamily[ConstInt, TextType] {
-      def apply[N <: Nat](n: N) : Affixable[Int, TextType] = 
+    implicit object ConstIntFamily extends AffixableFamily[ConstInt] {
+      def apply[N <: Nat](n: N) : Affixable[Int] = 
         Affixable.IntAffixable
     }
 

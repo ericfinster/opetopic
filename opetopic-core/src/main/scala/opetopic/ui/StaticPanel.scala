@@ -155,6 +155,7 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
     type BoxAddressType = Address[S[N]]
 
     val decoration = panel.affixable.decoration(label)
+    def nestingAddress = address
 
   }
 
@@ -162,11 +163,9 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
     val panel: SimpleStaticPanel[A, N]
   ) extends StaticCellEdge[A, N]
 
-  class SimpleStaticObjectPanel[A, E <: Element](val config: PanelConfig, nst: Nesting[A, _0])(
-    implicit val affixable : Affixable[A, E]
+  class SimpleStaticObjectPanel[A](val config: PanelConfig, nst: Nesting[A, _0])(
+    implicit val affixable : Affixable[A]
   ) extends SimpleStaticPanel[A, _0](nst) with StaticObjectPanel[A] {
-
-    type LabelElementType = E
 
     def panelDim = Z
 
@@ -174,13 +173,11 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
   }
 
-  class SimpleStaticNestingPanel[A, B, E <: Element, P <: Nat](p: P)(
+  class SimpleStaticNestingPanel[A, B, P <: Nat](p: P)(
     val config: PanelConfig, 
     nst: Nesting[A, S[P]], 
     edgeOpt : Option[Nesting[B, P]]
-  )(implicit val affixable: Affixable[A, E]) extends SimpleStaticPanel[A, S[P]](nst) with StaticNestingPanel[A, P] {
-
-    type LabelElementType = E
+  )(implicit val affixable: Affixable[A]) extends SimpleStaticPanel[A, S[P]](nst) with StaticNestingPanel[A, P] {
 
     def panelDim = S(p)
 
@@ -201,18 +198,18 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
   object StaticPanel {
 
     @natElim
-    def apply[A, E <: Element, N <: Nat](n: N)(cfg: PanelConfig, nst: Nesting[A, N])(implicit affix: Affixable[A, E]) : StaticPanel[A, N] = {
+    def apply[A, N <: Nat](n: N)(cfg: PanelConfig, nst: Nesting[A, N])(implicit affix: Affixable[A]) : StaticPanel[A, N] = {
       case (Z, cfg, nst) => new SimpleStaticObjectPanel(cfg, nst)
       case (S(p), xfg, nst) => new SimpleStaticNestingPanel(p)(cfg, nst, None)
     }
 
-    def apply[A, E <: Element, N <: Nat](cfg: PanelConfig, nst: Nesting[A, N])(implicit affix: Affixable[A, E]) : StaticPanel[A, N] =
+    def apply[A, N <: Nat](cfg: PanelConfig, nst: Nesting[A, N])(implicit affix: Affixable[A]) : StaticPanel[A, N] =
       StaticPanel(nst.dim)(cfg, nst)
 
-    def apply[A, E <: Element, N <: Nat](nst: Nesting[A, N])(implicit cfg: PanelConfig, affix: Affixable[A, E]) : StaticPanel[A, N] =
+    def apply[A, N <: Nat](nst: Nesting[A, N])(implicit cfg: PanelConfig, affix: Affixable[A]) : StaticPanel[A, N] =
       StaticPanel(nst.dim)(cfg, nst)
 
-    def apply[A, E <: Element, P <: Nat](cfg: PanelConfig, nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit affix: Affixable[A, E]) : StaticPanel[A, S[P]] =
+    def apply[A, P <: Nat](cfg: PanelConfig, nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit affix: Affixable[A]) : StaticPanel[A, S[P]] =
       new SimpleStaticNestingPanel(et.dim)(cfg, nst, Some(et))
 
   }

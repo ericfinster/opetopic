@@ -53,9 +53,9 @@ module Cardinal where
   CardinalAddress : ℕ → Set
   CardinalAddress n = Suite Address (suc n)
 
-  cardinalAddressComplete : {n : ℕ} → CardinalAddress n → Address (suc n)
-  cardinalAddressComplete {zero} (∥ ▶ tt) = tt ∷ []
-  cardinalAddressComplete {suc n} (tl ▶ hd) = cardinalAddressComplete tl ∷ hd ∷ [] 
+  cardinalAddressComplete : {n : ℕ} → CardinalAddress n → Address n
+  cardinalAddressComplete {zero} (∥ ▶ tt) = tt 
+  cardinalAddressComplete {suc n} (tl ▶ hd) = hd ++ (cardinalAddressComplete tl ∷ [])
 
   CardinalDerivative : Set → ℕ → Set
   CardinalDerivative A zero = ⊤
