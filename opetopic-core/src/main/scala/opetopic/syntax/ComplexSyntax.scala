@@ -65,9 +65,14 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
   def sourceAt(addr: Address[S[N]]) : ShapeM[Complex[A, N]] =
     Complex.sourceAt(cmplx.length.pred)(cmplx, addr)
 
-  def getPrefix[K <: Nat](diff: Diff[K, N]) : Complex[A, K] = {
+  def sourceAt[K <: Nat](k: K)(addr: Address[S[K]]) : ShapeM[Complex[A, K]] = 
+    for {
+      diff <- fromOpt(diffOpt(k, cmplx.length.pred))
+      srcCmplx <- sourceAt(addr)(diff)
+    } yield srcCmplx
+
+  def getPrefix[K <: Nat](diff: Diff[K, N]) : Complex[A, K] = 
     Suite.drop[INst, diff.D, S[N], S[K]](lteSucc(lteInvert(diff.lte)))(cmplx)
-  }
 
   def getNesting[K <: Nat](diff : Diff[K, N]) : Nesting[A[K], K] = 
     Suite.getAt[INst, K, N, diff.D](cmplx)(diff.lte)

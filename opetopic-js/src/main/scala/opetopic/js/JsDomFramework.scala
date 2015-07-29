@@ -37,8 +37,13 @@ object JsDomFramework extends ActiveFramework
 
   implicit val defaultGalleryConfig =
     GalleryConfig(
-      defaultPanelConfig, 
-      1000, 650, 800
+      panelConfig = defaultPanelConfig,
+      width = 1000,
+      height = 650,
+      spacing = 2000,
+      minViewX = Some(80000),
+      minViewY = Some(30000),
+      spacerBounds = Bounds(0, 0, 600, 600)
     )
 
   val isNumeric: Numeric[Int] = implicitly[Numeric[Int]]
@@ -329,6 +334,13 @@ object JsDomFramework extends ActiveFramework
 
   }
 
+  //============================================================================================
+  // TOASTS
+  //
 
+  var onToast : String => Unit = { _ => () }
+
+  override def toast(str: String) : Unit = 
+    onToast(str)
 
 }

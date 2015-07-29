@@ -7,124 +7,136 @@
 
 package opetopic.js
 
-import scala.scalajs._
+import scala.scalajs.{js => sjs, _}
 import org.scalajs.dom._
 
-import js.annotation.JSExport
+import sjs.annotation.JSExport
+import sjs.Dynamic.{global => g}
 
+import opetopic._
 import opetopic.ui._
-import scalatags.JsDom.all._
+import syntax.complex._
+import syntax.cardinal._
 
-object JsEditor extends js.JSApp {
-
-  object ScalatagsJsDomFramework extends ScalatagsFramework(scalatags.JsDom) {
-
-    implicit val defaultPanelConfig = 
-      PanelConfig(
-        internalPadding = 200,
-        externalPadding = 400,
-        leafWidth = 100,
-        strokeWidth = 60,
-        cornerRadius = 100
-      )
-
-    implicit val defaultGalleryConfig = 
-      GalleryConfig(defaultPanelConfig, 800, 600, 800)
-
-  }
+object JsEditor extends sjs.JSApp {
 
   def main : Unit = {
 
     println("Launched Opetopic.")
 
-    renderCardinal
-
-  }
-
-  //============================================================================================
-  // EXPERIMENTS
-  //
-
-  import opetopic.Examples._
-
-  def renderCardinal : Unit = {
-
     import JsDomFramework._
-    import opetopic._
-    import syntax.complex._
-    import syntax.cardinal._
+
+    JsDomFramework.onToast = (str: String) => {
+      val t = g.document.getElementById("msg-toast")
+      if (t != null) {
+        t.setAttribute("text", str)
+        t.show()
+      }
+    }
+
+    val baseConfig: GalleryConfig =
+      GalleryConfig(
+        panelConfig = defaultPanelConfig,
+        width = 650,
+        height = 250,
+        spacing = 1500,
+        minViewX = Some(60000),
+        minViewY = Some(13000),
+        spacerBounds = Bounds(0, 0, 600, 600)
+      )
 
     val editor = CardinalEditor[ConstString]
+
+    editor.onBoxClicked = (box: Sigma[editor.NeutralCellBox]) => {
+
+      for {
+        lblCmplx <- box.value.labelComplex
+      } {
+
+        val gallery = ActiveGallery(baseConfig, lblCmplx)(
+          new AffixableFamily[editor.OptA] {
+            def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] = 
+              Affixable.optionAffixable(baseConfig.spacerBounds, editor.r(n))
+          }
+        )
+
+        val div = document.getElementById("base-pane")
+
+        val lc = div.lastChild
+        if (lc != null) div.removeChild(lc)
+
+        div.appendChild(gallery.element.uiElement)
+
+      }
+
+    }
 
     document.onkeydown = ((e: KeyboardEvent) => {
       e.keyCode match {
         case 69 => editor.extrudeSelection
+        case 13 => {
+          val modal = g.document.getElementById("label-modal")
+          modal.open()
+        }
         case _ => ()
       }
     })
 
-    val div = document.getElementById("middle-pane")
+    val div = document.getElementById("editor-pane")
     div.appendChild(editor.element.uiElement)
 
   }
 
-  def renderActivePanel : Unit = {
+  // def renderActiveGallery : Unit = {
 
-    import JsDomFramework._
+  //   import JsDomFramework._
+  //   import opetopic.syntax.complex._
 
-    val panel = ActivePanel(fred0)
+  //   val gallery = ActiveGallery(baseConfig, fredComplex)
 
-    val panelSvg = document.createElementNS(svgns, "svg")
-    panelSvg.setAttributeNS(null, "width", "800")
-    panelSvg.setAttributeNS(null, "height", "600")
-    panelSvg.setAttributeNS(null, "viewBox", panel.bounds.dimString)
+  //   val div = document.getElementById("base-pane")
+  //   div.appendChild(gallery.element.uiElement)
 
-    panelSvg.appendChild(panel.element.uiElement)
+  // }
 
-    val div = document.getElementById("middle-pane")
-    div.appendChild(panelSvg)
+  // def renderActivePanel : Unit = {
 
-  }
+  //   import JsDomFramework._
 
-  def renderActiveGallery : Unit = {
+  //   val panel = ActivePanel(fred0)
 
-    import JsDomFramework._
-    import opetopic.syntax.complex._
+  //   val panelSvg = document.createElementNS(svgns, "svg")
+  //   panelSvg.setAttributeNS(null, "width", "800")
+  //   panelSvg.setAttributeNS(null, "height", "600")
+  //   panelSvg.setAttributeNS(null, "viewBox", panel.bounds.dimString)
 
-    val gallery = ActiveGallery(fredComplex)
+  //   panelSvg.appendChild(panel.element.uiElement)
 
-    val gallerySvg = document.createElementNS(svgns, "svg")
-    gallerySvg.setAttributeNS(null, "width", "800")
-    gallerySvg.setAttributeNS(null, "height", "600")
-    gallerySvg.setAttributeNS(null, "viewBox", gallery.bounds.dimString)
+  //   val div = document.getElementById("editor-pane")
+  //   div.appendChild(panelSvg)
 
-    gallerySvg.appendChild(gallery.element.uiElement)
+  // }
 
-    val div = document.getElementById("middle-pane")
-    div.appendChild(gallerySvg)
+  // def renderStaticPanel : Unit = {
 
-  }
+  //   import ScalatagsJsDomFramework._
 
-  def renderStaticPanel : Unit = {
+  //   val panel = StaticPanel(exotic)
 
-    import ScalatagsJsDomFramework._
+  //   val panelSvg = {
 
-    val panel = StaticPanel(exotic)
+  //     import bundle.implicits._
+  //     import bundle.svgTags._
+  //     import bundle.svgAttrs._
 
-    val panelSvg = {
+  //     svg(width:="800",height:="600",viewBox:=panel.bounds.dimString,xmlns:="http://www.w3.org/2000/svg")(panel.element)
 
-      import bundle.implicits._
-      import bundle.svgTags._
-      import bundle.svgAttrs._
+  //   }
 
-      svg(width:="800",height:="600",viewBox:=panel.bounds.dimString,xmlns:="http://www.w3.org/2000/svg")(panel.element)
+  //   val div = document.getElementById("editor-pane")
+  //   div.appendChild(panelSvg.render)
 
-    }
-
-    val div = document.getElementById("middle-pane")
-    div.appendChild(panelSvg.render)
-
-  }
+  // }
 
   // def renderStaticGallery : Unit = {
 
@@ -143,7 +155,7 @@ object JsEditor extends js.JSApp {
 
   //   }
 
-  //   val div = document.getElementById("middle-pane")
+  //   val div = document.getElementById("editor-pane")
   //   div.appendChild(gallerySvg.render)
 
   // }

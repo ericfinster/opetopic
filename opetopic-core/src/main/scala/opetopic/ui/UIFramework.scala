@@ -34,6 +34,10 @@ abstract class UIFramework {
   def rect(x: Size, y: Size, width: Size, height: Size, r: Size, stroke: String, strokeWidth: Size, fill: String) : RectangleType
   def path(d: String, stroke: String, strokeWidth: Size, fill: String) : PathType
   def text(str: String) : BoundedElement[TextType]
+  def toast(str: String) : Unit = ()
+
+  def spacer(bnds: Bounds) : BoundedElement[Element] = 
+    BoundedElement(group(), bnds)
 
   case class Transform(
     val translateX : Size,
@@ -79,6 +83,7 @@ abstract class UIFramework {
         val element = el
         val bounds = bnds
       }
+
   }
 
   //============================================================================================
@@ -107,12 +112,12 @@ abstract class UIFramework {
       def decoration(i: Int) = Decoration(text(i.toString))
     }
 
-    implicit def optionAffixable[A](implicit r: Affixable[A]) : Affixable[Option[A]] = 
+    implicit def optionAffixable[A](implicit bnds: Bounds, r: Affixable[A]) : Affixable[Option[A]] = 
       new Affixable[Option[A]] {
         type ElementType = Element
         def decoration(opt: Option[A]) =
           opt match {
-            case None => Decoration(text(" "))
+            case None => Decoration(spacer(bnds))
             case Some(a) => r.decoration(a)
           }
       }

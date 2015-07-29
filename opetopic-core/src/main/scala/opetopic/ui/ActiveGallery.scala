@@ -24,8 +24,8 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     type GalleryBoxType[N <: Nat] <: ActiveGalleryCellBox[A[N], N]
     type GalleryEdgeType[N <: Nat] <: ActiveCellEdge[A[N], N]
 
-    val galleryGroup = group 
-    def element: Element = galleryGroup
+    val galleryViewport = viewport
+    def element: Element = galleryViewport
     def bounds: Bounds = elementsAndBounds._2
 
     trait ActiveGalleryPanel[N <: Nat] extends ActivePanel[A[N], N] with ComplexPanel[N] {
@@ -54,7 +54,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       boxRect.onMouseOver = { (e: UIMouseEvent) => { hoverFaces } }
       boxRect.onMouseOut = { (e: UIMouseEvent) => { unhoverFaces } }
 
-      def hover : Unit = boxRect.fill = "red"
+      def hover : Unit = boxRect.fill = "blue"
       def unhover : Unit = boxRect.fill = "white"
 
       def nestingAddress = address
@@ -109,9 +109,16 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     val panels : NonemptySuite[PanelType] =
       createPanels(complex.n)(complex.value)
 
-    //Have to put the panel elements in the gallery group
-    galleryGroup.children = elementsAndBounds._1
-    refreshFaceComplexes
+    def initialize : Unit = {
+      val (panelEls, bnds) = elementsAndBounds
+      galleryViewport.width = config.width
+      galleryViewport.height = config.height
+      galleryViewport.setBounds(bnds)
+      galleryViewport.children = panelEls
+      refreshFaceComplexes
+    }
+
+    initialize
 
     def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0] =
       new SimpleActiveGalleryObjectPanel(nst)
@@ -189,6 +196,9 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
   object ActiveGallery {
 
     def apply[A[_ <: Nat], E <: Element](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A]) : ActiveGallery[A] = 
+      new SimpleActiveGallery(cfg, cmplx)
+
+    def apply[A[_ <: Nat], E <: Element](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A]) : ActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
   }

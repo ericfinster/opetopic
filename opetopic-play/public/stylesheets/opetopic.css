@@ -4,10 +4,12 @@
  */
 
 body {
+    font-family: 'Roboto', 'Noto', sans-serif;
+    font-size: 14px;
     height: 100%;
 }
 
 .testdiv {
-  border: 2px solid grey;
-  background-color: white;
+    border: 2px solid grey;
+    background-color: white;
 }

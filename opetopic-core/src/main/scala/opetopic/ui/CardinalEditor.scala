@@ -75,6 +75,25 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
     }
 
+    def boxComplex[N <: Nat](ps: PanelSuite[N]) : Complex[CardinalCellBox, N] = {
+
+      type NestingType[K <: Nat] = Nesting[CardinalCellBox[K], K]
+
+      ps.map(
+        new IndexedMap[PanelType, NestingType] {
+          def apply[K <: Nat](k: K)(p: PanelType[K]) : NestingType[K] = 
+            p.boxNesting
+        }
+      )
+
+    }
+
+    //============================================================================================
+    // EVENTS
+    //
+
+    var onBoxClicked : Sigma[NeutralCellBox] => Unit = { _ => () }
+
     //============================================================================================
     // MUTABILITY ROUTINES
     //
@@ -99,7 +118,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       selection match {
         case None => ()
         case Some(sel) =>
-          if (! sel.root.isExtrudable) println("Selection not extrudable") else {
+          if (! sel.root.isExtrudable) toast("Selection not extrudable") else {
 
             val selectionDim : Int = natToInt(sel.dim)
             val currentDim : Int = natToInt(panels.p)
@@ -198,12 +217,30 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       val isPolarized = false
       makeMouseInvisible(labelElement)
 
-      boxRect.onClick = { (e: UIMouseEvent) => thisEditor.select(thisBox) }
+      boxRect.onClick = (e: UIMouseEvent) => {
+        thisEditor.select(thisBox) 
+        thisEditor.onBoxClicked(Sigma(thisBox.boxDim)(thisBox))
+      }
+
       boxRect.onMouseOver = { (e : UIMouseEvent) => setHoveredStyle }
       boxRect.onMouseOut = { (e : UIMouseEvent) => setUnhoveredStyle }
 
       override def select = { isSelected = true ; setSelectedStyle }
       override def deselect = { isSelected = false ; setDeselectedStyle }
+
+      def faceComplex : ShapeM[Complex[CardinalCellBox, N]] = {
+        val ps = panels.value
+        val cmplx = boxComplex(ps)
+        cmplx.sourceAt(boxDim)(nestingAddress)
+      }
+
+      def labelComplex : ShapeM[Complex[OptA, N]] = 
+        for {
+          fc <- faceComplex
+        } yield fc.map(new IndexedMap[CardinalCellBox, OptA] {
+          def apply[K <: Nat](k: K)(box: CardinalCellBox[K]) = 
+            box.asInstanceOf[NeutralCellBox[K]].optLabel  // Ugly cast ...
+        })
 
     }
 
@@ -279,7 +316,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       val affixable : Affixable[PolOptA[N]] = 
         Affixable.polarityAffixable(
           Affixable.optionAffixable(
-            r(panelDim)
+            thisEditor.config.spacerBounds, r(panelDim)
           )
         )
 

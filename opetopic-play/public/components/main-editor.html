@@ -1,4 +1,8 @@
 <link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../bower_components/paper-styles/paper-styles.html">
 <link rel="import" href="../bower_components/paper-toolbar/paper-toolbar.html">
 <link rel="import" href="../bower_components/paper-menu/paper-menu.html">
@@ -15,6 +19,10 @@
     h1 {
       @apply(--paper-font-display1);
     }
+    
+    paper-menu {
+      background-color: var(--google-grey-100);
+    }
 
     #menu-pane {
       border-bottom: 2px solid var(--google-grey-300);
@@ -26,10 +34,12 @@
 
     #left-pane {
       border-right: 2px solid var(--google-grey-300);
+      background-color: var(--google-grey-100);
     }
 
     #right-pane {
       border-left: 2px solid var(--google-grey-300);
+      background-color: var(--google-grey-100);
     }
 
     #middle-pane {
@@ -40,42 +50,51 @@
 
   <template>
 
-      <paper-header-panel>
-      	<paper-toolbar>
-      	  <h1>Opetopic</h1>
-      	</paper-toolbar>
-      </paper-header-panel>
+    <paper-dialog id="label-modal" modal>
+      <paper-input label="Label"></paper-input>
+      <div class="buttons">
+        <paper-button dialog-confirm autofocus>Close</paper-button>
+      </div>
+    </paper-dialog>
 
-      <div class="layout vertical flex">
+    <paper-toast id="msg-toast"></paper-toast>
 
-	<div id="menu-pane" style="height:64px">
+    <paper-header-panel>
+      <paper-toolbar>
+      	<h1>Opetopic</h1>
+      </paper-toolbar>
+    </paper-header-panel>
+
+    <div class="layout vertical flex">
+
+      <!-- <div id="menu-pane" style="height:64px"> -->
+      <!-- </div> -->
+
+      <div class="layout horizontal flex">
+
+	<div id="left-pane" style="width:200px">
+      	  <paper-menu>
+	    <paper-item>Item 1</paper-item>
+	    <paper-item>Item 2</paper-item>
+	  </paper-menu>
 	</div>
 
-	<div class="layout horizontal flex">
+	<div id="middle-pane" class="layout vertical flex center">
 
-	  <div id="left-pane" style="width:200px">
-      	    <papnner-menu>
-	      <paper-item>Item 1</paper-item>
-	      <paper-item>Item 2</paper-item>
-	    </paper-menu>
-	  </div>
-
-	  <div id="middle-pane" class="layout vertical flex center">
-	  </div>
-
-	  <div id="right-pane" style="width:200px">
-      	    <papnner-menu>
-	      <paper-item>Item 1</paper-item>
-	      <paper-item>Item 2</paper-item>
-	    </paper-menu>
-	  </div>
+	  <div id="editor-pane" class="flex"></div>
+	  <div id="base-pane" style="height:300px; width:100%" class="layout horizontal center-justified"></div>
 
 	</div>
 
-	<div id="base-pane" style="height:200px">
+	<div id="right-pane" style="width:200px">
+      	  <paper-menu>
+	    <paper-item>Item 1</paper-item>
+	    <paper-item>Item 2</paper-item>
+	  </paper-menu>
 	</div>
 
       </div>
+    </div>
 
   </template>
 

@@ -19,7 +19,10 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
     val panelConfig: PanelConfig,
     val width: Size,
     val height: Size,
-    val spacing : Size
+    val spacing: Size,
+    val minViewX: Option[Size],
+    val minViewY: Option[Size],
+    val spacerBounds: Bounds
   )
 
   trait Gallery[A[_ <: Nat]] {
@@ -45,16 +48,18 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
 
     def panels: NonemptySuite[PanelType]
 
-    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, Bounds)] = panels.fold(
-      new IndexedFold[PanelType, List[(Element, Bounds)]] {
+    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, Bounds)] = {
+      panels.fold(
+        new IndexedFold[PanelType, List[(Element, Bounds)]] {
 
-        def caseZero : List[(Element, Bounds)] = Nil
+          def caseZero : List[(Element, Bounds)] = Nil
 
-        def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(Element, Bounds)]) : List[(Element, Bounds)] = 
-          (panel.element, panel.bounds) :: lst
+          def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(Element, Bounds)]) : List[(Element, Bounds)] =
+            (panel.element, panel.bounds) :: lst
 
-      }
-    )
+        }
+      )
+    }
 
     def elementsAndBounds : (List[Element], Bounds) = {
 
@@ -83,8 +88,32 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
 
         }
 
+      val (viewY, viewHeight) = 
+        minViewY match {
+          case None => (-maxHeight, maxHeight)
+          case Some(mvh) => 
+            if (mvh < maxHeight) {
+              (-maxHeight, maxHeight)
+            } else {
+              val offset = half(mvh - maxHeight)
+              (-maxHeight - offset, mvh)
+            }
+        }
+
+      val (viewX, viewWidth) =
+        minViewX match {
+          case None => (zero, xPos)
+          case Some(mvw) =>
+            if (mvw < xPos) {
+              (zero, xPos)
+            } else {
+              val offset = half(mvw - xPos)
+              (-offset, mvw)
+            }
+        }
+
       val bbox : Bounds = 
-        Bounds(zero, -maxHeight, xPos, maxHeight)
+        Bounds(zero, viewY, xPos, viewHeight)
 
       (locatedElements, bbox)
 
