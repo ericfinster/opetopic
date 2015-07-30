@@ -27,7 +27,12 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(
     scalaJSProjects := clients,
     pipelineStages := Seq(scalaJSProd),
-    JsEngineKeys.engineType := JsEngineKeys.EngineType.Node
+    JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
+    libraryDependencies ++= Seq(
+      "org.webjars" %% "webjars-play" % "2.4.0-1",
+      "org.webjars.bower" % "fastclick" % "1.0.6",
+      "org.webjars.bower" % "foundation-apps" % "1.1.0"
+    )
   ).enablePlugins(PlayScala, SbtWeb).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)

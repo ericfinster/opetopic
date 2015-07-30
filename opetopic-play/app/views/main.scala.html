@@ -11,11 +11,35 @@
 
     <title>Opetopic</title>
 
+    <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("foundation-apps.min.css"))'>
+
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("fastclick.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("js/tether.min.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("hammer.min.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("angular.min.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("angular-animate.min.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("foundation-apps.min.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("foundation-apps-templates.min.js"))'></script>
+
   </head>
 
   <body>
 
-    <p>Hello, world!</p>
+    <div class="grid-frame vertical">
+
+      <div zf-panel="" id="left-panel">
+      	<a zf-close="" class="close-button">×</a>
+	<p>This is a panel.</p>
+      </div>
+
+      <div class="grid-content shrink" style="padding: 0;">
+        <ul class="primary condense menu-bar">
+          <li><a><strong>Opetopic</strong></a></li>
+        </ul>
+      </div>
+      <div ui-view class="grid-content">
+      </div>
+    </div>
 
   </body>
 
