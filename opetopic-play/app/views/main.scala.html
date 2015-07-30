@@ -11,17 +11,50 @@
 
     <title>Opetopic</title>
 
-    <script src="@routes.Assets.at("bower_components/webcomponentsjs/webcomponents-lite.min.js")"></script>
+    <link href="@routes.Assets.at("bower_components/foundation-apps/dist/css/foundation-apps.css")" rel="stylesheet" type="text/css">
 
-    <link rel="import" href="@routes.Assets.at("components/main-editor.html")">
+    <script src="@routes.Assets.at("bower_components/fastclick/lib/fastclick.js")"></script>
+    <script src="@routes.Assets.at("bower_components/viewport-units-buggyfill/viewport-units-buggyfill.js")"></script>
+    <script src="@routes.Assets.at("bower_components/tether/tether.js")"></script>
+    <script src="@routes.Assets.at("bower_components/hammerjs/hammer.js")"></script>
+    <script src="@routes.Assets.at("bower_components/angular/angular.js")"></script>
+    <script src="@routes.Assets.at("bower_components/angular-animate/angular-animate.js")"></script>
+    <script src="@routes.Assets.at("bower_components/angular-ui-router/release/angular-ui-router.js")"></script>
+    <script src="@routes.Assets.at("bower_components/foundation-apps/dist/js/foundation-apps.js")"></script>
+    <script src="@routes.Assets.at("bower_components/foundation-apps/dist/js/foundation-apps-templates.js")"></script>
 
-    <link href="@routes.Assets.at("stylesheets/opetopic.css")" rel="stylesheet" type="text/css">
+    <script src="@routes.Assets.at("assets/js/app.js")"></script>
 
   </head>
 
-  <body class="fullbleed layout vertical">
+  <body>
 
-    <main-editor class="layout vertical flex"></main-editor>
+    <div class="grid-frame vertical">
+
+      <div zf-panel="" id="left-panel">
+	<a zf-close="" class="close-button">×</a>
+	<section class="block-list">
+	  <header>Main menu</header>
+	  <ul>
+	    <li class="with-chevron"><a href="#">List item 1</a></li>
+	    <li class="with-chevron"><a href="#">List item 2</a></li>
+	    <li><a href="#">List item 3</a></li>
+	  </ul>
+	</section>
+      </div>
+
+      <div class="grid-content shrink" style="padding: 0;">
+        <ul class="primary condense menu-bar">
+          <li><a><strong>Opetopic</strong></a></li>
+        </ul>
+      </div>
+      <div ui-view class="grid-content">
+	<div class="grid-container">
+	  <h1>Opetopic!</h1>
+	  <p>This is the opetopic guy!</p>
+	</div>
+      </div>
+    </div>
 
   </body>
 

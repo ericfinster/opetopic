@@ -12,5 +12,3 @@ addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.2")
 // Use the scala-js pluging 
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.3")
 
-// Bower
-addSbtPlugin("com.github.dwickern" % "sbt-bower" % "1.0.3")

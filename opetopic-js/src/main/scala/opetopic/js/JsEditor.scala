@@ -24,66 +24,66 @@ object JsEditor extends sjs.JSApp {
 
     println("Launched Opetopic.")
 
-    import JsDomFramework._
+    // import JsDomFramework._
 
-    JsDomFramework.onToast = (str: String) => {
-      val t = g.document.getElementById("msg-toast")
-      if (t != null) {
-        t.setAttribute("text", str)
-        t.show()
-      }
-    }
+    // JsDomFramework.onToast = (str: String) => {
+    //   val t = g.document.getElementById("msg-toast")
+    //   if (t != null) {
+    //     t.setAttribute("text", str)
+    //     t.show()
+    //   }
+    // }
 
-    val baseConfig: GalleryConfig =
-      GalleryConfig(
-        panelConfig = defaultPanelConfig,
-        width = 650,
-        height = 250,
-        spacing = 1500,
-        minViewX = Some(60000),
-        minViewY = Some(13000),
-        spacerBounds = Bounds(0, 0, 600, 600)
-      )
+    // val baseConfig: GalleryConfig =
+    //   GalleryConfig(
+    //     panelConfig = defaultPanelConfig,
+    //     width = 650,
+    //     height = 250,
+    //     spacing = 1500,
+    //     minViewX = Some(60000),
+    //     minViewY = Some(13000),
+    //     spacerBounds = Bounds(0, 0, 600, 600)
+    //   )
 
-    val editor = CardinalEditor[ConstString]
+    // val editor = CardinalEditor[ConstString]
 
-    editor.onBoxClicked = (box: Sigma[editor.NeutralCellBox]) => {
+    // editor.onBoxClicked = (box: Sigma[editor.NeutralCellBox]) => {
 
-      for {
-        lblCmplx <- box.value.labelComplex
-      } {
+    //   for {
+    //     lblCmplx <- box.value.labelComplex
+    //   } {
 
-        val gallery = ActiveGallery(baseConfig, lblCmplx)(
-          new AffixableFamily[editor.OptA] {
-            def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] = 
-              Affixable.optionAffixable(baseConfig.spacerBounds, editor.r(n))
-          }
-        )
+    //     val gallery = ActiveGallery(baseConfig, lblCmplx)(
+    //       new AffixableFamily[editor.OptA] {
+    //         def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] = 
+    //           Affixable.optionAffixable(baseConfig.spacerBounds, editor.r(n))
+    //       }
+    //     )
 
-        val div = document.getElementById("base-pane")
+    //     val div = document.getElementById("base-pane")
 
-        val lc = div.lastChild
-        if (lc != null) div.removeChild(lc)
+    //     val lc = div.lastChild
+    //     if (lc != null) div.removeChild(lc)
 
-        div.appendChild(gallery.element.uiElement)
+    //     div.appendChild(gallery.element.uiElement)
 
-      }
+    //   }
 
-    }
+    // }
 
-    document.onkeydown = ((e: KeyboardEvent) => {
-      e.keyCode match {
-        case 69 => editor.extrudeSelection
-        case 13 => {
-          val modal = g.document.getElementById("label-modal")
-          modal.open()
-        }
-        case _ => ()
-      }
-    })
+    // document.onkeydown = ((e: KeyboardEvent) => {
+    //   e.keyCode match {
+    //     case 69 /* E */ => editor.extrudeSelection
+    //     case 76 /* L */ => {
+    //       val modal = g.document.getElementById("label-modal")
+    //       modal.open()
+    //     }
+    //     case _ => ()
+    //   }
+    // })
 
-    val div = document.getElementById("editor-pane")
-    div.appendChild(editor.element.uiElement)
+    // val div = document.getElementById("editor-pane")
+    // div.appendChild(editor.element.uiElement)
 
   }
 
