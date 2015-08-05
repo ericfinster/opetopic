@@ -89,12 +89,6 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     }
 
     //============================================================================================
-    // EVENTS
-    //
-
-    var onBoxClicked : Sigma[NeutralCellBox] => Unit = { _ => () }
-
-    //============================================================================================
     // MUTABILITY ROUTINES
     //
 
@@ -203,25 +197,32 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
     class NeutralCellBox[N <: Nat](
       val panel: CardinalPanel[N],
-      val optLabel: OptA[N], 
+      ol: OptA[N],
       addr: CardinalAddress[S[N]],
       val isExternal: Boolean
     ) extends CardinalCellBox[N] { thisBox =>
 
-      var label: PolOptA[N] = Neutral(optLabel)
+      var myOptLabel : OptA[N] = ol
+
+      def optLabel: OptA[N] = myOptLabel
+      def optLabel_=(opt: OptA[N]): Unit = {
+        myOptLabel = opt
+        decoration = panel.affixable.decoration(label)
+        makeMouseInvisible(labelElement)
+      }
+
+      def label: PolOptA[N] = 
+        Neutral(optLabel)
+
+      val isPolarized = false
       var address: CardinalAddress[S[N]] = addr
       def nestingAddress: Address[S[N]] = 
         Cardinal.cardinalAddressComplete(S(boxDim))(address)
 
-      val decoration = panel.affixable.decoration(label)
-      val isPolarized = false
+      var decoration = panel.affixable.decoration(label)
       makeMouseInvisible(labelElement)
 
-      boxRect.onClick = (e: UIMouseEvent) => {
-        thisEditor.select(thisBox) 
-        thisEditor.onBoxClicked(Sigma(thisBox.boxDim)(thisBox))
-      }
-
+      boxRect.onClick = (e: UIMouseEvent) => { thisEditor.select(thisBox) }
       boxRect.onMouseOver = { (e : UIMouseEvent) => setHoveredStyle }
       boxRect.onMouseOut = { (e : UIMouseEvent) => setUnhoveredStyle }
 

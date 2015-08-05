@@ -8,7 +8,7 @@ import libs.json._
 object Application extends Controller {
 
   def index = Action {
-    Ok(views.html.index("This is some content which goes in a panel."))
+    Ok(views.html.index())
   }
 
   def debug = Action(BodyParsers.parse.json) { request =>

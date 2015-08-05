@@ -44,6 +44,9 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
 
     var selection: Option[Selection]
 
+    var onSelect : Sigma[GalleryBoxType] => Unit = { _ => () }
+    var onSelectAsRoot : Sigma[GalleryBoxType] => Unit = { _ => () }
+
     trait Selection {
 
       type Dim <: Nat
@@ -82,15 +85,9 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
       if (box.canSelect) {
         deselectAll
         box.select
-        //onSelectAsRoot(marker.dim)(marker)
+        onSelectAsRoot(Sigma(box.boxDim)(box))
         selection = Some(Selection(box))
       }
-
-    // for {
-    //   zipper <- panel.nesting.seekTo(nestingAddress)
-    // } yield {
-    //   println("Complex address gives cell: " ++ zipper._1.baseValue.toString)
-    // }
 
     def select[N <: Nat](box: GalleryBoxType[N]) : Unit = 
       if (box.canSelect) {
@@ -128,6 +125,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
                         b <- candidates.init
                       } {
                         b.select
+                        onSelect(Sigma(b.boxDim)(b))
                         sel.companions += rewriteNatIn(ev)(b)
                       }
                     }

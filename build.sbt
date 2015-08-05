@@ -3,7 +3,7 @@ import sbt.Project.projectToRef
 val commonSettings = Seq(
   organization := "opetopic",
   homepage := Some(url("http://ericfinster.github.io")),
-  scalaVersion := "2.11.6",
+  scalaVersion := "2.11.7",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
@@ -30,8 +30,10 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
     libraryDependencies ++= Seq(
       "org.webjars" %% "webjars-play" % "2.4.0-1",
-      "org.webjars.bower" % "fastclick" % "1.0.6",
-      "org.webjars.bower" % "foundation-apps" % "1.1.0"
+      "org.webjars" % "jquery" % "2.1.3",
+      "org.webjars" % "angularjs" % "1.3.8",
+      "org.webjars" % "foundation" % "5.2.2",
+      "org.webjars" % "foundation-icon-fonts" % "d596a3cfb3"
     )
   ).enablePlugins(PlayScala, SbtWeb).
   aggregate(clients.map(projectToRef): _*).
@@ -43,8 +45,10 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     persistLauncher := true,
     sourceMapsDirectories += opetopicCoreJs.base / "..",
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    resolvers += Resolver.sonatypeRepo("snapshots"),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.8.1"
+      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
+      "be.doeraene" %%% "scalajs-jquery" % "0.8.0"
     )
   ).enablePlugins(ScalaJSPlugin, ScalaJSPlay).
   dependsOn(opetopicCoreJs)

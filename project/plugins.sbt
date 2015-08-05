@@ -10,5 +10,8 @@ addSbtPlugin("com.vmunier" % "sbt-play-scalajs" % "0.2.6")
 addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.4.2")
 
 // Use the scala-js pluging 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.3")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.4")
+
+// Sbt-Sass for building sass
+addSbtPlugin("default" % "sbt-sass" % "0.1.9")
 
