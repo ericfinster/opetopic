@@ -48,12 +48,6 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
   //   def constWith[B](b : B) : Tree[N, B] =
   //     Tree.map(tr)(_ => b)
 
-  //   def valueAt(addr : Address[N]) : Option[A] =
-  //     for {
-  //       zipper <- tr seekTo addr
-  //       a <- zipper.focus.rootOption
-  //     } yield a
-
 }
 
 trait ToTreeOps {

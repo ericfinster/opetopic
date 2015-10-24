@@ -49,8 +49,6 @@ module Prelude where
   {-# BUILTIN TRUE  true  #-}
   {-# BUILTIN FALSE false #-}
 
-  {-# COMPILED_DATA Bool Bool True False #-}
-
   _∨_ : Bool → Bool → Bool
   true  ∨ b = true
   false ∨ b = b
@@ -95,13 +93,8 @@ module Prelude where
 
   open Σ public
 
-  Σ-syntax : ∀ (A : Set) → (A → Set) → Set 
-  Σ-syntax = Σ
-
-  syntax Σ-syntax A (λ x → B) = Σ[ x ∈ A ] B
-
   _×_ : ∀ (A : Set) (B : Set) → Set
-  A × B = Σ[ x ∈ A ] B
+  A × B = Σ A (λ _ → B)
 
   uncurry : {A : Set} → {B : A → Set} → {C : Σ A B → Set} →
             ((x : A) → (y : B x) → C (x , y)) →
@@ -145,7 +138,7 @@ module Prelude where
   {-# BUILTIN EQUALITY _==_ #-}
   {-# BUILTIN REFL  idp #-}
 
-  infix  2 _∎
+  infix  3 _∎
   infixr 2 _=⟨_⟩_
 
   _=⟨_⟩_ : ∀ {i} {A : Set i} (x : A) {y z : A} → x == y → y == z → x == z
@@ -157,7 +150,7 @@ module Prelude where
   syntax ap f p = p |in-ctx f
 
   fiber : {A B : Set} → (f : A → B) → B → Set
-  fiber f b = Σ[ a ∈ _ ] f a == b
+  fiber {A} f b = Σ A (λ a → f a == b)
 
   ap : ∀ {i j} {A : Set i} {B : Set j} (f : A → B) {x y : A}
     → (x == y → f x == f y)
@@ -205,7 +198,7 @@ module Prelude where
                  ε = λ a → idp 
                }
 
-  Σ-eqv-base : (A : Set) → (Σ[ u ∈ ⊤ ] A) ≃ A
+  Σ-eqv-base : (A : Set) → (Σ ⊤ (λ _ →  A)) ≃ A
   Σ-eqv-base A = record { 
     f = λ { (tt , a) → a } ; 
     g = λ a → (tt , a) ; 

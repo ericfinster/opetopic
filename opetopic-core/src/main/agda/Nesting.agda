@@ -176,4 +176,7 @@ module Nesting where
     then η z 
     else (predecessor z >>= (λ pred → predecessorWhich pred p))
 
-
+  desuspendNesting : {A : Set} → {n : ℕ} → Nesting A n → Nesting A (suc n)
+  desuspendNesting (obj a) = dot a
+  desuspendNesting (dot a) = dot a
+  desuspendNesting (box a cn) = box a (desuspend (mapTree cn desuspendNesting))

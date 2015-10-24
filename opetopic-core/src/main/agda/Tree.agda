@@ -153,7 +153,7 @@ module Tree where
   module Matching {M : Set → Set} ⦃ isErr : MonadError M ⦄ where
 
     open MonadError ⦃ ... ⦄
-    open Applicative (monadIsApp isMonad)
+    open Applicative (monadIsApp (isMonad {F = M}))
 
     match : {A B C : Set} → {n : ℕ} → (A → B → M C) → Tree A n → Tree B n → M (Tree C n)
     match φ (pt a) (pt b) = pure pt ⊛ φ a b 
@@ -185,6 +185,7 @@ module Tree where
 
   open Matching public
 
+  -- Multiplication in the "slice" monad
   join : {A : Set} → {n : ℕ} → Tree (Tree A n) n → Error (Tree A n)
 
   module GraftRec {A B : Set} where
@@ -230,6 +231,7 @@ module Tree where
     graftRec {suc n} ν-rec λ-rec (node a (node v hsh)) = initVertial a v hsh >>= (λ { (b , _) → η b })
       where open PositiveDim ν-rec λ-rec
 
+  -- Multiplication in the "free" monad
   graft : {A : Set} → {n : ℕ} → Tree A (suc n) → Tree (Tree A (suc n)) n → Error (Tree A (suc n))
   graft {A} {n} tr brs = graftRec (λ a sh → η (node a sh)) (valueAt brs) tr
     where open GraftRec {A} {Tree A (suc n)}
@@ -278,3 +280,8 @@ module Tree where
   takeWhile : {A : Set} → {n : ℕ} → Tree A (suc n) → (A → Bool) → Tree A (suc n)
   takeWhile leaf p = leaf
   takeWhile (node a sh) p = if p a then node a (mapTree sh (λ t → takeWhile t p)) else leaf
+
+  desuspend : {A : Set} → {n : ℕ} → Tree A n → Tree A (suc n)
+  desuspend {n = zero} (pt a) = node a (pt leaf)
+  desuspend {n = suc n} leaf = leaf
+  desuspend {n = suc n} (node a sh) = node a (desuspend (mapTree sh desuspend))

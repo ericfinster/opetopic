@@ -474,6 +474,7 @@ trait TreeFunctions { tfns =>
   def exciseWithProp[A, N <: Nat](tr: Tree[A, S[N]])(pred: A => Boolean) : ShapeM[(Tree[A, S[N]], Tree[Tree[A, S[N]], N])] =
     exciseWithProp(tr, Zipper.globDerivative(tr.dim.pred))(pred)
 
+
 }
 
 object Tree extends TreeFunctions {

@@ -155,6 +155,14 @@ module Cardinal where
   -- fromNesting (box pos (pt n)) = toNeutral n >>= (λ nn → succeed (pt nn))
   -- fromNesting (box pos (node a cn)) = {!!}
 
+  prependType : (A : ℕ → Set) (B : Set) → ℕ → Set
+  prependType A B zero = B
+  prependType A B (suc n) = A n
+
+  cardinalDesuspend : {A : ℕ → Set} {B : Set} {n : ℕ} → Cardinal A n → B → B → Cardinal (prependType A B) (suc n)
+  cardinalDesuspend (∥ ▶ n) src tgt = ∥ ▶ pt (box tgt (pt (obj src))) ▶ {!!}
+  cardinalDesuspend (c ▶ x ▶ x₁) src tgt = {!!}
+
   completeToComplex : {A : ℕ → Set} → {n : ℕ} → Cardinal A n → Suite (λ k → (A k × A k)) (suc n) → Complex A n
   completeToComplex {n = zero} (∥ ▶ hd) (∥ ▶ (_ , a₊)) = ∥ ▶ (box a₊ hd)
   completeToComplex {n = suc n} (tl ▶ hd) (ps ▶ (a₋ , a₊)) = 

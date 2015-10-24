@@ -88,10 +88,36 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
 
 }
 
+final class ComplexSuccOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, S[N]]) {
+
+  def tail : Complex[A, N] = 
+    cmplx match {
+      case Complex(tl, _) => tl
+    }
+
+  def target : ShapeM[Complex[A, N]] = {
+
+    import TypeLemmas._
+
+    implicit val n : N = cmplx.length.pred.pred
+    val d : Diff[N, S[N]] = implicitly[Diff[N, S[N]]]
+
+    val cops = new ComplexOps(cmplx)
+    val blorp: Complex[A, N] = cops.getPrefix[N](d)
+
+    new ComplexOps(blorp).sourceAt(Nil)
+
+  }
+
+}
+
 trait ToComplexOps {
 
   implicit def complexToOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) : ComplexOps[A, N] = 
     new ComplexOps(cmplx)
+
+  implicit def complexToSuccOps[A[_ <: Nat], N <: Nat](cmplx: Complex[A, S[N]]) : ComplexSuccOps[A, N] = 
+    new ComplexSuccOps(cmplx)
 
   implicit def finiteComplexToOps[A[_ <: Nat]](fc: FiniteComplex[A]) : ComplexOps[A, fc.N] = 
     new ComplexOps[A, fc.N](fc.value)
@@ -99,6 +125,10 @@ trait ToComplexOps {
   implicit def doubleComplexToOps[A[_ <: Nat], N <: Nat](dc: DblComplex[A, N]) 
       : ComplexOps[({ type L[K <: Nat] = Complex[A, K] })#L, N] =
     new ComplexOps[({ type L[K <: Nat] = Complex[A, K] })#L, N](dc)
+
+  implicit def doubleComplexToSuccOps[A[_ <: Nat], N <: Nat](dc: DblComplex[A, S[N]])
+      : ComplexSuccOps[Lambda[`K <: Nat` => Complex[A, K]], N] =
+    new ComplexSuccOps[Lambda[`K <: Nat` => Complex[A, K]], N](dc)
 
   implicit def complexToFiniteComplex[A[_ <: Nat], D <: Nat](cmplx: Complex[A, D]) : FiniteComplex[A] = 
     Sigma[Lambda[`N <: Nat` => Complex[A, N]], D](cmplx.length.pred)(cmplx)

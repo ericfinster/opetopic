@@ -86,6 +86,10 @@ object JsEditor extends JSApp {
       lblCmplx <- box.labelComplex
     } {
 
+      import JsPrinter._
+
+      jQuery("#tt-expr").value(prettyPrintComplex(lblCmplx.length.pred)(lblCmplx).mkString("\n\n"))
+
       val gallery = ActiveGallery(baseConfig, lblCmplx)(
         new AffixableFamily[editor.OptA] {
           def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] =

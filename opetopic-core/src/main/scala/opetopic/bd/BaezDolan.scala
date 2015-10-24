@@ -51,6 +51,7 @@ case class Pi[K <: Nat, N <: Nat](val nm: Int, val dom: Type[K], val cod: Type[N
 sealed trait Shell[N <: Nat] extends Type[N]
 case object EmptyShell extends Shell[_0]
 case class CompleteShell[N <: Nat](val srcTree: Tree[Term[N], N], val target : Term[N]) extends Shell[N]
+// Identity type
 
 sealed trait Property[N <: Nat] extends Type[N]
 case class IsBananced[N <: Nat](val hole: Derivative[Term[N], N]) extends Property[N]
