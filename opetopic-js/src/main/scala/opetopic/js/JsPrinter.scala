@@ -31,10 +31,18 @@ object JsPrinter {
         prettyPrintAddress(S(p))(as)
   }
 
+  def printTuple(ls: List[String]) : String = 
+    ls match {
+      case Nil => ""
+      case s :: Nil => s
+      case s :: t :: ss => printTuple(("(" ++ s ++ ", " ++ t ++ ")") :: ss)
+
+    }
+
   def prettyPrintNesting[N <: Nat](nst: Nesting[List[String], N]) : String = 
     nst match {
       case Obj(s) => "leaf i"
-      case Dot(s, d) => "leaf (" ++ s.reverse.mkString(", ") ++ ")"
+      case Dot(s, d) => "leaf " ++ printTuple(s.reverse)
       case Box(s, cn) => {
 
         val dim = cn.dim
