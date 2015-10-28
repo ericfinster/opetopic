@@ -93,6 +93,20 @@ object JsPrinter {
     }
   }
 
+  @natElim 
+  def printComplexHeader[A[_ <: Nat], N <: Nat](n: N)(cmplx: Complex[A, N]) : String = {
+    case (Z, Complex(_, hd)) => "objs"
+    case (S(p: P), Complex(Complex(_, objs), ars)) => "arrs"
+    case (S(S(p: P)), cc @ Complex(cm, _)) => "nothing"
+  }
+
+  @natElim 
+  def printFrame[A[_ <: Nat], N <: Nat](n: N)(cmplx: Complex[A, N]) : String = {
+    case (Z, Complex(_, hd)) => "objs"
+    case (S(p: P), Complex(Complex(_, objs), ars)) => "arrs"
+    case (S(S(p: P)), cc @ Complex(cm, _)) => "nothing"
+  }
+
 }
 
 
