@@ -1,0 +1,8 @@
+--
+-- demo.ott - playing with opetopic type theory
+--
+
+let identity : (X : Type) -> X -> X
+    	     = \X. \x. x ;
+
+tt

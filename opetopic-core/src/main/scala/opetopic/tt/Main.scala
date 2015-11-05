@@ -13,36 +13,36 @@ object Main {
 
   def main(args: Array[String]) = {
 
-    // import OpetopicTTParser._
-    // import OpetopicTTTypeChecker._
+    import OpetopicParser._
+    import OpetopicTypeChecker._
 
-    // if (args.length != 1) {
+    if (args.length != 1) {
 
-    //   println("Usage: opetopictt <filename>")
+      println("Usage: opetopictt <filename>")
 
-    // } else {
+    } else {
 
-    //   val lines : String = 
-    //     fromFile(args(0)).mkString
+      val lines : String = 
+        fromFile(args(0)).mkString
 
-    //   parseAll(phrase(expr), lines) match {
-    //     case Success(e, _) => {
+      parseAll(phrase(expr), lines) match {
+        case Success(e, _) => {
 
-    //       println("Parsing succesful, now typechecking ...")
+          println("Parsing succesful, now typechecking ...")
 
-    //       import scalaz.-\/
-    //       import scalaz.\/-
+          import scalaz.-\/
+          import scalaz.\/-
 
-    //       check(RNil, Nil, e, Unt) match {
-    //         case -\/(str) => println("Failure: " ++ str)
-    //         case \/-(()) => println("Success!")
-    //       }
+          check(RNil, Nil, e, Unt) match {
+            case -\/(str) => println("Failure: " ++ str)
+            case \/-(()) => println("Success!")
+          }
 
-    //     }
-    //     case err => println(err.toString)
-    //   }
+        }
+        case err => println(err.toString)
+      }
 
-    // }
+    }
 
   }
 
