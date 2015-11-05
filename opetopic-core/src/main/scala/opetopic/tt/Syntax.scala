@@ -7,6 +7,8 @@
 
 package opetopic.tt
 
+import opetopic._
+
 // Expressions
 sealed trait Expr
 case object EType extends Expr
@@ -23,6 +25,7 @@ case class EFst(e: Expr) extends Expr
 case class ESnd(e: Expr) extends Expr
 case class EDec(d: Decl, e: Expr) extends Expr
 case class EApp(e: Expr, f: Expr) extends Expr
+case class ECmplx[N <: Nat](c: Complex[CstExpr, N]) extends Expr
 
 // Values
 sealed trait Val
@@ -34,6 +37,7 @@ case class Pair(v: Val, w: Val) extends Val
 case class Pi(v: Val, c: Clos) extends Val
 case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
+case class Cmplx[N <: Nat](c: Complex[CstVal, N]) extends Val
 
 // Neutral terms
 sealed trait Neut

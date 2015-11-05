@@ -5,4 +5,7 @@
 let identity : (X : Type) -> X -> X
     	     = \X. \x. x ;
 
+let test : (X : Alg) -> (i : box X (pt (obj X))) -> (x : [ obj X ]>> box i leaf) -> Unit
+    	 = \X. \i. tt ; 
+
 tt

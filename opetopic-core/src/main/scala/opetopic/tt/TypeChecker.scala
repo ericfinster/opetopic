@@ -7,6 +7,9 @@
 
 package opetopic.tt
 
+import opetopic._
+import syntax.complex._
+
 import scalaz._
 import PrettyPrinter._
 
@@ -107,6 +110,14 @@ object OpetopicTypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
+      case ECmplx(c) => {
+        val cvals = c.map(new IndexedMap[CstExpr, CstVal] {
+          def apply[N <: Nat](n: N)(e: Expr) = {
+            eval(e, rho)
+          }
+        })
+        Cmplx(cvals)
+      }
     }
 
   //============================================================================================
@@ -130,6 +141,15 @@ object OpetopicTypeChecker {
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Nt(k) => rbN(i, k)
+      case Cmplx(c) => {
+        val cexprs = c.map(new IndexedMap[CstVal, CstExpr] {
+          def apply[N <: Nat](n: N)(v: Val) = {
+            rbV(i, v)
+          }
+        })
+        ECmplx(cexprs)
+      }
+
     }
 
   }
