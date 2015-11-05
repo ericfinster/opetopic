@@ -75,11 +75,13 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   jsConfigure(_ enablePlugins ScalaJSPlay).
   jsSettings(
     libraryDependencies ++= Seq(
-      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3"
+      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3",
+      "org.scala-js" %%% "scala-parser-combinators" % "1.0.2"
     ),
     sourceMapsBase := baseDirectory.value / ".."
   ).jvmSettings(
     libraryDependencies ++= Seq(
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
       "org.scalaz" %% "scalaz-core" % "7.1.3"
     )
   ).dependsOn(opetopicMacros)

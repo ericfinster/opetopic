@@ -40,6 +40,8 @@ object JsEditor extends JSApp {
     jQuery("#editor-pane").keypress((e : JQueryEventObject) => {
       e.which match {
         case 101 => editor.extrudeSelection
+        case 100 => editor.extrudeDrop
+        case 112 => editor.sprout
         case _ => ()
       }
     })

@@ -7,6 +7,8 @@
 
 package opetopic.ui
 
+import scala.language.existentials
+
 import opetopic._
 import syntax.suite._
 import syntax.nesting._
@@ -172,12 +174,150 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
     }
 
+    def extrudeDrop : Unit = {
+
+      selection match {
+        case None => ()
+        case Some(sel) => 
+          if (! sel.root.isExtrudable) toast("Selection not extrudable") else {
+
+            val selectionDim : Int = natToInt(sel.dim)
+            val currentDim : Int = natToInt(panels.p)
+
+            val extrusionSuite = 
+              if (selectionDim == currentDim) {
+                extendPanels(extendPanels(panels))
+              } else if (selectionDim == currentDim - 1) {
+                extendPanels(panels)
+              } else panels
+
+            val extrusionCardinal : Cardinal[NeutralCellBox, extrusionSuite.P] = 
+              boxCardinal(extrusionSuite.value)
+
+            val extrusionAddress : CardinalAddress[sel.Dim] = 
+              Suite.tail[Address, S[sel.Dim]](sel.root.address)
+
+            for {
+              diff <- fromOpt(diffOpt(S(S(sel.dim)), extrusionSuite.p))
+              tgtPanel <- fromOpt(extrusionSuite.getOpt(S(sel.dim)))
+              fillPanel = extrusionSuite.get(S(S(sel.dim)))(diff)
+              tgtBox = tgtPanel.neutralCellBox(None, sel.root.address >> Nil, false)
+              fillBox = fillPanel.neutralCellBox(None, sel.root.address >> Nil >> Nil, true)
+              extrudedCardinal <- Cardinal.dropAtAddress(diff.lte)(
+                extrusionCardinal, extrusionAddress, tgtBox, fillBox
+              )
+            } yield {
+
+              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], PanelType[K])
+              type ResDim = S[extrusionSuite.P]
+
+              deselectAll
+
+              Suite.foreach[ResType, ResDim](extrudedCardinal.zipWith(extrusionSuite.value))(
+                new IndexedOp[ResType] {
+                  def apply[N <: Nat](n: N)(r: ResType[N]) = {
+                    for {
+                      d <- diffOpt(sel.dim, n) // Only refresh above affected dimensions
+                    } {
+                      val (nst, pn) = r
+
+                      pn.cardinalBoxNesting = nst
+                      pn.refreshAddresses
+                      pn.refresh
+                    }
+                  }
+                }
+              )
+
+              panels = extrusionSuite
+
+              refreshGallery
+
+              selectAsRoot(tgtBox)
+
+            }
+          }
+      }
+
+    }
+
+    def sprout : Unit = {
+
+      selection match {
+        case None => ()
+        case Some(sel) =>
+          if (sel.root.isExternal) {
+
+            val selectionDim : Int = natToInt(sel.dim)
+            val currentDim : Int = natToInt(panels.p)
+
+            val extrusionSuite = 
+              if (selectionDim == currentDim) {
+                extendPanels(panels)
+              } else panels
+
+            val extrusionCardinal : Cardinal[NeutralCellBox, extrusionSuite.P] =
+              boxCardinal(extrusionSuite.value)
+
+            val extrusionAddress : CardinalAddress[S[sel.Dim]] = 
+              sel.root.address
+
+            val prevAddress : CardinalAddress[sel.Dim] = 
+              Suite.tail[Address, S[sel.Dim]](sel.root.address)
+
+            for {
+              diff <- fromOpt(diffOpt(S(sel.dim), extrusionSuite.p))
+              tgtPanel <- fromOpt(extrusionSuite.getOpt(sel.dim))
+              fillPanel = extrusionSuite.get(S(sel.dim))(diff)
+              tgtBox = tgtPanel.neutralCellBox(None, extrusionAddress, true)
+              fillBox = fillPanel.neutralCellBox(None, extrusionAddress >> Nil, true)
+              extrudedCardinal <- Cardinal.sproutAtAddress(diff.lte)(
+                extrusionCardinal, extrusionAddress, tgtBox, fillBox
+              )
+            } yield {
+
+              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], PanelType[K])
+              type ResDim = S[extrusionSuite.P]
+
+              deselectAll
+
+              sel.root.asInstanceOf[NeutralCellBox[sel.root.Dim]].isExternal = false
+
+              Suite.foreach[ResType, ResDim](extrudedCardinal.zipWith(extrusionSuite.value))(
+                new IndexedOp[ResType] {
+                  def apply[N <: Nat](n: N)(r: ResType[N]) = {
+                    for {
+                      d <- diffOpt(sel.dim, n) // Only refresh above affected dimensions
+                    } {
+                      val (nst, pn) = r
+
+                      pn.cardinalBoxNesting = nst
+                      pn.refreshAddresses
+                      pn.refresh
+                    }
+                  }
+                }
+              )
+
+              panels = extrusionSuite
+
+              refreshGallery
+
+              selectAsRoot(tgtBox)
+
+            }
+
+          }
+      }
+    }
+
     //============================================================================================
     // CELL BOX IMPLEMENTATION
     //
 
     trait CardinalCellBox[N <: Nat] extends ActiveCellBox[PolOptA[N], N] {
 
+      type Dim = N
       type BoxAddressType = CardinalAddress[S[N]]
 
       def isPolarized : Boolean
@@ -199,7 +339,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       val panel: CardinalPanel[N],
       ol: OptA[N],
       addr: CardinalAddress[S[N]],
-      val isExternal: Boolean
+      var isExternal: Boolean
     ) extends CardinalCellBox[N] { thisBox =>
 
       var myOptLabel : OptA[N] = ol
