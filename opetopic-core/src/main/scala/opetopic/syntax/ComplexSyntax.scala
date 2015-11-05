@@ -19,6 +19,9 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
 
   type INst[K <: Nat] = Nesting[A[K], K]
 
+  def dim : N = 
+    cmplx.length.pred
+
   def head : Nesting[A[N], N] =
     Suite.head[INst, N](cmplx)
 

@@ -8,9 +8,11 @@
 package opetopic.tt
 
 import opetopic._
+import syntax.tree._
+import syntax.nesting._
 import syntax.complex._
 
-import scalaz._
+import scalaz.{Tree => _, _}
 import PrettyPrinter._
 
 object OpetopicTypeChecker {
@@ -188,6 +190,12 @@ object OpetopicTypeChecker {
   def fail[A](str: String) : G[A] = 
     -\/(str)
 
+  def fromShape[A](m: ShapeM[A]) : G[A] =
+    m match {
+      case -\/(ShapeError(msg)) => -\/(msg)
+      case \/-(a) => \/-(a)
+    }
+
   def eqNf(i: Int, m1: Nf, m2: Nf) : G[Unit] = {
     val e1 = rbV(i, m1)
     val e2 = rbV(i, m2)
@@ -270,6 +278,59 @@ object OpetopicTypeChecker {
       }
     }
 
+  def extractPd[A, N <: Nat](tr: Tree[Nesting[A, N], N]) : G[Tree[A, N]] = 
+    tr traverse {
+      case Obj(a) => pure(a)
+      case Dot(a, _) => pure(a)
+      case _ => fail("Not external")
+    }
+
+  def extractFrame[A, N <: Nat](nst: Nesting[A, N]) : G[(A, Tree[A, N])] =
+    nst match {
+      case Box(a, cn) => for { pd <- extractPd(cn) } yield (a, pd)
+      case _ => fail("Not a frame")
+    }
+
+
+  @natElim
+  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N]) : G[Unit] = {
+    case (Z, rho, gma, Complex(_, hd)) => {
+      hd match {
+        case Box(tgt, Pt(Obj(src))) => 
+          for {
+            _ <- check(rho, gma, src, Type)
+            _ <- check(rho, gma, tgt, Type)
+          } yield ()
+        case _ => fail("checkFrame: failed in dimension 0")
+      }
+    }
+    case (S(p: P), rho, gma, c) => {
+      // println("Checking frame: " ++ c.toString)
+      for {
+        cm <- fromShape(c.comultiply)
+        frm <- extractFrame(cm.head)
+        _ <- checkCell(S(p))(rho, gma, frm._1)
+        _ <- frm._2.traverse(
+          (face: Complex[CstExpr, S[P]]) => checkCell(S(p))(rho, gma, face)
+        )
+      } yield ()
+    }
+  }
+
+  @natElim
+  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N]) : G[Unit] = {
+    case (Z, rho, gma, Complex(_, Obj(e))) => check(rho, gma, e, Type)
+    case (Z, rho, gma, Complex(_, _)) => fail("checkCell: too many objects!")
+    case (S(p: P), rho, gma, Complex(tl, Dot(e, _))) => {
+      // println("Check that expression " ++ prettyPrint(e) ++ " lives is frame " ++ tl.toString)
+      for {
+        _ <- checkFrame(p)(rho, gma, tl)
+        _ <- check(rho, gma, e, eval(ECmplx(tl), rho))
+      } yield ()
+    }
+    case (S(p: P), rho, gma, Complex(tl, _)) => fail("checkCell: to many top cells!")
+  }
+
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
     (e0, t0) match {
       case (ELam(p, e), Pi(t, g)) => {
@@ -301,6 +362,7 @@ object OpetopicTypeChecker {
           gma1 <- checkD(rho, gma, d)
           _ <- check(UpDec(rho, d), gma1, e, t)
         } yield ()
+      case (ECmplx(c), Type) => checkFrame(c.dim)(rho, gma, c)
       case (e, t) => {
         // println("Forced type check for: " ++ prettyPrint(e))
         // println("Expected type: " ++ t.toString)

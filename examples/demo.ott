@@ -5,7 +5,9 @@
 let identity : (X : Type) -> X -> X
     	     = \X. \x. x ;
 
-let test : (X : Alg) -> (i : box X (pt (obj X))) -> (x : [ obj X ]>> box i leaf) -> Unit
-    	 = \X. \i. tt ; 
+let test : (X : Type) -> (i : box X (pt (obj X))) -> 
+    	   (x : [ obj X ]>> box i leaf) -> (y : [ obj X ]>> box i leaf) -> 
+	   (f : [ obj X ]>> [ box i leaf ]>> box y (node (dot x) leaf)) -> Unit
+    	 = \X. \i. \x. \y. \f. tt ; 
 
 tt
