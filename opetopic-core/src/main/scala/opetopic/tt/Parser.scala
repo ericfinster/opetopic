@@ -37,8 +37,12 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
-    | cmplxExpr(Z) ^^ 
-        { case nl => ECmplx(nstListToComplex(intToNat(nl.length - 1))(nl.reverse)) }
+    | cmplxPrefix[NstExpr, _0](Z)(NestingExpr) ^^
+        { case frm => {
+          val frmPrefLength = intToNat(frm._1.length)
+          val frmPref = nstListToFrmPref(frmPrefLength)(frm._1.reverse)
+          EFrm(frmPref >> frm._2.value.asInstanceOf[NstExpr[Nat]])
+        }}
     | expr2
   )
 
@@ -62,15 +66,13 @@ object OpetopicParser extends RegexParsers with PackratParsers {
   )
 
   @natElim
-  def nstListToComplex[N <: Nat](n: N)(nl: NstList) : Complex[CstExpr, N] = {
-    case (Z, n :: Nil) => {
-      Complex[CstExpr] >> n.value.asInstanceOf[ExprNst[_0]]
-    }
+  def nstListToFrmPref[N <: Nat](n: N)(nl: NstList) : Suite[NstExpr, N] = {
+    case (Z, Nil) => SNil[NstExpr]()
     case (Z, _) => ???
-    case (S(p: P), n :: ns) => {
-      nstListToComplex(p)(ns) >> n.value.asInstanceOf[ExprNst[S[P]]]
+    case (S(p: P), Nil) => ???
+    case (S(p: P), nst :: nsts) => {
+      nstListToFrmPref(p)(nsts) >> nst.value.asInstanceOf[NstExpr[P]]
     }
-    case (S(p: P), _) => ???
   }
 
   def treeExpr[A, N <: Nat](n: N)(pp: PackratParser[A]) : PackratParser[Tree[A, N]] = (
@@ -107,11 +109,26 @@ object OpetopicParser extends RegexParsers with PackratParsers {
     )
   }
 
-  def cmplxExpr[N <: Nat](n: N) : PackratParser[NstList] = (
-      "[" ~ nstExpr(n)(expr3) ~ "]>>" ~ cmplxExpr(S(n)) ^^
-        { case "[" ~ nst ~ "]>>" ~ tl => Sigma[ExprNst, N](n)(nst) :: tl }
-    | nstExpr(n)(expr3) ^^ 
-        { case nst => List(Sigma[ExprNst, N](n)(nst)) }
+  trait IndexedParser[T[_ <: Nat]] {
+    def apply[N <: Nat](n: N) : PackratParser[T[N]]
+  }
+
+  object NestingExpr extends IndexedParser[NstExpr] {
+    def apply[N <: Nat](n: N) : PackratParser[Nesting[Expr, N]] = 
+      "[" ~ nstExpr(n)(expr3) ~ "]" ^^
+        { case "[" ~ nst ~ "]" => nst }
+  }
+
+  object TreeExpr extends IndexedParser[TrExpr] {
+    def apply[N <: Nat](n: N) : PackratParser[Tree[Expr, N]] = 
+      "{" ~ treeExpr(n)(expr3) ~ "}" ^^
+        { case "{" ~ tr ~ "}" => tr }
+  }
+
+  def cmplxPrefix[T[_ <: Nat], N <: Nat](n: N)(pp : IndexedParser[T]) : PackratParser[(NstList, Sigma[T])] = (
+      "[" ~ nstExpr(n)(expr3) ~ "]>>" ~ cmplxPrefix(S(n))(pp) ^^
+        { case "[" ~ nst ~ "]>>" ~ tl => (Sigma[NstExpr, N](n)(nst) :: tl._1, tl._2) }
+    | pp(n) ^^ { case t => (Nil, Sigma(n)(t)) }
   )
 
   lazy val decl: PackratParser[Decl] = (

@@ -11,6 +11,7 @@ import opetopic._
 import syntax.tree._
 import syntax.nesting._
 import syntax.complex._
+import syntax.suite._
 
 import scalaz.{Tree => _, _}
 import PrettyPrinter._
@@ -98,6 +99,14 @@ object OpetopicTypeChecker {
       case UpDec(r, _) => lRho(r)
     }
 
+  case class EvalMap(rho: Rho) extends IndexedMap[CstExpr, CstVal] {
+    def apply[N <: Nat](n: N)(e: Expr) = eval(e, rho)
+  }
+
+  case class EvalNstMap(rho: Rho) extends IndexedMap[NstExpr, NstVal] {
+    def apply[N <: Nat](n: N)(ne: NstExpr[N]) = ne map (eval(_, rho))
+  }
+
   def eval(e0: Expr, rho: Rho) : Val = 
     e0 match {
       case EType => Type
@@ -112,19 +121,22 @@ object OpetopicTypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
-      case ECmplx(c) => {
-        val cvals = c.map(new IndexedMap[CstExpr, CstVal] {
-          def apply[N <: Nat](n: N)(e: Expr) = {
-            eval(e, rho)
-          }
-        })
-        Cmplx(cvals)
-      }
+      case EFrm(c) => Frm(c.map(EvalMap(rho)))
+      case ENch(fp, nch) => Nch(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
     }
 
   //============================================================================================
   // READBACK FUNCTIONS
   //
+
+
+  case class RbMap(i: Int) extends IndexedMap[CstVal, CstExpr] {
+    def apply[N <: Nat](n: N)(v: Val) = rbV(i, v)
+  }
+
+  case class RbNstMap(i: Int) extends IndexedMap[NstVal, NstExpr] {
+    def apply[N <: Nat](n: N)(nv: NstVal[N]) = nv map (rbV(i, _))
+  }
 
   def rbV(i: Int, v0: Val) : Expr = {
 
@@ -143,15 +155,8 @@ object OpetopicTypeChecker {
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Nt(k) => rbN(i, k)
-      case Cmplx(c) => {
-        val cexprs = c.map(new IndexedMap[CstVal, CstExpr] {
-          def apply[N <: Nat](n: N)(v: Val) = {
-            rbV(i, v)
-          }
-        })
-        ECmplx(cexprs)
-      }
-
+      case Frm(c) => EFrm(c.map(RbMap(i)))
+      case Nch(fp, nch) => ENch(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
 
   }
@@ -325,10 +330,10 @@ object OpetopicTypeChecker {
       // println("Check that expression " ++ prettyPrint(e) ++ " lives is frame " ++ tl.toString)
       for {
         _ <- checkFrame(p)(rho, gma, tl)
-        _ <- check(rho, gma, e, eval(ECmplx(tl), rho))
+        _ <- check(rho, gma, e, eval(EFrm(tl), rho))
       } yield ()
     }
-    case (S(p: P), rho, gma, Complex(tl, _)) => fail("checkCell: to many top cells!")
+    case (S(p: P), rho, gma, Complex(tl, _)) => fail("checkCell: too many top cells!")
   }
 
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
@@ -362,17 +367,12 @@ object OpetopicTypeChecker {
           gma1 <- checkD(rho, gma, d)
           _ <- check(UpDec(rho, d), gma1, e, t)
         } yield ()
-      case (ECmplx(c), Type) => checkFrame(c.dim)(rho, gma, c)
+      case (EFrm(c), Type) => checkFrame(c.dim)(rho, gma, c)
       case (e, t) => {
-        // println("Forced type check for: " ++ prettyPrint(e))
-        // println("Expected type: " ++ t.toString)
         for {
           t1 <- checkI(rho, gma, e)
           _ <- eqNf(lRho(rho), t, t1)
-        } yield {
-          // println("Success")
-          ()
-        }
+        } yield ()
       }
     }
 

@@ -36,7 +36,8 @@ object PrettyPrinter {
       case ESnd(e) => prettyPrint(e) ++ ".2"
       case EApp(e, f) => prettyPrint(e) ++ " " ++ prettyPrint(f)
       case EDec(d, e) => prettyPrint(d) ++ " ; " ++ prettyPrint(e)
-      case ECmplx(c) => "complex"
+      case EFrm(c) => "frame"
+      case ENch(fp, nch) => "niche"
     }
 
 }

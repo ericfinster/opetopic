@@ -18,7 +18,12 @@ package object tt {
 
   type CstExpr[N <: Nat] = Expr
   type CstVal[N <: Nat] = Val
-  type ExprNst[N <: Nat] = Nesting[Expr, N]
-  type NstList = List[Sigma[ExprNst]]
+
+  type NstExpr[N <: Nat] = Nesting[Expr, N]
+  type NstVal[N <: Nat] = Nesting[Val, N]
+  type TrExpr[N <: Nat] = Tree[Expr, N]
+  type TrVal[N <: Nat] = Tree[Val, N]
+
+  type NstList = List[Sigma[NstExpr]]
 
 }
