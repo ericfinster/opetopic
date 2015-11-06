@@ -505,11 +505,11 @@ object OpetopicTypeChecker {
         for {
           t <- checkI(rho, gma, e)
           pr <- extCellG(t)
-          addr <- parseAddress(pr._2.dim)(a)
+          frmCmplx = pr._2
+          addr <- parseAddress(frmCmplx.dim)(a)
+          frm <- extractFrame(frmCmplx.head)
+          _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
         } yield Type
-
-        // Also have to check that the address is valid for the
-        // cell type given ...
       }
       case e => fail("checkI: " ++ e.toString)
     }
