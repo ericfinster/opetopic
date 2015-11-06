@@ -25,4 +25,13 @@ let compTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) ->
 	       (g : Cell X [ box z (pt (obj y)) ]) -> Cell X [ box z (pt (obj x)) ]
 	     = \X. \x. \y. \z. \f. \g. comp X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } ;
 
+let ident : (X : Cat) -> (x : Obj X) -> Cell X [ box x (pt (obj x)) ]
+    	  = \X. \x. comp X [ obj x ]>> { leaf } ;
+
+let refl : (X : Cat) -> (x : Obj X) -> Cell X [ obj x ]>> [ box (ident X x) leaf ]
+    	 = \X. \x. fill X [ obj x ]>> { leaf } ;
+
+let compWithIdent : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Cell X [ box y (pt (obj x)) ]) -> Cell X [ box y (pt (obj x)) ]
+    		  = \X. \x. \y. \f. comp X [ box y (pt (box x (pt (obj x)))) ]>> { node f (pt (node (ident X x) (pt leaf))) } ;
+
 tt
