@@ -126,6 +126,8 @@ object OpetopicTypeChecker {
       case ECell(e, c) => Cell(eval(e, rho), c.map(EvalMap(rho)))
       case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case ELeftExt(e) => LeftExt(eval(e, rho))
+      case ERightExt(e, a) => RightExt(eval(e, rho), a)
     }
 
   //============================================================================================
@@ -163,6 +165,8 @@ object OpetopicTypeChecker {
       case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
       case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case LeftExt(v) => ELeftExt(rbV(i, v))
+      case RightExt(v, a) => ERightExt(rbV(i, v), a)
     }
 
   }
@@ -355,6 +359,19 @@ object OpetopicTypeChecker {
     case (S(p), Complex(tl, _), cat, rho) => fail("Not a cell")
   }
 
+  @natElim
+  def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
+    case (Z, AUnit) => pure(())
+    case (Z, _) => fail("parseAdress: only unit in dim 0")
+    case (S(p), ANil) => pure(Nil)
+    case (S(p), ACons(hd, tl)) => 
+      for {
+        hd0 <- parseAddress(p)(a)
+        tl0 <- parseAddress(S(p))(tl)
+      } yield hd0 :: tl0
+    case (S(p), _) => fail("parseAdress: unexpected address expression")
+  }
+
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
     (e0, t0) match {
       case (ELam(p, e), Pi(t, g)) => {
@@ -419,6 +436,12 @@ object OpetopicTypeChecker {
         case u => fail("extSigG " ++ u.toString)
       }
 
+    def extCellG(tv: TVal) : G[(Val, Sigma[ValComplex])] = 
+      tv match {
+        case Cell(v, c) => pure((v, Sigma(c.dim)(c)))
+        case u => fail("extCellG " ++ u.toString)
+      }
+
     e0 match {
       case EVar(x) => lookupG(x, gma)
       case EApp(e1, e2) =>
@@ -456,7 +479,7 @@ object OpetopicTypeChecker {
         } yield ty
 
       }
-      case (EFill(e, fp, nch)) => {
+      case EFill(e, fp, nch) => {
 
         val cmplx : ExprComplex[Nat] = 
           fp >> Box(EComp(e, fp, nch), toPd(nch))
@@ -471,6 +494,22 @@ object OpetopicTypeChecker {
           )
         } yield Cell(cv, cmplx.map(EvalMap(rho)))
 
+      }
+      case ELeftExt(e) => {
+        for {
+          t <- checkI(rho, gma, e)
+          pr <- extCellG(t)
+        } yield Type
+      }
+      case ERightExt(e, a) => {
+        for {
+          t <- checkI(rho, gma, e)
+          pr <- extCellG(t)
+          addr <- parseAddress(pr._2.dim)(a)
+        } yield Type
+
+        // Also have to check that the address is valid for the
+        // cell type given ...
       }
       case e => fail("checkI: " ++ e.toString)
     }

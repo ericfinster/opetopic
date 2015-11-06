@@ -41,6 +41,8 @@ object PrettyPrinter {
       case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " frame"
       case EComp(e, fp, nch) => "comp"
       case EFill(e, fp, nch) => "fill"
+      case ELeftExt(e) => "isLeftExt " ++ prettyPrint(e)
+      case ERightExt(e, a) => "isRightExt " ++ prettyPrint(e)
     }
 
 }

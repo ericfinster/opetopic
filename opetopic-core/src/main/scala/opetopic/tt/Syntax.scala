@@ -36,8 +36,8 @@ case class EComp[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) exten
 case class EFill[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
 // Cell properties
-case class ELeft(e: Expr) extends Expr
-case class ERight(e: Expr) extends Expr // Needs an address ...
+case class ELeftExt(e: Expr) extends Expr
+case class ERightExt(e: Expr, a: Addr) extends Expr // Needs an address ...
 case class EBal[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
 // Values
@@ -58,12 +58,22 @@ case class Cell[N <: Nat](v: Val, c: ValComplex[N]) extends Val
 case class Comp[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
+case class LeftExt(v: Val) extends Val
+case class RightExt(v: Val, a: Addr) extends Val
+// case class Bal[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+
 // Neutral terms
 sealed trait Neut
 case class Gen(i: Int, n: Name) extends Neut
 case class App(n: Neut, nf: Nf) extends Neut
 case class Fst(n: Neut) extends Neut
 case class Snd(n: Neut) extends Neut
+
+// Addresses
+sealed trait Addr
+case object AUnit extends Addr
+case object ANil extends Addr
+case class ACons(a: Addr, b: Addr) extends Addr
 
 // Patterns
 sealed trait Patt
