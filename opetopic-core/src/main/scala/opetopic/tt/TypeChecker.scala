@@ -370,6 +370,12 @@ object OpetopicTypeChecker {
           _ <- check(UpDec(rho, d), gma1, e, t)
         } yield ()
       case (EFrm(c), Type) => checkFrame(c.dim)(rho, gma, c)
+      case (EComp(fp, nch), EFrm(c)) => {
+        println("Checking composition cell ...")
+
+
+        pure(())
+      }
       case (e, t) => {
         for {
           t1 <- checkI(rho, gma, e)

@@ -5,9 +5,13 @@
 let identity : (X : Type) -> X -> X
     	     = \X. \x. x ;
 
-let test : (X : Type) -> (i : [ box X (pt (obj X)) ]) -> (j : [ box X (pt (obj X)) ]) -> 
-    	   (x : [ obj X ]>> [ box i leaf ]) -> (y : [ obj X ]>> [ box i leaf ]) -> 
-	   (f : [ obj X ]>> [ box i leaf ]>> [ box y (node (dot x) leaf ) ]) -> Unit
-    	 = \X. \i. \j. \x. \y. \f. tt ; 
+let retest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) ->
+    	     (f : Cell X [ box y (pt (obj x)) ]) ->
+	     (g : Cell X [ box z (pt (obj y)) ]) ->
+	     (h : Cell X [ box z (pt (obj x)) ]) -> 
+	     (alpha : Cell X [ box z (pt (box y (pt (obj x)))) ]>> 
+	     	      	     [ box h (node (dot g) (pt (node (dot f) (pt leaf)))) ]) -> 
+	     Unit
+	   = \X. \x. \y. \z. \f. \g. \h. \alpha. tt ;
 
 tt
