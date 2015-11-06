@@ -41,6 +41,12 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "comp" ~ e ~ ne => EComp(e, ne.value._1, ne.value._2) }
     | "fill" ~ expr3 ~ nicheExpr ^^
         { case "fill" ~ e ~ ne => EFill(e, ne.value._1, ne.value._2) }
+    | "isLeftExt" ~ expr3 ^^
+        { case "isLeftExt" ~ e => ELeft(e) }
+    | "isRightExt" ~ expr3 ^^
+        { case "isRightExt" ~ e => ERight(e) }
+    | "isBalanced" ~ expr3 ~ nicheExpr ^^
+        { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
     | expr2
   )
 

@@ -15,11 +15,6 @@ case object EType extends Expr
 case object EUnit extends Expr
 case object ETt extends Expr
 
-// Categories and Cells
-case object ECat extends Expr
-case class EOb(e: Expr) extends Expr
-case class ECell[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
-
 // Type theoretic constructors
 case class EVar(id: Ident) extends Expr
 case class ELam(p: Patt, e: Expr) extends Expr
@@ -31,10 +26,19 @@ case class ESnd(e: Expr) extends Expr
 case class EDec(d: Decl, e: Expr) extends Expr
 case class EApp(e: Expr, f: Expr) extends Expr
 
-// case class EFrm[N <: Nat](c: Complex[CstExpr, N]) extends Expr
+// Categories and Cells
+case object ECat extends Expr
+case class EOb(e: Expr) extends Expr
+case class ECell[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
 
+// Fillers and composition
 case class EComp[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class EFill[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+
+// Cell properties
+case class ELeft(e: Expr) extends Expr
+case class ERight(e: Expr) extends Expr // Needs an address ...
+case class EBal[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
 // Values
 sealed trait Val

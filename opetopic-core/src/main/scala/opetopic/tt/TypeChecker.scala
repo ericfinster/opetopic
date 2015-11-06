@@ -355,15 +355,6 @@ object OpetopicTypeChecker {
     case (S(p), Complex(tl, _), cat, rho) => fail("Not a cell")
   }
 
-  // @natElim
-  // def hasFrame[N <: Nat, M <: Nat](n: N, m: M)(cmplx: ExprComplex[N], frm: ValComplex[M], catExpr: Expr, catVal: Val, rho: Rho) : G[Unit] = {
-  //   case (Z, Z, cmplx, frm, catExpr, catVal, rho) => fail("hasFrame: not a cell")
-  //   case (Z, S(q), cmplx, frm, catExpr, catVal, rho) => fail("hasFrame: not a cell")
-  //   case (S(p), m, cmplx, frm, catExpr, catVal, rho) => {
-  //     eqNf(lRho(rho), eval(ECell(catExpr, cmplx.tail), rho), Cell(catVal, frm))
-  //   }
-  // }
-
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
     (e0, t0) match {
       case (ELam(p, e), Pi(t, g)) => {
@@ -488,5 +479,3 @@ object OpetopicTypeChecker {
 
 }
 
-// ECell(EVar(TC#0),[] >> Box(EVar(TC#1),Pt(Obj(EVar(TC#1)))) >> Box(EComp(EVar(TC#0),[] >> Obj(EVar(TC#1)),Leaf(S(Z))),Leaf(S(Z)))) =/= 
-// ECell(EVar(TC#0),[] >> Obj(EVar(TC#1)) >> Box(EComp(EVar(TC#0),[] >> Obj(EVar(TC#1)),Leaf(S(Z))),Leaf(S(Z))))
