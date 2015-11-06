@@ -110,6 +110,7 @@ object OpetopicTypeChecker {
   def eval(e0: Expr, rho: Rho) : Val = 
     e0 match {
       case EType => Type
+      case EEmpty => Empty
       case EUnit => Unt
       case ETt => Tt
       case EDec(d, e) => eval(e, UpDec(rho, d))
@@ -128,6 +129,7 @@ object OpetopicTypeChecker {
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case ELeftExt(e) => LeftExt(eval(e, rho))
       case ERightExt(e, a) => RightExt(eval(e, rho), a)
+      case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
     }
 
   //============================================================================================
@@ -153,6 +155,7 @@ object OpetopicTypeChecker {
 
     v0 match {
       case Type => EType
+      case Empty => EEmpty
       case Unt => EUnit
       case Tt => ETt
       case Lam(f) => ELam(pat(i), rbV(i + 1, f * gen(i)))
@@ -167,6 +170,7 @@ object OpetopicTypeChecker {
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case LeftExt(v) => ELeftExt(rbV(i, v))
       case RightExt(v, a) => ERightExt(rbV(i, v), a)
+      case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
 
   }
@@ -510,6 +514,32 @@ object OpetopicTypeChecker {
           frm <- extractFrame(frmCmplx.head)
           _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
         } yield Type
+      }
+      case EBal(e, fp, nch) => {
+
+        val cmplx : ExprComplex[Nat] = 
+          fp >> Box(EEmpty, toPd(nch))
+
+        for {
+          _ <- check(rho, gma, e, Cat)
+          cv = eval(e, rho)
+          cm <- fromShape(cmplx.comultiply)
+          frm <- extractFrame(cm.head)
+          _ <- frm._2.traverse(
+            (face: ExprComplex[Nat]) => {
+              face.headValue match {
+                case EEmpty => pure(())  // Skip the empty face ...
+                case _ => checkCell(cmplx.dim)(rho, gma, face, cv)
+              }
+            }
+          )
+          empties = frm._2.nodes.filter(_.headValue == EEmpty)
+          res <- (
+            if (empties.length != 1)
+              fail("A balanced niche must have one empty cell!") 
+            else pure(Type)
+          )
+        } yield res
       }
       case e => fail("checkI: " ++ e.toString)
     }

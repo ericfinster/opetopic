@@ -59,6 +59,7 @@ object OpetopicParser extends RegexParsers with PackratParsers {
   lazy val expr3: PackratParser[Expr] = (
       "Unit" ^^^ EUnit
     | "Type" ^^^ EType
+    | "Empty" ^^^ EEmpty
     | "Cat" ^^^ ECat
     | "tt" ^^^ ETt
     | "Obj" ~ expr3 ^^ 

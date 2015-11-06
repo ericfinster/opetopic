@@ -14,6 +14,7 @@ sealed trait Expr
 case object EType extends Expr
 case object EUnit extends Expr
 case object ETt extends Expr
+case object EEmpty extends Expr
 
 // Type theoretic constructors
 case class EVar(id: Ident) extends Expr
@@ -45,6 +46,7 @@ sealed trait Val
 case object Type extends Val
 case object Unt extends Val
 case object Tt extends Val
+case object Empty extends Val
 case class Lam(c: Clos) extends Val
 case class Pair(v: Val, w: Val) extends Val
 case class Pi(v: Val, c: Clos) extends Val
@@ -60,7 +62,7 @@ case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends V
 
 case class LeftExt(v: Val) extends Val
 case class RightExt(v: Val, a: Addr) extends Val
-// case class Bal[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class Bal[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
 // Neutral terms
 sealed trait Neut
