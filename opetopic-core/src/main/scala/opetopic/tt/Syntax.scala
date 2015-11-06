@@ -27,7 +27,9 @@ case class EDec(d: Decl, e: Expr) extends Expr
 case class EApp(e: Expr, f: Expr) extends Expr
 
 case class EFrm[N <: Nat](c: Complex[CstExpr, N]) extends Expr
-case class ENch[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+
+case class EComp[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+case class EFill[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
 // Values
 sealed trait Val
@@ -40,7 +42,8 @@ case class Pi(v: Val, c: Clos) extends Val
 case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
 case class Frm[N <: Nat](c: Complex[CstVal, N]) extends Val
-case class Nch[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class Comp[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class Fill[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
 // Neutral terms
 sealed trait Neut

@@ -25,5 +25,5 @@ package object tt {
   type TrVal[N <: Nat] = Tree[Val, N]
 
   type NstList = List[Sigma[NstExpr]]
-
+  type NchExpr[N <: Nat] = (Suite[NstExpr, N], TrExpr[N])
 }

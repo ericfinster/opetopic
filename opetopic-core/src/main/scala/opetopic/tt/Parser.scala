@@ -37,12 +37,11 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
-    | cmplxPrefix[NstExpr, _0](Z)(NestingExpr) ^^
-        { case frm => {
-          val frmPrefLength = intToNat(frm._1.length)
-          val frmPref = nstListToFrmPref(frmPrefLength)(frm._1.reverse)
-          EFrm(frmPref >> frm._2.value.asInstanceOf[NstExpr[Nat]])
-        }}
+    | frameExpr ^^ { case sig => sig.value }
+    | "comp" ~ nicheExpr ^^
+        { case "comp" ~ ne => EComp(ne.value._1, ne.value._2) }
+    | "fill" ~ nicheExpr ^^
+        { case "fill" ~ ne => EFill(ne.value._1, ne.value._2) }
     | expr2
   )
 
@@ -74,6 +73,22 @@ object OpetopicParser extends RegexParsers with PackratParsers {
       nstListToFrmPref(p)(nsts) >> nst.value.asInstanceOf[NstExpr[P]]
     }
   }
+
+  def frameExpr : PackratParser[Sigma[EFrm]] = 
+    cmplxPrefix[NstExpr, _0](Z)(NestingExpr) ^^
+      { case frm => {
+        val frmPrefLength = intToNat(frm._1.length)
+        val frmPref = nstListToFrmPref(frmPrefLength)(frm._1.reverse)
+        Sigma[EFrm, Nat](frmPrefLength)(EFrm(frmPref >> frm._2.value.asInstanceOf[NstExpr[Nat]]))
+      }}
+
+  def nicheExpr : PackratParser[Sigma[NchExpr]] = 
+    cmplxPrefix[TrExpr, _0](Z)(TreeExpr) ^^
+      { case nch => {
+        val frmPrefLength = intToNat(nch._1.length)
+        val frmPref = nstListToFrmPref(frmPrefLength)(nch._1.reverse)
+        Sigma[NchExpr, Nat](frmPrefLength)((frmPref, nch._2.value.asInstanceOf[TrExpr[Nat]]))
+      }}
 
   def treeExpr[A, N <: Nat](n: N)(pp: PackratParser[A]) : PackratParser[Tree[A, N]] = (
       treeExpr1(n)(pp)

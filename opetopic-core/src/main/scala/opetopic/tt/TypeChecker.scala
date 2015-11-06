@@ -122,7 +122,8 @@ object OpetopicTypeChecker {
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
       case EFrm(c) => Frm(c.map(EvalMap(rho)))
-      case ENch(fp, nch) => Nch(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case EComp(fp, nch) => Comp(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case EFill(fp, nch) => Fill(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
     }
 
   //============================================================================================
@@ -156,7 +157,8 @@ object OpetopicTypeChecker {
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Nt(k) => rbN(i, k)
       case Frm(c) => EFrm(c.map(RbMap(i)))
-      case Nch(fp, nch) => ENch(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case Comp(fp, nch) => EComp(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case Fill(fp, nch) => EFill(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
 
   }
