@@ -5,13 +5,19 @@
 let identity : (X : Type) -> X -> X
     	     = \X. \x. x ;
 
-let retest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) ->
-    	     (f : Cell X [ box y (pt (obj x)) ]) ->
-	     (g : Cell X [ box z (pt (obj y)) ]) ->
-	     (h : Cell X [ box z (pt (obj x)) ]) -> 
-	     (alpha : Cell X [ box z (pt (box y (pt (obj x)))) ]>> 
-	     	      	     [ box h (node (dot g) (pt (node (dot f) (pt leaf)))) ]) -> 
-	     Unit
+let catTest : (X : Cat) -> Cat
+    	    = \X. X ;
+
+let objTest : (X : Cat) -> (x : Obj X) -> Obj X
+    	    = \X. \x. x ;
+
+let cellTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> Type
+    	     = \X. \x. \y. Cell X [ box y (pt (obj x)) ] ;
+
+let retest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    	     (f : Cell X [ box y (pt (obj x)) ]) -> 
+	     (g : Cell X [ box z (pt (obj y)) ]) -> 
+	     (h : Cell X [ box z (pt (obj x)) ]) -> (alpha : Cell X [ box z (pt (box y (pt (obj x)))) ]>> [ box h (node (dot g) (pt (node (dot f) (pt leaf)))) ]) -> Unit
 	   = \X. \x. \y. \z. \f. \g. \h. \alpha. tt ;
 
 tt

@@ -37,11 +37,11 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
-    | frameExpr ^^ { case sig => sig.value }
-    | "comp" ~ nicheExpr ^^
-        { case "comp" ~ ne => EComp(ne.value._1, ne.value._2) }
-    | "fill" ~ nicheExpr ^^
-        { case "fill" ~ ne => EFill(ne.value._1, ne.value._2) }
+    // | frameExpr ^^ { case sig => sig.value }
+    // | "comp" ~ nicheExpr ^^
+    //     { case "comp" ~ ne => EComp(ne.value._1, ne.value._2) }
+    // | "fill" ~ nicheExpr ^^
+    //     { case "fill" ~ ne => EFill(ne.value._1, ne.value._2) }
     | expr2
   )
 
@@ -54,7 +54,12 @@ object OpetopicParser extends RegexParsers with PackratParsers {
   lazy val expr3: PackratParser[Expr] = (
       "Unit" ^^^ EUnit
     | "Type" ^^^ EType
+    | "Cat" ^^^ ECat
     | "tt" ^^^ ETt
+    | "Obj" ~ expr3 ^^ 
+        { case "Obj" ~ e => EOb(e) }
+    | "Cell" ~ expr3 ~ frameExpr ^^ 
+        { case "Cell" ~ e ~ frm => ECell(e, frm.value) }
     | ident ^^ (EVar(_))
     | expr3 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }
@@ -74,12 +79,12 @@ object OpetopicParser extends RegexParsers with PackratParsers {
     }
   }
 
-  def frameExpr : PackratParser[Sigma[EFrm]] = 
+  def frameExpr : PackratParser[Sigma[ExprComplex]] = 
     cmplxPrefix[NstExpr, _0](Z)(NestingExpr) ^^
       { case frm => {
         val frmPrefLength = intToNat(frm._1.length)
         val frmPref = nstListToFrmPref(frmPrefLength)(frm._1.reverse)
-        Sigma[EFrm, Nat](frmPrefLength)(EFrm(frmPref >> frm._2.value.asInstanceOf[NstExpr[Nat]]))
+        Sigma[ExprComplex, Nat](frmPrefLength)(frmPref >> frm._2.value.asInstanceOf[NstExpr[Nat]])
       }}
 
   def nicheExpr : PackratParser[Sigma[NchExpr]] = 

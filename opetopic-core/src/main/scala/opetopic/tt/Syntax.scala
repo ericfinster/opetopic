@@ -15,6 +15,11 @@ case object EType extends Expr
 case object EUnit extends Expr
 case object ETt extends Expr
 
+// Categories and Cells
+case object ECat extends Expr
+case class EOb(e: Expr) extends Expr
+case class ECell[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
+
 // Type theoretic constructors
 case class EVar(id: Ident) extends Expr
 case class ELam(p: Patt, e: Expr) extends Expr
@@ -26,7 +31,7 @@ case class ESnd(e: Expr) extends Expr
 case class EDec(d: Decl, e: Expr) extends Expr
 case class EApp(e: Expr, f: Expr) extends Expr
 
-case class EFrm[N <: Nat](c: Complex[CstExpr, N]) extends Expr
+// case class EFrm[N <: Nat](c: Complex[CstExpr, N]) extends Expr
 
 case class EComp[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class EFill[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
@@ -41,7 +46,11 @@ case class Pair(v: Val, w: Val) extends Val
 case class Pi(v: Val, c: Clos) extends Val
 case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
-case class Frm[N <: Nat](c: Complex[CstVal, N]) extends Val
+
+case object Cat extends Val
+case class Ob(v: Val) extends Val
+case class Cell[N <: Nat](v: Val, c: ValComplex[N]) extends Val
+
 case class Comp[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 case class Fill[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 

@@ -121,7 +121,9 @@ object OpetopicTypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
-      case EFrm(c) => Frm(c.map(EvalMap(rho)))
+      case ECat => Cat
+      case EOb(e) => Ob(eval(e, rho))
+      case ECell(e, c) => Cell(eval(e, rho), c.map(EvalMap(rho)))
       case EComp(fp, nch) => Comp(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(fp, nch) => Fill(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
     }
@@ -156,7 +158,9 @@ object OpetopicTypeChecker {
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Nt(k) => rbN(i, k)
-      case Frm(c) => EFrm(c.map(RbMap(i)))
+      case Cat => ECat
+      case Ob(v) => EOb(rbV(i, v))
+      case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
       case Comp(fp, nch) => EComp(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(fp, nch) => EFill(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
@@ -279,6 +283,7 @@ object OpetopicTypeChecker {
       case ESig(p, a, b) => checkT(rho, gma, EPi(p, a, b))
       case EType => pure(())
       case EUnit => pure(())
+      case ECat => pure(())
       case a => {
         // println("Forcing manual Type verification for: " ++ prettyPrint(a))
         check(rho, gma, a, Type)
@@ -298,44 +303,43 @@ object OpetopicTypeChecker {
       case _ => fail("Not a frame")
     }
 
-
   @natElim
-  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N]) : G[Unit] = {
-    case (Z, rho, gma, Complex(_, hd)) => {
+  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N], cat: Val) : G[Unit] = {
+    case (Z, rho, gma, Complex(_, hd), cat) => {
       hd match {
         case Box(tgt, Pt(Obj(src))) => 
           for {
-            _ <- check(rho, gma, src, Type)
-            _ <- check(rho, gma, tgt, Type)
+            _ <- check(rho, gma, src, Ob(cat))
+            _ <- check(rho, gma, tgt, Ob(cat))
           } yield ()
         case _ => fail("checkFrame: failed in dimension 0")
       }
     }
-    case (S(p: P), rho, gma, c) => {
+    case (S(p: P), rho, gma, cmplx, cat) => {
       // println("Checking frame: " ++ c.toString)
       for {
-        cm <- fromShape(c.comultiply)
+        cm <- fromShape(cmplx.comultiply)
         frm <- extractFrame(cm.head)
-        _ <- checkCell(S(p))(rho, gma, frm._1)
+        _ <- checkCell(S(p))(rho, gma, frm._1, cat)
         _ <- frm._2.traverse(
-          (face: Complex[CstExpr, S[P]]) => checkCell(S(p))(rho, gma, face)
+          (face: Complex[CstExpr, S[P]]) => checkCell(S(p))(rho, gma, face, cat)
         )
       } yield ()
     }
   }
 
   @natElim
-  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N]) : G[Unit] = {
-    case (Z, rho, gma, Complex(_, Obj(e))) => check(rho, gma, e, Type)
-    case (Z, rho, gma, Complex(_, _)) => fail("checkCell: too many objects!")
-    case (S(p: P), rho, gma, Complex(tl, Dot(e, _))) => {
+  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N], cat: Val) : G[Unit] = {
+    case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Ob(cat))
+    case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
+    case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
       // println("Check that expression " ++ prettyPrint(e) ++ " lives is frame " ++ tl.toString)
       for {
-        _ <- checkFrame(p)(rho, gma, tl)
-        _ <- check(rho, gma, e, eval(EFrm(tl), rho))
+        _ <- checkFrame(p)(rho, gma, tl, cat)
+        _ <- check(rho, gma, e, Cell(cat, tl.map(EvalMap(rho))))
       } yield ()
     }
-    case (S(p: P), rho, gma, Complex(tl, _)) => fail("checkCell: too many top cells!")
+    case (S(p: P), rho, gma, Complex(tl, _), cat) => fail("checkCell: too many top cells!")
   }
 
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
@@ -369,13 +373,22 @@ object OpetopicTypeChecker {
           gma1 <- checkD(rho, gma, d)
           _ <- check(UpDec(rho, d), gma1, e, t)
         } yield ()
-      case (EFrm(c), Type) => checkFrame(c.dim)(rho, gma, c)
-      case (EComp(fp, nch), EFrm(c)) => {
-        println("Checking composition cell ...")
+      case (ECat, Type) => pure(())
+      case (EOb(e), Type) =>
+        for {
+          _ <- check(rho, gma, e, Cat)
+        } yield ()
+      case (ECell(e, c), Type) => 
+        for {
+          _ <- check(rho, gma, e, Cat)
+          _ <- checkFrame(c.dim)(rho, gma, c, eval(e, rho))
+        } yield ()
+      // case (EComp(fp, nch), EFrm(c)) => {
+      //   println("Checking composition cell ...")
 
 
-        pure(())
-      }
+      //   pure(())
+      // }
       case (e, t) => {
         for {
           t1 <- checkI(rho, gma, e)
