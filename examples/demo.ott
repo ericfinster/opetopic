@@ -14,10 +14,15 @@ let objTest : (X : Cat) -> (x : Obj X) -> Obj X
 let cellTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> Type
     	     = \X. \x. \y. Cell X [ box y (pt (obj x)) ] ;
 
-let retest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
-    	     (f : Cell X [ box y (pt (obj x)) ]) -> 
-	     (g : Cell X [ box z (pt (obj y)) ]) -> 
-	     (h : Cell X [ box z (pt (obj x)) ]) -> (alpha : Cell X [ box z (pt (box y (pt (obj x)))) ]>> [ box h (node (dot g) (pt (node (dot f) (pt leaf)))) ]) -> Unit
-	   = \X. \x. \y. \z. \f. \g. \h. \alpha. tt ;
+let bigTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    	      (f : Cell X [ box y (pt (obj x)) ]) -> 
+	      (g : Cell X [ box z (pt (obj y)) ]) -> 
+	      (h : Cell X [ box z (pt (obj x)) ]) -> (alpha : Cell X [ box z (pt (box y (pt (obj x)))) ]>> [ box h (node (dot g) (pt (node (dot f) (pt leaf)))) ]) -> Unit
+	    = \X. \x. \y. \z. \f. \g. \h. \alpha. tt ;
+
+let compTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    	       (f : Cell X [ box y (pt (obj x)) ]) -> 
+	       (g : Cell X [ box z (pt (obj y)) ]) -> Cell X [ box z (pt (obj x)) ]
+	     = \X. \x. \y. \z. \f. \g. comp X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } ;
 
 tt

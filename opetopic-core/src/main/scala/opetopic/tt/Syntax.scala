@@ -33,8 +33,8 @@ case class EApp(e: Expr, f: Expr) extends Expr
 
 // case class EFrm[N <: Nat](c: Complex[CstExpr, N]) extends Expr
 
-case class EComp[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
-case class EFill[N <: Nat](fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+case class EComp[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+case class EFill[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
 // Values
 sealed trait Val
@@ -51,8 +51,8 @@ case object Cat extends Val
 case class Ob(v: Val) extends Val
 case class Cell[N <: Nat](v: Val, c: ValComplex[N]) extends Val
 
-case class Comp[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
-case class Fill[N <: Nat](fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class Comp[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
 // Neutral terms
 sealed trait Neut

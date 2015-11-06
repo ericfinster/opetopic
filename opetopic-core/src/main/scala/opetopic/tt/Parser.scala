@@ -37,11 +37,10 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
-    // | frameExpr ^^ { case sig => sig.value }
-    // | "comp" ~ nicheExpr ^^
-    //     { case "comp" ~ ne => EComp(ne.value._1, ne.value._2) }
-    // | "fill" ~ nicheExpr ^^
-    //     { case "fill" ~ ne => EFill(ne.value._1, ne.value._2) }
+    | "comp" ~ expr3 ~ nicheExpr ^^
+        { case "comp" ~ e ~ ne => EComp(e, ne.value._1, ne.value._2) }
+    | "fill" ~ expr3 ~ nicheExpr ^^
+        { case "fill" ~ e ~ ne => EFill(e, ne.value._1, ne.value._2) }
     | expr2
   )
 

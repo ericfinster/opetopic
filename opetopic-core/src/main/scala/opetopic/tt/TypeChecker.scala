@@ -124,8 +124,8 @@ object OpetopicTypeChecker {
       case ECat => Cat
       case EOb(e) => Ob(eval(e, rho))
       case ECell(e, c) => Cell(eval(e, rho), c.map(EvalMap(rho)))
-      case EComp(fp, nch) => Comp(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case EFill(fp, nch) => Fill(fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
     }
 
   //============================================================================================
@@ -161,8 +161,8 @@ object OpetopicTypeChecker {
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
       case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
-      case Comp(fp, nch) => EComp(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
-      case Fill(fp, nch) => EFill(fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
 
   }
@@ -257,7 +257,7 @@ object OpetopicTypeChecker {
           _ <- check(rho, gma, e, t)
           gma1 <- upG(gma, p, t, eval(e, rho))
         } yield {
-          println("Finished declaration: " ++ prettyPrint(decl))
+          println("Finished declaration: " ++ prettyPrint(p))
           gma1
         }
       case d@(Drec(p, a, e)) => 
@@ -290,6 +290,11 @@ object OpetopicTypeChecker {
       }
     }
 
+  def toPd[A, N <: Nat](tr: Tree[A, N]) : Tree[Nesting[A, N], N] = {
+    val dim = tr.dim
+    tr map (Nesting.external(dim)(_))
+  }
+
   def extractPd[A, N <: Nat](tr: Tree[Nesting[A, N], N]) : G[Tree[A, N]] = 
     tr traverse {
       case Obj(a) => pure(a)
@@ -304,7 +309,7 @@ object OpetopicTypeChecker {
     }
 
   @natElim
-  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N], cat: Val) : G[Unit] = {
+  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
     case (Z, rho, gma, Complex(_, hd), cat) => {
       hd match {
         case Box(tgt, Pt(Obj(src))) => 
@@ -329,7 +334,7 @@ object OpetopicTypeChecker {
   }
 
   @natElim
-  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: Complex[CstExpr, N], cat: Val) : G[Unit] = {
+  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
     case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Ob(cat))
     case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
     case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
@@ -340,6 +345,15 @@ object OpetopicTypeChecker {
       } yield ()
     }
     case (S(p: P), rho, gma, Complex(tl, _), cat) => fail("checkCell: too many top cells!")
+  }
+
+  @natElim
+  def hasFrame[N <: Nat, M <: Nat](n: N, m: M)(cmplx: ExprComplex[N], frm: ValComplex[M], catExpr: Expr, catVal: Val, rho: Rho) : G[Unit] = {
+    case (Z, Z, cmplx, frm, catExpr, catVal, rho) => fail("hasFrame: not a cell")
+    case (Z, S(q), cmplx, frm, catExpr, catVal, rho) => fail("hasFrame: not a cell")
+    case (S(p), m, cmplx, frm, catExpr, catVal, rho) => {
+      eqNf(lRho(rho), eval(ECell(catExpr, cmplx.tail), rho), Cell(catVal, frm))
+    }
   }
 
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
@@ -383,12 +397,23 @@ object OpetopicTypeChecker {
           _ <- check(rho, gma, e, Cat)
           _ <- checkFrame(c.dim)(rho, gma, c, eval(e, rho))
         } yield ()
-      // case (EComp(fp, nch), EFrm(c)) => {
-      //   println("Checking composition cell ...")
+      case (cmp @ EComp(e, fp, nch), Cell(v, c)) => {
+        println("Checking composition cell ...")
 
+        val cmplx : ExprComplex[Nat] = 
+          fp >> Box(cmp, toPd(nch))
 
-      //   pure(())
-      // }
+        for {
+          _ <- eqNf(lRho(rho), eval(e, rho), v)
+          cm <- fromShape(cmplx.comultiply)
+          frm <- extractFrame(cm.head)
+          _ <- frm._2.traverse(
+            (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, v)
+          )
+          _ <- hasFrame(frm._1.dim, c.dim)(frm._1, c, e, v, rho)
+        } yield ()
+
+      }
       case (e, t) => {
         for {
           t1 <- checkI(rho, gma, e)

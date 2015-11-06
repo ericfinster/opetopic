@@ -39,8 +39,8 @@ object PrettyPrinter {
       case ECat => "Cat"
       case EOb(e) => "Obj " ++ prettyPrint(e)
       case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " frame"
-      case EComp(fp, nch) => "comp"
-      case EFill(fp, nch) => "fill"
+      case EComp(e, fp, nch) => "comp"
+      case EFill(e, fp, nch) => "fill"
     }
 
 }
