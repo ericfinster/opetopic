@@ -389,6 +389,13 @@ trait TreeFunctions { tfns =>
       case Node(a, _) => succeed(a)
     }
 
+  def rootReplace[A, N <: Nat](tr: Tree[A, N], a: A) : Tree[A, N] = 
+    tr match {
+      case Pt(_) => Pt(a)
+      case Leaf(d) => Leaf(d)
+      case Node(_, sh) => Node(a, sh)
+    }
+
   //============================================================================================
   // MAP IMPLEMENTATIONS
   //

@@ -47,6 +47,10 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "isRightExt" ~ e ~ ae => ERightExt(e, ae) }
     | "isBalanced" ~ expr3 ~ nicheExpr ^^
         { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
+    | "leftBalanced" ~ expr3 ~ expr3 ^^
+        { case "leftBalanced" ~ e ~ f => ELeftBal(e, f) }
+    | "rightBalanced" ~ expr3 ^^
+        { case "rightBalanced" ~ e => ERightBal(e) }
     | expr2
   )
 
@@ -59,7 +63,7 @@ object OpetopicParser extends RegexParsers with PackratParsers {
   lazy val expr3: PackratParser[Expr] = (
       "Unit" ^^^ EUnit
     | "Type" ^^^ EType
-    | "Empty" ^^^ EEmpty
+    | "empty" ^^^ EEmpty
     | "Cat" ^^^ ECat
     | "tt" ^^^ ETt
     | "Obj" ~ expr3 ^^ 

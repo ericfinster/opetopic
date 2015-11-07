@@ -25,7 +25,7 @@ object PrettyPrinter {
   def prettyPrint(e: Expr) : String =
     e match {
       case EType => "Type"
-      case EEmpty => "Empty"
+      case EEmpty => "empty"
       case EUnit => "Unit"
       case ETt => "tt"
       case EVar(id) => id
@@ -45,6 +45,8 @@ object PrettyPrinter {
       case ELeftExt(e) => "isLeftExt " ++ prettyPrint(e)
       case ERightExt(e, a) => "isRightExt " ++ prettyPrint(e)
       case EBal(e, fp, nch) => "isBalanced"
+      case ELeftBal(e, f) => "leftBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
+      case ERightBal(e) => "rightBalanced " ++ prettyPrint(e)
     }
 
 }

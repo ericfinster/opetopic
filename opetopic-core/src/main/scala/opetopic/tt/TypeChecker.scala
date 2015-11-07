@@ -130,6 +130,8 @@ object OpetopicTypeChecker {
       case ELeftExt(e) => LeftExt(eval(e, rho))
       case ERightExt(e, a) => RightExt(eval(e, rho), a)
       case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case ELeftBal(e, f) => LeftBal(eval(e, rho), eval(f, rho))
+      case ERightBal(e) => RightBal(eval(e, rho))
     }
 
   //============================================================================================
@@ -171,6 +173,8 @@ object OpetopicTypeChecker {
       case LeftExt(v) => ELeftExt(rbV(i, v))
       case RightExt(v, a) => ERightExt(rbV(i, v), a)
       case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case RightBal(v) => ERightBal(rbV(i, v))
+      case LeftBal(v, w) => ELeftBal(rbV(i, v), rbV(i, w))
     }
 
   }
@@ -446,6 +450,12 @@ object OpetopicTypeChecker {
         case u => fail("extCellG " ++ u.toString)
       }
 
+    def extLeftExt(tv: TVal) : G[Val] = 
+      tv match {
+        case LeftExt(v) => pure(v)
+        case u => fail("extLeftExt: " ++ u.toString)
+      }
+
     e0 match {
       case EVar(x) => lookupG(x, gma)
       case EApp(e1, e2) =>
@@ -540,6 +550,27 @@ object OpetopicTypeChecker {
             else pure(Type)
           )
         } yield res
+      }
+      case ELeftBal(e, f) => {
+
+        for {
+          t <- checkI(rho, gma, e)
+          pr <- extCellG(t)
+          (cv, cmplx) = pr
+          cellCmplx = cmplx.value >> Dot(eval(e, rho), S(cmplx.n))
+          _ <- check(rho, gma, f, LeftExt(eval(e, rho)))
+        } yield Type
+
+        // Hmm. The other problem here: we don't have the complex
+        // as an expression, but only a value.  Is that going to
+        // be a problem?
+
+        // Actually, yes.  I think that's going to be a problem, since
+        // the target of the resulting type will need to be in 
+        // expression form.
+
+        // Okay.  So you'll have to rethink this.
+
       }
       case e => fail("checkI: " ++ e.toString)
     }

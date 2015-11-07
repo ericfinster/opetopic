@@ -344,6 +344,56 @@ trait ComplexFunctions {
     case (S(p: P), _, _) => fail("Malformed complex")
   }
 
+  //============================================================================================
+  // LEFT AND RIGHT EXTENSIONS
+  //
+
+  def leftExtension[A[_ <: Nat], N <: Nat](n: N)(c: Complex[A, S[N]], v: A[N], w: A[S[N]]) : 
+      ShapeM[(Complex[A, N], Tree[A[S[N]], S[N]])] = {
+
+    val tl = complexTail(c)
+    val zp = complexToZipper(tl) 
+
+    for {
+      u <- focusUnit(n)(zp)
+      spine <- focusSpine(n)(zp)
+      nst = focusOf(zp)
+      newNst = Box(v, Tree.const(u, nst))
+    } yield {
+
+      val newCmplx = seal(updateFocus(zp, newNst))
+      val newCorolla = Node(Nesting.baseValue(complexHead(c)), Tree.const(spine, Leaf(S(n))))
+      val newTree = Node(w, Tree.const(u, newCorolla))
+
+      (newCmplx, newTree)
+    }
+
+  }
+
+  def rightExtension[A[_ <: Nat], N <: Nat](n: N)(c: Complex[A, S[N]], addr: Address[N], v: A[N], w: A[S[N]]) : 
+      ShapeM[(Complex[A, N], Tree[A[S[N]], S[N]])] = {
+
+    val tl = complexTail(c)
+    val zp = complexToZipper(tl) 
+
+    for {
+      zpp <- seekComplex(n)(zp, addr :: Nil)
+      u <- focusUnit(n)(zpp)
+      spine <- focusSpine(n)(zp)
+      trZip <- Tree.seekTo(n)(Tree.const(spine, Leaf(S(n))), addr)
+      dot = focusOf(zp)
+      newNst = Box(Nesting.baseValue(dot), Tree.const(u, Nesting.external(n)(v)))
+    } yield {
+
+      val newCmplx = seal(updateFocus(zpp, newNst))
+      val newCorolla = Node(w, Tree.const(u, Leaf(S(n))))
+      val newTree = Node(Nesting.baseValue(complexHead(c)), 
+        Zipper.close(n)(trZip._2, Tree.rootReplace(trZip._1, newCorolla)))
+
+      (newCmplx, newTree)
+    }
+  }
+
 }
 
 object Complex extends ComplexFunctions {
