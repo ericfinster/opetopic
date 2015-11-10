@@ -48,6 +48,10 @@ case class EFillerCompLeftExt[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrE
 // Property deconstructors
 case class ERightBal[N <: Nat](ce: Expr, c: ExprComplex[N], e: Expr, a: Addr, f: Expr) extends Expr
 case class ELeftBal[N <: Nat](ce: Expr, c: ExprComplex[N], e: Expr, f: Expr) extends Expr
+case class ELift[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N], ev: Expr) extends Expr
+case class ELiftFiller[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N], ev: Expr) extends Expr
+case class ELiftFillerLeftExt[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N], ev: Expr) extends Expr
+case class EFillerLeftIsRight[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N], ev: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -75,15 +79,20 @@ case class Bal[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Va
 case class FillerLeftExt[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 case class FillerCompLeftExt[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
-case class RightBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, a: Addr, w: Val) extends Val
-case class LeftBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, w: Val) extends Val
-
 // Neutral terms
 sealed trait Neut
 case class Gen(i: Int, n: Name) extends Neut
 case class App(n: Neut, nf: Nf) extends Neut
 case class Fst(n: Neut) extends Neut
 case class Snd(n: Neut) extends Neut
+
+// Balanced deconstructors are neutral ...
+case class RightBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, a: Addr, w: Val) extends Neut
+case class LeftBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, w: Val) extends Neut
+case class Lift[N <: Nat](cv: Val, frm: Suite[NstVal, N], nch: TrVal[N], ev: Val) extends Neut
+case class LiftFiller[N <: Nat](cv: Val, frm: Suite[NstVal, N], nch: TrVal[N], ev: Val) extends Neut
+case class LiftFillerLeftExt[N <: Nat](cv: Val, frm: Suite[NstVal, N], nch: TrVal[N], ev: Val) extends Neut
+case class FillerLeftIsRight[N <: Nat](cv: Val, frm: Suite[NstVal, N], nch: TrVal[N], ev: Val) extends Neut
 
 // Addresses
 sealed trait Addr

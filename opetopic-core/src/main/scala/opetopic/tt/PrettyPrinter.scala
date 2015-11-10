@@ -49,6 +49,10 @@ object PrettyPrinter {
       case ERightBal(_, _, e, a, f) => "rightBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
       case EFillerLeftExt(_, _, _) => "fillerLeftExt"
       case EFillerCompLeftExt(_, _, _) => "fillerCompLeftExt"
+      case ELift(_, _, _, _) => "lift"
+      case ELiftFiller(_, _, _, _) => "liftFiller"
+      case ELiftFillerLeftExt(_, _, _, _) => "liftFillerLeftExt"
+      case EFillerLeftIsRight(_, _, _, _) => "fillerLeftIsRight"
     }
 
 }

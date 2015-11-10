@@ -55,6 +55,14 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "fillerLeftExt" ~ e ~ ne => EFillerLeftExt(e, ne.value._1, ne.value._2) }
     | "fillerCompLeftExt" ~ expr3 ~ nicheExpr ^^
         { case "fillerCompLeftExt" ~ e ~ ne => EFillerCompLeftExt(e, ne.value._1, ne.value._2) }
+    | "lift" ~ expr3 ~ nicheExpr ~ expr3 ^^
+        { case "lift" ~ e ~ ne ~ ev => ELift(e, ne.value._1, ne.value._2, ev) }
+    | "liftFiller" ~ expr3 ~ nicheExpr ~ expr3 ^^
+        { case "liftFiller" ~ e ~ ne ~ ev => ELiftFiller(e, ne.value._1, ne.value._2, ev) }
+    | "liftFillerLeftExt" ~ expr3 ~ nicheExpr ~ expr3 ^^
+        { case "liftFillerLeftExt" ~ e ~ ne ~ ev => ELiftFillerLeftExt(e, ne.value._1, ne.value._2, ev) }
+    | "fillerLeftIsRight" ~ expr3 ~ nicheExpr ~ expr3 ^^
+        { case "fillerLeftIsRight" ~ e ~ ne ~ ev => EFillerLeftIsRight(e, ne.value._1, ne.value._2, ev) }
     | expr2
   )
 

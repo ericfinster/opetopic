@@ -23,6 +23,9 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
 
   val T = Traverse[({ type L[+A] = Tree[A, N] })#L]
 
+  def traverseWithAddress[T[_], B](f : (A, Address[N]) => T[B])(implicit apT: Applicative[T]) : T[Tree[B, N]] = 
+    Tree.traverseWithAddress(tr, Zipper.rootAddr(tr.dim))(f)
+
   def mapWithAddress[B](f : (A, Address[N]) => B) : Tree[B, N] =
     Tree.mapWithAddress(tr)(f)
 
