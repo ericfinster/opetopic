@@ -38,9 +38,14 @@ case class EFill[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) exten
 
 // Cell properties
 case class ELeftExt(e: Expr) extends Expr
-case class ERightExt(e: Expr, a: Addr) extends Expr // Needs an address ...
+case class ERightExt(e: Expr, a: Addr) extends Expr 
 case class EBal[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
+// Property constructors
+case class EFillerLeftExt[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+case class EFillerCompLeftExt[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+
+// Property deconstructors
 case class ERightBal[N <: Nat](ce: Expr, c: ExprComplex[N], e: Expr, a: Addr, f: Expr) extends Expr
 case class ELeftBal[N <: Nat](ce: Expr, c: ExprComplex[N], e: Expr, f: Expr) extends Expr
 
@@ -66,6 +71,9 @@ case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends V
 case class LeftExt(v: Val) extends Val
 case class RightExt(v: Val, a: Addr) extends Val
 case class Bal[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+
+case class FillerLeftExt[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class FillerCompLeftExt[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
 case class RightBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, a: Addr, w: Val) extends Val
 case class LeftBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, w: Val) extends Val

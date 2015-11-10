@@ -132,6 +132,8 @@ object OpetopicTypeChecker {
       case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case ELeftBal(ce, c, e, f) => LeftBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), eval(f, rho))
       case ERightBal(ce, c, e, a, f) => RightBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), a, eval(f, rho))
+      case EFillerLeftExt(e, fp, nch) => FillerLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case EFillerCompLeftExt(e, fp, nch) => FillerCompLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
     }
 
   //============================================================================================
@@ -175,6 +177,8 @@ object OpetopicTypeChecker {
       case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case RightBal(cv, c, v, a, w) => ERightBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), a, rbV(i, w))
       case LeftBal(cv, c, v, w) => ELeftBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), rbV(i, w))
+      case FillerLeftExt(v, fp, nch) => EFillerLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case FillerCompLeftExt(v, fp, nch) => EFillerCompLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
 
   }
@@ -587,6 +591,44 @@ object OpetopicTypeChecker {
           srcCell <- fromShape(Complex.sourceAt(cdim)(c, addr :: Nil))
           srcTy <- extractCellType(cdim)(srcCell, cv, rho)
         } yield Pi(srcTy, Cl(PVar(cvar), EBal(ce, rext._1, rext._2), rho))
+
+      }
+      case EFillerLeftExt(e, fp, nch) => {
+
+        val cmplx : ExprComplex[Nat] = 
+          fp >> Box(EComp(e, fp, nch), toPd(nch))
+
+        for {
+          _ <- check(rho, gma, e, Cat)
+          cv = eval(e, rho)
+          cm <- fromShape(cmplx.comultiply)
+          frm <- extractFrame(cm.head)
+          _ <- frm._2.traverse(
+            (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, cv)
+          )
+        } yield LeftExt(eval(EFill(e, fp, nch), rho))
+
+      }
+      case EFillerCompLeftExt(e, fp, nch) => {
+
+        for {
+          _ <- check(rho, gma, e, Cat)
+          cv = eval(e, rho)
+          prTr <- nch.traverse({
+            case EPair(c, ev) => pure((c, ev))
+            case _ => fail("Not a pair")
+          })
+          (cTr, eTr) = Tree.unzip(prTr)
+          (cmplx : ExprComplex[Nat]) = fp >> Box(EComp(e, fp, cTr), toPd(cTr))
+          cm <- fromShape(cmplx.comultiply)
+          frm <- extractFrame(cm.head)
+          _ <- frm._2.traverse(
+            (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, cv)
+          )
+          _ <- prTr.traverse({
+            case (c, ev) => check(rho, gma, ev, LeftExt(eval(c, rho)))
+          })
+        } yield LeftExt(eval(EComp(e, fp, cTr), rho))
 
       }
       case e => fail("checkI: " ++ e.toString)

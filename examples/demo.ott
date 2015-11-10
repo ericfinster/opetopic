@@ -23,11 +23,18 @@ let id : (X : Cat) -> (x : Obj X) -> Arrow X x x
 let refl : (X : Cat) -> (x : Obj X) -> Loop X x (id X x)
     	 = \X. \x. fill X [ obj x ]>> { leaf } ;
 
+let reflIsLeftExt : (X : Cat) -> (x : Obj X) -> isLeftExt (refl X x)
+    		  = \X. \x. fillerLeftExt X [ obj x ]>> { leaf } ; 
+
 let comp : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
     	 = \X. \x. \y. \z. \f. \g. comp X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } ;
 
 let compFill : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (comp X x y z f g)
     	     = \X. \x. \y. \z. \f. \g. fill X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } ;
+
+let compExt : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> 
+    	      (fl : isLeftExt f) -> (gl : isLeftExt g) -> isLeftExt (comp X x y z f g)
+	    = \X. \x. \y. \z. \f. \g. \fl. \gl. fillerCompLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node (g, gl) (pt (node (f, fl) (pt leaf))) } ;
 
 let compWithIdent : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> Arrow X x y
      		  = \X. \x. \y. \f. comp X x x y (id X x) f ;

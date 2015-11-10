@@ -47,6 +47,8 @@ object PrettyPrinter {
       case EBal(e, fp, nch) => "isBalanced"
       case ELeftBal(_, _, e, f) => "leftBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
       case ERightBal(_, _, e, a, f) => "rightBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
+      case EFillerLeftExt(_, _, _) => "fillerLeftExt"
+      case EFillerCompLeftExt(_, _, _) => "fillerCompLeftExt"
     }
 
 }
