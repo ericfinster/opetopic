@@ -130,8 +130,8 @@ object OpetopicTypeChecker {
       case ELeftExt(e) => LeftExt(eval(e, rho))
       case ERightExt(e, a) => RightExt(eval(e, rho), a)
       case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case ELeftBal(e, f) => LeftBal(eval(e, rho), eval(f, rho))
-      case ERightBal(e) => RightBal(eval(e, rho))
+      case ELeftBal(ce, c, e, f) => LeftBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), eval(f, rho))
+      case ERightBal(ce, c, e, a, f) => RightBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), a, eval(f, rho))
     }
 
   //============================================================================================
@@ -173,8 +173,8 @@ object OpetopicTypeChecker {
       case LeftExt(v) => ELeftExt(rbV(i, v))
       case RightExt(v, a) => ERightExt(rbV(i, v), a)
       case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
-      case RightBal(v) => ERightBal(rbV(i, v))
-      case LeftBal(v, w) => ELeftBal(rbV(i, v), rbV(i, w))
+      case RightBal(cv, c, v, a, w) => ERightBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), a, rbV(i, w))
+      case LeftBal(cv, c, v, w) => ELeftBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), rbV(i, w))
     }
 
   }
@@ -551,25 +551,42 @@ object OpetopicTypeChecker {
           )
         } yield res
       }
-      case ELeftBal(e, f) => {
+      case ELeftBal(ce, c, e, f) => {
+
+        val cdim = c.dim
+        val cc = c >> Dot(e, S(cdim))
+        val cvar = "CV#" ++ lRho(rho).toString
 
         for {
-          t <- checkI(rho, gma, e)
-          pr <- extCellG(t)
-          (cv, cmplx) = pr
-          cellCmplx = cmplx.value >> Dot(eval(e, rho), S(cmplx.n))
+          _ <- check(rho, gma, ce, Cat)
+          cv = eval(ce, rho)
+          _ <- checkCell(S(cdim))(rho, gma, cc, cv)
           _ <- check(rho, gma, f, LeftExt(eval(e, rho)))
-        } yield Type
+          lext <- fromShape(
+            Complex.leftExtension[CstExpr, Nat](cdim)(cc, EVar(cvar), EEmpty)
+          )
+          tgtCell <- fromShape(cc.target)
+          tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
+        } yield Pi(tgtTy, Cl(PVar(cvar), EBal(ce, lext._1, lext._2), rho))
+      }
+      case ERightBal(ce, c, e, a, f) => {
 
-        // Hmm. The other problem here: we don't have the complex
-        // as an expression, but only a value.  Is that going to
-        // be a problem?
+        val cdim = c.dim
+        val cc = c >> Dot(e, S(cdim))
+        val cvar = "CV#" ++ lRho(rho).toString
 
-        // Actually, yes.  I think that's going to be a problem, since
-        // the target of the resulting type will need to be in 
-        // expression form.
-
-        // Okay.  So you'll have to rethink this.
+        for {
+          _ <- check(rho, gma, ce, Cat)
+          cv = eval(ce, rho)
+          _ <- checkCell(S(cdim))(rho, gma, cc, cv)
+          _ <- check(rho, gma, f, RightExt(eval(e, rho), a))
+          addr <- parseAddress(cdim)(a)
+          rext <- fromShape(
+            Complex.rightExtension[CstExpr, Nat](cdim)(cc, addr, EVar(cvar), EEmpty)
+          )
+          srcCell <- fromShape(Complex.sourceAt(cdim)(c, addr :: Nil))
+          srcTy <- extractCellType(cdim)(srcCell, cv, rho)
+        } yield Pi(srcTy, Cl(PVar(cvar), EBal(ce, rext._1, rext._2), rho))
 
       }
       case e => fail("checkI: " ++ e.toString)
@@ -578,4 +595,5 @@ object OpetopicTypeChecker {
   }
 
 }
+
 

@@ -41,8 +41,8 @@ case class ELeftExt(e: Expr) extends Expr
 case class ERightExt(e: Expr, a: Addr) extends Expr // Needs an address ...
 case class EBal[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
-case class ERightBal(e: Expr) extends Expr
-case class ELeftBal(e: Expr, f: Expr) extends Expr
+case class ERightBal[N <: Nat](ce: Expr, c: ExprComplex[N], e: Expr, a: Addr, f: Expr) extends Expr
+case class ELeftBal[N <: Nat](ce: Expr, c: ExprComplex[N], e: Expr, f: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -67,8 +67,8 @@ case class LeftExt(v: Val) extends Val
 case class RightExt(v: Val, a: Addr) extends Val
 case class Bal[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 
-case class RightBal(v: Val) extends Val
-case class LeftBal(v: Val, w: Val) extends Val
+case class RightBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, a: Addr, w: Val) extends Val
+case class LeftBal[N <: Nat](cv: Val, c: ValComplex[N], v: Val, w: Val) extends Val
 
 // Neutral terms
 sealed trait Neut

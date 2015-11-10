@@ -381,7 +381,7 @@ trait ComplexFunctions {
       u <- focusUnit(n)(zpp)
       spine <- focusSpine(n)(zp)
       trZip <- Tree.seekTo(n)(Tree.const(spine, Leaf(S(n))), addr)
-      dot = focusOf(zp)
+      dot = focusOf(zpp)
       newNst = Box(Nesting.baseValue(dot), Tree.const(u, Nesting.external(n)(v)))
     } yield {
 

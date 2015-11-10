@@ -47,10 +47,10 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "isRightExt" ~ e ~ ae => ERightExt(e, ae) }
     | "isBalanced" ~ expr3 ~ nicheExpr ^^
         { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
-    | "leftBalanced" ~ expr3 ~ expr3 ^^
-        { case "leftBalanced" ~ e ~ f => ELeftBal(e, f) }
-    | "rightBalanced" ~ expr3 ^^
-        { case "rightBalanced" ~ e => ERightBal(e) }
+    | "leftBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
+        { case "leftBalanced" ~ ce ~ frm ~ e ~ f => ELeftBal(ce, frm.value, e, f) }
+    | "rightBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ addrExpr ~ expr3 ^^
+        { case "rightBalanced" ~ ce ~ frm ~ e ~ a ~ f => ERightBal(ce, frm.value, e, a, f) }
     | expr2
   )
 
