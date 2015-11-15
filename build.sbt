@@ -1,4 +1,3 @@
-import sbt.Project.projectToRef
 
 val commonSettings = Seq(
   organization := "opetopic",
@@ -20,37 +19,21 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs)
-
-lazy val opetopicPlay = (project in file("opetopic-play")).
-  settings(commonSettings: _*).
-  settings(
-    scalaJSProjects := clients,
-    pipelineStages := Seq(scalaJSProd),
-    JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
-    libraryDependencies ++= Seq(
-      "org.webjars" %% "webjars-play" % "2.4.0-1",
-      "org.webjars" % "jquery" % "2.1.3",
-      "org.webjars" % "angularjs" % "1.3.8",
-      "org.webjars" % "foundation" % "5.2.2",
-      "org.webjars" % "foundation-icon-fonts" % "d596a3cfb3"
-    )
-  ).enablePlugins(PlayScala, SbtWeb).
-  aggregate(clients.map(projectToRef): _*).
-  dependsOn(opetopicCoreJvm)
-
 lazy val opetopicJs = (project in file("opetopic-js")).
   settings(commonSettings: _*).
   settings(
     persistLauncher := true,
-    sourceMapsDirectories += opetopicCoreJs.base / "..",
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    resolvers += Resolver.sonatypeRepo("snapshots"),
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0"
-    )
-  ).enablePlugins(ScalaJSPlugin, ScalaJSPlay).
+    ),
+    jsDependencies ++= Seq(
+      "org.webjars" % "jquery" % "2.1.4" / "jquery.js",
+      "org.webjars" % "Semantic-UI" % "2.1.6" / "semantic.js"
+    ),
+    skip in packageJSDependencies := false
+  ).enablePlugins(ScalaJSPlugin, SbtWeb).
   dependsOn(opetopicCoreJs)
 
 lazy val opetopicFx = (project in file("opetopic-fx")).
@@ -72,13 +55,11 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
       "com.lihaoyi" %%% "scalatags" % "0.5.2"
     )
   ).
-  jsConfigure(_ enablePlugins ScalaJSPlay).
   jsSettings(
     libraryDependencies ++= Seq(
       "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3",
       "org.scala-js" %%% "scala-parser-combinators" % "1.0.2"
-    ),
-    sourceMapsBase := baseDirectory.value / ".."
+    )
   ).jvmSettings(
     libraryDependencies ++= Seq(
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
@@ -96,12 +77,10 @@ lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opeto
       "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
   ).
-  jsConfigure(_ enablePlugins ScalaJSPlay).
   jsSettings(
     libraryDependencies ++= Seq(
       "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3"
-    ),
-    sourceMapsBase := baseDirectory.value / ".."
+    )
   ).jvmSettings(
     libraryDependencies ++= Seq(
       "org.scalaz" %% "scalaz-core" % "7.1.3"

@@ -7,6 +7,7 @@
 
 package opetopic.js
 
+import scala.scalajs.{js => sjs}
 import scala.scalajs.js.JSApp
 import org.scalajs.dom._
 import org.scalajs.jquery._
@@ -16,6 +17,7 @@ import opetopic.ui._
 import syntax.complex._
 import syntax.cardinal._
 import JsDomFramework._
+import JQuerySemanticUI._
 
 object JsEditor extends JSApp {
 
@@ -23,25 +25,35 @@ object JsEditor extends JSApp {
     GalleryConfig(
       panelConfig = defaultPanelConfig,
       width = 650,
-      height = 250,
+      height = 150,
       spacing = 1500,
       minViewX = Some(60000),
       minViewY = Some(13000),
       spacerBounds = Bounds(0, 0, 600, 600)
     )
 
+
+  def initUI: Unit = {
+    jQuery(".main.menu .ui.dropdown").dropdown(
+      sjs.Dynamic.literal(on = "hover")
+    )
+  }
+
   val editor = CardinalEditor[ConstString]
   editor.onSelectAsRoot = showBoxProperties
 
   def main : Unit = {
 
+    initUI
+
     println("Launched Opetopic.")
 
-    jQuery("#editor-pane").keypress((e : JQueryEventObject) => {
+    jQuery("body").keypress((e : JQueryEventObject) => {
       e.which match {
         case 101 => editor.extrudeSelection
         case 100 => editor.extrudeDrop
         case 112 => editor.sprout
+        case 109 => jQuery(".ui.sidebar").sidebar("toggle")
         case _ => ()
       }
     })
@@ -88,9 +100,9 @@ object JsEditor extends JSApp {
       lblCmplx <- box.labelComplex
     } {
 
-      import JsPrinter._
+      // import JsPrinter._
 
-      jQuery("#tt-expr").value(prettyPrintComplex(lblCmplx.length.pred)(lblCmplx).mkString("\n\n"))
+      // jQuery("#tt-expr").value(prettyPrintComplex(lblCmplx.length.pred)(lblCmplx).mkString("\n\n"))
 
       val gallery = ActiveGallery(baseConfig, lblCmplx)(
         new AffixableFamily[editor.OptA] {

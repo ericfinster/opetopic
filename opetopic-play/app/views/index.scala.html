@@ -10,96 +10,27 @@
 
     <title>Opetopic</title>
 
-    <link rel='stylesheet' href='@routes.Assets.at("opetopic.css")'>
+    <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("webix.css"))'>
 
-    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("modernizr.js"))'></script>
-    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("jquery.min.js"))'></script>
-    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("fastclick.js"))'></script>
-    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("foundation.min.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("webix.js"))'></script>
+    <script type='text/javascript' src='@routes.Assets.at("js/opetopic-ix.js")'></script>
 
   </head>
 
   <body>
 
-    <div class="off-canvas-wrap" data-offcanvas>
-      <div class="inner-wrap">
-
-	<nav class="tab-bar">
-	  <section class="left-small">
-            <a class="left-off-canvas-toggle menu-icon" href="#"><span></span></a>
-	  </section>
-
-	  <section class="middle tab-bar-section">
-            <h1 class="title">Opetopic</h1>
-	  </section>
-
-	  <section class="right-small">
-            <a class="right-off-canvas-toggle menu-icon" href="#"><span></span></a>
-	  </section>
-	</nav>
-
-	<aside class="left-off-canvas-menu">
-	  <ul class="off-canvas-list">
-            <li><label>Navigation</label></li>
-            <li><a href="#">Tutorial</a></li>
-            <li><a href="#">Editor</a></li>
-            <li><a href="#">Blog</a></li>
-	  </ul>
-	</aside>
-
-	<aside class="right-off-canvas-menu">
-	  <ul class="off-canvas-list">
-            <li><label>Environment</label></li>
-            <li><a href="#">alpha</a></li>
-            <li><a href="#">beta</a></li>
-	  </ul>
-	</aside>
-
-	<section class="row full-width">
-
-	  <div id="main-content" class="large-12 columns">
-	    <section class="row">
-
-	      <div id="editor-pane" tabindex="1" class="large-12 columns" style="padding-top: 20px; text-align: center;">
-	      </div>
-
-	      <div id="base-pane" class="large-12 columns" style="padding-top: 20px; text-align: center; border-top: solid grey 1px">
-
-		<section class="row">
-		  <div id="face-props-pane" class="large-2 columns">
-		    <input id="label-input" tabindex="2" type="text"></input>
-		    <textarea id="tt-expr" style="height: 180px" placeholder="OpetopicTT Expression"></textarea>
-		  </div>
-		  <div id="face-preview-pane" class="large-8 columns">
-		  </div>
-		  <div class="large-2 columns"></div>
-		</section>
-
-	      </div>
-	    </section>
-	  </div>
-
-	</section>
-
-	<a class="exit-off-canvas"></a>
-
-      </div>
-    </div>
-
-    <div id="label-modal" class="reveal-modal tiny" data-reveal aria-labelledby="modalTitle" aria-hidden="true" role="dialog">
-      <h2 id="modalTitle">Enter Label</h2>
-      <p class="lead">Here you select the label</p>
-      <a class="close-reveal-modal" aria-label="Close">&#215;</a>
-    </div>
+    <script type="text/javascript" charset="utf-8">
+      webix.ready(function() {
+        webix.ui(ui_scheme);
+      });
+    </script>
 
   </body>
 
-  <script>
-    $(document).foundation();
-  </script>
-
   <script src="@routes.Assets.at("opetopicjs-fastopt.js")"></script>
   <script src="@routes.Assets.at("opetopicjs-launcher.js")"></script>
+
+
 
 </html>
 

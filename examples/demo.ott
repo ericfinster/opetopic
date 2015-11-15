@@ -111,8 +111,8 @@ let balAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w 
 				       (fillAssocLeft X x y z w f g h) (lextAssocLeft X x y z w f g h)) (compAssocRight X x y z w f g h) ;
 
 let assoc : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    	    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Cell X [ box w (pt (obj x)) ]>> 
-	       	       	      	      	      	      	   	     	   	  [ box (compAssocRight X x y z w f g h) (node (dot (compAssocLeft X x y z w f g h)) (pt leaf)) ]
+    	    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> 
+	    Cell X [ box w (pt (obj x)) ]>> [ box (compAssocRight X x y z w f g h) (node (dot (compAssocLeft X x y z w f g h)) (pt leaf)) ]
           = \X. \x. \y. \z. \w. \f. \g. \h. 
 	    	(lift X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>>
 		        [ box (compAssocRight X x y z w f g h) (node (box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf))))))) (pt leaf)) ]>>

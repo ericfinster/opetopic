@@ -39,7 +39,7 @@ object JsDomFramework extends ActiveFramework
     GalleryConfig(
       panelConfig = defaultPanelConfig,
       width = 1000,
-      height = 650,
+      height = 500,
       spacing = 2000,
       minViewX = Some(80000),
       minViewY = Some(30000),
@@ -235,8 +235,6 @@ object JsDomFramework extends ActiveFramework
   //============================================================================================
   // GROUPS
   //
-
-
 
   def group : GroupType = 
     new JsDomGroup 
