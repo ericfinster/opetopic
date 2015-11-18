@@ -49,7 +49,8 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     //sourceMapsDirectories += opetopicCoreJs.base / "..",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
-      "be.doeraene" %%% "scalajs-jquery" % "0.8.0"
+      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+      "com.lihaoyi" %%% "scalatags" % "0.5.3"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicCoreJs)
@@ -61,7 +62,7 @@ lazy val opetopicFx = (project in file("opetopic-fx")).
     mainClass in (Compile, run) := Some("opetopic.fx.FXEditor"),
     libraryDependencies ++= Seq(
       "org.scalafx" %% "scalafx" % "8.0.40-R8",
-      "com.lihaoyi" %% "scalatags" % "0.5.2"
+      "com.lihaoyi" %% "scalatags" % "0.5.3"
     )
   ).dependsOn(opetopicCoreJvm)
 
@@ -70,7 +71,7 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   settings(
     libraryDependencies ++= Seq(
       "com.lihaoyi" %%% "upickle" % "0.2.8",
-      "com.lihaoyi" %%% "scalatags" % "0.5.2"
+      "com.lihaoyi" %%% "scalatags" % "0.5.3"
     )
   ).
   jsSettings(

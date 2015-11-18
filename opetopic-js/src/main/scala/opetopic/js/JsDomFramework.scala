@@ -39,10 +39,10 @@ object JsDomFramework extends ActiveFramework
     GalleryConfig(
       panelConfig = defaultPanelConfig,
       width = 1000,
-      height = 500,
+      height = 300,
       spacing = 2000,
       minViewX = Some(80000),
-      minViewY = Some(30000),
+      minViewY = Some(15000),
       spacerBounds = Bounds(0, 0, 600, 600)
     )
 

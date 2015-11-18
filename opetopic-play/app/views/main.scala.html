@@ -1,0 +1,60 @@
+@(subnav: String)(content: Html)
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Opetopic">
+    <meta name="author" content="Eric Finster">
+
+    <title>Opetopic - @subnav</title>
+
+    <link rel='stylesheet' href='@routes.Assets.at("stylesheets/opetopic.css")'>
+
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("jquery.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("semantic.js"))'></script>
+
+  </head>
+
+  <body>
+
+    <div class="pusher">
+
+      <div class="ui fixed inverted menu">
+	<div class="header item">Opetopic</div>
+	<a class="item" href="/">Home</a>
+	<a class="item" href="/editor">Editor</a>
+	<a class="item" href="/docs">Documentation</a>
+	<div class="ui dropdown item">
+	  Dropdown
+	  <i class="dropdown icon"></i>
+	  <div class="menu">
+	    <div class="item">Action</div>
+	    <div class="item">Another Action</div>
+	    <div class="item">Something else here</div>
+	    <div class="divider"></div>
+	    <div class="item">Separated Link</div>
+	    <div class="divider"></div>
+	    <div class="item">One more separated link</div>
+	  </div>
+	</div>
+      </div>
+
+      <div class="ui container main">
+
+	@content
+
+      </div>
+    </div>
+
+
+  </body>
+
+  <script>
+    $(".ui.menu .ui.dropdown").dropdown({on: "hover"})
+  </script>
+
+</html>
+

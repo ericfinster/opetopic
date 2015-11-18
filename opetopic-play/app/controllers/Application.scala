@@ -11,10 +11,12 @@ object Application extends Controller {
     Ok(views.html.index())
   }
 
-  def debug = Action(BodyParsers.parse.json) { request =>
-    Logger.debug("Received a json post:")
-    Logger.debug(Json.prettyPrint(request.body))
-    Ok(Json.obj("status" -> "OK", "message" -> "all done"))
+  def editor = Action {
+    Ok(views.html.editor())
+  }
+
+  def docs = Action {
+    Ok(views.html.docs())
   }
 
 }
