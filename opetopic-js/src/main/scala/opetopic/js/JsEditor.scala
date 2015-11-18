@@ -34,7 +34,7 @@ object JsEditor extends JSApp {
 
 
   def initUI: Unit = {
-    jQuery(".main.menu .ui.dropdown").dropdown(
+    jQuery(".ui.menu .ui.dropdown").dropdown(
       sjs.Dynamic.literal(on = "hover")
     )
   }

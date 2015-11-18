@@ -1,3 +1,4 @@
+import sbt.Project.projectToRef
 
 val commonSettings = Seq(
   organization := "opetopic",
@@ -19,21 +20,38 @@ val commonSettings = Seq(
     """
 )
 
+lazy val clients = Seq(opetopicJs)
+
+lazy val opetopicPlay = (project in file("opetopic-play")).
+  settings(commonSettings: _*).
+  settings(
+    scalaJSProjects := clients,
+    pipelineStages := Seq(scalaJSProd),
+    JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
+    includeFilter in (Assets, LessKeys.less) := "opetopic.less",
+    //excludeFilter in (Assets, LessKeys.less) := "*/semantic/*",
+    libraryDependencies ++= Seq(
+      "org.webjars" %% "webjars-play" % "2.4.0-1",
+      "org.webjars" % "jquery" % "2.1.4",
+      "org.webjars" % "Semantic-UI" % "2.1.6"
+    ),
+    herokuAppName in Compile := "opetopic",
+    herokuSkipSubProjects in Compile := false
+  ).enablePlugins(PlayScala).
+  aggregate(clients.map(projectToRef): _*).
+  dependsOn(opetopicCoreJvm)
+
 lazy val opetopicJs = (project in file("opetopic-js")).
   settings(commonSettings: _*).
   settings(
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    //sourceMapsDirectories += opetopicCoreJs.base / "..",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0"
-    ),
-    jsDependencies ++= Seq(
-      "org.webjars" % "jquery" % "2.1.4" / "jquery.js",
-      "org.webjars" % "Semantic-UI" % "2.1.6" / "semantic.js"
-    ),
-    skip in packageJSDependencies := false
-  ).enablePlugins(ScalaJSPlugin, SbtWeb).
+    )
+  ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicCoreJs)
 
 lazy val opetopicFx = (project in file("opetopic-fx")).
