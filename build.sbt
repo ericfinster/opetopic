@@ -29,7 +29,6 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     pipelineStages := Seq(scalaJSProd),
     JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
     includeFilter in (Assets, LessKeys.less) := "opetopic.less",
-    //excludeFilter in (Assets, LessKeys.less) := "*/semantic/*",
     libraryDependencies ++= Seq(
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
@@ -46,7 +45,6 @@ lazy val opetopicJs = (project in file("opetopic-js")).
   settings(
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    //sourceMapsDirectories += opetopicCoreJs.base / "..",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
@@ -54,17 +52,6 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicCoreJs)
-
-lazy val opetopicFx = (project in file("opetopic-fx")).
-  settings(commonSettings: _*).
-  settings(
-    fork := true,
-    mainClass in (Compile, run) := Some("opetopic.fx.FXEditor"),
-    libraryDependencies ++= Seq(
-      "org.scalafx" %% "scalafx" % "8.0.40-R8",
-      "com.lihaoyi" %% "scalatags" % "0.5.3"
-    )
-  ).dependsOn(opetopicCoreJvm)
 
 lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopic-core")).
   settings(commonSettings: _*).
