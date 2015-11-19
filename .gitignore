@@ -1,5 +1,3 @@
 target/
-.ensime_cache/
 logs/
 *.agdai
-.sass-cache/
