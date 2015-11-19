@@ -51,7 +51,7 @@ object Main {
 
     println("Running printTest ...\n")
 
-    import opetopic.pprint.Doc._
+    import opetopic.pprint.SimplePPrint._
     import opetopic.Examples._
 
     println(pprint(fred3))
