@@ -1,0 +1,21 @@
+@()
+
+@import play.api.Play
+
+@main("CodeBuilder") {
+
+  <div id="panes"></div>
+
+  <div class="ui center aligned segment">
+    <p>CodeBuilder under construction.</p>
+  </div>
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopiccodebuilder-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopiccodebuilder-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopiccodebuilder-launcher.js")' type="text/javascript"></script>
+
+}

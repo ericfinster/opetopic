@@ -15,6 +15,10 @@ object Application extends Controller {
     Ok(views.html.sketchpad())
   }
 
+  def codeBuilder = Action {
+    Ok(views.html.codebuilder())
+  }
+
   def docs = Action {
     Ok(views.html.docs())
   }

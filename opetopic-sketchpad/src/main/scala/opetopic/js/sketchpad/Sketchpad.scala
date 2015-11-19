@@ -7,27 +7,19 @@
 
 package opetopic.js.sketchpad
 
-import scala.scalajs.{js => sjs}
 import scala.scalajs.js.JSApp
-import org.scalajs.dom._
 import org.scalajs.jquery._
-
-import opetopic._
-import opetopic.ui._
-import opetopic.js._
-import JsDomFramework._
-import JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
 
   def addPane : Unit = {
-    val pane = new EditorPane
+    val pane = new SketchPane
     jQuery("#panes").append(pane.uiElement)
   }
 
   def main : Unit = {
 
-    println("Launched Opetopic.")
+    println("Launched Opetopic Sketchpad.")
 
     jQuery("#add-button").click((e : JQueryEventObject) => { addPane})
     addPane
