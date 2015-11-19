@@ -11,8 +11,8 @@ object Application extends Controller {
     Ok(views.html.index())
   }
 
-  def editor = Action {
-    Ok(views.html.editor())
+  def sketchpad = Action {
+    Ok(views.html.sketchpad())
   }
 
   def docs = Action {

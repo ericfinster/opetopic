@@ -1,0 +1,23 @@
+@()
+
+@import play.api.Play
+
+@main("SketchPad") {
+
+  <div id="panes"></div>
+
+  <div class="ui center aligned segment">
+    <button id="add-button" class="circular huge ui icon button">
+      <i class="icon plus"></i>
+    </button>
+  </div>
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopicsketchpad-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopicsketchpad-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopicsketchpad-launcher.js")' type="text/javascript"></script>
+
+}

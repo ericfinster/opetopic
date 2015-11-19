@@ -1,11 +1,11 @@
 /**
-  * JsEditor.scala - A Cardinal Editor in JavaScript
+  * Sketchpad.scala - Opetopic Sketchpad Application
   * 
   * @author Eric Finster
   * @version 0.1 
   */
 
-package opetopic.js
+package opetopic.js.sketchpad
 
 import scala.scalajs.{js => sjs}
 import scala.scalajs.js.JSApp
@@ -14,12 +14,11 @@ import org.scalajs.jquery._
 
 import opetopic._
 import opetopic.ui._
-import syntax.complex._
-import syntax.cardinal._
+import opetopic.js._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-object JsEditor extends JSApp {
+object Sketchpad extends JSApp {
 
   def addPane : Unit = {
     val pane = new EditorPane
