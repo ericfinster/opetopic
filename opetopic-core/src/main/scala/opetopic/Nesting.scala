@@ -356,48 +356,48 @@ trait NestingFunctions {
 
 object Nesting extends NestingFunctions {
 
-  import upickle._
+  // import upickle._
 
-  implicit def nestingWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Nesting[A, N]] = 
-    new Writer[Nesting[A, N]] {
-      def write0: Nesting[A, N] => Js.Value = {
-        case Obj(a) => Js.Obj(("type", Js.Str("obj")), ("val", wrtr.write(a)))
-        case Dot(a, d) => Js.Obj(("type", Js.Str("dot")), ("val", wrtr.write(a)))
-        case Box(a, cn) => {
-          val canopyWriter : Writer[Tree[Nesting[A, N], N]] = 
-            Tree.treeWriter(this)
-          Js.Obj(("type", Js.Str("box")), ("val", wrtr.write(a)), ("canopy", canopyWriter.write(cn)))
-        }
-      }
-    }
+  // implicit def nestingWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Nesting[A, N]] = 
+  //   new Writer[Nesting[A, N]] {
+  //     def write0: Nesting[A, N] => Js.Value = {
+  //       case Obj(a) => Js.Obj(("type", Js.Str("obj")), ("val", wrtr.write(a)))
+  //       case Dot(a, d) => Js.Obj(("type", Js.Str("dot")), ("val", wrtr.write(a)))
+  //       case Box(a, cn) => {
+  //         val canopyWriter : Writer[Tree[Nesting[A, N], N]] = 
+  //           Tree.treeWriter(this)
+  //         Js.Obj(("type", Js.Str("box")), ("val", wrtr.write(a)), ("canopy", canopyWriter.write(cn)))
+  //       }
+  //     }
+  //   }
 
-  @natElim
-  implicit def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = {
-    case Z => {
-      new Reader[Nesting[A, _0]] { thisRdr =>
-        def read0: PartialFunction[Js.Value, Nesting[A, _0]] = {
-          case Js.Obj(("type", Js.Str("obj")), ("val", a)) => Obj(rdr.read(a))
-          case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
-            val canopyReader : Reader[Tree[Nesting[A, _0], _0]] =
-              Tree.treeReader(Z)(thisRdr)
-            Box(rdr.read(a), canopyReader.read(cn))
-          }
-        }
-      }
-    }
-    case S(p) => {
-      new Reader[Nesting[A, S[Nat]]] { thisRdr =>
-        def read0: PartialFunction[Js.Value, Nesting[A, S[Nat]]] = {
-          case Js.Obj(("type", Js.Str("dot")), ("val", a)) => Dot(rdr.read(a), S(p))
-          case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
-            val canopyReader : Reader[Tree[Nesting[A, S[Nat]], S[Nat]]] =
-              Tree.treeReader(S(p))(thisRdr)
-            Box(rdr.read(a), canopyReader.read(cn))
-          }
-        }
-      }
-    }
-  }
+  // @natElim
+  // implicit def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = {
+  //   case Z => {
+  //     new Reader[Nesting[A, _0]] { thisRdr =>
+  //       def read0: PartialFunction[Js.Value, Nesting[A, _0]] = {
+  //         case Js.Obj(("type", Js.Str("obj")), ("val", a)) => Obj(rdr.read(a))
+  //         case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
+  //           val canopyReader : Reader[Tree[Nesting[A, _0], _0]] =
+  //             Tree.treeReader(Z)(thisRdr)
+  //           Box(rdr.read(a), canopyReader.read(cn))
+  //         }
+  //       }
+  //     }
+  //   }
+  //   case S(p) => {
+  //     new Reader[Nesting[A, S[Nat]]] { thisRdr =>
+  //       def read0: PartialFunction[Js.Value, Nesting[A, S[Nat]]] = {
+  //         case Js.Obj(("type", Js.Str("dot")), ("val", a)) => Dot(rdr.read(a), S(p))
+  //         case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
+  //           val canopyReader : Reader[Tree[Nesting[A, S[Nat]], S[Nat]]] =
+  //             Tree.treeReader(S(p))(thisRdr)
+  //           Box(rdr.read(a), canopyReader.read(cn))
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
 }
 

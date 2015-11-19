@@ -19,6 +19,7 @@ object Main {
     if (args.length != 1) {
 
       println("Usage: opetopictt <filename>")
+      printTest
 
     } else {
 
@@ -43,6 +44,17 @@ object Main {
       }
 
     }
+
+  }
+
+  def printTest: Unit = {
+
+    println("Running printTest ...\n")
+
+    import opetopic.pprint.Doc._
+    import opetopic.Examples._
+
+    println(pprint(fred3))
 
   }
 

@@ -407,33 +407,33 @@ object Complex extends ComplexFunctions {
     Some((Suite.tail[IdxdNesting, N](suite), Suite.head[IdxdNesting, N](suite)))
   }
 
-  import upickle._
+  // import upickle._
 
-  implicit def complexWriter[A[_ <: Nat], N <: Nat](implicit wrtr : IndexedWriter[A]) : Writer[Complex[A, N]] = {
-    type IdxdNesting[K <: Nat] = Nesting[A[K], K]
-    Suite.suiteWriter(new IndexedWriter[IdxdNesting] {
-      def writer[N <: Nat] : Writer[IdxdNesting[N]] = 
-        Nesting.nestingWriter[A[N], N](wrtr.writer[N])
-    })
-  }
+  // implicit def complexWriter[A[_ <: Nat], N <: Nat](implicit wrtr : IndexedWriter[A]) : Writer[Complex[A, N]] = {
+  //   type IdxdNesting[K <: Nat] = Nesting[A[K], K]
+  //   Suite.suiteWriter(new IndexedWriter[IdxdNesting] {
+  //     def writer[N <: Nat] : Writer[IdxdNesting[N]] = 
+  //       Nesting.nestingWriter[A[N], N](wrtr.writer[N])
+  //   })
+  // }
 
-  implicit def complexReader[A[_ <: Nat]](implicit rdr: IndexedReader[A]) : Reader[FiniteComplex[A]] = {
-    type IdxdNesting[K <: Nat] = Nesting[A[K], K]
+  // implicit def complexReader[A[_ <: Nat]](implicit rdr: IndexedReader[A]) : Reader[FiniteComplex[A]] = {
+  //   type IdxdNesting[K <: Nat] = Nesting[A[K], K]
 
-    new Reader[FiniteComplex[A]] {
-      def read0: PartialFunction[Js.Value, FiniteComplex[A]] = {
-        case Js.Arr(els @ _*) => {
-          val dim = intToNat(els.length - 1)
-          Sigma[({ type L[K <: Nat] = Complex[A, K] })#L, Nat](dim)(readComplex(dim)(els))
-        }
-      }
+  //   new Reader[FiniteComplex[A]] {
+  //     def read0: PartialFunction[Js.Value, FiniteComplex[A]] = {
+  //       case Js.Arr(els @ _*) => {
+  //         val dim = intToNat(els.length - 1)
+  //         Sigma[({ type L[K <: Nat] = Complex[A, K] })#L, Nat](dim)(readComplex(dim)(els))
+  //       }
+  //     }
 
-      @natElim
-      def readComplex[N <: Nat](n: N)(vs: Seq[Js.Value]) : Complex[A, N] = {
-        case (Z, vs) => Complex[A]() >> Nesting.nestingReader(Z)(rdr.reader[_0]).read(vs.head)
-        case (S(p: P), vs) => readComplex(p)(vs.tail) >> Nesting.nestingReader(S(p))(rdr.reader[S[P]]).read(vs.head)
-      }
-    }
-  }
+  //     @natElim
+  //     def readComplex[N <: Nat](n: N)(vs: Seq[Js.Value]) : Complex[A, N] = {
+  //       case (Z, vs) => Complex[A]() >> Nesting.nestingReader(Z)(rdr.reader[_0]).read(vs.head)
+  //       case (S(p: P), vs) => readComplex(p)(vs.tail) >> Nesting.nestingReader(S(p))(rdr.reader[S[P]]).read(vs.head)
+  //     }
+  //   }
+  // }
 
 }

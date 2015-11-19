@@ -83,7 +83,6 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "upickle" % "0.2.8",
       "com.lihaoyi" %%% "scalatags" % "0.5.3"
     )
   ).
