@@ -54,19 +54,16 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       boxRect.onMouseOver = { (e: UIMouseEvent) => { hoverFaces } }
       boxRect.onMouseOut = { (e: UIMouseEvent) => { unhoverFaces } }
 
-      def hover : Unit = boxRect.fill = "blue"
-      def unhover : Unit = boxRect.fill = "white"
-
       def nestingAddress = address
 
       def hoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
-          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.hover
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setHoveredStyle
         })
 
       def unhoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
-          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.unhover
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setUnhoveredStyle
         })
 
       def foreachFace(op: IndexedOp[GalleryBoxType]) : Unit =

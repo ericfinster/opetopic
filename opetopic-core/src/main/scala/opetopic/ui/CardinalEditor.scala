@@ -328,6 +328,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           case _ => false
         }
 
+
     }
 
     class CardinalCellEdge[N <: Nat](
@@ -363,8 +364,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       makeMouseInvisible(labelElement)
 
       boxRect.onClick = (e: UIMouseEvent) => { thisEditor.select(thisBox) }
-      boxRect.onMouseOver = { (e : UIMouseEvent) => setHoveredStyle }
-      boxRect.onMouseOut = { (e : UIMouseEvent) => setUnhoveredStyle }
+      boxRect.onMouseOver = { (e : UIMouseEvent) => if (! isSelected) hoverFaces }
+      boxRect.onMouseOut = { (e : UIMouseEvent) => if (! isSelected) unhoverFaces }
 
       override def select = { isSelected = true ; setSelectedStyle }
       override def deselect = { isSelected = false ; setDeselectedStyle }
@@ -382,6 +383,24 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           def apply[K <: Nat](k: K)(box: CardinalCellBox[K]) = 
             box.asInstanceOf[NeutralCellBox[K]].optLabel  // Ugly cast ...
         })
+
+
+      def hoverFaces : Unit =
+        foreachFace(new IndexedOp[GalleryBoxType] {
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setHoveredStyle
+        })
+
+      def unhoverFaces : Unit =
+        foreachFace(new IndexedOp[GalleryBoxType] {
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setUnhoveredStyle
+        })
+
+      def foreachFace(op: IndexedOp[GalleryBoxType]) : Unit =
+        for {
+          fc <- faceComplex
+        } {
+          fc.foreach(op)
+        }
 
     }
 

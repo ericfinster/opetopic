@@ -24,6 +24,16 @@ object CodeBuilder extends JSApp {
   def addDesignBlock: Unit = {
     val pane = new DesignBlockPane
     jQuery("#panes").append(pane.uiElement)
+
+    jQuery(pane.sidebarElement).sidebar(
+      js.Dynamic.literal(
+        context = ".bottom.segment",
+        dimPage = false,
+        transition = "overlay",
+        closable = false
+      )
+    )
+
   }
 
   def main : Unit = {
@@ -42,7 +52,7 @@ object CodeBuilder extends JSApp {
       addCodeBlock
     })
 
-    addCodeBlock
+    // addCodeBlock
 
   }
 

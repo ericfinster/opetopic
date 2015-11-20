@@ -112,7 +112,7 @@ abstract class UIFramework {
       def decoration(i: Int) = Decoration(text(i.toString))
     }
 
-    implicit def optionAffixable[A](implicit bnds: Bounds, r: Affixable[A]) : Affixable[Option[A]] = 
+    implicit def optionAffixable[A](implicit bnds: Bounds, r: Affixable[A]) : Affixable[Option[A]] =
       new Affixable[Option[A]] {
         type ElementType = Element
         def decoration(opt: Option[A]) =
@@ -122,10 +122,10 @@ abstract class UIFramework {
           }
       }
 
-    implicit def polarityAffixable[A](implicit r: Affixable[A]) : Affixable[Polarity[A]] = 
+    implicit def polarityAffixable[A](implicit r: Affixable[A]) : Affixable[Polarity[A]] =
       new Affixable[Polarity[A]] {
         type ElementType = Element
-        def decoration(pol: Polarity[A]) = 
+        def decoration(pol: Polarity[A]) =
           pol match {
             case Positive() => Decoration(text("+"))
             case Negative() => Decoration(text("-"))
@@ -141,15 +141,20 @@ abstract class UIFramework {
 
   object AffixableFamily {
 
-    implicit object ConstStringFamily extends AffixableFamily[ConstString] {
-      def apply[N <: Nat](n: N) : Affixable[String] = 
-        Affixable.StringAffixable
-    }
+    implicit def constAffixable[A](implicit a: Affixable[A]) : AffixableFamily[Lambda[`N <: Nat` => A]] =
+      new AffixableFamily[Lambda[`N <: Nat` => A]] {
+        def apply[N <: Nat](n: N) = a
+      }
 
-    implicit object ConstIntFamily extends AffixableFamily[ConstInt] {
-      def apply[N <: Nat](n: N) : Affixable[Int] = 
-        Affixable.IntAffixable
-    }
+    // implicit object ConstStringFamily extends AffixableFamily[ConstString] {
+    //   def apply[N <: Nat](n: N) : Affixable[String] =
+    //     Affixable.StringAffixable
+    // }
+
+    // implicit object ConstIntFamily extends AffixableFamily[ConstInt] {
+    //   def apply[N <: Nat](n: N) : Affixable[Int] =
+    //     Affixable.IntAffixable
+    // }
 
   }
 

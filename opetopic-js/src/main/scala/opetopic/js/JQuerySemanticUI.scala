@@ -16,7 +16,8 @@ trait JQuerySemanticUI extends JQuery {
   def dropdown(opts: js.Object) : this.type = js.native
   def modal(opts: js.Object) : this.type = js.native
   def modal(str: String) : this.type = js.native
-  def sidebar(str: String) : this.type = js.native
+  def sidebar(str: String*) : this.type = js.native
+  def sidebar(opts: js.Object) : this.type = js.native
 
 }
 

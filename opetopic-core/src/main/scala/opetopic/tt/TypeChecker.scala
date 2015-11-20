@@ -74,7 +74,7 @@ object OpetopicTypeChecker {
       case UpDec(rho, Def(p, _, e)) if true => getRho(rho, x)
       case rho0@UpDec(rho, Drec(p, _, e)) if inPat(x, p) => patProj(p, x, eval(e, rho0))
       case rho0@UpDec(rho, Drec(p, _, e)) if true => getRho(rho, x)
-      case RNil => error("getRho")
+      case RNil => error("getRho: " ++ x)
     }
 
   def inPat(x: Name, p: Patt) : Boolean = 
