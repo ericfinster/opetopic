@@ -25,6 +25,15 @@ object Tokenizer {
     def tokenize(i: Int) = List(Literal(i.toString))
   }
 
+  implicit def optTokenizer[A](implicit t: Tokenizer[A]) : Tokenizer[Option[A]] = 
+    new Tokenizer[Option[A]] {
+      def tokenize(o: Option[A]) =
+        o match {
+          case None => List(Literal("empty"))
+          case Some(a) => t.tokenize(a)
+        }
+    }
+
   implicit def treeTokenizer[A, N <: Nat](implicit t: Tokenizer[A]) : Tokenizer[Tree[A, N]] = 
     new Tokenizer[Tree[A, N]] {
       def tokenize(tr: Tree[A, N]) = 
@@ -71,4 +80,13 @@ object IndexedTokenizer {
     def apply[N <: Nat](n: N) = Tokenizer.IntTokenizer
   }
 
+  implicit object ConstStringTokenizer extends IndexedTokenizer[ConstString] {
+    def apply[N <: Nat](n: N) = Tokenizer.StringTokenizer
+  }
+
+  implicit def optIdxedTokenizer[A[_ <: Nat]](implicit t: IndexedTokenizer[A]) 
+      : IndexedTokenizer[Lambda[`N <: Nat` => Option[A[N]]]] =
+    new IndexedTokenizer[Lambda[`N <: Nat` => Option[A[N]]]] {
+      def apply[N <: Nat](n: N) = Tokenizer.optTokenizer(t(n))
+    }
 }

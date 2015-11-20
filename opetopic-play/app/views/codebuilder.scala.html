@@ -4,11 +4,31 @@
 
 @main("CodeBuilder") {
 
-  <div id="panes"></div>
+  <div class="main">
+    <div class="ui four column grid">
 
-  <div class="ui center aligned segment">
-    <p>CodeBuilder under construction.</p>
+      <div class="ui container">
+	<div id="panes"></div>
+      </div>
+      
+      <div class="centered row">
+	<div class="ui primary buttons">
+	  <div class="ui floating dropdown icon button">
+	    <i class="dropdown icon"></i>
+	    <div class="menu">
+	      <div id="new-definition" class="item">Defintion</div>
+	      <div id="new-codeblock" class="item">CodeBlock</div>
+	    </div>
+	  </div>
+	  <div class="ui button">New</div>
+	</div>
+      </div>
+
+    </div>
   </div>
+
+  <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.css"))'>
+  <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.js"))'></script>
 
   @if(Play.isProd(Play.current)) {
   <script src='@routes.Assets.at("opetopiccodebuilder-opt.js")' type="text/javascript"></script>

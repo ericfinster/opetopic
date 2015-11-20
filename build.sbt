@@ -32,7 +32,8 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     libraryDependencies ++= Seq(
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
-      "org.webjars" % "Semantic-UI" % "2.1.6"
+      "org.webjars" % "Semantic-UI" % "2.1.6",
+      "org.webjars" % "codemirror" % "5.8"
     ),
     herokuAppName in Compile := "opetopic",
     herokuSkipSubProjects in Compile := false
@@ -48,7 +49,8 @@ lazy val opetopicCodebuilder = (project in file("opetopic-codebuilder")).
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "org.denigma" %%% "codemirror-facade" % "5.4-0.5"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -58,10 +60,12 @@ lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
   settings(
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "org.denigma" %%% "codemirror-facade" % "5.4-0.5"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)

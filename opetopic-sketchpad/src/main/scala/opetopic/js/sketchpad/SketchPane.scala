@@ -13,10 +13,12 @@ import scalatags.JsDom.all._
 import opetopic._
 import opetopic.ui._
 import opetopic.js._
+import opetopic.pprint._
 import syntax.complex._
 import syntax.cardinal._
 import JsDomFramework._
 import JQuerySemanticUI._
+import OpetopicTTPrinter._
 
 class SketchPane {
 
@@ -56,7 +58,7 @@ class SketchPane {
         i(cls := "dropdown icon"),
         div(cls := "menu")(
           a(cls := "item")("To Scala"),
-          a(cls := "item", onclick := { () => showOpetopicCode })("To OpetopiTT"),
+          a(cls := "item", onclick := { () => showOpetopicCode })("To OpetopicTT"),
           div(cls := "divider"),
           a(cls := "item")("As Png"),
           a(cls := "item")("As Svg")
@@ -75,20 +77,17 @@ class SketchPane {
     ).render
 
   val paneElement = 
-    div(cls := "ui attached center aligned segment").render
-
-  paneElement.appendChild(editor.element.uiElement)
+    div(cls := "ui attached center aligned segment")(editor.element.uiElement).render
 
   val facePaneElement = 
     div(cls := "ui bottom attached raised center aligned segment").render
 
-  val spacerElement = div().render
-
-  val uiElement = div(tabindex := 0).render
-  uiElement.appendChild(topMenuElement)
-  uiElement.appendChild(paneElement)
-  uiElement.appendChild(facePaneElement)
-  uiElement.appendChild(spacerElement)
+  val uiElement = div(tabindex := 0)(
+    topMenuElement,
+    paneElement,
+    facePaneElement,
+    div()
+  ).render
 
   jQuery(uiElement).keydown((e : JQueryEventObject) => {
     if (e.which == 8) {
@@ -129,23 +128,9 @@ class SketchPane {
       box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
       lblCmplx <- box.labelComplex
     } {
+      Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
       jQuery(".ui.modal").modal("show")
-
-      import opetopic.pprint._
-      import OpetopicTTPrinter._
-
-      implicit object OptConstStrTokenizer extends IndexedTokenizer[Lambda[`N <: Nat` => Option[String]]] {
-        def apply[N <: Nat](n: N) = new Tokenizer[Option[String]] {
-          def tokenize(o: Option[String]) = 
-            o match {
-              case None => List(Literal("empty"))
-              case Some(s) => List(Literal(s))
-            }
-        }
-      }
-
-      jQuery("textarea").value(pprintComplex(lblCmplx))
-
+      Sketchpad.editor.refresh()
     }
 
   var currentBox: Option[Sigma[editor.CardinalCellBox]] = None
