@@ -108,7 +108,7 @@ class SketchPane {
         if (c.isLetterOrDigit) appendToLabel(c)
       }
     }
-  }).focus()
+  })
 
   def setLabelMode: Unit = {
     mode = LabelMode

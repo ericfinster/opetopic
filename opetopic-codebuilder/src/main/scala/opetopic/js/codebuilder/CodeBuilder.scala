@@ -21,6 +21,11 @@ object CodeBuilder extends JSApp {
     pane.initialize
   }
 
+  def addDesignBlock: Unit = {
+    val pane = new DesignBlockPane
+    jQuery("#panes").append(pane.uiElement)
+  }
+
   def main : Unit = {
 
     println("Launched Opetopic CodeBuilder.")
@@ -29,12 +34,11 @@ object CodeBuilder extends JSApp {
       js.Dynamic.literal(on = "hover")
     )
 
-    jQuery("#new-definition").click((e: JQueryEventObject) => {
-      println("New Definition!")
+    jQuery("#new-designblock").click((e: JQueryEventObject) => {
+      addDesignBlock
     })
 
     jQuery("#new-codeblock").click((e: JQueryEventObject) => {
-      println("New code block ...")
       addCodeBlock
     })
 
