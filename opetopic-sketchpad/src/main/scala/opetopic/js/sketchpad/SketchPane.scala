@@ -16,6 +16,7 @@ import opetopic.js._
 import syntax.complex._
 import syntax.cardinal._
 import JsDomFramework._
+import JQuerySemanticUI._
 
 class SketchPane {
 
@@ -55,7 +56,7 @@ class SketchPane {
         i(cls := "dropdown icon"),
         div(cls := "menu")(
           a(cls := "item")("To Scala"),
-          a(cls := "item")("To OpetopiTT"),
+          a(cls := "item", onclick := { () => showOpetopicCode })("To OpetopiTT"),
           div(cls := "divider"),
           a(cls := "item")("As Png"),
           a(cls := "item")("As Svg")
@@ -121,6 +122,31 @@ class SketchPane {
     jQuery(uiElement).find("#label-mode-btn").removeClass("active")
     jQuery(uiElement).find("#deform-mode-btn").addClass("active")
   }
+
+  def showOpetopicCode: Unit = 
+    for {
+      boxsig <- currentBox
+      box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+      lblCmplx <- box.labelComplex
+    } {
+      jQuery(".ui.modal").modal("show")
+
+      import opetopic.pprint._
+      import OpetopicTTPrinter._
+
+      implicit object OptConstStrTokenizer extends IndexedTokenizer[Lambda[`N <: Nat` => Option[String]]] {
+        def apply[N <: Nat](n: N) = new Tokenizer[Option[String]] {
+          def tokenize(o: Option[String]) = 
+            o match {
+              case None => List(Literal("empty"))
+              case Some(s) => List(Literal(s))
+            }
+        }
+      }
+
+      jQuery("textarea").value(pprintComplex(lblCmplx))
+
+    }
 
   var currentBox: Option[Sigma[editor.CardinalCellBox]] = None
 

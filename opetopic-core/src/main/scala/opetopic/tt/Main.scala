@@ -51,10 +51,10 @@ object Main {
 
     println("Running printTest ...\n")
 
-    import opetopic.pprint.SimplePPrint._
+    import opetopic.pprint.OpetopicTTPrinter._
     import opetopic.Examples._
 
-    println(pprint(fred3))
+    println(pprintComplex(fredComplex))
 
   }
 
