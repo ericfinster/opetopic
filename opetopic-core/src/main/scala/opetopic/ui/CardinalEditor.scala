@@ -364,17 +364,11 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       makeMouseInvisible(labelElement)
 
       boxRect.onClick = (e: UIMouseEvent) => { thisEditor.select(thisBox) }
-      boxRect.onMouseOver = { (e : UIMouseEvent) => if (! isSelected) hoverFaces }
-      boxRect.onMouseOut = { (e : UIMouseEvent) => if (! isSelected) unhoverFaces }
+      boxRect.onMouseOver = { (e : UIMouseEvent) => hoverFaces }
+      boxRect.onMouseOut = { (e : UIMouseEvent) => unhoverFaces }
 
-      override def select = { isSelected = true ; setSelectedStyle }
-      override def deselect = { isSelected = false ; setDeselectedStyle }
-
-      def faceComplex : ShapeM[Complex[CardinalCellBox, N]] = {
-        val ps = panels.value
-        val cmplx = boxComplex(ps)
-        cmplx.sourceAt(boxDim)(nestingAddress)
-      }
+      override def select = selectFaces
+      override def deselect = deselectFaces
 
       def labelComplex : ShapeM[Complex[OptA, N]] = 
         for {
@@ -384,15 +378,38 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
             box.asInstanceOf[NeutralCellBox[K]].optLabel  // Ugly cast ...
         })
 
+      def faceComplex : ShapeM[Complex[CardinalCellBox, N]] = {
+        val ps = panels.value
+        val cmplx = boxComplex(ps)
+        cmplx.sourceAt(boxDim)(nestingAddress)
+      }
+
+      def selectFaces : Unit = 
+        foreachFace(new IndexedOp[GalleryBoxType] {
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = {
+            pb.isSelected = true
+            pb.setSelectedStyle
+          }
+        })
+
+      def deselectFaces : Unit = 
+        foreachFace(new IndexedOp[GalleryBoxType] {
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = {
+            pb.isSelected = false
+            pb.setDeselectedStyle
+          }
+        })
 
       def hoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
-          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setHoveredStyle
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = 
+            if (! pb.isSelected) pb.setHoveredStyle
         })
 
       def unhoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
-          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setUnhoveredStyle
+          def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = 
+            if (! pb.isSelected) pb.setUnhoveredStyle
         })
 
       def foreachFace(op: IndexedOp[GalleryBoxType]) : Unit =
