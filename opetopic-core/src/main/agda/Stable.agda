@@ -41,27 +41,15 @@ module Stable where
     more : Φ (EndoFix Φ F) X → EndoFix Φ F X
 
   STree : Set → Set
-  STree = EndoFix Free Id
-
-  blorp0 : STree ℕ
-  blorp0 = more (fix 3 done)
-  
-  blorp1 : STree ℕ
-  blorp1 = more (fix 4 (more (fix end done)))
+  STree = Free (EndoFix Free Id)
 
   mutual
 
-    stabilize' : {A : Set} {n : ℕ} (t : Tree A (suc n)) → Free STree A
-    stabilize' leaf = end
-    stabilize' (node a sh) = fix a (stabilize (mapTree sh stabilize'))
-
     stabilize : {A : Set} {n : ℕ} (t : Tree A n) → STree A
-    stabilize {n = zero} (pt a) = more (fix a (more (fix end done)))
-    stabilize {n = suc n} t = more (stabilize' t)
+    stabilize (pt a) = fix a (more (fix end (more end)))
+    stabilize leaf = end
+    stabilize (node a sh) = fix a (more (stabilize (mapTree sh stabilize)))
 
-    -- stabilize : {A : Set} {n : ℕ} (t : Tree A n) → STree A
-    -- stabilize (pt a) = more (fix a (more (fix end done)))
-    -- stabilize leaf = more end
-    -- stabilize {A} (node a sh) = let ssh : STree (Free (STree) A)
-    --                                 ssh = stabilize (mapTree sh (λ b → {!stabilize b!})) -- stabilize (mapTree sh stabilize)
-    --                           in more (fix a ssh)
+  -- So, this looks pretty good actually.  Then a complex is simply a sequence
+  -- of such guys (or corresponding nesting types) which satisfy the zoom relation,
+  -- which of course you would need to work out.
