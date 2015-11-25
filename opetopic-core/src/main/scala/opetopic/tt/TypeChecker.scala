@@ -280,10 +280,7 @@ object OpetopicTypeChecker {
           t = eval(a, rho)
           _ <- check(rho, gma, e, t)
           gma1 <- upG(gma, p, t, eval(e, rho))
-        } yield {
-          println("Finished declaration: " ++ prettyPrint(p))
-          gma1
-        }
+        } yield gma1
       case d@(Drec(p, a, e)) => 
         for {
           _ <- checkT(rho, gma, e)
