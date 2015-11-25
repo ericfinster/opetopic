@@ -220,89 +220,41 @@ object OpetopicParser extends RegexParsers with PackratParsers {
 
 }
 
-// object LineParser extends RegexParsers {
+object LineParser extends RegexParsers {
 
-//   override def skipWhitespace = false
+  override def skipWhitespace = false
 
-//   def nonEmptyLine : Parser[(Int, String)] = 
-//     "[ \\t]*".r ~ "^(?!--).*".r ^^ { case ws ~ ln => (ws.size, ln) }
+  def nonEmptyLine : Parser[(Int, String)] = 
+    "[ \\t]*".r ~ "^(?!--).*".r ^^ { case ws ~ ln => (ws.size, ln) }
 
-//   def emptyLine : Parser[(Int, String)] = 
-//     "[ \\t]*(--.*)?".r ^^^ (0, "")
+  def emptyLine : Parser[(Int, String)] = 
+    "[ \\t]*(--.*)?".r ^^^ (0, "")
 
-//   def unit : Parser[List[String]] = 
-//     repsep(nonEmptyLine | emptyLine, "([\\n\\r]|(\\n\\r))".r) ^^ { joinLines(_) }
+  def unit : Parser[List[String]] = 
+    repsep(nonEmptyLine | emptyLine, "([\\n\\r]|(\\n\\r))".r) ^^ { joinLines(_) }
 
-//   def joinLines(lns: List[(Int, String)]) : List[String] = {
+  def joinLines(lns: List[(Int, String)]) : List[String] = {
 
-//     var res : List[String] = Nil
-//     var lastIndent : Int = 0
+    var res : List[String] = Nil
+    var lastIndent : Int = 0
 
-//     for {
-//       (indent, ln) <- lns
-//       if (ln.length > 0)
-//     } {
-//       if (indent > lastIndent) {
-//         res = 
-//           res match {
-//             case Nil => { lastIndent = indent ; ln :: Nil }
-//             case l :: ls => (l ++ " " ++ ln) :: ls
-//           }
-//       } else {
-//         lastIndent = indent
-//         res = ln :: res
-//       }
-//     }
+    for {
+      (indent, ln) <- lns
+      if (ln.length > 0)
+    } {
+      if (indent > lastIndent) {
+        res = 
+          res match {
+            case Nil => { lastIndent = indent ; ln :: Nil }
+            case l :: ls => (l ++ " " ++ ln) :: ls
+          }
+      } else {
+        lastIndent = indent
+        res = ln :: res
+      }
+    }
 
-//     res.reverse
+    res.reverse
 
-//   }
-// }
-
-// object OpetopicParser extends JavaTokenParsers {
-
-//   def typeDecl: Parser[TypeDecl] = 
-//     ident ~ ":" ~ ident ^^
-//       { case id ~ ":" ~ ty => TypeDecl(id, ty) }
-
-//   def parameter: Parser[TypeDecl] = 
-//     "(" ~ typeDecl ~ ")" ^^
-//       { case "(" ~ decl ~ ")" => decl }
-
-//   def identDecl: Parser[Declaration] = 
-//     ident ~ ":" ~ expr ^^
-//       { case id ~ ":" ~ exp => Declaration(id, exp) }
-  
-//   def identDefn: Parser[Definition] = 
-//     ident ~ "=" ~ expr ^^
-//       { case id ~ "=" ~ exp => Definition(id, exp) }
-
-//   def pi: Parser[Expr] = 
-//     parameter ~ "->" ~ expr ^^
-//       { case p ~ "->" ~ e => Pi(p, e) }
-
-//   def sigma: Parser[Expr] = 
-//     parameter ~ "x" ~ expr ^^
-//       { case p ~ "x" ~ e => Sigma(p, e) }
-
-//   def expr: Parser[Expr] = (
-//       term ~ (expr | "") ^^ {
-//         case e ~ "" => e
-//         case e ~ (f : Expr) => App(e, f)
-//       }
-//   )
-
-//   def term: Parser[Expr] = (
-//       "fn" ~ ident ~ "=>" ~ expr ^^ { case "fn" ~ id ~ "=>" ~ exp => Lam(id, exp) }
-//     | ident ^^ { Ident(_) }
-//     | "(" ~ expr ~ ")" ^^ { case "(" ~ exp ~ ")" => exp }
-//     | pi
-//     | sigma
-//   )
-
-//   def unit : Parser[Statement] = identDecl | identDefn
-
-//   override protected val whiteSpace = """(\s|--.*)+""".r
-
-// }
-
+  }
+}

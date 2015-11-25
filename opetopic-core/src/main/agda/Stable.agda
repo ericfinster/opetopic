@@ -19,6 +19,14 @@ module Stable where
   FreeId : Set → Set
   FreeId = Free Id
 
+  mapFree : {F : Set → Set} ⦃ isF : Functor F ⦄ {X Y : Set} (f : X → Y) (m : Free F X) → Free F Y
+  mapFree f end = end
+  mapFree f (fix x m) = fix (f x) (fmap (mapFree f) m)
+    where open Functor ⦃ ... ⦄ 
+    
+  freeIsFunctor : {F : Set → Set} ⦃ isF : Functor F ⦄ → Functor (Free F)
+  freeIsFunctor = record { fmap = mapFree }
+
   test0 : Free Id ℕ
   test0 = end 
 
@@ -31,25 +39,31 @@ module Stable where
   test3 : Free (Free Id) ℕ
   test3 = fix 3 (fix end (fix end end))
 
-  -- Okay, so this looks about right.
-  -- Now, what should be next?  To get stable
-  -- things, I want to take a fixedpoint of this
-  -- guy.
+  data FreeFix (F : Set → Set) (X : Set) : Set where
+    done : FreeFix F X
+    more : Free (FreeFix F) X → FreeFix F X
 
-  data EndoFix (Φ : (Set → Set) → (Set → Set)) (F : Set → Set) (X : Set) : Set where
-    done : EndoFix Φ F X
-    more : Φ (EndoFix Φ F) X → EndoFix Φ F X
+  mutual 
+
+    mapFreeFix : {F : Set → Set} ⦃ isF : Functor F ⦄ {X Y : Set} (f : X → Y) → FreeFix F X → FreeFix F Y
+    mapFreeFix f done = done
+    mapFreeFix {F} ⦃ isF ⦄ f (more m) = more (mapFree {FreeFix F} ⦃ freeFixIsFunctor ⦄ f m)
+
+    freeFixIsFunctor : {F : Set → Set} ⦃ isF : Functor F ⦄ → Functor (FreeFix F)
+    freeFixIsFunctor = record { fmap = mapFreeFix }
 
   STree : Set → Set
-  STree = Free (EndoFix Free Id)
+  STree X = Free (FreeFix Id) X
 
-  mutual
+  data Nest (A : Set) : Set where
+    ext : (a : A) → Nest A
+    int : (a : A) → (cn : FreeFix Id (Nest A)) → Nest A
 
-    stabilize : {A : Set} {n : ℕ} (t : Tree A n) → STree A
-    stabilize (pt a) = fix a (more (fix end (more end)))
-    stabilize leaf = end
-    stabilize (node a sh) = fix a (more (stabilize (mapTree sh stabilize)))
+  stabilize : {A : Set} {n : ℕ} (t : Tree A n) → STree A
+  stabilize (pt a) = fix a (more (fix end (more end)))
+  stabilize leaf = end
+  stabilize (node a sh) = fix a (more (stabilize (mapTree sh stabilize)))
 
-  -- So, this looks pretty good actually.  Then a complex is simply a sequence
-  -- of such guys (or corresponding nesting types) which satisfy the zoom relation,
-  -- which of course you would need to work out.
+  toTree : {A : Set} (n : Nest A) → STree A
+  toTree (ext a) = end
+  toTree (int a cn) = fix a (mapFreeFix {Id} ⦃ idF ⦄ toTree cn)

@@ -19,42 +19,35 @@ object Main {
     if (args.length != 1) {
 
       println("Usage: opetopictt <filename>")
-      printTest
 
     } else {
 
-      val lines : String = 
-        fromFile(args(0)).mkString
+      val rawLines : String = 
+        fromFile(args(0)).getLines.mkString("\n")
 
-      parseAll(phrase(expr), lines) match {
-        case Success(e, _) => {
+      LineParser.parseAll(LineParser.unit, rawLines) match {
+        case LineParser.Success(lines, _) => 
+          for {
+            l <- lines
+          } {
 
-          println("Parsing succesful, now typechecking ...")
+            println("Parsing line: " ++ l)
 
-          import scalaz.-\/
-          import scalaz.\/-
+            parseAll(phrase(decl), l) match {
+              case Success(d @ Def(p, _, _), _) => {
+                println("Parsed declaration: " ++ p.toString)
+              }
+              case Success(d @ Drec(p, _, _), _) => {
+                println("Parsed recursice declaration: " ++ p.toString)
+              }
+              case err => println(err.toString)
+            }
 
-          check(RNil, Nil, e, Unt) match {
-            case -\/(str) => println("Failure: " ++ str)
-            case \/-(()) => println("Success!")
           }
-
-        }
-        case err => println(err.toString)
+        case err => println("Failed to join lines: " ++ err)
       }
 
     }
-
-  }
-
-  def printTest: Unit = {
-
-    println("Running printTest ...\n")
-
-    import opetopic.pprint.OpetopicTTPrinter._
-    import opetopic.Examples._
-
-    println(pprintComplex(fredComplex))
 
   }
 
