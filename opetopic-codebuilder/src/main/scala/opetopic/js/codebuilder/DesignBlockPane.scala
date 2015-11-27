@@ -13,13 +13,19 @@ import scala.scalajs.js.Dynamic.{literal => lit}
 
 import scala.collection.mutable.ListBuffer
 
+import scalaz.-\/
+import scalaz.\/-
+
 import opetopic._
 import opetopic.ui._
 import opetopic.js._
 import opetopic.tt._
 import opetopic.pprint._
+import syntax.tree._
 import syntax.complex._
 import syntax.cardinal._
+import syntax.nesting._
+
 import JsDomFramework._
 import JQuerySemanticUI._
 import OpetopicTypeChecker._
@@ -97,11 +103,18 @@ class DesignBlockPane {
   jQuery(uiElement).keypress((e : JQueryEventObject) => {
     e.which match {
       case 97 => {
-        jQuery("#id-input").value("")
-        jQuery(".ui.modal").modal(lit(onApprove = { (x: Any) =>
-          assumeVariable(jQuery("#id-input").value().asInstanceOf[String])
+        jQuery("#var-input").value("")
+        jQuery(".ui.modal.var").modal(lit(onApprove = { (x: Any) =>
+          assumeVariable(jQuery("#var-input").value().asInstanceOf[String])
         }))
-        jQuery(".ui.modal").modal("show")
+        jQuery(".ui.modal.var").modal("show")
+      }
+      case 102 => {
+        jQuery("#comp-input").value("")
+        jQuery(".ui.modal.fill").modal(lit(onApprove = { (x: Any) =>
+          composeDiagram(jQuery("#comp-input").value().asInstanceOf[String])
+        }))
+        jQuery(".ui.modal.fill").modal("show")
       }
       case 101 => editor.extrudeSelection
       case 100 => editor.extrudeDrop
@@ -117,27 +130,8 @@ class DesignBlockPane {
     currentBox = Some(
       Sigma(boxsig.n)(boxsig.value.asInstanceOf[EditorBox[boxsig.N]])
     )
-    // val box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
 
-    // for {
-    //   lblCmplx <- box.labelComplex
-    // } {
-
-    //   val gallery = ActiveGallery(baseConfig, lblCmplx)(
-    //     new AffixableFamily[editor.OptA] {
-    //       def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] =
-    //         Affixable.optionAffixable(baseConfig.spacerBounds, editor.r(n))
-    //     }
-    //   )
-
-    //   val div = facePaneElement
-
-    //   val lc = div.lastChild
-    //   if (lc != null) div.removeChild(lc)
-
-    //   div.appendChild(gallery.element.uiElement)
-
-    }
+  }
 
   //============================================================================================
   // SEMANTICS
@@ -148,6 +142,23 @@ class DesignBlockPane {
 
   val context : ListBuffer[(String, Val)] = 
     ListBuffer(("X", Cat))
+
+  var environment : Rho = UpVar(RNil, PVar("X"), Nt(Gen(0, "TC#")))
+
+  @natElim
+  def faceToFrameExpr[N <: Nat](n: N)(catExpr: Expr, cmplx: ExprComplex[N]) : Expr = {
+    case (Z, catExpr, cmplx) => EOb(catExpr)
+    case (S(p), catExpr, Complex(frm, cell)) => ECell(catVar, frm)
+  }
+
+  // def genRho(rho: Rho, gma: Gamma) : Rho =
+  //   gma match {
+  //     case Nil => rho
+  //     case (id, _) :: gs => {
+  //       val thisRho = genRho(rho, gs)
+  //       UpVar(thisRho, PVar(id), Nt(Gen(lRho(thisRho), "TC#")))
+  //     }
+  //   }
 
   def assumeVariable(id: String): Unit = 
     for {
@@ -161,36 +172,18 @@ class DesignBlockPane {
       box.optLabel match {
         case None => {
 
-          // So, here we extract the type.  Next we're going to
-          // extend the context list and then check the type?
           val exprCmplx = lblCmplx.map(RemoveOpts)
           val varType : Expr = faceToFrameExpr(exprCmplx.dim)(catVar, exprCmplx)
 
-          // We don't have to recheck the entire context, just that
-          // this new expression has type Type.
+          val gma = context.toList
+          val rho = environment
 
-          import scalaz.-\/
-          import scalaz.\/-
-
-          def genRho(rho: Rho, gma: Gamma) : Rho = 
-            gma match {
-              case Nil => rho
-              case (id, _) :: gs => {
-                val thisRho = genRho(rho, gs)
-                UpVar(thisRho, PVar(id), Nt(Gen(lRho(thisRho), "TC#")))
-              }
-            }
-
-          val curContext = context.toList
-          val rho = genRho(RNil, curContext)
-
-          checkT(rho, curContext, varType) match {
+          checkT(rho, gma, varType) match {
             case -\/(msg) => println("Error: " ++ msg)
             case \/-(()) => {
 
               (id, eval(varType, rho)) +=: context
-              // println("New Context: " ++ context.toList.map(_.toString).mkString(","))
-              // Last thing is to actually put that guy in the box ...
+              environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
 
               box.optLabel = Some(EVar(id))
               box.panel.refresh
@@ -205,10 +198,68 @@ class DesignBlockPane {
 
     }
 
+
   @natElim
-  def faceToFrameExpr[N <: Nat](n: N)(catExpr: Expr, cmplx: ExprComplex[N]) : Expr = {
-    case (Z, catExpr, cmplx) => EOb(catExpr)
-    case (S(p), catExpr, Complex(frm, cell)) => ECell(catVar, frm)
+  def doCompose[N <: Nat](n: N)(cmplx: ExprComplex[N], id: String) : Unit = {
+    case (Z, cmplx, id) => println("Dimension too low to compose")
+    case (S(p), cmplx @ Complex(Complex(tl, Box(EEmpty, cn)), Dot(EEmpty, _)), id) => {
+
+      val pd = cn.map(_.baseValue)
+      val comp = EComp(catVar, tl, pd)
+      val fill = EFill(catVar, tl, pd)
+
+      for {
+        tgtFrm <- cmplx.target
+      } {
+
+        val compType = faceToFrameExpr(p)(catVar, tgtFrm)
+        val fillType = ECell(catVar, tl >> Box(comp, cn))
+
+        val gma = context.toList
+        val rho = environment
+
+        val res = 
+          for {
+            _ <- checkT(rho, gma, compType)
+            _ <- check(rho, gma, comp, eval(compType, rho))
+            _ <- checkT(rho, gma, fillType)
+            _ <- check(rho, gma, fill, eval(fillType, rho))
+            } yield ()
+
+        res match {
+          case -\/(msg) => println("Error: " ++ msg)
+          case \/-(()) => {
+            println("Success!")
+
+            // Now we need to put them in the editor, re-render
+            // and update the environment.
+            environment = UpVar(rho, PVar(id), eval(comp, rho))
+            environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
+
+            // Crap.  We need references to the boxes.
+            // Also, it means that everything will be a variable, since we want to
+            // hide the ugly ones in a let-declaration.
+
+            // So we have a bit of reorganizing to do ....
+
+            // box.optLabel = Some(EVar(id ++ "-def"))
+            // box.panel.refresh
+            // editor.refreshGallery
+
+          }
+        }
+
+      }
+    }
+    case (S(p), Complex(Complex(tl, _), _), id) =>
+      println("Malformed composition complex ...")
   }
+
+  def composeDiagram(id: String): Unit = 
+    for {
+      boxsig <- currentBox
+      box = boxsig.value
+      lblCmplx <- box.labelComplex
+    } { doCompose(lblCmplx.dim)(lblCmplx.map(RemoveOpts), id) }
 
 }

@@ -46,10 +46,10 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
     val boxGroup = group
     val element = boxGroup
 
-    def setHoveredStyle: Unit = boxRect.fill = "blue"
-    def setUnhoveredStyle: Unit = boxRect.fill = colorHint
-    def setSelectedStyle: Unit = boxRect.fill = "red"
-    def setDeselectedStyle: Unit = boxRect.fill = colorHint
+    def setHoveredStyle: Unit = boxRect.hover // boxRect.fill = "blue"
+    def setUnhoveredStyle: Unit = boxRect.unhover // boxRect.fill = colorHint
+    def setSelectedStyle: Unit = boxRect.select // boxRect.fill = "red"
+    def setDeselectedStyle: Unit = boxRect.deselect // boxRect.fill = colorHint
 
     def render : Unit = {
 

@@ -139,6 +139,22 @@ object JsDomFramework extends ActiveFramework
       document.createElementNS(svgns, "svg").
         asInstanceOf[SVGSVGElement]
 
+    // val defs = document.createElementNS(svgns, "defs")
+    // val filter = document.createElementNS(svgns, "filter")
+    // val feColorMatrix = document.createElementNS(svgns, "feColorMatrix")
+
+    // filter.setAttributeNS(null, "id", "rectHover")
+    // filter.setAttributeNS(null, "x", "0")
+    // filter.setAttributeNS(null, "y", "0")
+
+    // feColorMatrix.setAttributeNS(null, "in", "SourceGraphic")
+    // feColorMatrix.setAttributeNS(null, "type", "hueRotate")
+    // feColorMatrix.setAttributeNS(null, "values", "90")
+
+    // filter.appendChild(feColorMatrix)
+    // defs.appendChild(filter)
+    // svgSvg.appendChild(defs)
+
     installHandlers(svgSvg)
 
     val uiElement = svgSvg
@@ -229,6 +245,15 @@ object JsDomFramework extends ActiveFramework
 
     def fill: String = svgRect.getAttributeNS(null, "fill")
     def fill_=(s: String): Unit = svgRect.setAttributeNS(null, "fill", s)
+
+    def hover: Unit = svgRect.setAttribute("class", "rect-hover")
+      //svgRect.setAttributeNS(null, "filter", "url(#rectHover)")
+    def unhover: Unit = svgRect.setAttribute("class", "")
+      //svgRect.setAttributeNS(null, "filter", "none")
+    def select: Unit = svgRect.setAttribute("class", "rect-select")
+      //svgRect.setAttributeNS(null, "filter", "url(#rectSelect)")
+    def deselect: Unit = svgRect.setAttribute("class", "")
+      //svgRect.setAttributeNS(null, "filter", "none")
 
   }
 

@@ -106,6 +106,11 @@ abstract class ActiveFramework extends UIFramework {
     var strokeWidth: Size
     var fill: String
 
+    def hover: Unit
+    def unhover: Unit
+    def select: Unit
+    def deselect: Unit
+
   }
 
   trait Group { thisGroup : Element with GroupType => 
