@@ -5,26 +5,24 @@
 @main("CodeBuilder") {
 
   <div class="main">
-    <div class="ui four column grid">
 
-      <div class="ui container">
-	<div id="panes"></div>
+    <div class="toc">
+      <div class="ui left vertical inverted labeled icon menu">
+	<a id="new-designblock" class="item">
+	  <i class="cubes icon"></i>
+	  Design
+	</a>
+	<a id="new-codeblock" class="item">
+	  <i class="edit icon"></i>
+	  Code
+	</a>
       </div>
-      
-      <div class="centered row">
-	<div class="ui primary buttons">
-	  <div class="ui floating dropdown icon button">
-	    <i class="dropdown icon"></i>
-	    <div class="menu">
-	      <div id="new-designblock" class="item">DesignBlock</div>
-	      <div id="new-codeblock" class="item">CodeBlock</div>
-	    </div>
-	  </div>
-	  <div id="new-btn" class="ui button">New</div>
-	</div>
-      </div>
-
     </div>
+
+    <div class="article">
+      <div id="panes"></div>
+    </div>
+
   </div>
 
   <div class="ui modal small var">

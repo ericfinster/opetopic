@@ -384,6 +384,18 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
         cmplx.sourceAt(boxDim)(nestingAddress)
       }
 
+      def neutralComplex : ShapeM[Complex[NeutralCellBox, N]] =
+        for {
+          fc <- faceComplex
+        } yield {
+          fc.map(
+            new IndexedMap[CardinalCellBox, NeutralCellBox] {
+              def apply[N <: Nat](n: N)(b: CardinalCellBox[N]) =
+                b.asInstanceOf[NeutralCellBox[N]]
+            }
+          )
+        }
+
       def selectFaces : Unit = 
         foreachFace(new IndexedOp[GalleryBoxType] {
           def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = {

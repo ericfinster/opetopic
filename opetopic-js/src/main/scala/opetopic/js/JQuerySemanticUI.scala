@@ -14,10 +14,19 @@ import org.scalajs.jquery._
 trait JQuerySemanticUI extends JQuery {
 
   def dropdown(opts: js.Object) : this.type = js.native
+
   def modal(opts: js.Object) : this.type = js.native
   def modal(str: String) : this.type = js.native
+
   def sidebar(str: String*) : this.type = js.native
   def sidebar(opts: js.Object) : this.type = js.native
+
+  def accordion() : this.type = js.native
+  def accordion(opts: js.Object) : this.type = js.native
+  def accordion(str: String*) : this.type = js.native
+
+  def popup(opts: js.Object) : this.type = js.native
+  def popup(str: String*) : this.type = js.native
 
 }
 

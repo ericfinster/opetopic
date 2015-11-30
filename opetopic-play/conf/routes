@@ -11,6 +11,9 @@ GET	/sketchpad		    controllers.Application.sketchpad
 # CodeBuilder
 GET	/codebuilder		    controllers.Application.codeBuilder
 
+# Layout
+GET	/layout                     controllers.Application.layout
+
 # Documentation
 GET     /docs                       controllers.Application.docs
 

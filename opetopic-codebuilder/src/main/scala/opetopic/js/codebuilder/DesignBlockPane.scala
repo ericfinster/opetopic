@@ -32,72 +32,128 @@ import OpetopicTypeChecker._
 
 class DesignBlockPane {
 
-  implicit object ExprAffixable extends Affixable[Expr] {
+  case class ExprMarker(
+    val id: String,
+    val expr: Expr,
+    var universal: Option[Expr] = None
+  ) { def isUniversal: Boolean = universal != None }
+
+  type ConstMarker[N <: Nat] = ExprMarker
+  type OptMarker[N <: Nat] = Option[ExprMarker]
+
+  implicit object ExprMarkerAffixable extends Affixable[ExprMarker] {
     type ElementType = TextType
-    def decoration(e: Expr) = {
-
-      def getColor(e: Expr) : String = 
-        e match {
-          case EVar(_) => "#EEF0AF"
-          case _ => "white"
+    def decoration(em: ExprMarker) : Decoration[TextType] = 
+      if (em.isUniversal) {
+        Decoration(text(em.id), "blue")
+      } else
+        em.expr match {
+          case EVar(_) => Decoration(text(em.id), "yellow")
+          case _ => Decoration(text(em.id), "red")
         }
-
-      Decoration(
-        text(PrettyPrinter.prettyPrint(e)),
-        getColor(e)
-      )
-    }
   }
 
-  type ConstExpr[N <: Nat] = Expr
-  type OptExpr[N <: Nat] = Option[Expr]
-
-  object RemoveOpts extends IndexedMap[OptExpr, ConstExpr] {
-    def apply[N <: Nat](n: N)(o: Option[Expr]) : Expr = 
-      o match {
+  object ToExprComplex extends IndexedMap[OptMarker, CstExpr] {
+    def apply[N <: Nat](n: N)(om: OptMarker[N]) : Expr = 
+      om match {
         case None => EEmpty
-        case Some(e) => e
+        case Some(em) => em.expr
       }
   }
 
-  val editor = CardinalEditor[ConstExpr]
+  val editor = CardinalEditor[ConstMarker]
   editor.onSelectAsRoot = selectBox
 
   type EditorBox[N <: Nat] = 
     editor.NeutralCellBox[N]
 
-  val menuElement = 
-    div(cls := "ui top attached menu")(
-      a(cls := "item", onclick := { () => jQuery(sidebarElement).sidebar("toggle")})(
-        i(cls := "sidebar icon"),
-        "Context"
+  val environmentMenu = 
+    div(cls := "ui large selection list").render
+
+  def addEnvironmentElement(id: String) : Unit = {
+
+    val item = div(cls := "item")(
+      div(cls := "content", style := "margin-left: 10px")(id)
+    ).render
+
+    jQuery(environmentMenu).append(item)
+
+    jQuery(item).popup(lit(
+      movePopup = false,
+      popup = environmentPopup,
+      context = jQuery(uiElement),
+      hoverable = "true",
+      position = "right center",
+      on = "click"
+    ))
+
+  }
+
+  val accordion = 
+    div(cls := "ui fluid vertical accordion menu")(
+      div(cls := "item")(
+        div(cls := "active title")(i(cls := "dropdown icon"), "Environment"),
+        // environmentMenu
+        div(cls := "active content")(environmentMenu)
+      ),
+      div(cls := "item")(
+        div(cls := "title")(i(cls := "dropdown icon"), "Left Extensions"),
+        div(cls := "content")("Wilma")
+      ),
+      div(cls := "item")(
+        div(cls := "title")(i(cls := "dropdown icon"), "Right Extensions"),
+        div(cls := "content")("Betty")
+      ),
+      div(cls := "item")(
+        div(cls := "title")(i(cls := "dropdown icon"), "Balanced Diagrams"),
+        div(cls := "content")("Barney")
+      )
+    ).render
+
+  val bottomElement = 
+    div(cls := "ui raised segment")(
+      div(cls := "ui celled grid")(
+        div(cls := "three wide column")(
+          accordion
+        ),
+        div(cls := "ten wide center aligned column")(
+          div(cls := "ui menu")(
+            div(cls := "ui dropdown item")(
+              "Shape",
+              i(cls := "dropdown icon"),
+              div(cls := "menu")(
+                a(cls := "item")("Extrude"),
+                a(cls := "item")("Drop"),
+                a(cls := "item")("Precompose")
+              )
+            ),
+            div(cls := "ui dropdown item")(
+              "Term",
+              i(cls := "dropdown icon"),
+              div(cls := "menu")(
+                a(cls := "item")("Assume Variable"),
+                a(cls := "item")("Compose Diagram")
+              )
+            )
+          ),
+          editor.element.uiElement
+        ),
+        div(cls := "three wide column")(
+          p("Right column")
+        )
       )
     )
 
-  val paneElement =
-    div(cls := "ui basic segment")(
-      editor.element.uiElement
+  val environmentPopup = 
+    div(cls := "ui vertical popup menu", style := "display: none")(
+      a(cls := "item")("Paste to Cursor"),
+      a(cls := "item")("Paste to Editor"),
+      a(cls := "item")("Show Universal")
     ).render
-
-  val sidebarElement = 
-    div(cls := "ui vertical inverted menu sidebar")(
-      div(cls := "item")("Eric", div(cls := "ui label yellow")),
-      div(cls := "item")("is", div(cls := "ui label red")),
-      div(cls := "item")("Cool", div(cls := "ui label blue"))
-    ).render
-
-  val contextElement = 
-    div(cls := "ui bottom attached segment pushable")(
-      sidebarElement, 
-      div(cls := "pusher")(
-        paneElement
-      )
-    )
 
   val uiElement = div(tabindex := 0)(
-    menuElement,
-    contextElement,
-    div()
+    bottomElement,
+    environmentPopup
   ).render
 
   jQuery(uiElement).keypress((e : JQueryEventObject) => {
@@ -151,15 +207,6 @@ class DesignBlockPane {
     case (S(p), catExpr, Complex(frm, cell)) => ECell(catVar, frm)
   }
 
-  // def genRho(rho: Rho, gma: Gamma) : Rho =
-  //   gma match {
-  //     case Nil => rho
-  //     case (id, _) :: gs => {
-  //       val thisRho = genRho(rho, gs)
-  //       UpVar(thisRho, PVar(id), Nt(Gen(lRho(thisRho), "TC#")))
-  //     }
-  //   }
-
   def assumeVariable(id: String): Unit = 
     for {
       boxsig <- currentBox
@@ -172,7 +219,7 @@ class DesignBlockPane {
       box.optLabel match {
         case None => {
 
-          val exprCmplx = lblCmplx.map(RemoveOpts)
+          val exprCmplx = lblCmplx.map(ToExprComplex)
           val varType : Expr = faceToFrameExpr(exprCmplx.dim)(catVar, exprCmplx)
 
           val gma = context.toList
@@ -185,10 +232,16 @@ class DesignBlockPane {
               (id, eval(varType, rho)) +=: context
               environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
 
-              box.optLabel = Some(EVar(id))
+              box.optLabel = Some(ExprMarker(
+                id = id,
+                expr = EVar(id)
+              ))
+
               box.panel.refresh
               editor.refreshGallery
               
+              addEnvironmentElement(id)
+
             }
           }
 
@@ -198,55 +251,81 @@ class DesignBlockPane {
 
     }
 
-
   @natElim
-  def doCompose[N <: Nat](n: N)(cmplx: ExprComplex[N], id: String) : Unit = {
+  def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
     case (Z, cmplx, id) => println("Dimension too low to compose")
-    case (S(p), cmplx @ Complex(Complex(tl, Box(EEmpty, cn)), Dot(EEmpty, _)), id) => {
-
-      val pd = cn.map(_.baseValue)
-      val comp = EComp(catVar, tl, pd)
-      val fill = EFill(catVar, tl, pd)
+    case (S(p), cmplx @ Complex(Complex(_, Box(tgtBox, cn)), Dot(cellBox, _)), id) => {
 
       for {
-        tgtFrm <- cmplx.target
+        cellMarkerCmplx <- cellBox.labelComplex
+        tgtMarkerCmplx <- tgtBox.labelComplex
       } {
 
-        val compType = faceToFrameExpr(p)(catVar, tgtFrm)
-        val fillType = ECell(catVar, tl >> Box(comp, cn))
+        cellMarkerCmplx.map(ToExprComplex).tail match {
+          case Complex(tl, Box(_, cn)) => {
 
-        val gma = context.toList
-        val rho = environment
+            val pd = cn.map(_.baseValue)
+            val comp = EComp(catVar, tl, pd)
+            val fill = EFill(catVar, tl, pd)
+            val fillLext = EFillerLeftExt(catVar, tl, pd)
 
-        val res = 
-          for {
-            _ <- checkT(rho, gma, compType)
-            _ <- check(rho, gma, comp, eval(compType, rho))
-            _ <- checkT(rho, gma, fillType)
-            _ <- check(rho, gma, fill, eval(fillType, rho))
-            } yield ()
+            val compType = faceToFrameExpr(p)(catVar, tgtMarkerCmplx.map(ToExprComplex))
+            val fillType = ECell(catVar, tl >> Box(comp, cn))
 
-        res match {
-          case -\/(msg) => println("Error: " ++ msg)
-          case \/-(()) => {
-            println("Success!")
+            val gma = context.toList
+            val rho = environment
 
-            // Now we need to put them in the editor, re-render
-            // and update the environment.
-            environment = UpVar(rho, PVar(id), eval(comp, rho))
-            environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
+            val res : G[(Val, Val)] =
+              for {
+                _ <- checkT(rho, gma, compType)
+                compVal = eval(compType, rho)
+                _ <- check(rho, gma, comp, compVal)
+                _ <- checkT(rho, gma, fillType)
+                fillVal = eval(fillType, rho)
+                _ <- check(rho, gma, fill, fillVal)
+              } yield (compVal, fillVal)
 
-            // Crap.  We need references to the boxes.
-            // Also, it means that everything will be a variable, since we want to
-            // hide the ugly ones in a let-declaration.
+            res match {
+              case -\/(msg) => println("Error: " ++ msg)
+              case \/-((compVal, fillVal)) => {
 
-            // So we have a bit of reorganizing to do ....
+                println("Success!")
 
-            // box.optLabel = Some(EVar(id ++ "-def"))
-            // box.panel.refresh
-            // editor.refreshGallery
+                // Give the variables a type in the context
+                (id, compVal) +=: context
+                (id ++ "-def", fillVal) +=: context
+
+                // And now given them an expression in the environment
+                environment = UpVar(rho, PVar(id), eval(comp, rho))
+                environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
+
+                cellBox.optLabel = Some(
+                  ExprMarker(
+                    id = id ++ "-def",
+                    expr = fill,
+                    universal = Some(fillLext)
+                  )
+                )
+
+                tgtBox.optLabel = Some(
+                  ExprMarker(
+                    id = id,
+                    expr = comp                    
+                  )
+                )
+
+                tgtBox.panel.refresh
+                cellBox.panel.refresh
+                editor.refreshGallery
+
+                addEnvironmentElement(id)
+                addEnvironmentElement(id ++ "-def")
+
+              }
+            }
 
           }
+          case _ => println("Internal error")
         }
 
       }
@@ -259,7 +338,7 @@ class DesignBlockPane {
     for {
       boxsig <- currentBox
       box = boxsig.value
-      lblCmplx <- box.labelComplex
-    } { doCompose(lblCmplx.dim)(lblCmplx.map(RemoveOpts), id) }
+      nc <- box.neutralComplex
+    } { doCompose(nc.dim)(nc, id) }
 
 }
