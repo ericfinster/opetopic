@@ -40,22 +40,24 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
       r
     }
 
-    boxRect.onMouseOver = { (e : UIMouseEvent) => boxRect.fill = "blue" }
-    boxRect.onMouseOut = { (e : UIMouseEvent) => boxRect.fill = colorHint }
+    boxRect.onMouseOver = { (e : UIMouseEvent) => setHoveredStyle }
+    boxRect.onMouseOut = { (e : UIMouseEvent) => setUnhoveredStyle }
+    // boxRect.addClass("cell")
 
     val boxGroup = group
     val element = boxGroup
 
-    def setHoveredStyle: Unit = boxRect.hover // boxRect.fill = "blue"
-    def setUnhoveredStyle: Unit = boxRect.unhover // boxRect.fill = colorHint
-    def setSelectedStyle: Unit = boxRect.select // boxRect.fill = "red"
-    def setDeselectedStyle: Unit = boxRect.deselect // boxRect.fill = colorHint
+    def setHoveredStyle: Unit = boxRect.hover 
+    def setUnhoveredStyle: Unit = boxRect.unhover 
+    def setSelectedStyle: Unit = boxRect.select 
+    def setDeselectedStyle: Unit = boxRect.deselect 
 
     def render : Unit = {
 
       // We need a more systematic approach to handling the
       // child tree structure ...
-      boxRect.fill = colorHint
+      // boxRect.fill = colorHint
+      boxRect.addClass(classString)
       boxGroup.children = Seq(boxRect, labelElement)
 
       boxRect.x = x ; boxRect.y = y ; boxRect.width = width ; boxRect.height = height

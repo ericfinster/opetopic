@@ -19,10 +19,6 @@ object Application extends Controller {
     Ok(views.html.codebuilder())
   }
 
-  def layout = Action {
-    Ok(views.html.layout())
-  }
-
   def docs = Action {
     Ok(views.html.docs())
   }

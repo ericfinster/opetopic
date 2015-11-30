@@ -67,6 +67,9 @@ abstract class ActiveFramework extends UIFramework {
     var onMouseOver : UIMouseEvent => Unit
     var onKeyDown : UIKeyEvent => Unit
 
+    def addClass(cls: String): Unit
+    def removeClass(cls: String): Unit
+
   }
 
   def rect: RectangleType

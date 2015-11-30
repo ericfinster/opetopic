@@ -48,7 +48,7 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
       val locatedLabel = translate(labelElement, labelXPos - labelBounds.x, labelYPos - labelBounds.y)
 
-      group(rect(x, y, width, height, cornerRadius, "black", strokeWidth, colorHint), locatedLabel)
+      group(rect(x, y, width, height, cornerRadius, "black", strokeWidth, "none"), locatedLabel)
 
     }
 

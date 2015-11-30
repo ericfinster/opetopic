@@ -90,9 +90,13 @@ abstract class UIFramework {
   // AFFIXABLE TYPECLASS
   //
 
+  // Okay, we shouldn't use a color hint, we should use a class.
+  // Then the idea is that we can define all this in css using all
+  // of the semantic options available to us.
+
   case class Decoration[+E <: Element](
     val boundedElement : BoundedElement[E],
-    val colorHint : String = "white"
+    val classString: String = "cell"
   )
 
   trait Affixable[A] {

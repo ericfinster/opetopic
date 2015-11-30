@@ -45,11 +45,11 @@ class DesignBlockPane {
     type ElementType = TextType
     def decoration(em: ExprMarker) : Decoration[TextType] = 
       if (em.isUniversal) {
-        Decoration(text(em.id), "blue")
+        Decoration(text(em.id), "universal")
       } else
         em.expr match {
-          case EVar(_) => Decoration(text(em.id), "yellow")
-          case _ => Decoration(text(em.id), "red")
+          case EVar(_) => Decoration(text(em.id), "variable")
+          case _ => Decoration(text(em.id), "composite")
         }
   }
 
@@ -147,7 +147,7 @@ class DesignBlockPane {
   val environmentPopup = 
     div(cls := "ui vertical popup menu", style := "display: none")(
       a(cls := "item")("Paste to Cursor"),
-      a(cls := "item")("Paste to Editor"),
+      a(cls := "item")("Paste to New Editor"),
       a(cls := "item")("Show Universal")
     ).render
 

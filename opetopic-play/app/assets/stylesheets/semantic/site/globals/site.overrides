@@ -1,3 +1,21 @@
 /*******************************
          Site Overrides
 *******************************/
+
+.cell { fill: @white; }
+.cell.hovered { fill: @darkWhite }
+.cell.selected { fill: @midWhite }
+
+.polarized { fill: @lightGrey }
+
+.variable { fill: @lightYellow }
+.variable.hovered { fill: @lightYellowHover }
+.variable.selected { fill: @lightYellowFocus }
+
+.composite { fill: @lightRed }
+.composite.hovered { fill: @lightRedHover }
+.composite.selected { fill: @lightRedFocus }
+
+.universal { fill: @lightBlue }
+.universal.hovered { fill: @lightBlueHover }
+.universal.selected { fill: @lightBlueFocus }

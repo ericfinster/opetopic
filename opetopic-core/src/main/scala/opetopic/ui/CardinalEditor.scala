@@ -415,13 +415,13 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       def hoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
           def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = 
-            if (! pb.isSelected) pb.setHoveredStyle
+            pb.setHoveredStyle
         })
 
       def unhoverFaces : Unit =
         foreachFace(new IndexedOp[GalleryBoxType] {
           def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = 
-            if (! pb.isSelected) pb.setUnhoveredStyle
+            pb.setUnhoveredStyle
         })
 
       def foreachFace(op: IndexedOp[GalleryBoxType]) : Unit =
@@ -448,9 +448,9 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       boxRect.onClick = { (e : UIMouseEvent) => thisEditor.deselectAll }
       boxRect.onMouseOver = { (e : UIMouseEvent) => () }
       boxRect.onMouseOut = { (e : UIMouseEvent) => () }
+      boxRect.addClass("polarized")
 
       override def canSelect = false
-      override def colorHint = "lightgrey"
 
     }
 
@@ -469,9 +469,9 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       boxRect.onClick = { (e : UIMouseEvent) => thisEditor.deselectAll }
       boxRect.onMouseOver = { (e : UIMouseEvent) => () }
       boxRect.onMouseOut = { (e : UIMouseEvent) => () }
+      boxRect.addClass("polarized")
 
       override def canSelect = false
-      override def colorHint = "lightgrey"
 
     }
 

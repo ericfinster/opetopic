@@ -89,6 +89,12 @@ object JsDomFramework extends ActiveFramework
       el.onmouseout = { (e : MouseEvent) => onMouseOut(e) }
     }
 
+    def addClass(cls: String): Unit = 
+      uiElement.classList.add(cls)
+
+    def removeClass(cls: String): Unit = 
+      uiElement.classList.remove(cls)
+
   }
 
   def makeMouseInvisible(el: Element) : Element = {
@@ -246,14 +252,10 @@ object JsDomFramework extends ActiveFramework
     def fill: String = svgRect.getAttributeNS(null, "fill")
     def fill_=(s: String): Unit = svgRect.setAttributeNS(null, "fill", s)
 
-    def hover: Unit = svgRect.setAttribute("class", "rect-hover")
-      //svgRect.setAttributeNS(null, "filter", "url(#rectHover)")
-    def unhover: Unit = svgRect.setAttribute("class", "")
-      //svgRect.setAttributeNS(null, "filter", "none")
-    def select: Unit = svgRect.setAttribute("class", "rect-select")
-      //svgRect.setAttributeNS(null, "filter", "url(#rectSelect)")
-    def deselect: Unit = svgRect.setAttribute("class", "")
-      //svgRect.setAttributeNS(null, "filter", "none")
+    def hover: Unit = addClass("hovered") // svgRect.setAttribute("class", "rect-hover")
+    def unhover: Unit = removeClass("hovered") // svgRect.setAttribute("class", "")
+    def select: Unit = addClass("selected") // svgRect.setAttribute("class", "rect-select")
+    def deselect: Unit = removeClass("selected") // svgRect.setAttribute("class", "")
 
   }
 

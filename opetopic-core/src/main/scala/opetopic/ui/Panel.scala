@@ -189,7 +189,7 @@ trait HasPanels { self : UIFramework =>
 
     def labelElement : Element = decoration.boundedElement.element
     def labelBounds : Bounds = decoration.boundedElement.bounds
-    def colorHint : String = decoration.colorHint
+    def classString : String = decoration.classString
 
     def bounds: Bounds = Bounds(x, y, width, height)
 
