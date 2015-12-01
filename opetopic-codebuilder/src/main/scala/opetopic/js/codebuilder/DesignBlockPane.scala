@@ -61,11 +61,8 @@ class DesignBlockPane {
       }
   }
 
-  val editor = CardinalEditor[ConstMarker]
-  editor.onSelectAsRoot = selectBox
 
-  type EditorBox[N <: Nat] = 
-    editor.NeutralCellBox[N]
+  var activeInstance : Option[EditorInstance] = None
 
   val environmentMenu = 
     div(cls := "ui large selection list").render
@@ -89,11 +86,37 @@ class DesignBlockPane {
 
   }
 
+  var instanceCount: Int = 0
+
+  def newInstance: Unit = {
+
+    val instance = new EditorInstance
+    instanceCount += 1
+
+    val icStr = instanceCount.toString
+    val tabName = "tab-" ++ icStr
+
+    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
+      instance.editor.element.uiElement
+    ).render
+
+    val label = 
+      a(cls := "ui grey circular label", 
+        onclick := { () => { jQuery(tab).tab("change tab", tabName) ; activeInstance = Some(instance) } }
+      )(icStr).render
+
+    jQuery(tabs).append(tab)
+    jQuery(tabLabels).append(label)
+    jQuery(tab).tab("change tab", tabName)
+
+    activeInstance = Some(instance)
+
+  }
+
   val accordion = 
     div(cls := "ui fluid vertical accordion menu")(
       div(cls := "item")(
         div(cls := "active title")(i(cls := "dropdown icon"), "Environment"),
-        // environmentMenu
         div(cls := "active content")(environmentMenu)
       ),
       div(cls := "item")(
@@ -108,6 +131,12 @@ class DesignBlockPane {
         div(cls := "title")(i(cls := "dropdown icon"), "Balanced Diagrams"),
         div(cls := "content")("Barney")
       )
+    ).render
+
+  val tabs = div().render
+  val tabLabels = 
+    div(cls := "ui center aligned segment")(
+      a(cls := "ui grey circular label", onclick := { () => newInstance })("+")
     ).render
 
   val bottomElement = 
@@ -136,7 +165,7 @@ class DesignBlockPane {
               )
             )
           ),
-          editor.element.uiElement
+          tabs, tabLabels
         ),
         div(cls := "three wide column")(
           p("Right column")
@@ -161,33 +190,23 @@ class DesignBlockPane {
       case 97 => {
         jQuery("#var-input").value("")
         jQuery(".ui.modal.var").modal(lit(onApprove = { (x: Any) =>
-          assumeVariable(jQuery("#var-input").value().asInstanceOf[String])
+          for { i <- activeInstance }{ i.assumeVariable(jQuery("#var-input").value().asInstanceOf[String]) }
         }))
         jQuery(".ui.modal.var").modal("show")
       }
       case 102 => {
         jQuery("#comp-input").value("")
         jQuery(".ui.modal.fill").modal(lit(onApprove = { (x: Any) =>
-          composeDiagram(jQuery("#comp-input").value().asInstanceOf[String])
+          for { i <- activeInstance }{ i.composeDiagram(jQuery("#comp-input").value().asInstanceOf[String]) }
         }))
         jQuery(".ui.modal.fill").modal("show")
       }
-      case 101 => editor.extrudeSelection
-      case 100 => editor.extrudeDrop
-      case 112 => editor.sprout
+      case 101 => for { i <- activeInstance } { i.editor.extrudeSelection }
+      case 100 => for { i <- activeInstance } { i.editor.extrudeDrop }
+      case 112 => for { i <- activeInstance } { i.editor.sprout }
       case _ => ()
     }
   })
-
-  var currentBox: Option[Sigma[EditorBox]] = None
-
-  def selectBox(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
-
-    currentBox = Some(
-      Sigma(boxsig.n)(boxsig.value.asInstanceOf[EditorBox[boxsig.N]])
-    )
-
-  }
 
   //============================================================================================
   // SEMANTICS
@@ -207,138 +226,157 @@ class DesignBlockPane {
     case (S(p), catExpr, Complex(frm, cell)) => ECell(catVar, frm)
   }
 
-  def assumeVariable(id: String): Unit = 
-    for {
-      boxsig <- currentBox
-      box = boxsig.value
-      lblCmplx <- box.labelComplex
-    } {
+  class EditorInstance {
 
-      println("Trying to assume a variable named: " ++ id)
+    val editor = CardinalEditor[ConstMarker]
+    editor.onSelectAsRoot = onSelectAsRoot
 
-      box.optLabel match {
-        case None => {
+    type EditorBox[N <: Nat] = editor.NeutralCellBox[N]
 
-          val exprCmplx = lblCmplx.map(ToExprComplex)
-          val varType : Expr = faceToFrameExpr(exprCmplx.dim)(catVar, exprCmplx)
+    var currentBox: Option[Sigma[EditorBox]] = None
 
-          val gma = context.toList
-          val rho = environment
+    def onSelectAsRoot(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
 
-          checkT(rho, gma, varType) match {
-            case -\/(msg) => println("Error: " ++ msg)
-            case \/-(()) => {
-
-              (id, eval(varType, rho)) +=: context
-              environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
-
-              box.optLabel = Some(ExprMarker(
-                id = id,
-                expr = EVar(id)
-              ))
-
-              box.panel.refresh
-              editor.refreshGallery
-              
-              addEnvironmentElement(id)
-
-            }
-          }
-
-        }
-        case Some(_) => println("Box is occupied")
-      }
+      currentBox = Some(
+        Sigma(boxsig.n)(boxsig.value.asInstanceOf[EditorBox[boxsig.N]])
+      )
 
     }
 
-  @natElim
-  def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
-    case (Z, cmplx, id) => println("Dimension too low to compose")
-    case (S(p), cmplx @ Complex(Complex(_, Box(tgtBox, cn)), Dot(cellBox, _)), id) => {
-
+    def assumeVariable(id: String): Unit =
       for {
-        cellMarkerCmplx <- cellBox.labelComplex
-        tgtMarkerCmplx <- tgtBox.labelComplex
+        boxsig <- currentBox
+        box = boxsig.value
+        lblCmplx <- box.labelComplex
       } {
 
-        cellMarkerCmplx.map(ToExprComplex).tail match {
-          case Complex(tl, Box(_, cn)) => {
+        println("Trying to assume a variable named: " ++ id)
 
-            val pd = cn.map(_.baseValue)
-            val comp = EComp(catVar, tl, pd)
-            val fill = EFill(catVar, tl, pd)
-            val fillLext = EFillerLeftExt(catVar, tl, pd)
+        box.optLabel match {
+          case None => {
 
-            val compType = faceToFrameExpr(p)(catVar, tgtMarkerCmplx.map(ToExprComplex))
-            val fillType = ECell(catVar, tl >> Box(comp, cn))
+            val exprCmplx = lblCmplx.map(ToExprComplex)
+            val varType : Expr = faceToFrameExpr(exprCmplx.dim)(catVar, exprCmplx)
 
             val gma = context.toList
             val rho = environment
 
-            val res : G[(Val, Val)] =
-              for {
-                _ <- checkT(rho, gma, compType)
-                compVal = eval(compType, rho)
-                _ <- check(rho, gma, comp, compVal)
-                _ <- checkT(rho, gma, fillType)
-                fillVal = eval(fillType, rho)
-                _ <- check(rho, gma, fill, fillVal)
-              } yield (compVal, fillVal)
-
-            res match {
+            checkT(rho, gma, varType) match {
               case -\/(msg) => println("Error: " ++ msg)
-              case \/-((compVal, fillVal)) => {
+              case \/-(()) => {
 
-                println("Success!")
+                (id, eval(varType, rho)) +=: context
+                environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
 
-                // Give the variables a type in the context
-                (id, compVal) +=: context
-                (id ++ "-def", fillVal) +=: context
+                box.optLabel = Some(ExprMarker(
+                  id = id,
+                  expr = EVar(id)
+                ))
 
-                // And now given them an expression in the environment
-                environment = UpVar(rho, PVar(id), eval(comp, rho))
-                environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
-
-                cellBox.optLabel = Some(
-                  ExprMarker(
-                    id = id ++ "-def",
-                    expr = fill,
-                    universal = Some(fillLext)
-                  )
-                )
-
-                tgtBox.optLabel = Some(
-                  ExprMarker(
-                    id = id,
-                    expr = comp                    
-                  )
-                )
-
-                tgtBox.panel.refresh
-                cellBox.panel.refresh
+                box.panel.refresh
                 editor.refreshGallery
-
+                
                 addEnvironmentElement(id)
-                addEnvironmentElement(id ++ "-def")
 
               }
             }
 
           }
-          case _ => println("Internal error")
+          case Some(_) => println("Box is occupied")
         }
 
       }
-    }
-    case (S(p), Complex(Complex(tl, _), _), id) =>
-      println("Malformed composition complex ...")
-  }
 
-  def composeDiagram(id: String): Unit = 
-    for {
-      boxsig <- currentBox
-      box = boxsig.value
-      nc <- box.neutralComplex
-    } { doCompose(nc.dim)(nc, id) }
+    @natElim
+    def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
+      case (Z, cmplx, id) => println("Dimension too low to compose")
+      case (S(p), cmplx @ Complex(Complex(_, Box(tgtBox, cn)), Dot(cellBox, _)), id) => {
+
+        for {
+          cellMarkerCmplx <- cellBox.labelComplex
+          tgtMarkerCmplx <- tgtBox.labelComplex
+        } {
+
+          cellMarkerCmplx.map(ToExprComplex).tail match {
+            case Complex(tl, Box(_, cn)) => {
+
+              val pd = cn.map(_.baseValue)
+              val comp = EComp(catVar, tl, pd)
+              val fill = EFill(catVar, tl, pd)
+              val fillLext = EFillerLeftExt(catVar, tl, pd)
+
+              val compType = faceToFrameExpr(p)(catVar, tgtMarkerCmplx.map(ToExprComplex))
+              val fillType = ECell(catVar, tl >> Box(comp, cn))
+
+              val gma = context.toList
+              val rho = environment
+
+              val res : G[(Val, Val)] =
+                for {
+                  _ <- checkT(rho, gma, compType)
+                  compVal = eval(compType, rho)
+                  _ <- check(rho, gma, comp, compVal)
+                  _ <- checkT(rho, gma, fillType)
+                  fillVal = eval(fillType, rho)
+                  _ <- check(rho, gma, fill, fillVal)
+                } yield (compVal, fillVal)
+
+              res match {
+                case -\/(msg) => println("Error: " ++ msg)
+                case \/-((compVal, fillVal)) => {
+
+                  println("Success!")
+
+                  // Give the variables a type in the context
+                  (id, compVal) +=: context
+                  (id ++ "-def", fillVal) +=: context
+
+                  // And now given them an expression in the environment
+                  environment = UpVar(rho, PVar(id), eval(comp, rho))
+                  environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
+
+                  cellBox.optLabel = Some(
+                    ExprMarker(
+                      id = id ++ "-def",
+                      expr = fill,
+                      universal = Some(fillLext)
+                    )
+                  )
+
+                  tgtBox.optLabel = Some(
+                    ExprMarker(
+                      id = id,
+                      expr = comp
+                    )
+                  )
+
+                  tgtBox.panel.refresh
+                  cellBox.panel.refresh
+                  editor.refreshGallery
+
+                  addEnvironmentElement(id)
+                  addEnvironmentElement(id ++ "-def")
+
+                }
+              }
+
+            }
+            case _ => println("Internal error")
+          }
+
+        }
+      }
+      case (S(p), Complex(Complex(tl, _), _), id) =>
+        println("Malformed composition complex ...")
+    }
+
+    def composeDiagram(id: String): Unit =
+      for {
+        boxsig <- currentBox
+        box = boxsig.value
+        nc <- box.neutralComplex
+      } { doCompose(nc.dim)(nc, id) }
+
+  }
 
 }

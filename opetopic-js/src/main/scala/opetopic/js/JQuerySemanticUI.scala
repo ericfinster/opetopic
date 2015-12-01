@@ -28,6 +28,10 @@ trait JQuerySemanticUI extends JQuery {
   def popup(opts: js.Object) : this.type = js.native
   def popup(str: String*) : this.type = js.native
 
+  def tab() : this.type = js.native
+  def tab(opts: js.Object) : this.type = js.native
+  def tab(str: String*) : this.type = js.native
+
 }
 
 object JQuerySemanticUI {
