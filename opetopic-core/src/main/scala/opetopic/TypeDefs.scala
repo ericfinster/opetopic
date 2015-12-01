@@ -68,6 +68,11 @@ trait TypeDefs extends NatConstants {
     def apply[N <: Nat](a: A[N]) : A[N#Plus[K]]
   }
 
+  implicit def constantShift[A, K <: Nat] : IndexedShift[Lambda[`N <: Nat` => A], K] = 
+    new IndexedShift[Lambda[`N <: Nat` => A], K] {
+      def apply[N <: Nat](a: A) = a
+    }
+
   trait IndexedFold[A[_ <: Nat], B] {
     def caseZero : B
     def caseSucc[P <: Nat](p: P)(ap: A[P], b: B) : B

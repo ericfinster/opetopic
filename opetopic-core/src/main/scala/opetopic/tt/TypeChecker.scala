@@ -123,8 +123,11 @@ object OpetopicTypeChecker {
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
       case ECat => Cat
+      case EOb(EHom(e, c)) => eval(ECell(e, c), rho)
       case EOb(e) => Ob(eval(e, rho))
+      case ECell(EHom(e, c), d) => eval(ECell(e, c.concat(d)), rho) // Cells in a hom category reduce ...
       case ECell(e, c) => Cell(eval(e, rho), c.map(EvalMap(rho)))
+      case EHom(EHom(e, c), d) => eval(EHom(e, c.concat(d)), rho) // Composition of homs reduces ...
       case EHom(e, c) => Hom(eval(e, rho), c.map(EvalMap(rho)))
       case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
@@ -173,8 +176,11 @@ object OpetopicTypeChecker {
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Nt(k) => rbN(i, k)
       case Cat => ECat
+      case Ob(Hom(v, c)) => rbV(i, Cell(v, c))
       case Ob(v) => EOb(rbV(i, v))
+      case Hom(Hom(v, c), d) => rbV(i, Hom(v, c.concat(d)))
       case Hom(v, c) => EHom(rbV(i, v), c.map(RbMap(i)))
+      case Cell(Hom(v, c), d) => rbV(i, Cell(v, c.concat(d)))
       case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
       case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
@@ -443,6 +449,11 @@ object OpetopicTypeChecker {
           _ <- check(rho, gma, e, Cat)
         } yield ()
       case (ECell(e, c), Type) => 
+        for {
+          _ <- check(rho, gma, e, Cat)
+          _ <- checkFrame(c.dim)(rho, gma, c, eval(e, rho))
+        } yield ()
+      case (EHom(e, c), Cat) =>
         for {
           _ <- check(rho, gma, e, Cat)
           _ <- checkFrame(c.dim)(rho, gma, c, eval(e, rho))
