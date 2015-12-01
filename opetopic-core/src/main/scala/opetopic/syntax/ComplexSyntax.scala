@@ -89,6 +89,9 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
   def toCardinal : Cardinal[A, N] = 
     Cardinal.complexToCardinal(cmplx.length.pred)(cmplx)._1
 
+  def concat[M <: Nat](d: Complex[A, M])(implicit shift: IndexedShift[A, S[N]]) : Complex[A, S[N#Plus[M]]] = 
+    Complex.concatComplex(d.length.pred)(cmplx, d)(shift)
+
 }
 
 final class ComplexSuccOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, S[N]]) {

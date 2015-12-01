@@ -64,13 +64,9 @@ trait TypeDefs extends NatConstants {
     def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
   }
 
-  // trait IndexedWriter[A[_ <: Nat]] {
-  //   def writer[N <: Nat] : upickle.Writer[A[N]]
-  // }
-
-  // trait IndexedReader[A[_ <: Nat]] {
-  //   def reader[N <: Nat] : upickle.Reader[A[N]]
-  // }
+  trait IndexedShift[A[_ <: Nat], K <: Nat] {
+    def apply[N <: Nat](a: A[N]) : A[N#Plus[K]]
+  }
 
   trait IndexedFold[A[_ <: Nat], B] {
     def caseZero : B

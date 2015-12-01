@@ -20,6 +20,9 @@ object TypeLemmas {
   def natSymm[N <: Nat, M <: Nat](ev: N =::= M) : M =::= N = 
     symm[Nothing, Nat, N, M](ev)
 
+  def natTrans[M <: Nat, N <: Nat, O <: Nat](e: M =::= N, f: N =::= O) : M =::= O =
+    e.andThen(f)
+
   def ap[F[_], A, B](ev: A === B) : F[A] === F[B] = 
     lift[Nothing, Nothing, Any, Any, F, A, B](ev)
 
@@ -53,6 +56,12 @@ object TypeLemmas {
   def plusUnitRight[N <: Nat](n: N) : N =::= N#Plus[Z.type] = {
     case Z => refl
     case S(p) => apS(plusUnitRight(p))
+  }
+
+  @natElim
+  def plusComm[N <: Nat, M <: Nat](n: N, m: M) : N#Plus[M] =::= M#Plus[N] = {
+    case (Z, m) => plusUnitRight(m)
+    case (S(p: P), m) => natTrans(apS(plusComm(p, m)), natSymm(plusSuccLemma(p)))
   }
 
   def lteSucc[M <: Nat, N <: Nat, D <: Nat](lte : Lte[M, N, D]) : Lte[M, S[N], S[D]] = 

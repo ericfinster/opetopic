@@ -356,27 +356,33 @@ trait NestingFunctions {
   // SUSPENSION
   //
 
-  def suspendBox[A, N <: Nat, K <: Nat](n: N, k: K)(box: Box[A, N]) : Box[A, N#Plus[K]] = 
+  def suspendBox[A[_ <: Nat], N <: Nat, K <: Nat](n: N, k: K)(
+    box: Box[A[N], N], shift: IndexedShift[A, K]
+  ) : Box[A[N#Plus[K]], N#Plus[K]] =
     box match {
       case Box(a, cn) => {
+
         val newCanopy =
           Tree.suspendTree(n, k)(
-            Tree.map(cn)(suspendNesting(n, k)(_))
+            Tree.map(cn)(suspendNesting(n, k)(_, shift))
           )
 
-        Box(a, newCanopy)
+        Box(shift(a), newCanopy)
+
       }
     }
 
+
   @natElim
-  def suspendNesting[A, N <: Nat, K <: Nat](n: N, k: K)(nst: Nesting[A, N]) : Nesting[A, N#Plus[K]] = {
-    case (Z, Z, nst) => nst
-    case (Z, S(q: Q), Obj(a)) => Dot(a, S(q))
-    case (Z, S(q: Q), Box(a, cn)) => suspendBox(Z, S(q))(Box(a, cn))
-    case (S(p: P), Z, Dot(a, _)) => Dot(a, TypeLemmas.addNat(S(p), Z))
-    case (S(p: P), Z, Box(a, cn)) => suspendBox(S(p), Z)(Box(a, cn))
-    case (S(p: P), S(q: Q), Dot(a, _)) => Dot(a, TypeLemmas.addNat(S(p), S(q)))
-    case (S(p: P), S(q: Q), Box(a, cn)) => suspendBox(S(p), S(q))(Box(a, cn))
+  def suspendNesting[A[_ <: Nat], N <: Nat, K <: Nat](n: N, k: K)(nst: Nesting[A[N], N], shift: IndexedShift[A, K]) 
+      : Nesting[A[N#Plus[K]], N#Plus[K]] = {
+    case (Z, Z, nst, shift) => nst
+    case (Z, S(q: Q), Obj(a), shift) => Dot(shift(a), S(q))
+    case (Z, S(q: Q), Box(a, cn), shift) => suspendBox(Z, S(q))(Box(a, cn), shift)
+    case (S(p: P), Z, Dot(a, _), shift) => Dot(shift(a), TypeLemmas.addNat(S(p), Z))
+    case (S(p: P), Z, Box(a, cn), shift) => suspendBox(S(p), Z)(Box(a, cn), shift)
+    case (S(p: P), S(q: Q), Dot(a, _), shift) => Dot(shift(a), TypeLemmas.addNat(S(p), S(q)))
+    case (S(p: P), S(q: Q), Box(a, cn), shift) => suspendBox(S(p), S(q))(Box(a, cn), shift)
   }
 
 }
