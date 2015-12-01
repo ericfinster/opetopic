@@ -2,17 +2,280 @@
 
 @main("Documentation") {
 
-  <div class="ui container main">
-    <div class="ui segment raised">
+  <link rel='stylesheet' href='@routes.Assets.at("stylesheets/syntax.css")'>
 
-      <h2 class="ui dividing header">Introduction</h2>
+  <style>
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
 
-      <p>
-	Here I will introduce the ideas which are important
-	for understanding what Opetopic is, and what it does.
-      </p>
+    .highlight {
+      padding-left: 20px;
+    }
+  </style>
+
+  <div class="main">
+    <div class="ui container" style="margin-top: 10px;">
+
+      <div class="ui grid">
+
+	<div class="four wide column">
+      	  <div class="ui vertical fluid menu">
+      	    <a class="item active" data-tab="intro">Introduction</a>
+      	    <a class="item" data-tab="hdts">Higher Dimensional Trees</a>
+      	    <a class="item" data-tab="opetopes">Opetopes</a>
+      	  </div>
+	</div>
+
+	<div class="twelve wide column">
+	  <div class="ui segment raised">
+
+      	    <div class="ui active tab basic segment" data-tab="intro">
+      	      <h2 class="ui dividing header">Introduction</h2>
+
+      	      <p>
+      		Univalent type theory has uncovered new connections between
+      		higher dimensional category theory, logic, and computer science.
+      		Since its inception, three main strands of research have aimed
+      		at deepening and extending this connection.
+      	      </p>
+
+	      <h4 class="ui header">Model Theory</h4>
+
+	      <p>
+		Soon after introducting the homotopy theoretic interpretation 
+		of type theory, Voevodsky, et al, 
+		<a href="http://arxiv.org/abs/1211.2851">showed</a> that there was indeed a 
+		<em>model</em> of the theory in simplicial sets, which additionally
+		satisfied his <em>univalence axiom</em>.  A consequence is that
+		theorems proved internally to type theory are in fact theorems about
+		homotopy types in the traditional mathematical sense of the word.
+	      </p>
+
+	      <p>
+		Various other authors have extended these results, showing that we can
+		obtain univalent models in many other categories.
+	      </p>
+
+	      <h4 class="ui header">Computational Theory</h4>
+
+	      <p>
+		In practice, using univalent type theory has involved adding <em>axioms</em>
+		to existing type theories in order to access higher dimensional information.
+		The univalence axiom itself, but also <em>higher inductive types</em> must
+		be added to proof assistants by hand.
+	      </p>
+
+	      <p>
+		From a type-theoretic perspective, this situation is less than ideal, since
+		adding axioms to type theory breaks its computational interpretation: a 
+		proof assistant is unable to reduce a term which contains an instance of 
+		an axiom, since the simple addition of an axiom does not explain its reduction
+		behavior.
+	      </p>
+
+	      <p>
+		The <a href="https://github.com/mortberg/cubicaltt">cubical type theory</a> of
+		Coquand, Cohen, Huber, and Mortberg, aims at solving this problem.
+	      </p>
+
+	      <h4 class="ui header">Coherence Theory</h4>
+
+      	      <p>
+		As with most investigations into higher category theory, problems
+		of coherence have cropped up almost from the beginning.  From an
+		internal perspective, the types of univalent type theory behave
+		like infinity groupoids, coherent at all levels.  But we cannot
+		describe internally what coherence <em>means</em>, since doing
+		so requires us to write down types with infinitely many constructors.
+      	      </p>
+
+	      <p>
+		Most work on this problem has focused on finding a reasonable internal
+		definition of <em>simplicial type</em>.  The main idea is that axiomatizing
+		such an object would allow us to speak of main other kinds of higher 
+		coherent objects such as internal groupoids and (infinity, 1)-categories.
+		So far, however, no simple solution to this problem has been found.
+	      </p>
+
+      	      <h3 class="ui dividing header">Why Opetopes?</h3>
+
+	      <p>
+		This project aims to use the Baez-Dolan notion of <em>opetope</em>
+		to investigate coherence problems in type theory. A number of aspects
+		of the theory of opetopes seems to make them nicely suited to 
+		syntactic approaches to higher category theory like type theory.
+	      </p>
+
+      	    </div>
+
+      	    <div class="ui tab basic segment" data-tab="hdts">
+      	      <h2 class="ui dividing header">Higher Dimensional Trees</h2>
+
+	      <p>
+		Opetopes are a collection of polytopes which correspond
+		to certain well-formed higher dimensional trees.  It takes
+		some work to make precise what one means by well-formed,
+		so in this section, we will warm up with a simpler definition
+		of what exactly is a higher dimensional tree, and we will
+		use this to motivate the definition of opetopes to follow.
+	      </p>
+
+	      <p>
+		We begin by examining some low dimensional incarnations
+		of trees.  The data type definitions which follow are
+		given in two forms, one using more or less standard naming
+		conventions, and the other named in order to bring out 
+		the pattern we are trying to generalize.
+	      </p>
+
+	      <p>
+		A zero-dimensional tree is just a point.  As we want to
+		consider trees with nodes labeled in some type A, this
+		means that the type constructor corresponding to zero-
+		dimesional trees is the Id constructor, which is presented
+		below.
+	      </p>
+
+	      <div class="ui celled grid">
+		<div class="eight wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> Id <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">id</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Id A
+		  </pre></div>
+		</div>
+
+		<div class="eight wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> Tree0 <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">pt0</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree0 A
+		  </pre></div>
+		</div>
+	      </div>
+
+	      <p>
+		We can make a picture of an element of our type, say with A taken
+		to be the natural numbers.  As described, the identity constructor
+		gives us just a single point of data.
+	      </p>
+	      
+	      <div class="ui center aligned basic segment">
+		<div class="ui bordered image">
+		  @svgs.point()
+		</div>
+	      </div>
+
+	      <p>
+		Now consider the following two definitions of list.
+	      </p>
+
+	      <div class="ui celled grid">
+		<div class="eight wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> List <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">nil</span> <span class="ow">:</span> List A
+  <span class="nf">cons</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Id <span class="o">(</span>List A<span class="o">)</span> <span class="ow">-&gt;</span> List A
+		  </pre></div>
+		</div>
+
+		<div class="eight wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> Tree1 <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">leaf1</span> <span class="ow">:</span> Tree1 A
+  <span class="nf">node1</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree0 <span class="o">(</span>Tree1 A<span class="o">)</span> 
+            <span class="ow">-&gt;</span> Tree1 A
+		  </pre></div>
+		</div>
+	      </div>
+
+	      <p>
+		The picture of a list is slightly more interesting.
+	      </p>
+	      
+	      <div class="ui center aligned basic segment">
+		<div class="ui bordered image">
+		  @svgs.list()
+		</div>
+	      </div>
+
+	      <p>
+		Next, here are the definitions in dimension 2.
+	      </p>
+
+	      <div class="ui celled grid">
+		<div class="eight wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> Tree <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">leaf</span> <span class="ow">:</span> Tree A
+  <span class="nf">node</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> List <span class="o">(</span>Tree A<span class="o">)</span> <span class="ow">-&gt;</span> Tree A
+		  </pre></div>
+		</div>
+
+		<div class="eight wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> Tree2 <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">leaf2</span> <span class="ow">:</span> Tree A
+  <span class="nf">node2</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree1 <span class="o">(</span>Tree2 A<span class="o">)</span> 
+            <span class="ow">-&gt;</span> Tree2 A
+		  </pre></div>
+		</div>
+	      </div>
+
+	      <p>
+		A now we get to a traditional, two-dimensional tree.
+	      </p>
+	      
+	      <div class="ui center aligned basic segment">
+		<div class="ui bordered image">
+		  @svgs.twotree()
+		</div>
+	      </div>
+
+	      <p>
+		Looking back at our definitions, we can see that we can immediately generalize
+		our trees to all dimensions with the following indexed inductive type.
+	      </p>
+
+	      <div class="ui celled grid">
+		<div class="sixteen wide column">
+		  <div class="highlight"><pre>
+<span class="kr">data</span> Tree <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> N <span class="ow">-&gt;</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">pt</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree A <span class="mi">0</span>
+  <span class="nf">leaf</span> <span class="ow">:</span> <span class="o">{</span>n <span class="ow">:</span> N<span class="o">}</span> <span class="ow">-&gt;</span> Tree A <span class="o">(</span>S n<span class="o">)</span>
+  <span class="nf">node</span> <span class="ow">:</span> <span class="o">{</span>n <span class="ow">:</span> N<span class="o">}</span> <span class="ow">-&gt;</span> A <span class="ow">-&gt;</span> Tree <span class="o">(</span>Tree A <span class="o">(</span>S n<span class="o">))</span> n <span class="ow">-&gt;</span> Tree A <span class="o">(</span>S n<span class="o">)</span>
+		  </pre></div>
+		</div>
+	      </div>
+
+	      <p>
+		Here is a picture of the three dimensional tree:
+	      </p>
+
+	      <div class="ui center aligned basic segment">
+		<div class="ui bordered image">
+		  @svgs.threetree()
+		</div>
+	      </div>
+
+      	    </div>
+
+      	    <div class="ui tab basic segment" data-tab="opetopes">
+      	      <h2 class="ui dividing header">Opetopes</h2>
+
+      	      <p>Opetopes, a reasonable definition</p>
+      	    </div>
+
+	  </div>
+	</div>
+
+      </div>
 
     </div>
   </div>
+
+  <script>
+    $(".menu .item").tab();
+  </script>
 
 }

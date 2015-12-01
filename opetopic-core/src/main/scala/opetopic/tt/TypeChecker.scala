@@ -125,6 +125,7 @@ object OpetopicTypeChecker {
       case ECat => Cat
       case EOb(e) => Ob(eval(e, rho))
       case ECell(e, c) => Cell(eval(e, rho), c.map(EvalMap(rho)))
+      case EHom(e, c) => Hom(eval(e, rho), c.map(EvalMap(rho)))
       case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case ELeftExt(e) => LeftExt(eval(e, rho))
@@ -173,6 +174,7 @@ object OpetopicTypeChecker {
       case Nt(k) => rbN(i, k)
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
+      case Hom(v, c) => EHom(rbV(i, v), c.map(RbMap(i)))
       case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
       case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))

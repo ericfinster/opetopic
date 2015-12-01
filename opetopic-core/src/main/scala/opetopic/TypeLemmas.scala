@@ -38,6 +38,12 @@ object TypeLemmas {
   }
 
   @natElim
+  def addNat[N <: Nat, M <: Nat](n: N, m: M) : N#Plus[M] = {
+    case (Z, m) => m
+    case (S(n), m) => S(addNat(n, m))
+  }
+
+  @natElim
   def plusSuccLemma[M <: Nat, N <: Nat](m : M) : M#Plus[S[N]] =::= S[M#Plus[N]] = {
     case Z => refl
     case S(p) => apS(plusSuccLemma(p))

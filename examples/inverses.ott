@@ -1,0 +1,25 @@
+--
+-- inverses.ott - proving that things are universal ...
+--
+
+let Arrow : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> Type
+    	  = \X. \x. \y. Cell X [ box y (pt (obj x)) ] 
+
+-- let balancedArrow : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> Type
+--     		  = \X. \x. \y. \z. \f. isBalanced X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } 
+
+-- let liftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> (h : Arrow X x z) -> Arrow X y z
+--     	     = \X. \x. \y. \z. \f. \ev. lift X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
+
+
+let id : (X : Cat) -> (x : Obj X) -> Arrow X x x
+       = \X. \x. comp X [ obj x ]>> { leaf } 
+
+let arrowToBalanced : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> 
+    		      isBalanced X [ box x (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) }
+    		    = \X. \x. \y. \f. \ev. (leftBalanced X [ box y (pt (obj x)) ] f ev) x
+
+let inverse : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> Arrow X y x
+    	    = \X. \x. \y. \f. \ev. (lift X [ box x (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } 
+	      	      	      	    ((leftBalanced X [ box y (pt (obj x)) ] f ev) x)) (id X x)
+

@@ -31,6 +31,7 @@ case class EApp(e: Expr, f: Expr) extends Expr
 case object ECat extends Expr
 case class EOb(e: Expr) extends Expr
 case class ECell[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
+case class EHom[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
 
 // Fillers and composition
 case class EComp[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
@@ -68,6 +69,7 @@ case class Nt(n: Neut) extends Val
 case object Cat extends Val
 case class Ob(v: Val) extends Val
 case class Cell[N <: Nat](v: Val, c: ValComplex[N]) extends Val
+case class Hom[N <: Nat](v: Val, c: ValComplex[N]) extends Val
 
 case class Comp[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val

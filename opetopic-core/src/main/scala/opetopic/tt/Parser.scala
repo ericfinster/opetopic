@@ -82,6 +82,8 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "Obj" ~ e => EOb(e) }
     | "Cell" ~ expr3 ~ frameExpr ^^ 
         { case "Cell" ~ e ~ frm => ECell(e, frm.value) }
+    | "Hom" ~ expr3 ~ frameExpr ^^
+        { case "Hom" ~ e ~ frm => EHom(e, frm.value) }
     | ident ^^ (EVar(_))
     | expr3 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }

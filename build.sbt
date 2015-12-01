@@ -20,7 +20,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicSketchpad, opetopicCodebuilder, opetopicLayout)
+lazy val clients = Seq(opetopicSketchpad, opetopicCodebuilder)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
