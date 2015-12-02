@@ -16,14 +16,14 @@ package object tt {
   type Nf = Val
   type TVal = Val
 
-  type CstExpr[N <: Nat] = Expr
-  type CstVal[N <: Nat] = Val
+  type ConstExpr[N <: Nat] = Expr
+  type ConstVal[N <: Nat] = Val
 
   type ExprComplex[N <: Nat] = 
-    Complex[CstExpr, N]
+    Complex[ConstExpr, N]
 
   type ValComplex[N <: Nat] =
-    Complex[CstVal, N]
+    Complex[ConstVal, N]
 
   type NstExpr[N <: Nat] = Nesting[Expr, N]
   type NstVal[N <: Nat] = Nesting[Val, N]

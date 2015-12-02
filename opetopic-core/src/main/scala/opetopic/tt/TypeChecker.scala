@@ -99,7 +99,7 @@ object OpetopicTypeChecker {
       case UpDec(r, _) => lRho(r)
     }
 
-  case class EvalMap(rho: Rho) extends IndexedMap[CstExpr, CstVal] {
+  case class EvalMap(rho: Rho) extends IndexedMap[ConstExpr, ConstVal] {
     def apply[N <: Nat](n: N)(e: Expr) = eval(e, rho)
   }
 
@@ -149,7 +149,7 @@ object OpetopicTypeChecker {
   //
 
 
-  case class RbMap(i: Int) extends IndexedMap[CstVal, CstExpr] {
+  case class RbMap(i: Int) extends IndexedMap[ConstVal, ConstExpr] {
     def apply[N <: Nat](n: N)(v: Val) = rbV(i, v)
   }
 
@@ -237,6 +237,12 @@ object OpetopicTypeChecker {
     m match {
       case -\/(ShapeError(msg)) => -\/(msg)
       case \/-(a) => \/-(a)
+    }
+
+  def fromOption[A](o: Option[A], msg: String) : G[A] = 
+    o match {
+      case None => -\/(msg)
+      case Some(a) => \/-(a)
     }
 
   def eqNf(i: Int, m1: Nf, m2: Nf) : G[Unit] = {
@@ -356,7 +362,7 @@ object OpetopicTypeChecker {
         frm <- extractFrame(cm.head)
         _ <- checkCell(S(p))(rho, gma, frm._1, cat)
         _ <- frm._2.traverse(
-          (face: Complex[CstExpr, S[P]]) => checkCell(S(p))(rho, gma, face, cat)
+          (face: Complex[ConstExpr, S[P]]) => checkCell(S(p))(rho, gma, face, cat)
         )
       } yield ()
     }
@@ -600,7 +606,7 @@ object OpetopicTypeChecker {
           _ <- checkCell(S(cdim))(rho, gma, cc, cv)
           _ <- check(rho, gma, f, LeftExt(eval(e, rho)))
           lext <- fromShape(
-            Complex.leftExtension[CstExpr, Nat](cdim)(cc, EVar(cvar), EEmpty)
+            Complex.leftExtension[ConstExpr, Nat](cdim)(cc, EVar(cvar), EEmpty)
           )
           tgtCell <- fromShape(cc.target)
           tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
@@ -619,7 +625,7 @@ object OpetopicTypeChecker {
           _ <- check(rho, gma, f, RightExt(eval(e, rho), a))
           addr <- parseAddress(cdim)(a)
           rext <- fromShape(
-            Complex.rightExtension[CstExpr, Nat](cdim)(cc, addr, EVar(cvar), EEmpty)
+            Complex.rightExtension[ConstExpr, Nat](cdim)(cc, addr, EVar(cvar), EEmpty)
           )
           srcCell <- fromShape(Complex.sourceAt(cdim)(c, addr :: Nil))
           srcTy <- extractCellType(cdim)(srcCell, cv, rho)

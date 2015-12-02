@@ -15,6 +15,7 @@ import scala.collection.mutable.ListBuffer
 
 import scalaz.-\/
 import scalaz.\/-
+import scalaz.std.option._
 
 import opetopic._
 import opetopic.ui._
@@ -33,38 +34,72 @@ import OpetopicTypeChecker._
 
 class DesignBlockPane {
 
-  case class ExprMarker(
-    val id: String,
-    val expr: Expr,
-    val ty: Expr,
-    var universal: Option[Expr] = None
-  ) { def isUniversal: Boolean = universal != None }
-
-  type ConstMarker[N <: Nat] = ExprMarker
-  type OptMarker[N <: Nat] = Option[ExprMarker]
-  type OptMarkerCmplx[N <: Nat] = Complex[OptMarker, N]
-
-  implicit object ExprMarkerAffixable extends Affixable[ExprMarker] {
-    type ElementType = TextType
-    def decoration(em: ExprMarker) : Decoration[TextType] = 
-      if (em.isUniversal) {
-        Decoration(text(em.id), "universal")
-      } else
-        em.expr match {
-          case EVar(_) => Decoration(text(em.id), "variable")
-          case _ => Decoration(text(em.id), "composite")
-        }
+  sealed trait Cell[N <: Nat] {
+    def id: String
+    def face: Complex[Cell, N]
+    def expr: Expr
+    def ty: Expr
+    def dim: N
+    var isLeftExt: Option[Expr] = None
+    var isRightExt: Option[Expr] = None
   }
 
-  object ToExprComplex extends IndexedMap[OptMarker, CstExpr] {
-    def apply[N <: Nat](n: N)(om: OptMarker[N]) : Expr = 
-      om match {
-        case None => EEmpty
-        case Some(em) => em.expr
+  case class ObjectCell(
+    val id: String,
+    val expr: Expr
+  ) extends Cell[_0] {
+    val face = Complex[Cell] >> Obj(this)
+    val ty = EOb(catVar)
+    val dim = Z
+  }
+
+  case class HigherCell[P <: Nat](
+    val id: String,
+    val expr: Expr,
+    val frm: Complex[Cell, P]
+  ) extends Cell[S[P]] {
+    val dim = frm.length
+    val face = frm >> Dot(this, dim)
+    val ty = ECell(catVar, frm.map(CellToExpr))
+  }
+
+  object Cell {
+
+    type CNst[N <: Nat] = Nesting[Cell[N], N]
+
+    @natElim
+    def apply[N <: Nat](n: N)(id: String, expr: Expr, suite: Suite[CNst, N]) : Cell[N] = {
+      case (Z, id, expr, _) => ObjectCell(id, expr)
+      case (S(p: P), id, expr, suite) => HigherCell[P](id, expr, suite)
+    }
+
+  }
+
+  object CellToExpr extends IndexedMap[Cell, ConstExpr] {
+    def apply[N <: Nat](n: N)(cell: Cell[N]) : Expr = 
+      cell.expr
+  }
+
+  type OptCell[N <: Nat] = Option[Cell[N]]
+  type OptCellCmplx[N <: Nat] = Complex[OptCell, N]
+
+  implicit object CellAffixableFamily extends AffixableFamily[Cell] {
+    def apply[N <: Nat](n: N) : Affixable[Cell[N]] = 
+      new Affixable[Cell[N]] {
+        type ElementType = TextType
+        def decoration(cell: Cell[N]) = 
+          cell.isLeftExt match {
+            case None => 
+              cell.expr match {
+                case EVar(_) => Decoration(text(cell.id), "variable")
+                case _ => Decoration(text(cell.id), "composite")
+              }
+            case Some(_) => Decoration(text(cell.id), "universal")
+          }
       }
   }
 
-  var activeMarker : Option[ExprMarker] = None
+  var activeCell : Option[Sigma[Cell]] = None
   var activeInstance : Option[EditorInstance] = None
 
   val environmentMenu = 
@@ -72,21 +107,20 @@ class DesignBlockPane {
 
   def pasteToCursor: Unit = 
     for {
-      mkr <- activeMarker
+      cell <- activeCell
       i <- activeInstance
-    }{ i.doPaste(mkr) }
+    }{ i.doPaste(cell.n)(cell.value) }
 
-  def addEnvironmentElement(mkr: ExprMarker) : Unit = {
+  def registerCell[N <: Nat](cell: Cell[N]) : Unit = {
 
-    val id = mkr.id
-
-    val item = 
+    val item =
       div(
         cls := "item",
-        onclick := { () => activeMarker = Some(mkr) }
+        onclick := { () => activeCell = Some(Sigma(cell.dim)(cell)) }
       )(
-        div(cls := "content", style := "margin-left: 10px")(id)
+        div(cls := "content", style := "margin-left: 10px")(cell.id)
       ).render
+
 
     jQuery(environmentMenu).append(item)
 
@@ -190,7 +224,7 @@ class DesignBlockPane {
 
   val environmentPopup = 
     div(id := "envPopup", cls := "ui vertical popup menu", style := "display: none")(
-      a(cls := "item", onclick := { () => jQuery(environmentMenu).find(".ui .popup").popup("hide") ; pasteToCursor })("Paste to Cursor"),
+      a(cls := "item", onclick := { () => pasteToCursor })("Paste to Cursor"),
       a(cls := "item", onclick := { () => () })("Paste to New Editor"),
       a(cls := "item", onclick := { () => () })("Show Universal")
     ).render
@@ -235,18 +269,25 @@ class DesignBlockPane {
 
   var environment : Rho = UpVar(RNil, PVar("X"), Nt(Gen(0, "TC#")))
 
-  @natElim
-  def faceToFrameExpr[N <: Nat](n: N)(catExpr: Expr, cmplx: ExprComplex[N]) : Expr = {
-    case (Z, catExpr, cmplx) => EOb(catExpr)
-    case (S(p), catExpr, Complex(frm, cell)) => ECell(catVar, frm)
-  }
-
   class EditorInstance {
 
-    val editor = CardinalEditor[ConstMarker]
+    val editor = CardinalEditor[Cell]
     editor.onSelectAsRoot = onSelectAsRoot
 
     type EditorBox[N <: Nat] = editor.CardinalCellBox[N]
+
+    object EditorBoxToExpr extends IndexedMap[EditorBox, ConstExpr] {
+      def apply[N <: Nat](n: N)(box: EditorBox[N]) : Expr = 
+        box.optLabel match {
+          case Some(cell) => cell.expr
+          case None => EEmpty
+        }
+    }
+
+    object ExtractCells extends IndexedTraverse[Option, EditorBox, Cell] {
+      def apply[N <: Nat](n: N)(box: EditorBox[N]) : Option[Cell[N]] = 
+        box.optLabel
+    }
 
     var currentBox: Option[Sigma[EditorBox]] = None
 
@@ -254,194 +295,234 @@ class DesignBlockPane {
       currentBox = Some(boxsig)
     }
 
-    def assumeVariable(id: String): Unit =
+    //============================================================================================
+    // ASSUME A VARIABLE
+    //
+
+    def assumeVariable(id: String): Unit = 
       for {
         boxsig <- currentBox
-        box = boxsig.value
-        lblCmplx <- box.labelComplex
-      } {
+        fc <- boxsig.value.faceComplex
+      } { doAssume(boxsig.n)(fc, id) }
 
-        println("Trying to assume a variable named: " ++ id)
-
-        box.optLabel match {
+    @natElim
+    def doAssume[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
+      case (Z, Complex(_, Obj(b)), id) => 
+        b.optLabel match {
           case None => {
 
-            val exprCmplx = lblCmplx.map(ToExprComplex)
-            val varType : Expr = faceToFrameExpr(exprCmplx.dim)(catVar, exprCmplx)
-
-            val gma = context.toList
+            val cell = ObjectCell(id, EVar(id))
             val rho = environment
 
-            checkT(rho, gma, varType) match {
-              case -\/(msg) => println("Error: " ++ msg)
-              case \/-(()) => {
+            (id, eval(cell.ty, rho)) +=: context
+            environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
 
-                (id, eval(varType, rho)) +=: context
-                environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
+            registerCell(cell)
 
-                val varMkr =
-                  ExprMarker(
-                    id = id,
-                    expr = EVar(id),
-                    ty = varType
-                  )
+            b.optLabel = Some(cell)
+            b.panel.refresh
+            editor.refreshGallery
 
-                box.optLabel = Some(varMkr)
+          }
+          case Some(_) => println("Cell is occupied")
+        }
+      case (Z, _, _) => println("Malformed complex")
+      case (S(p: P), Complex(tl, Dot(b, _)), id) => 
+        b.optLabel match {
+          case None => {
 
-                box.panel.refresh
-                editor.refreshGallery
-                
-                addEnvironmentElement(varMkr)
+            tl.traverse(ExtractCells) match {
+              case Some(cellCmplx) => {
 
+                val frmCmplx : ExprComplex[P] = tl.map(EditorBoxToExpr)
+                val varType : Expr = ECell(catVar, frmCmplx)
+
+                val gma = context.toList
+                val rho = environment
+
+                checkT(rho, gma, varType) match {
+                  case -\/(msg) => println("Error: " ++ msg)
+                  case \/-(()) => {
+
+                    (id, eval(varType, rho)) +=: context
+                    environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
+
+                    val cell = HigherCell[P](id, EVar(id), cellCmplx)
+
+                    registerCell(cell)
+
+                    b.optLabel = Some(cell)
+                    b.panel.refresh
+                    editor.refreshGallery
+
+                  }
+
+                }
               }
+              case None => println("There are non-full cells")
             }
 
           }
-          case Some(_) => println("Box is occupied")
+          case Some(_) => println("Cell is occupied")
         }
+      case (S(p: P), _, _) => println("Malformed complex")
+    }
 
+    //============================================================================================
+    // COMPOSE A DIAGRAM
+    //
+
+    def composeDiagram(id: String): Unit = 
+      for {
+        boxsig <- currentBox
+        fc <- boxsig.value.faceComplex
+      } { doCompose(boxsig.n)(fc, id) }
+
+    @natElim
+    def faceToCell[N <: Nat](n: N)(id: String, expr: Expr, face: Complex[EditorBox, N]) : Option[Cell[N]] = {
+      case (Z, id, expr, _) => Some(ObjectCell(id, expr))
+      case (S(p: P), id, expr, face) => {
+        for {
+          cellCmplx <- face.tail.traverse(ExtractCells)
+        } yield HigherCell(id, expr, cellCmplx)
       }
+    }
 
     @natElim
     def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
       case (Z, cmplx, id) => println("Dimension too low to compose")
-      case (S(p), cmplx @ Complex(Complex(_, Box(tgtBox, cn)), Dot(cellBox, _)), id) => {
+      case (S(p: P), fillCmplx @ Complex(Complex(_, Box(compBox, _)), Dot(fillBox, _)), id) => {
 
-        for {
-          cellMarkerCmplx <- cellBox.labelComplex
-          tgtMarkerCmplx <- tgtBox.labelComplex
-        } {
+        (compBox.optLabel, fillBox.optLabel) match {
+          case (None, None) => {
+            for {
+              compCmplx <- fillCmplx.target
+            } {
 
-          cellMarkerCmplx.map(ToExprComplex).tail match {
-            case Complex(tl, Box(_, cn)) => {
+              fillCmplx.map(EditorBoxToExpr).tail match {
+                case Complex(web, Box(_, cn)) => {
 
-              val pd = cn.map(_.baseValue)
-              val comp = EComp(catVar, tl, pd)
-              val fill = EFill(catVar, tl, pd)
-              val fillLext = EFillerLeftExt(catVar, tl, pd)
+                  val idDef = id ++ "-def"
 
-              val compType = faceToFrameExpr(p)(catVar, tgtMarkerCmplx.map(ToExprComplex))
-              val fillType = ECell(catVar, tl >> Box(comp, cn))
+                  val pd : Tree[Expr, P] = cn.map(_.baseValue)
 
-              val gma = context.toList
-              val rho = environment
+                  val comp = EComp(catVar, web, pd)
+                  val fill = EFill(catVar, web, pd)
+                  val fillLeftExt = EFillerLeftExt(catVar, web, pd)
 
-              val res : G[(Val, Val)] =
-                for {
-                  _ <- checkT(rho, gma, compType)
-                  compVal = eval(compType, rho)
-                  _ <- check(rho, gma, comp, compVal)
-                  _ <- checkT(rho, gma, fillType)
-                  fillVal = eval(fillType, rho)
-                  _ <- check(rho, gma, fill, fillVal)
-                } yield (compVal, fillVal)
+                  // Type check these guys!
+                  val gma = context.toList
+                  val rho = environment
 
-              res match {
-                case -\/(msg) => println("Error: " ++ msg)
-                case \/-((compVal, fillVal)) => {
+                  val res : G[Unit] =
+                    for {
+                      // Build the composition cell
+                      compCell <- fromOption(
+                        faceToCell(p)(id, comp, compCmplx),
+                        "Composition cell has un-full faces"
+                      )
+                      compType = compCell.ty
 
-                  println("Success!")
+                      // Check the composition cell
+                      _ <- checkT(rho, gma, compType)
+                      compVal = eval(compType, rho)
+                      _ <- check(rho, gma, comp, compVal)
 
-                  // Give the variables a type in the context
-                  (id, compVal) +=: context
-                  (id ++ "-def", fillVal) +=: context
+                      // We temporarily fill the cell for the purposes
+                      // of generating the filling cell ....
+                      _ = compBox.optLabel = Some(compCell)
+                      fillCell <- fromOption(
+                        faceToCell(S(p))(idDef, fill, fillCmplx),
+                        "Filling cell has un-full faces"
+                      )
+                      fillType = fillCell.ty
+                      _ = compBox.optLabel = None
 
-                  // And now given them an expression in the environment
-                  environment = UpVar(rho, PVar(id), eval(comp, rho))
-                  environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
+                      // Checking the filling is well typed
+                      _ <- checkT(rho, gma, fillType)
+                      fillVal = eval(fillType, rho)
+                      _ <- check(rho, gma, fill, fillVal)
 
-                  val fillMkr =
-                    ExprMarker(
-                      id = id ++ "-def",
-                      expr = fill,
-                      ty = fillType,
-                      universal = Some(fillLext)
-                    )
+                      _ = ({
 
-                  val compMkr =
-                    ExprMarker(
-                      id = id,
-                      expr = comp,
-                      ty = compType
-                    )
+                        // Give the variables a type in the context
+                        (id, compVal) +=: context
+                        (idDef, fillVal) +=: context
 
-                  cellBox.optLabel = Some(fillMkr)
-                  tgtBox.optLabel = Some(compMkr)
+                        // And now given them an expression in the environment
+                        environment = UpVar(rho, PVar(id), eval(comp, rho))
+                        environment = UpVar(environment, PVar(idDef), eval(fill, environment))
 
-                  tgtBox.panel.refresh
-                  cellBox.panel.refresh
-                  editor.refreshGallery
+                        fillCell.isLeftExt = Some(fillLeftExt)
 
-                  addEnvironmentElement(compMkr)
-                  addEnvironmentElement(fillMkr)
+                        compBox.optLabel = Some(compCell)
+                        fillBox.optLabel = Some(fillCell)
+
+                        registerCell(compCell)
+                        registerCell(fillCell)
+
+                        compBox.panel.refresh
+                        fillBox.panel.refresh
+                        editor.refreshGallery
+
+                      })
+                    } yield ()
+
+                  res match {
+                    case -\/(msg) => println("Error: " ++ msg)
+                    case \/-(()) => println("Composition successful")
+                  }
 
                 }
+                case _ => println("Malformed tail ...")
               }
-
             }
-            case _ => println("Internal error")
           }
-
+          case _ => println("Boxes are not empty")
         }
       }
-      case (S(p), Complex(Complex(tl, _), _), id) =>
-        println("Malformed composition complex ...")
     }
 
-    def composeDiagram(id: String): Unit =
-      for {
-        boxsig <- currentBox
-        box = boxsig.value
-        fc <- box.faceComplex
-      } { doCompose(fc.dim)(fc, id) }
-
-    def doPaste(mkr: ExprMarker): Unit =
-      for {
-        boxsig <- currentBox
-      } {
-
-        type D = boxsig.N
-        val d : D = boxsig.n
+    @natElim
+    def doPaste[N <: Nat](n: N)(cell: Cell[N]): Unit = {
+      case (Z, cell) => {
 
         import TypeLemmas._
 
-        mkr.ty match {
-
-          case EOb(ce) => {
-            for {
-              ev <- matchNatPair(d, Z)
-              box = rewriteNatIn[EditorBox, D, _0](ev)(boxsig.value)
-            } {
-              box.optLabel match {
-                case None => {
-                  box.optLabel = Some(mkr)
-                  box.panel.refresh
-                  editor.refreshGallery
-                }
-                case Some(_) => println("Destination box is not empty")
-              }
+        for {
+          boxsig <- currentBox
+          ev <- matchNatPair(boxsig.n, Z)
+          box = rewriteNatIn[EditorBox, boxsig.N, _0](ev)(boxsig.value)
+        } {
+          box.optLabel match {
+            case None => {
+              box.optLabel = Some(cell)
+              box.panel.refresh
+              editor.refreshGallery
             }
-
+            case Some(_) => println("Destination box is not empty")
           }
-          case ECell(ce, fe) => {
-            for {
-              ev <- matchNatPair(d, fe.length)
-              box = rewriteNatIn[EditorBox, D, S[Nat]](ev)(boxsig.value)
-              bc <- box.faceComplex
-            } {
+        }
+      }
+      case (S(p: P), cell) => {
 
-              import scalaz.std.option._
+        import TypeLemmas._
+
+        for {
+          boxsig <- currentBox
+          ev <- matchNatPair(boxsig.n, S(p))
+          box = rewriteNatIn[EditorBox, boxsig.N, S[P]](ev)(boxsig.value)
+          fc <- box.faceComplex
+        } {
+          box.optLabel match {
+            case None => {
 
               type BNst[N <: Nat] = Nesting[EditorBox[N], N]
-              type ENst[N <: Nat] = Nesting[Expr, N]
-              type PNst[N <: Nat] = Nesting[(EditorBox[N], Expr), N]
-              type BEPair[N <: Nat] = (BNst[N], ENst[N])
+              type CNst[N <: Nat] = Nesting[Cell[N], N]
+              type PNst[N <: Nat] = Nesting[(EditorBox[N], Cell[N]), N]
+              type BCPair[N <: Nat] = (BNst[N], CNst[N])
 
-              val ec = fe >> Dot(mkr.expr, fe.length)
-              val zc = Suite.zip[BNst, ENst, S[S[Nat]]](bc, ec)
-
-              // Okay, right.  We actually need the box, since we're
-              // going to have to update.
+              val zc = Suite.zip[BNst, CNst, S[S[P]]](fc, cell.face)
 
               // trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
               //   def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
@@ -451,10 +532,10 @@ class DesignBlockPane {
               //   nstA : Nesting[A, N], nstB : Nesting[B, N]
               // )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {
 
-              object Matcher extends IndexedTraverse[Option, BEPair, PNst] {
-                def apply[N <: Nat](n: N)(pr: BEPair[N]) : Option[PNst[N]] = {
+              object Matcher extends IndexedTraverse[Option, BCPair, PNst] {
+                def apply[N <: Nat](n: N)(pr: BCPair[N]) : Option[PNst[N]] = {
 
-                  val (bnst, enst) = pr
+                  val (bnst, cnst) = pr
 
                   // BUG!!! There is a subtlety here having to do with loops: if
                   // you try to paste a glob into a loop which is empty, the source
@@ -463,43 +544,47 @@ class DesignBlockPane {
                   // though it should "interfere with itself".
 
                   toOpt(
-                    Nesting.matchTraverse(bnst, enst)({
-                      case (b, e) => 
+                    Nesting.matchTraverse(bnst, cnst)({
+                      case (b, c) =>
                         b.optLabel match {
-                          case None => opetopic.succeed((b, e))
-                          case Some(m) => 
-                            if (m.expr == e)
-                              succeed((b, e))
+                          case None => opetopic.succeed((b, c))
+                          case Some(d) =>
+                            if (d.expr == c.expr) // Or something similar ...
+                              succeed((b, c))
                             else
                               opetopic.fail("Expression mismatch.")
                         }
                     })
                   )
+
+
                 }
               }
 
               object Updater extends IndexedOp[PNst] {
                 def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
                   pr.foreach({
-                    case (b, e) => {
-                      b.optLabel = Some(mkr) // Wrong!!!!
+                    case (b, c) => {
+                      b.optLabel = Some(c) 
                     }
                   })
+                  pr.baseValue._1.panel.refresh
                 }
               }
 
-              for {
-                pnst <- Suite.traverse[Option, BEPair, PNst, S[S[Nat]]](zc)(Matcher)
-              } {
-                Suite.foreach[PNst, S[S[Nat]]](pnst)(Updater)
-                editor.refreshGallery
+              Suite.traverse[Option, BCPair, PNst, S[S[P]]](zc)(Matcher) match {
+                case None => println("There was a mismatch")
+                case Some(pnst) => {
+                  Suite.foreach[PNst, S[S[P]]](pnst)(Updater)
+                  editor.refreshGallery
+                }
               }
-
             }
+            case Some(_) => println("Destination box is not empty")
           }
-          case _ => ()
         }
       }
+    }
   }
 
 }
