@@ -23,6 +23,7 @@ import opetopic.tt._
 import opetopic.pprint._
 import syntax.tree._
 import syntax.complex._
+import syntax.suite._
 import syntax.cardinal._
 import syntax.nesting._
 
@@ -35,11 +36,13 @@ class DesignBlockPane {
   case class ExprMarker(
     val id: String,
     val expr: Expr,
+    val ty: Expr,
     var universal: Option[Expr] = None
   ) { def isUniversal: Boolean = universal != None }
 
   type ConstMarker[N <: Nat] = ExprMarker
   type OptMarker[N <: Nat] = Option[ExprMarker]
+  type OptMarkerCmplx[N <: Nat] = Complex[OptMarker, N]
 
   implicit object ExprMarkerAffixable extends Affixable[ExprMarker] {
     type ElementType = TextType
@@ -62,16 +65,29 @@ class DesignBlockPane {
   }
 
 
+  var activeMarker : Option[ExprMarker] = None
   var activeInstance : Option[EditorInstance] = None
 
   val environmentMenu = 
     div(cls := "ui large selection list").render
 
-  def addEnvironmentElement(id: String) : Unit = {
+  def pasteToCursor: Unit = 
+    for {
+      mkr <- activeMarker
+      i <- activeInstance
+    }{ i.doPaste(mkr) }
 
-    val item = div(cls := "item")(
-      div(cls := "content", style := "margin-left: 10px")(id)
-    ).render
+  def addEnvironmentElement(mkr: ExprMarker) : Unit = {
+
+    val id = mkr.id
+
+    val item = 
+      div(
+        cls := "item",
+        onclick := { () => activeMarker = Some(mkr) }
+      )(
+        div(cls := "content", style := "margin-left: 10px")(id)
+      ).render
 
     jQuery(environmentMenu).append(item)
 
@@ -140,7 +156,7 @@ class DesignBlockPane {
     ).render
 
   val bottomElement = 
-    div(cls := "ui raised segment")(
+    div(cls := "ui raised segment builder")(
       div(cls := "ui celled grid")(
         div(cls := "three wide column")(
           accordion
@@ -174,10 +190,10 @@ class DesignBlockPane {
     )
 
   val environmentPopup = 
-    div(cls := "ui vertical popup menu", style := "display: none")(
-      a(cls := "item")("Paste to Cursor"),
-      a(cls := "item")("Paste to New Editor"),
-      a(cls := "item")("Show Universal")
+    div(id := "envPopup", cls := "ui vertical popup menu", style := "display: none")(
+      a(cls := "item", onclick := { () => jQuery(environmentMenu).find(".ui .popup").popup("hide") ; pasteToCursor })("Paste to Cursor"),
+      a(cls := "item", onclick := { () => () })("Paste to New Editor"),
+      a(cls := "item", onclick := { () => () })("Show Universal")
     ).render
 
   val uiElement = div(tabindex := 0)(
@@ -268,15 +284,19 @@ class DesignBlockPane {
                 (id, eval(varType, rho)) +=: context
                 environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
 
-                box.optLabel = Some(ExprMarker(
-                  id = id,
-                  expr = EVar(id)
-                ))
+                val varMkr =
+                  ExprMarker(
+                    id = id,
+                    expr = EVar(id),
+                    ty = varType
+                  )
+
+                box.optLabel = Some(varMkr)
 
                 box.panel.refresh
                 editor.refreshGallery
                 
-                addEnvironmentElement(id)
+                addEnvironmentElement(varMkr)
 
               }
             }
@@ -335,27 +355,30 @@ class DesignBlockPane {
                   environment = UpVar(rho, PVar(id), eval(comp, rho))
                   environment = UpVar(environment, PVar(id ++ "-def"), eval(fill, environment))
 
-                  cellBox.optLabel = Some(
+                  val fillMkr =
                     ExprMarker(
                       id = id ++ "-def",
                       expr = fill,
+                      ty = fillType,
                       universal = Some(fillLext)
                     )
-                  )
 
-                  tgtBox.optLabel = Some(
+                  val compMkr =
                     ExprMarker(
                       id = id,
-                      expr = comp
+                      expr = comp,
+                      ty = compType
                     )
-                  )
+
+                  cellBox.optLabel = Some(fillMkr)
+                  tgtBox.optLabel = Some(compMkr)
 
                   tgtBox.panel.refresh
                   cellBox.panel.refresh
                   editor.refreshGallery
 
-                  addEnvironmentElement(id)
-                  addEnvironmentElement(id ++ "-def")
+                  addEnvironmentElement(compMkr)
+                  addEnvironmentElement(fillMkr)
 
                 }
               }
@@ -377,6 +400,108 @@ class DesignBlockPane {
         nc <- box.neutralComplex
       } { doCompose(nc.dim)(nc, id) }
 
+    def doPaste(mkr: ExprMarker): Unit = ()
+      // for {
+      //   boxsig <- currentBox
+      // } {
+
+      //   type D = boxsig.N
+      //   val d : D = boxsig.n
+
+      //   import TypeLemmas._
+
+      //   mkr.ty match {
+
+      //     case EOb(ce) => {
+      //       for {
+      //         ev <- matchNatPair(d, Z)
+      //         box = rewriteNatIn[EditorBox, D, _0](ev)(boxsig.value)
+      //       } {
+      //         box.optLabel match {
+      //           case None => {
+      //             box.optLabel = Some(mkr)
+      //             box.panel.refresh
+      //             editor.refreshGallery
+      //           }
+      //           case Some(_) => println("Destination box is not empty")
+      //         }
+      //       }
+
+      //     }
+      //     case ECell(ce, fe) => {
+      //       for {
+      //         ev <- matchNatPair(d, fe.length)
+      //         box = rewriteNatIn[EditorBox, D, S[Nat]](ev)(boxsig.value)
+      //         bc <- box.faceComplex
+      //       } {
+
+      //         import scalaz.std.option._
+
+      //         type BNst[N <: Nat] = Nesting[EditorBox[N], N]
+      //         type ENst[N <: Nat] = Nesting[Expr, N]
+      //         type PNst[N <: Nat] = Nesting[(EditorBox[N], Expr), N]
+      //         type BEPair[N <: Nat] = (BNst[N], ENst[N])
+
+      //         val ec = fe >> Dot(mkr.expr, fe.length)
+      //         val zc = Suite.zip[BNst, ENst, S[S[Nat]]](bc, ec)
+
+      //         // Okay, right.  We actually need the box, since we're
+      //         // going to have to update.
+
+      //         // trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
+      //         //   def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
+      //         // }
+              
+      //         // def matchTraverse[A, B, C, N <: Nat](
+      //         //   nstA : Nesting[A, N], nstB : Nesting[B, N]
+      //         // )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {
+
+      //         object Matcher extends IndexedTraverse[Option, BEPair, PNst] {
+      //           def apply[N <: Nat](n: N)(pr: BEPair[N]) : Option[PNst[N]] = {
+
+      //             val (bnst, enst) = pr
+
+      //             // BUG!!! There is a subtlety here having to do with loops: if
+      //             // you try to paste a glob into a loop which is empty, the source
+      //             // and target of the loop get duplicated.  But then you will see
+      //             // the empty at both endpoints and think the paste is okay, even
+      //             // though it should "interfere with itself".
+
+      //             toOpt(
+      //               Nesting.matchTraverse(bnst, enst)({
+      //                 case (b, e) => opetopic.fail("Not done")
+      //                 // case (None, e) => opetopic.succeed((None, e))
+      //                 // case (Some(m), e) => {
+      //                 //   if (m.expr == e)
+      //                 //     succeed((Some(m), e))
+      //                 //   else
+      //                 //     opetopic.fail("Expression mismatch.")
+      //                 // }
+      //               })
+      //             )
+      //           }
+      //         }
+
+      //         object Updater extends IndexedOp[PNst] {
+      //           def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
+      //             pr.foreach({
+      //               case (b, e) => println("ok")
+      //             })
+      //           }
+      //         }
+
+      //         for {
+      //           pnst <- Suite.traverse[Option, BEPair, PNst, S[S[Nat]]](zc)(Matcher)
+      //         } {
+      //           Suite.foreach[PNst, S[S[Nat]]](pnst)(Updater)
+      //           editor.refreshGallery
+      //         }
+
+      //       }
+      //     }
+      //     case _ => ()
+      //   }
+      // }
   }
 
 }

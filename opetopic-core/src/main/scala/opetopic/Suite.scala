@@ -134,35 +134,5 @@ object Suite {
     implicit apT: Applicative[T]
   ) : T[Suite[G, L]] = traverseWithCount[T, F, G, L](seq)(trav)._1
 
-  // import upickle._
-  // import scala.{PartialFunction => PF}
-
-  // implicit def suiteWriter[F[_ <: Nat], N <: Nat](implicit iwrtr: IndexedWriter[F]) : Writer[Suite[F, N]] = 
-  //   new Writer[Suite[F, N]] {
-  //     def write0: Suite[F, N] => Js.Value = {
-  //       suite => Js.Arr(writeWithCount(suite)._1: _*)
-  //     }
-
-  //     def writeWithCount[K <: Nat](s: Suite[F, K]) : (List[Js.Value], Nat) = 
-  //       s match {
-  //         case SNil() => (Nil, Z)
-  //         case (tl >> hd) => {
-  //           writeWithCount(tl) match {
-  //             case (vs, p) => {
-  //               val v : Js.Value = iwrtr.writer.write(hd)
-  //               (v :: vs, S(p))
-  //             }
-  //           }
-  //         }
-  //       }
-  //   }
-
-  // implicit def suiteReader[F[_ <: Nat], N <: Nat](implicit irdr: IndexedReader[F]) : Reader[Suite[F, N]] = 
-  //   new Reader[Suite[F, N]] {
-  //     def read0: PF[Js.Value, Suite[F, N]] = {
-  //       case Js.Arr(v) => ???
-  //     }
-  //   }
-
 }
 

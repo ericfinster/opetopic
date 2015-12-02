@@ -19,3 +19,4 @@
 .universal { fill: @lightBlue }
 .universal.hovered { fill: @lightBlueHover }
 .universal.selected { fill: @lightBlueFocus }
+
