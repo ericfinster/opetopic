@@ -189,7 +189,9 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
     val isExternal: Boolean
   ) extends ActiveCellBox[A, N] {
 
+    type PanelType = SimpleActivePanel[A, N]
     type BoxAddressType = Address[S[N]]
+
     val decoration = panel.affixable.decoration(label)
     makeMouseInvisible(labelElement)
     def nestingAddress = address

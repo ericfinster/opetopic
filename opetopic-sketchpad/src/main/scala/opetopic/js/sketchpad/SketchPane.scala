@@ -125,8 +125,7 @@ class SketchPane {
   def showOpetopicCode: Unit = 
     for {
       boxsig <- currentBox
-      box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
-      lblCmplx <- box.labelComplex
+      lblCmplx <- boxsig.value.labelComplex
     } {
       Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
       jQuery(".ui.modal").modal("show")
@@ -138,7 +137,7 @@ class SketchPane {
   def deleteFromLabel: Unit = 
     for {
       boxsig <- currentBox
-      box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+      box = boxsig.value
     } {
 
       val curLabel: String = 
@@ -160,7 +159,7 @@ class SketchPane {
   def appendToLabel(c: Char) : Unit =
     for {
       boxsig <- currentBox
-      box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+      box = boxsig.value
     } {
 
       val curLabel: String = 
@@ -175,7 +174,7 @@ class SketchPane {
   def showBoxProperties(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
 
     currentBox = Some(boxsig)
-    val box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+    val box = boxsig.value
 
     for {
       lblCmplx <- box.labelComplex

@@ -64,7 +64,6 @@ class DesignBlockPane {
       }
   }
 
-
   var activeMarker : Option[ExprMarker] = None
   var activeInstance : Option[EditorInstance] = None
 
@@ -247,16 +246,12 @@ class DesignBlockPane {
     val editor = CardinalEditor[ConstMarker]
     editor.onSelectAsRoot = onSelectAsRoot
 
-    type EditorBox[N <: Nat] = editor.NeutralCellBox[N]
+    type EditorBox[N <: Nat] = editor.CardinalCellBox[N]
 
     var currentBox: Option[Sigma[EditorBox]] = None
 
     def onSelectAsRoot(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
-
-      currentBox = Some(
-        Sigma(boxsig.n)(boxsig.value.asInstanceOf[EditorBox[boxsig.N]])
-      )
-
+      currentBox = Some(boxsig)
     }
 
     def assumeVariable(id: String): Unit =
@@ -397,111 +392,114 @@ class DesignBlockPane {
       for {
         boxsig <- currentBox
         box = boxsig.value
-        nc <- box.neutralComplex
-      } { doCompose(nc.dim)(nc, id) }
+        fc <- box.faceComplex
+      } { doCompose(fc.dim)(fc, id) }
 
-    def doPaste(mkr: ExprMarker): Unit = ()
-      // for {
-      //   boxsig <- currentBox
-      // } {
+    def doPaste(mkr: ExprMarker): Unit =
+      for {
+        boxsig <- currentBox
+      } {
 
-      //   type D = boxsig.N
-      //   val d : D = boxsig.n
+        type D = boxsig.N
+        val d : D = boxsig.n
 
-      //   import TypeLemmas._
+        import TypeLemmas._
 
-      //   mkr.ty match {
+        mkr.ty match {
 
-      //     case EOb(ce) => {
-      //       for {
-      //         ev <- matchNatPair(d, Z)
-      //         box = rewriteNatIn[EditorBox, D, _0](ev)(boxsig.value)
-      //       } {
-      //         box.optLabel match {
-      //           case None => {
-      //             box.optLabel = Some(mkr)
-      //             box.panel.refresh
-      //             editor.refreshGallery
-      //           }
-      //           case Some(_) => println("Destination box is not empty")
-      //         }
-      //       }
+          case EOb(ce) => {
+            for {
+              ev <- matchNatPair(d, Z)
+              box = rewriteNatIn[EditorBox, D, _0](ev)(boxsig.value)
+            } {
+              box.optLabel match {
+                case None => {
+                  box.optLabel = Some(mkr)
+                  box.panel.refresh
+                  editor.refreshGallery
+                }
+                case Some(_) => println("Destination box is not empty")
+              }
+            }
 
-      //     }
-      //     case ECell(ce, fe) => {
-      //       for {
-      //         ev <- matchNatPair(d, fe.length)
-      //         box = rewriteNatIn[EditorBox, D, S[Nat]](ev)(boxsig.value)
-      //         bc <- box.faceComplex
-      //       } {
+          }
+          case ECell(ce, fe) => {
+            for {
+              ev <- matchNatPair(d, fe.length)
+              box = rewriteNatIn[EditorBox, D, S[Nat]](ev)(boxsig.value)
+              bc <- box.faceComplex
+            } {
 
-      //         import scalaz.std.option._
+              import scalaz.std.option._
 
-      //         type BNst[N <: Nat] = Nesting[EditorBox[N], N]
-      //         type ENst[N <: Nat] = Nesting[Expr, N]
-      //         type PNst[N <: Nat] = Nesting[(EditorBox[N], Expr), N]
-      //         type BEPair[N <: Nat] = (BNst[N], ENst[N])
+              type BNst[N <: Nat] = Nesting[EditorBox[N], N]
+              type ENst[N <: Nat] = Nesting[Expr, N]
+              type PNst[N <: Nat] = Nesting[(EditorBox[N], Expr), N]
+              type BEPair[N <: Nat] = (BNst[N], ENst[N])
 
-      //         val ec = fe >> Dot(mkr.expr, fe.length)
-      //         val zc = Suite.zip[BNst, ENst, S[S[Nat]]](bc, ec)
+              val ec = fe >> Dot(mkr.expr, fe.length)
+              val zc = Suite.zip[BNst, ENst, S[S[Nat]]](bc, ec)
 
-      //         // Okay, right.  We actually need the box, since we're
-      //         // going to have to update.
+              // Okay, right.  We actually need the box, since we're
+              // going to have to update.
 
-      //         // trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
-      //         //   def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
-      //         // }
+              // trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
+              //   def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
+              // }
               
-      //         // def matchTraverse[A, B, C, N <: Nat](
-      //         //   nstA : Nesting[A, N], nstB : Nesting[B, N]
-      //         // )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {
+              // def matchTraverse[A, B, C, N <: Nat](
+              //   nstA : Nesting[A, N], nstB : Nesting[B, N]
+              // )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {
 
-      //         object Matcher extends IndexedTraverse[Option, BEPair, PNst] {
-      //           def apply[N <: Nat](n: N)(pr: BEPair[N]) : Option[PNst[N]] = {
+              object Matcher extends IndexedTraverse[Option, BEPair, PNst] {
+                def apply[N <: Nat](n: N)(pr: BEPair[N]) : Option[PNst[N]] = {
 
-      //             val (bnst, enst) = pr
+                  val (bnst, enst) = pr
 
-      //             // BUG!!! There is a subtlety here having to do with loops: if
-      //             // you try to paste a glob into a loop which is empty, the source
-      //             // and target of the loop get duplicated.  But then you will see
-      //             // the empty at both endpoints and think the paste is okay, even
-      //             // though it should "interfere with itself".
+                  // BUG!!! There is a subtlety here having to do with loops: if
+                  // you try to paste a glob into a loop which is empty, the source
+                  // and target of the loop get duplicated.  But then you will see
+                  // the empty at both endpoints and think the paste is okay, even
+                  // though it should "interfere with itself".
 
-      //             toOpt(
-      //               Nesting.matchTraverse(bnst, enst)({
-      //                 case (b, e) => opetopic.fail("Not done")
-      //                 // case (None, e) => opetopic.succeed((None, e))
-      //                 // case (Some(m), e) => {
-      //                 //   if (m.expr == e)
-      //                 //     succeed((Some(m), e))
-      //                 //   else
-      //                 //     opetopic.fail("Expression mismatch.")
-      //                 // }
-      //               })
-      //             )
-      //           }
-      //         }
+                  toOpt(
+                    Nesting.matchTraverse(bnst, enst)({
+                      case (b, e) => 
+                        b.optLabel match {
+                          case None => opetopic.succeed((b, e))
+                          case Some(m) => 
+                            if (m.expr == e)
+                              succeed((b, e))
+                            else
+                              opetopic.fail("Expression mismatch.")
+                        }
+                    })
+                  )
+                }
+              }
 
-      //         object Updater extends IndexedOp[PNst] {
-      //           def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
-      //             pr.foreach({
-      //               case (b, e) => println("ok")
-      //             })
-      //           }
-      //         }
+              object Updater extends IndexedOp[PNst] {
+                def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
+                  pr.foreach({
+                    case (b, e) => {
+                      b.optLabel = Some(mkr) // Wrong!!!!
+                    }
+                  })
+                }
+              }
 
-      //         for {
-      //           pnst <- Suite.traverse[Option, BEPair, PNst, S[S[Nat]]](zc)(Matcher)
-      //         } {
-      //           Suite.foreach[PNst, S[S[Nat]]](pnst)(Updater)
-      //           editor.refreshGallery
-      //         }
+              for {
+                pnst <- Suite.traverse[Option, BEPair, PNst, S[S[Nat]]](zc)(Matcher)
+              } {
+                Suite.foreach[PNst, S[S[Nat]]](pnst)(Updater)
+                editor.refreshGallery
+              }
 
-      //       }
-      //     }
-      //     case _ => ()
-      //   }
-      // }
+            }
+          }
+          case _ => ()
+        }
+      }
   }
 
 }

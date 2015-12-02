@@ -30,7 +30,7 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
     val config: GalleryConfig
     import config._
 
-    type PanelType[N <: Nat] <: GalleryPanel[N]
+    type GalleryPanelType[N <: Nat] <: GalleryPanel[N]
     type GalleryBoxType[N <: Nat] <: CellBox[A[N], N] { type BoxAddressType = GalleryAddressType[N] }
     type GalleryEdgeType[N <: Nat] <: CellEdge[A[N], N]
     type GalleryAddressType[N <: Nat]
@@ -46,15 +46,15 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
 
     }
 
-    def panels: NonemptySuite[PanelType]
+    def panels: NonemptySuite[GalleryPanelType]
 
-    def extractPanelData[N <: Nat](panels: Suite[PanelType, N]) : List[(Element, Bounds)] = {
+    def extractPanelData[N <: Nat](panels: Suite[GalleryPanelType, N]) : List[(Element, Bounds)] = {
       panels.fold(
-        new IndexedFold[PanelType, List[(Element, Bounds)]] {
+        new IndexedFold[GalleryPanelType, List[(Element, Bounds)]] {
 
           def caseZero : List[(Element, Bounds)] = Nil
 
-          def caseSucc[P <: Nat](p: P)(panel: PanelType[P], lst: List[(Element, Bounds)]) : List[(Element, Bounds)] =
+          def caseSucc[P <: Nat](p: P)(panel: GalleryPanelType[P], lst: List[(Element, Bounds)]) : List[(Element, Bounds)] =
             (panel.element, panel.bounds) :: lst
 
         }

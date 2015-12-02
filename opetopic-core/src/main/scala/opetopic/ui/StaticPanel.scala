@@ -152,6 +152,7 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
     val isExternal: Boolean
   ) extends CellBox[A, N] with StaticCellBox[A, N] {
 
+    type PanelType = SimpleStaticPanel[A, N]
     type BoxAddressType = Address[S[N]]
 
     val decoration = panel.affixable.decoration(label)

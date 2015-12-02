@@ -22,15 +22,15 @@ trait HasComplexGalleries { self: UIFramework with HasPanels with HasGalleries =
 
     type AComplex[N <: Nat] = Complex[A, N]
 
-    type PanelType[N <: Nat] <: ComplexPanel[N]
+    type GalleryPanelType[N <: Nat] <: ComplexPanel[N]
     type GalleryAddressType[N <: Nat] = Address[S[N]]
 
-    def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0]
-    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : PanelType[S[P]]
+    def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0]
+    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : GalleryPanelType[S[P]]
 
     @natElim
-    def createPanels[N <: Nat](n: N)(cmplx: Complex[A, N]) : Suite[PanelType, S[N]] = {
-      case (Z, Complex(_, objNst)) => SNil[PanelType] >> createObjectPanel(objNst)
+    def createPanels[N <: Nat](n: N)(cmplx: Complex[A, N]) : Suite[GalleryPanelType, S[N]] = {
+      case (Z, Complex(_, objNst)) => SNil[GalleryPanelType] >> createObjectPanel(objNst)
       case (S(p), Complex(tl, hd)) => createPanels(p)(tl) >> createNestingPanel(p)(hd, tl.head)
     }
 
@@ -48,8 +48,8 @@ trait HasComplexGalleries { self: UIFramework with HasPanels with HasGalleries =
       val ps = panels
 
       val res : Suite[NestingType, S[ps.P]] = ps.map(
-        new IndexedMap[PanelType, NestingType] {
-          def apply[N <: Nat](n: N)(p: PanelType[N]) : NestingType[N] = 
+        new IndexedMap[GalleryPanelType, NestingType] {
+          def apply[N <: Nat](n: N)(p: GalleryPanelType[N]) : NestingType[N] = 
             p.boxNesting
         }
       )

@@ -20,7 +20,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   trait ActiveGallery[A[_ <: Nat]] extends ComplexGallery[A] with SelectableGallery[A] {
 
-    type PanelType[N <: Nat] <: ActiveGalleryPanel[N]
+    type GalleryPanelType[N <: Nat] <: ActiveGalleryPanel[N]
     type GalleryBoxType[N <: Nat] <: ActiveGalleryCellBox[A[N], N]
     type GalleryEdgeType[N <: Nat] <: ActiveCellEdge[A[N], N]
 
@@ -97,13 +97,13 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     implicit r: AffixableFamily[A]
   ) extends ActiveGallery[A] { thisGallery =>
 
-    type PanelType[N <: Nat] = SimpleActiveGalleryPanel[N]
+    type GalleryPanelType[N <: Nat] = SimpleActiveGalleryPanel[N]
     type GalleryBoxType[N <: Nat] = SimpleActiveGalleryCellBox[N]
     type GalleryEdgeType[N <: Nat] = SimpleActiveGalleryCellEdge[N]
 
     var selection : Option[Selection] = None
 
-    val panels : NonemptySuite[PanelType] =
+    val panels : NonemptySuite[GalleryPanelType] =
       createPanels(complex.n)(complex.value)
 
     def initialize : Unit = {
@@ -117,10 +117,10 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
     initialize
 
-    def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0] =
+    def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0] =
       new SimpleActiveGalleryObjectPanel(nst)
 
-    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : PanelType[S[P]] =
+    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : GalleryPanelType[S[P]] =
       new SimpleActiveGalleryNestingPanel(p)(bn, Some(en))
 
     abstract class SimpleActiveGalleryPanel[N <: Nat]
@@ -143,6 +143,8 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       val address: Address[S[N]],
       val isExternal: Boolean
     ) extends ActiveGalleryCellBox[A[N], N] {
+
+      type PanelType = SimpleActiveGalleryPanel[N]
 
       val decoration = panel.affixable.decoration(label)
       makeMouseInvisible(labelElement)

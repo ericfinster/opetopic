@@ -175,9 +175,10 @@ trait HasPanels { self : UIFramework =>
   // The box should already contain a component for the label ...
   trait CellBox[A, N <: Nat] extends Rooted with BoundedElement[Element] {
 
+    type PanelType <: Panel[A, N]
     type BoxAddressType
 
-    val panel: Panel[A, N]
+    val panel: PanelType
     import panel.config._
 
     def label: A

@@ -39,7 +39,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
 
   trait SelectableGallery[A[_ <: Nat]] extends Gallery[A] {
 
-    type PanelType[N <: Nat] <: SelectablePanel[A[N], N] with GalleryPanel[N]
+    type GalleryPanelType[N <: Nat] <: SelectablePanel[A[N], N] with GalleryPanel[N]
     type GalleryBoxType[N <: Nat] <: SelectableBox[A[N], N] { type BoxAddressType = GalleryAddressType[N] }
 
     var selection: Option[Selection]

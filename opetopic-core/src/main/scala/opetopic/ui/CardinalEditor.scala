@@ -27,8 +27,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     type OptA[N <: Nat] = Option[A[N]]
     type PolOptA[N <: Nat] = Polarity[Option[A[N]]]
 
-    type PanelType[N <: Nat] = CardinalPanel[N]
-    type PanelSuite[N <: Nat] = Suite[PanelType, S[N]]
+    type GalleryPanelType[N <: Nat] = CardinalPanel[N]
+    type PanelSuite[N <: Nat] = Suite[GalleryPanelType, S[N]]
     type GalleryBoxType[N <: Nat] = CardinalCellBox[N]
     type GalleryEdgeType[N <: Nat] = CardinalCellEdge[N]
     type GalleryAddressType[N <: Nat] = CardinalAddress[S[N]]
@@ -69,8 +69,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       type NestingType[K <: Nat] = CardinalNesting[NeutralCellBox[K], K]
 
       ps.map(
-        new IndexedMap[PanelType, NestingType] {
-          def apply[K <: Nat](k: K)(p: PanelType[K]) : NestingType[K] = 
+        new IndexedMap[GalleryPanelType, NestingType] {
+          def apply[K <: Nat](k: K)(p: GalleryPanelType[K]) : NestingType[K] = 
             p.cardinalBoxNesting
         }
       )
@@ -82,8 +82,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       type NestingType[K <: Nat] = Nesting[CardinalCellBox[K], K]
 
       ps.map(
-        new IndexedMap[PanelType, NestingType] {
-          def apply[K <: Nat](k: K)(p: PanelType[K]) : NestingType[K] = 
+        new IndexedMap[GalleryPanelType, NestingType] {
+          def apply[K <: Nat](k: K)(p: GalleryPanelType[K]) : NestingType[K] = 
             p.boxNesting
         }
       )
@@ -141,7 +141,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
               )(box => box.isSelected)(diff)
             } yield {
 
-              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], PanelType[K])
+              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], GalleryPanelType[K])
               type ResDim = S[extrusionSuite.P]
 
               deselectAll
@@ -208,7 +208,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
               )
             } yield {
 
-              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], PanelType[K])
+              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], GalleryPanelType[K])
               type ResDim = S[extrusionSuite.P]
 
               deselectAll
@@ -276,7 +276,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
               )
             } yield {
 
-              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], PanelType[K])
+              type ResType[K <: Nat] = (CardinalNesting[NeutralCellBox[K], K], GalleryPanelType[K])
               type ResDim = S[extrusionSuite.P]
 
               deselectAll
@@ -318,6 +318,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     trait CardinalCellBox[N <: Nat] extends ActiveCellBox[PolOptA[N], N] {
 
       type Dim = N
+      type PanelType = CardinalPanel[N]
       type BoxAddressType = CardinalAddress[S[N]]
 
       def isPolarized : Boolean
@@ -329,7 +330,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           case _ => false
         }
 
-      def optLabel: OptA[N]
+      var optLabel: OptA[N]
 
       def faceComplex : ShapeM[Complex[CardinalCellBox, N]] = {
         val ps = panels.value
@@ -428,7 +429,6 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     ) extends CardinalCellBox[N] {
 
       val label: PolOptA[N] = Positive()
-      val optLabel: OptA[N] = None
       val address: CardinalAddress[S[N]] = null // No address for polarized cells
       val nestingAddress: Address[S[N]] = List()
       val isExternal: Boolean = false
@@ -444,6 +444,9 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       override def canSelect = false
       def isExternal_=(b: Boolean): Unit = ()
 
+      def optLabel: OptA[N] = None
+      def optLabel_=(o: OptA[N]): Unit = ()
+
     }
 
     class NegativeBox[P <: Nat](
@@ -451,7 +454,6 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     ) extends CardinalCellBox[S[P]] {
 
       val label: PolOptA[S[P]] = Negative()
-      val optLabel: OptA[S[P]] = None
       val address: CardinalAddress[S[S[P]]] = null  // No address for the polarized cells ...
       val nestingAddress: Address[S[S[P]]] = List(List())
       val isExternal: Boolean = true
@@ -466,6 +468,9 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       override def canSelect = false
       def isExternal_=(b: Boolean): Unit = ()
+
+      def optLabel: OptA[S[P]] = None
+      def optLabel_=(o: OptA[S[P]]): Unit = ()
 
     }
 
