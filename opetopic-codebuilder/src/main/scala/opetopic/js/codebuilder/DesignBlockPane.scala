@@ -61,7 +61,8 @@ class DesignBlockPane {
   ) extends Cell[S[P]] {
     val dim = frm.length
     val face = frm >> Dot(this, dim)
-    val ty = ECell(catVar, frm.map(CellToExpr))
+    val frmExpr : ExprComplex[P] = frm.map(CellToExpr)
+    val ty = ECell(catVar, frmExpr)
   }
 
   object Cell {
@@ -254,6 +255,13 @@ class DesignBlockPane {
       case 101 => for { i <- activeInstance } { i.editor.extrudeSelection }
       case 100 => for { i <- activeInstance } { i.editor.extrudeDrop }
       case 112 => for { i <- activeInstance } { i.editor.sprout }
+      case 108 => {
+        jQuery("#lift-input").value("")
+        jQuery(".ui.modal.lift").modal(lit(onApprove = { (x: Any) =>
+          for { i <- activeInstance }{ i.lift(jQuery("#lift-input").value().asInstanceOf[String]) }
+        }))
+        jQuery(".ui.modal.lift").modal("show")
+      }
       case _ => ()
     }
   })
@@ -295,6 +303,26 @@ class DesignBlockPane {
     def onSelectAsRoot(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
       currentBox = Some(boxsig)
     }
+
+    // You could really clean things up with more of
+    // this kind of stuff ...
+    class SuccBoxOps[P <: Nat](box: EditorBox[S[P]]) {
+
+      def frameComplex : Option[ExprComplex[P]] = 
+        for {
+          fc <- toOpt(box.faceComplex)
+        } yield fc.tail.map(EditorBoxToExpr)
+
+      def cellComplex : Option[Complex[Cell, P]] =
+        for {
+          fc <- toOpt(box.faceComplex)
+          res <- fc.tail.traverse(ExtractCells) 
+        } yield res
+
+    }
+
+    // implicit def toSuccBoxOps[P <: Nat](box: EditorBox[S[P]]) : SuccBoxOps[P] = 
+    //   new SuccBoxOps(box)
 
     //============================================================================================
     // ASSUME A VARIABLE
@@ -389,10 +417,11 @@ class DesignBlockPane {
       }
     }
 
+    // Rewrite this.  It's terrible.
     @natElim
     def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
       case (Z, cmplx, id) => println("Dimension too low to compose")
-      case (S(p: P), fillCmplx @ Complex(Complex(_, Box(compBox, _)), Dot(fillBox, _)), id) => {
+      case (S(p: P), fillCmplx @ Complex(Complex(_, Box(compBox, bcn)), Dot(fillBox, _)), id) => {
 
         (compBox.optLabel, fillBox.optLabel) match {
           case (None, None) => {
@@ -404,6 +433,8 @@ class DesignBlockPane {
                 case Complex(web, Box(_, cn)) => {
 
                   val idDef = id ++ "-def"
+
+                  //case class EFillerCompLeftExt[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 
                   val pd : Tree[Expr, P] = cn.map(_.baseValue)
 
@@ -454,6 +485,19 @@ class DesignBlockPane {
                         environment = UpVar(rho, PVar(id), eval(comp, rho))
                         environment = UpVar(environment, PVar(idDef), eval(fill, environment))
 
+                        // Handle composition of left extensions
+                        val compLeftExtEv : Option[Expr] =
+                          for {
+                            prTr <- bcn.traverse({
+                              case b =>
+                                for {
+                                  cell <- b.baseValue.optLabel
+                                  lextEv <- cell.isLeftExt
+                                } yield EPair(cell.expr, lextEv)
+                            })
+                          } yield EFillerCompLeftExt(comp, web, prTr)
+
+                        compCell.isLeftExt = compLeftExtEv
                         fillCell.isLeftExt = Some(fillLeftExt)
 
                         compBox.optLabel = Some(compCell)
@@ -585,6 +629,138 @@ class DesignBlockPane {
         }
       }
     }
+
+    def lift(id: String) : Unit = 
+      for {
+        boxsig <- currentBox
+        fc <- boxsig.value.faceComplex
+      } { doLift(boxsig.n)(fc, id) }
+
+    @natElim
+    def doLift[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String): Unit = {
+      case (Z, _, _) => println("Cannot lift here")
+      case (S(p: P), _, _) => println("Cannot lift here")
+      case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _)), id) => {
+
+        val tgtBox = tl.head.baseValue
+
+        (tgtBox.optLabel, liftBox.optLabel, cn.nodes) match {
+          case (Some(tgtCell), Some(liftCell), rootNst :: lexNst :: Nil) => {
+            (rootNst.baseValue.optLabel, lexNst.baseValue.optLabel) match {
+              case (None, Some(lexCell)) => {
+                lexCell.isLeftExt match {
+                  case Some(lexEv) => {
+
+                    println("We're ready to go!")
+
+                    lexCell.ty match {
+                      case ECell(ce, frm) => {
+
+                        val idDef = id ++ "-def"
+                        val rootBox = rootNst.baseValue
+
+                        val nchFrm : ExprComplex[P] = tl.map(EditorBoxToExpr)
+                        val nch : Tree[Expr, S[P]] = cn.map((n: Nesting[EditorBox[S[P]], S[P]]) => {
+                          n.baseValue.optLabel match {
+                            case None => EEmpty
+                            case Some(c) => c.expr
+                          }
+                        })
+
+                        val leftBal = EApp(ELeftBal(ce, frm, lexCell.expr, lexEv), tgtCell.expr)
+                        val lift = EApp(ELift(ce, nchFrm, nch, leftBal), liftCell.expr)
+                        val liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, leftBal), liftCell.expr)
+                        val liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, leftBal), liftCell.expr)
+
+                        // An observation:  Here you asign the actual expression to the cell.
+                        // But shouldn't you really just use the variable?  You are going to add
+                        // it to the context, and I suspect the saves a lot in terms of typechecking....
+
+                        for {
+                          frm <- new SuccBoxOps(rootBox).cellComplex  // Implicts aren't working for this ...
+                          liftCell = HigherCell(id, lift, frm)
+                          _ = rootBox.optLabel = Some(liftCell)
+                          fillFrm <- new SuccBoxOps(fillBox).cellComplex
+                          fillCell = HigherCell(idDef, liftFiller, fillFrm)
+                          _ = fillCell.isLeftExt = Some(liftFillerLeftExt)
+                          _ = fillBox.optLabel = Some(fillCell)
+                        } {
+
+                          val leftBalTy = EBal(ce, nchFrm, nch)
+                          val liftTy = liftCell.ty
+                          val liftFillerTy = fillCell.ty
+                          val liftFillerLeftExtTy = ELeftExt(liftFiller)
+
+                          val gma = context.toList
+                          val rho = environment
+
+                          val checkRes : G[Unit] = 
+                            for {
+                              _ <- checkT(rho, gma, leftBalTy)
+                              leftBalVal = eval(leftBalTy, rho)
+                              _ <- check(rho, gma, leftBal, leftBalVal)
+                              _ <- checkT(rho, gma, liftTy)
+                              liftTyVal = eval(liftTy, rho)
+                              _ <- check(rho, gma, lift, liftTyVal)
+                              _ <- checkT(rho, gma, liftFillerTy)
+                              liftFillerTyVal = eval(liftFillerTy, rho)
+                              _ <- check(rho, gma, liftFiller, liftFillerTyVal)
+                              _ = (id, liftTyVal) +=: context
+                              _ = (idDef, liftFillerTyVal) +=: context
+                              _ = environment = UpVar(rho, PVar(id), eval(lift, rho))
+                              _ = environment = UpVar(environment, PVar(idDef), eval(liftFiller, environment))
+                            } yield ()
+
+                          checkRes match {
+                            case -\/(msg) => {
+                              // Put these guys back, since the type check blonked
+                              fillBox.optLabel = None
+                              rootBox.optLabel = None
+                              println("Lift failed: " ++ msg)
+                            }
+                            case \/-(()) => {
+
+                              println("Lift succeeded")
+
+                              registerCell(liftCell)
+                              registerCell(fillCell)
+
+                              rootBox.panel.refresh
+                              fillBox.panel.refresh
+                              editor.refreshGallery
+
+                            }
+                          }
+
+                        }
+
+                      }
+                      case _ => println("Unexpected: lex cell has a bizzare type")
+                    }
+
+                  }
+                  case None => println("Cell is not a left extension")
+                }
+              }
+              case _ => println("Not a liftable position")
+            }
+          }
+          case _ => println("Not a liftable position")
+        }
+
+        // Now, we have to extract the canopy and see that it has a particular
+        // form.  It should consist of exactly two cells, one of which has the
+        // left extension property set.
+
+        // The rest should be more or less simple.  You grab the target cell and
+        // use the left extension to extract a balanced witness.  From this you
+        // use the appropriate deconstructors to extract the lift and the fill 
+        // expressions.
+
+      }
+      case (S(S(p: P)), _, _) => println("Malformed lift")
+    }
+
   }
 
 }
