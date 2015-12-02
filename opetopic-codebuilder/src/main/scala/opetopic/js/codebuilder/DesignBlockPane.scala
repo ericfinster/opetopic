@@ -12,6 +12,7 @@ import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.HashMap
 
 import scalaz.-\/
 import scalaz.\/-
@@ -483,6 +484,10 @@ class DesignBlockPane {
       }
     }
 
+    //============================================================================================
+    // PASTING
+    //
+
     @natElim
     def doPaste[N <: Nat](n: N)(cell: Cell[N]): Unit = {
       case (Z, cell) => {
@@ -524,30 +529,26 @@ class DesignBlockPane {
 
               val zc = Suite.zip[BNst, CNst, S[S[P]]](fc, cell.face)
 
-              // trait IndexedTraverse[T[_], F[_ <: Nat], G[_ <: Nat]] {
-              //   def apply[N <: Nat](n: N)(fn: F[N]) : T[G[N]]
-              // }
-              
-              // def matchTraverse[A, B, C, N <: Nat](
-              //   nstA : Nesting[A, N], nstB : Nesting[B, N]
-              // )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {
-
               object Matcher extends IndexedTraverse[Option, BCPair, PNst] {
                 def apply[N <: Nat](n: N)(pr: BCPair[N]) : Option[PNst[N]] = {
 
                   val (bnst, cnst) = pr
-
-                  // BUG!!! There is a subtlety here having to do with loops: if
-                  // you try to paste a glob into a loop which is empty, the source
-                  // and target of the loop get duplicated.  But then you will see
-                  // the empty at both endpoints and think the paste is okay, even
-                  // though it should "interfere with itself".
+                  val fillings: HashMap[EditorBox[N], Expr] = HashMap.empty
 
                   toOpt(
                     Nesting.matchTraverse(bnst, cnst)({
                       case (b, c) =>
                         b.optLabel match {
-                          case None => opetopic.succeed((b, c))
+                          case None => {
+                            if (fillings.isDefinedAt(b)) {
+                              if (fillings(b) != c.expr) {
+                                opetopic.fail("Loop conflict")
+                              } else opetopic.succeed((b, c))
+                            } else {
+                              fillings(b) = c.expr
+                              opetopic.succeed((b, c))
+                            }
+                          }
                           case Some(d) =>
                             if (d.expr == c.expr) // Or something similar ...
                               succeed((b, c))
@@ -556,7 +557,6 @@ class DesignBlockPane {
                         }
                     })
                   )
-
 
                 }
               }
