@@ -281,7 +281,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
               deselectAll
 
-              sel.root.asInstanceOf[NeutralCellBox[sel.root.Dim]].isExternal = false
+              sel.root.isExternal = false
 
               Suite.foreach[ResType, ResDim](extrudedCardinal.zipWith(extrusionSuite.value))(
                 new IndexedOp[ResType] {
@@ -321,6 +321,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       type BoxAddressType = CardinalAddress[S[N]]
 
       def isPolarized : Boolean
+      def isExternal_=(b: Boolean): Unit
 
       def isExtrudable : Boolean =
         address match {
@@ -328,6 +329,21 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           case _ => false
         }
 
+      def optLabel: OptA[N]
+
+      def faceComplex : ShapeM[Complex[CardinalCellBox, N]] = {
+        val ps = panels.value
+        val cmplx = boxComplex(ps)
+        cmplx.sourceAt(boxDim)(nestingAddress)
+      }
+
+      def labelComplex : ShapeM[Complex[OptA, N]] =
+        for {
+          fc <- faceComplex
+        } yield fc.map(new IndexedMap[CardinalCellBox, OptA] {
+          def apply[K <: Nat](k: K)(box: CardinalCellBox[K]) =
+            box.optLabel
+        })
 
     }
 
@@ -369,32 +385,6 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       override def select = selectFaces
       override def deselect = deselectFaces
-
-      def labelComplex : ShapeM[Complex[OptA, N]] = 
-        for {
-          fc <- faceComplex
-        } yield fc.map(new IndexedMap[CardinalCellBox, OptA] {
-          def apply[K <: Nat](k: K)(box: CardinalCellBox[K]) = 
-            box.asInstanceOf[NeutralCellBox[K]].optLabel  // Ugly cast ...
-        })
-
-      def faceComplex : ShapeM[Complex[CardinalCellBox, N]] = {
-        val ps = panels.value
-        val cmplx = boxComplex(ps)
-        cmplx.sourceAt(boxDim)(nestingAddress)
-      }
-
-      def neutralComplex : ShapeM[Complex[NeutralCellBox, N]] =
-        for {
-          fc <- faceComplex
-        } yield {
-          fc.map(
-            new IndexedMap[CardinalCellBox, NeutralCellBox] {
-              def apply[N <: Nat](n: N)(b: CardinalCellBox[N]) =
-                b.asInstanceOf[NeutralCellBox[N]]
-            }
-          )
-        }
 
       def selectFaces : Unit = 
         foreachFace(new IndexedOp[GalleryBoxType] {
@@ -438,6 +428,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     ) extends CardinalCellBox[N] {
 
       val label: PolOptA[N] = Positive()
+      val optLabel: OptA[N] = None
       val address: CardinalAddress[S[N]] = null // No address for polarized cells
       val nestingAddress: Address[S[N]] = List()
       val isExternal: Boolean = false
@@ -451,6 +442,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       boxRect.addClass("polarized")
 
       override def canSelect = false
+      def isExternal_=(b: Boolean): Unit = ()
 
     }
 
@@ -459,6 +451,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     ) extends CardinalCellBox[S[P]] {
 
       val label: PolOptA[S[P]] = Negative()
+      val optLabel: OptA[S[P]] = None
       val address: CardinalAddress[S[S[P]]] = null  // No address for the polarized cells ...
       val nestingAddress: Address[S[S[P]]] = List(List())
       val isExternal: Boolean = true
@@ -472,6 +465,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       boxRect.addClass("polarized")
 
       override def canSelect = false
+      def isExternal_=(b: Boolean): Unit = ()
 
     }
 
