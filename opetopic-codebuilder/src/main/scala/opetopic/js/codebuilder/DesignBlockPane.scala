@@ -434,8 +434,6 @@ class DesignBlockPane {
 
                   val idDef = id ++ "-def"
 
-                  //case class EFillerCompLeftExt[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
-
                   val pd : Tree[Expr, P] = cn.map(_.baseValue)
 
                   val comp = EComp(catVar, web, pd)
@@ -495,7 +493,7 @@ class DesignBlockPane {
                                   lextEv <- cell.isLeftExt
                                 } yield EPair(cell.expr, lextEv)
                             })
-                          } yield EFillerCompLeftExt(comp, web, prTr)
+                          } yield EFillerCompLeftExt(catVar, web, prTr)
 
                         compCell.isLeftExt = compLeftExtEv
                         fillCell.isLeftExt = Some(fillLeftExt)
@@ -651,8 +649,6 @@ class DesignBlockPane {
                 lexCell.isLeftExt match {
                   case Some(lexEv) => {
 
-                    println("We're ready to go!")
-
                     lexCell.ty match {
                       case ECell(ce, frm) => {
 
@@ -720,7 +716,7 @@ class DesignBlockPane {
                             }
                             case \/-(()) => {
 
-                              println("Lift succeeded")
+                              println("Lift successful")
 
                               registerCell(liftCell)
                               registerCell(fillCell)
