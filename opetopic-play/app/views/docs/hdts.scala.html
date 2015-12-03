@@ -1,0 +1,156 @@
+@()
+
+@doc {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Higher Dimensional Trees</h2>
+
+    <p>
+      Opetopes are a collection of polytopes which correspond
+      to certain well-formed higher dimensional trees.  It takes
+      some work to make precise what one means by well-formed,
+      so in this section, we will warm up with a simpler definition
+      of what exactly is a higher dimensional tree, and we will
+      use this to motivate the definition of opetopes to follow.
+    </p>
+
+    <p>
+      We begin by examining some low dimensional incarnations
+      of trees.  The data type definitions which follow are
+      given in two forms, one using more or less standard naming
+      conventions, and the other named in order to bring out 
+      the pattern we are trying to generalize.
+    </p>
+
+    <p>
+      A zero-dimensional tree is just a point.  As we want to
+      consider trees with nodes labeled in some type A, this
+      means that the type constructor corresponding to zero-
+      dimesional trees is the Id constructor, which is presented
+      below.
+    </p>
+
+    <div class="ui celled grid">
+      <div class="eight wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> Id <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">id</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Id A
+	</pre></div>
+      </div>
+
+      <div class="eight wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> Tree0 <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">pt0</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree0 A
+	</pre></div>
+      </div>
+    </div>
+
+    <p>
+      We can make a picture of an element of our type, say with A taken
+      to be the natural numbers.  As described, the identity constructor
+      gives us just a single point of data.
+    </p>
+    
+    <div class="ui center aligned basic segment">
+      <div class="ui bordered image">
+	@svgs.point()
+      </div>
+    </div>
+
+    <p>
+      Now consider the following two definitions of list.
+    </p>
+
+    <div class="ui celled grid">
+      <div class="eight wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> List <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">nil</span> <span class="ow">:</span> List A
+  <span class="nf">cons</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Id <span class="o">(</span>List A<span class="o">)</span> <span class="ow">-&gt;</span> List A
+	</pre></div>
+      </div>
+
+      <div class="eight wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> Tree1 <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">leaf1</span> <span class="ow">:</span> Tree1 A
+  <span class="nf">node1</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree0 <span class="o">(</span>Tree1 A<span class="o">)</span> 
+            <span class="ow">-&gt;</span> Tree1 A
+	</pre></div>
+      </div>
+    </div>
+
+    <p>
+      The picture of a list is slightly more interesting.
+    </p>
+    
+    <div class="ui center aligned basic segment">
+      <div class="ui bordered image">
+	@svgs.list()
+      </div>
+    </div>
+
+    <p>
+      Next, here are the definitions in dimension 2.
+    </p>
+
+    <div class="ui celled grid">
+      <div class="eight wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> Tree <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">leaf</span> <span class="ow">:</span> Tree A
+  <span class="nf">node</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> List <span class="o">(</span>Tree A<span class="o">)</span> <span class="ow">-&gt;</span> Tree A
+	</pre></div>
+      </div>
+
+      <div class="eight wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> Tree2 <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">leaf2</span> <span class="ow">:</span> Tree A
+  <span class="nf">node2</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree1 <span class="o">(</span>Tree2 A<span class="o">)</span> 
+            <span class="ow">-&gt;</span> Tree2 A
+	</pre></div>
+      </div>
+    </div>
+
+    <p>
+      A now we get to a traditional, two-dimensional tree.
+    </p>
+    
+    <div class="ui center aligned basic segment">
+      <div class="ui bordered image">
+	@svgs.twotree()
+      </div>
+    </div>
+
+    <p>
+      Looking back at our definitions, we can see that we can immediately generalize
+      our trees to all dimensions with the following indexed inductive type.
+    </p>
+
+    <div class="ui celled grid">
+      <div class="sixteen wide column">
+	<div class="highlight"><pre>
+<span class="kr">data</span> Tree <span class="o">(</span>A <span class="ow">:</span> <span class="kt">Set</span><span class="o">)</span> <span class="ow">:</span> N <span class="ow">-&gt;</span> <span class="kt">Set</span> <span class="kr">where</span>
+  <span class="nf">pt</span> <span class="ow">:</span> A <span class="ow">-&gt;</span> Tree A <span class="mi">0</span>
+  <span class="nf">leaf</span> <span class="ow">:</span> <span class="o">{</span>n <span class="ow">:</span> N<span class="o">}</span> <span class="ow">-&gt;</span> Tree A <span class="o">(</span>S n<span class="o">)</span>
+  <span class="nf">node</span> <span class="ow">:</span> <span class="o">{</span>n <span class="ow">:</span> N<span class="o">}</span> <span class="ow">-&gt;</span> A <span class="ow">-&gt;</span> Tree <span class="o">(</span>Tree A <span class="o">(</span>S n<span class="o">))</span> n <span class="ow">-&gt;</span> Tree A <span class="o">(</span>S n<span class="o">)</span>
+	</pre></div>
+      </div>
+    </div>
+
+    <p>
+      Here is a picture of the three dimensional tree:
+    </p>
+
+    <div class="ui center aligned basic segment">
+      <div class="ui bordered image">
+	@svgs.threetree()
+      </div>
+    </div>
+
+
+  </div>
+
+}

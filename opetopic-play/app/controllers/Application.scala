@@ -19,8 +19,14 @@ object Application extends Controller {
     Ok(views.html.codebuilder())
   }
 
-  def docs = Action {
-    Ok(views.html.docs())
+  def showDoc(page: String) = Action {
+    page match {
+      case "intro" => Ok(views.html.docs.intro())
+      case "typetheory" => Ok(views.html.docs.typetheory())
+      case "hdts" => Ok(views.html.docs.hdts())
+      case "opetopes" => Ok(views.html.docs.opetopes())
+      case _ => Ok("Not found: " ++ page)
+    }
   }
 
 }

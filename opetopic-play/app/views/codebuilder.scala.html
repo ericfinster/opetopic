@@ -6,19 +6,6 @@
 
   <div class="main">
 
-    <div class="toc">
-      <div class="ui left vertical inverted labeled icon menu">
-	<a id="new-designblock" class="item">
-	  <i class="cubes icon"></i>
-	  Design
-	</a>
-	<a id="new-codeblock" class="item">
-	  <i class="edit icon"></i>
-	  Code
-	</a>
-      </div>
-    </div>
-
     <div class="article">
       <div id="panes"></div>
     </div>
@@ -70,8 +57,8 @@
     </div>
   </div>
 
-  <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.css"))'>
-  <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.js"))'></script>
+  <!-- <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.css"))'> -->
+  <!-- <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.js"))'></script> -->
 
   @if(Play.isProd(Play.current)) {
   <script src='@routes.Assets.at("opetopiccodebuilder-opt.js")' type="text/javascript"></script>

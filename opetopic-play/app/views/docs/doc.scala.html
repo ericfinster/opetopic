@@ -1,0 +1,41 @@
+@(content: Html)
+
+@main("Documentation") {
+
+  <link rel='stylesheet' href='@routes.Assets.at("stylesheets/syntax.css")'>
+
+  <style>
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .highlight {
+      padding-left: 20px;
+    }
+  </style>
+
+  <div class="main">
+    <div class="ui container" style="margin-top: 10px;">
+
+      <div class="ui grid">
+
+	<div class="twelve wide column">
+	  @content
+	</div>
+
+	<div class="four wide column">
+      	  <div class="ui vertical fluid menu">
+      	    <a class="item" href="/docs/intro">Introduction</a>
+	    <a class="item" href="/docs/typetheory">Type Theory</a>
+      	    <a class="item" href="/docs/hdts">Higher Dimensional Trees</a>
+      	    <a class="item" href="/docs/opetopes">Opetopes</a>
+      	  </div>
+	</div>
+
+      </div>
+
+    </div>
+  </div>
+
+}

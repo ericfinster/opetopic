@@ -16,11 +16,11 @@ import opetopic.js.JQuerySemanticUI._
 
 object CodeBuilder extends JSApp {
 
-  def addCodeBlock: Unit = {
-    val pane = new CodeBlockPane
-    jQuery("#panes").append(pane.uiElement)
-    pane.initialize
-  }
+  // def addCodeBlock: Unit = {
+  //   val pane = new CodeBlockPane
+  //   jQuery("#panes").append(pane.uiElement)
+  //   pane.initialize
+  // }
 
   def addDesignBlock: Unit = {
     val pane = new DesignBlockPane
@@ -33,15 +33,7 @@ object CodeBuilder extends JSApp {
 
     println("Launched Opetopic CodeBuilder.")
 
-    jQuery("#new-designblock").click((e: JQueryEventObject) => {
-      addDesignBlock
-    })
-
-    jQuery("#new-codeblock").click((e: JQueryEventObject) => {
-      addCodeBlock
-    })
-
-    // addCodeBlock
+    addDesignBlock
 
   }
 

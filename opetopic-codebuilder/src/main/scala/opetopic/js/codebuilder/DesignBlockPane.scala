@@ -184,7 +184,7 @@ class DesignBlockPane {
       )
     ).render
 
-  val tabs = div().render
+  val tabs = div(style := "min-height: 310px").render
   val tabLabels = 
     div(cls := "ui center aligned segment")(
       a(cls := "ui grey circular label", onclick := { () => newInstance })("+")

@@ -1,0 +1,75 @@
+@()
+
+@doc {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Type Theory</h2>
+
+    <p>
+      Univalent type theory has uncovered new connections between
+      higher dimensional category theory, logic, and computer science.
+      Since its inception, three main strands of research have aimed
+      at deepening and extending this connection.
+    </p>
+
+    <h4 class="ui header">Model Theory</h4>
+
+    <p>
+      Soon after introducting the homotopy theoretic interpretation 
+      of type theory, Voevodsky, et al, 
+      <a href="http://arxiv.org/abs/1211.2851">showed</a> that there was indeed a 
+      <em>model</em> of the theory in simplicial sets, which additionally
+      satisfied his <em>univalence axiom</em>.  A consequence is that
+      theorems proved internally to type theory are in fact theorems about
+      homotopy types in the traditional mathematical sense of the word.
+    </p>
+
+    <p>
+      Various other authors have extended these results, showing that we can
+      obtain univalent models in many other categories.
+    </p>
+
+    <h4 class="ui header">Computational Theory</h4>
+
+    <p>
+      In practice, using univalent type theory has involved adding <em>axioms</em>
+      to existing type theories in order to access higher dimensional information.
+      The univalence axiom itself, but also <em>higher inductive types</em> must
+      be added to proof assistants by hand.
+    </p>
+
+    <p>
+      From a type-theoretic perspective, this situation is less than ideal, since
+      adding axioms to type theory breaks its computational interpretation: a 
+      proof assistant is unable to reduce a term which contains an instance of 
+      an axiom, since the simple addition of an axiom does not explain its reduction
+      behavior.
+    </p>
+
+    <p>
+      The <a href="https://github.com/mortberg/cubicaltt">cubical type theory</a> of
+      Coquand, Cohen, Huber, and Mortberg, aims at solving this problem.
+    </p>
+
+    <h4 class="ui header">Coherence Theory</h4>
+
+    <p>
+      As with most investigations into higher category theory, problems
+      of coherence have cropped up almost from the beginning.  From an
+      internal perspective, the types of univalent type theory behave
+      like infinity groupoids, coherent at all levels.  But we cannot
+      describe internally what coherence <em>means</em>, since doing
+      so requires us to write down types with infinitely many constructors.
+    </p>
+
+    <p>
+      Most work on this problem has focused on finding a reasonable internal
+      definition of <em>simplicial type</em>.  The main idea is that axiomatizing
+      such an object would allow us to speak of main other kinds of higher 
+      coherent objects such as internal groupoids and (infinity, 1)-categories.
+      So far, however, no simple solution to this problem has been found.
+    </p>
+
+  </div>
+
+}
