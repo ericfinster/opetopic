@@ -15,16 +15,17 @@ import scala.scalajs.js.Dynamic.{literal => lit}
 import opetopic.js._
 import JQuerySemanticUI._
 
-class EditorStack(env: EditorEnvironment) {
+class EditorStack(pane: Pane) {
 
   //============================================================================================
   // STATE
   //
 
   var activeInstance : Option[EditorInstance] = None
-  var hotkeysEnabled : Boolean = true
   var instanceCount : Int = 0
   var onSidebarShown : () => Unit = () => ()
+
+  def env = pane.env
 
   //============================================================================================
   // INITIALIZATION
@@ -40,21 +41,6 @@ class EditorStack(env: EditorEnvironment) {
       closable = false,
       onShow = { () => onSidebarShown() }
     ))
-
-    jQuery(uiElement).keypress((e : JQueryEventObject) => {
-      if (hotkeysEnabled) {
-        e.which match {
-          case 97 => onAssumeVariable
-          case 102 => onComposeDiagram
-          case 101 => for { i <- activeInstance } { i.editor.extrudeSelection }
-          case 100 => for { i <- activeInstance } { i.editor.extrudeDrop }
-          case 112 => for { i <- activeInstance } { i.editor.sprout }
-          case 108 => onLiftCell
-          case 118 => onExportToSVG
-          case _ => ()
-        }
-      }
-    })
 
   }
 
@@ -141,7 +127,7 @@ class EditorStack(env: EditorEnvironment) {
 
     jQuery(varForm).on("submit", (e : JQueryEventObject) => { 
       e.preventDefault 
-      hotkeysEnabled = true
+      pane.hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
       jQuery(uiElement).focus
       val id = jQuery(idInput).value().asInstanceOf[String]
@@ -149,7 +135,7 @@ class EditorStack(env: EditorEnvironment) {
       for { i <- activeInstance } { i.assumeVariable(id, lex) }
     })
 
-    hotkeysEnabled = false
+    pane.hotkeysEnabled = false
     jQuery(formSidebar).sidebar("show")
 
   }
@@ -177,14 +163,14 @@ class EditorStack(env: EditorEnvironment) {
 
     jQuery(compForm).on("submit", (e : JQueryEventObject) => { 
       e.preventDefault 
-      hotkeysEnabled = true
+      pane.hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
       jQuery(uiElement).focus
       val id = jQuery(idInput).value().toString
       for { i <- activeInstance } { i.composeDiagram(id) }
     })
 
-    hotkeysEnabled = false
+    pane.hotkeysEnabled = false
     jQuery(formSidebar).sidebar("show")
 
   }
@@ -212,14 +198,14 @@ class EditorStack(env: EditorEnvironment) {
 
     jQuery(liftForm).on("submit", (e : JQueryEventObject) => { 
       e.preventDefault 
-      hotkeysEnabled = true
+      pane.hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
       jQuery(uiElement).focus
       val id = jQuery(idInput).value().toString
       for { i <- activeInstance } { i.liftCell(id) }
     })
 
-    hotkeysEnabled = false
+    pane.hotkeysEnabled = false
     jQuery(formSidebar).sidebar("show")
 
   }
@@ -244,7 +230,7 @@ class EditorStack(env: EditorEnvironment) {
     ).render
 
   val uiElement = 
-    div(tabindex := 0)(
+    div(
       div(cls := "ui top attached menu")(
         div(cls := "ui dropdown item")(
           "Shape",

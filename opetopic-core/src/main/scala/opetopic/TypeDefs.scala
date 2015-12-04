@@ -86,6 +86,11 @@ trait TypeDefs extends NatConstants {
     def apply[N <: Nat](n: N)(s: A[N], t: A[N]): ShapeM[A[N]]
   }
 
+  def toOptionMap[A[_ <: Nat]] : IndexedMap[A, Lambda[`N <: Nat` => Option[A[N]]]] = 
+    new IndexedMap[A, Lambda[`N <: Nat` => Option[A[N]]]] {
+      def apply[N <: Nat](n: N)(an: A[N]) : Option[A[N]] = Some(an)
+    }
+
   //============================================================================================
   // POLARITIES
   //

@@ -194,10 +194,10 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   object ActiveGallery {
 
-    def apply[A[_ <: Nat], E <: Element](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A]) : ActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
-    def apply[A[_ <: Nat], E <: Element](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A]) : ActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
   }

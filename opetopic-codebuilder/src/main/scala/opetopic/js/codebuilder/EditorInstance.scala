@@ -67,6 +67,24 @@ class EditorInstance(env: EditorEnvironment) {
 
   }
 
+  def selectedBox : EditorM[Sigma[EditorBox]] = 
+    fromOption(currentBox, "Nothing selected")
+
+  def selectionFrame : EditorM[FiniteComplex[Cell]] = {
+
+    @natElim
+    def extractFrame[N <: Nat](n: N)(box: EditorBox[N]) : EditorM[FiniteComplex[Cell]] = {
+      case (Z, box) => editorError("Object does not have a frame")
+      case (S(p: P), box) => for { c <- new SuccBoxOps(box).cellComplex } yield c
+    }
+
+    for {
+      boxsig <- selectedBox
+      frm <- extractFrame(boxsig.n)(boxsig.value)
+    } yield frm
+
+  }
+
   @natElim
   def faceToCell[N <: Nat](n: N)(id: String, expr: Expr, face: Complex[EditorBox, N]) : EditorM[Cell[N]] = {
     case (Z, id, expr, _) => editorSucceed(ObjectCell(id, expr))

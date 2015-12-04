@@ -1,5 +1,5 @@
 /**
-  * ContextPane.scala - Basic Pane For Building Up a Context
+  * GoalPane.scala - A panel with a goal
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -16,7 +16,7 @@ import opetopic.js._
 
 import JQuerySemanticUI._
 
-class ContextPane extends Pane { thisPane => 
+abstract class GoalPane extends Pane { thisPane => 
 
   //============================================================================================
   // STATE
@@ -40,24 +40,10 @@ class ContextPane extends Pane { thisPane =>
     jQuery(leftAccordion).accordion()
     jQuery(rightAccordion).accordion()
 
-    jQuery(uiElement).keypress((e : JQueryEventObject) => {
-      if (hotkeysEnabled) {
-        e.which match {
-          case 97 => stack.onAssumeVariable 
-          case 102 => stack.onComposeDiagram
-          case 101 => for { i <- stack.activeInstance } { i.editor.extrudeSelection }
-          case 100 => for { i <- stack.activeInstance } { i.editor.extrudeDrop }
-          case 112 => for { i <- stack.activeInstance } { i.editor.sprout }
-          case 103 => newCellGoal
-          case 108 => stack.onLiftCell
-          case 118 => stack.onExportToSVG
-          case _ => ()
-        }
-      }
-    })
-
     stack.initialize
     stack.newInstance
+
+    jQuery(goalPane).append(goal.render)
 
   }
 
@@ -70,18 +56,6 @@ class ContextPane extends Pane { thisPane =>
       cell <- activeCell
       i <- stack.activeInstance
     }{ i.doPaste(cell.n)(cell.value) }
-
-  def newCellGoal: Unit = 
-    for {
-      i <- stack.activeInstance
-      frm <- i.selectionFrame
-    } {
-
-      val pane = new CellGoalPane(frm.value)
-      jQuery("#panes").append(pane.uiElement)
-      pane.initialize
-
-    }
 
   def registerCell[N <: Nat](cell: Cell[N]) : Unit = {
 
@@ -136,13 +110,17 @@ class ContextPane extends Pane { thisPane =>
       )
     ).render
 
-  val pane : HtmlTag = 
+  def goal : HtmlTag
+  val goalPane = div(cls := "ui raised segment").render
+
+  val pane = 
     div(cls := "ui raised segment")(
       div(cls := "ui celled grid")(
         div(cls := "three wide column")(
           leftAccordion
         ),
         div(cls := "ten wide center aligned column")(
+          goalPane,
           stack.uiElement
         ),
         div(cls := "three wide column")(
@@ -163,5 +141,6 @@ class ContextPane extends Pane { thisPane =>
       pane,
       environmentPopup
     ).render
+
 
 }
