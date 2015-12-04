@@ -29,7 +29,7 @@ abstract class UIFramework {
   // CANVAS ELEMENTS
   //
 
-  def viewport(bounds: Bounds, elem: Element*) : ViewportType
+  def viewport(width: Size, height: Size, bounds: Bounds, elem: Element*) : ViewportType
   def group(elem: Element*) : GroupType
   def rect(x: Size, y: Size, width: Size, height: Size, r: Size, stroke: String, strokeWidth: Size, fill: String) : RectangleType
   def path(d: String, stroke: String, strokeWidth: Size, fill: String) : PathType
@@ -50,6 +50,7 @@ abstract class UIFramework {
   def translate(el: Element, x: Size, y: Size) : Element
   def scale(el: Element, x: Size, y: Size) : Element
 
+  def addClass(el: Element, cls: String) : Element
   def makeMouseInvisible(el: Element) : Element
 
   //============================================================================================
@@ -150,15 +151,12 @@ abstract class UIFramework {
         def apply[N <: Nat](n: N) = a
       }
 
-    // implicit object ConstStringFamily extends AffixableFamily[ConstString] {
-    //   def apply[N <: Nat](n: N) : Affixable[String] =
-    //     Affixable.StringAffixable
-    // }
-
-    // implicit object ConstIntFamily extends AffixableFamily[ConstInt] {
-    //   def apply[N <: Nat](n: N) : Affixable[Int] =
-    //     Affixable.IntAffixable
-    // }
+    implicit def optAffixable[A[_ <: Nat]](implicit bnds: Bounds, af: AffixableFamily[A])
+        : AffixableFamily[Lambda[`N <: Nat` => Option[A[N]]]] =
+      new AffixableFamily[Lambda[`N <: Nat` => Option[A[N]]]] {
+        def apply[N <: Nat](n: N) =
+          Affixable.optionAffixable[A[N]](bnds, af(n))
+      }
 
   }
 

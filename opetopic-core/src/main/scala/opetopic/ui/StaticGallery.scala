@@ -9,48 +9,134 @@ package opetopic.ui
 
 import opetopic._
 import syntax.complex._
+import syntax.nesting._
 import syntax.suite._
 import TypeLemmas._
 
-trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries { self: UIFramework with HasGalleries =>
+trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries { 
+  self: UIFramework with HasGalleries =>
 
-//   import isNumeric._
+  import isNumeric._
 
-//   // class StaticGallery[A[_ <: Nat], E <: Element](val config: GalleryConfig, val complex : FiniteComplex[A])(implicit r: AffixableFamily[A, E])
-//   //     extends ComplexGallery[A, E] {
+  trait StaticGallery[A[_ <: Nat]] extends ComplexGallery[A] {
 
-//   //   type PanelType[N <: Nat] = StaticPanel[A[N], E, N]
+    type GalleryPanelType[N <: Nat] <: StaticGalleryPanel[N]
+    type GalleryBoxType[N <: Nat] <: StaticGalleryCellBox[A[N], N] 
+    type GalleryEdgeType[N <: Nat] <: StaticCellEdge[A[N], N]
 
-//   //   def createObjectPanel(nst: Nesting[A[_0], _0]) : PanelType[_0] =
-//   //     new StaticObjectPanel[A[_0], E](config.panelConfig, nst)(r(Z))
+    trait StaticGalleryPanel[N <: Nat] extends StaticPanel[A[N], N] with ComplexPanel[N] 
+    trait StaticGalleryCellBox[A, N <: Nat] extends StaticCellBox[A, N] {
 
-//   //   def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : PanelType[S[P]] =
-//   //     new StaticNestingPanel[A[S[P]], A[P], E, P](p)(config.panelConfig, bn, Some(en))(r(S(p)))
+      type BoxAddressType = Address[S[N]]
+
+      def nestingAddress = address
+
+    }
+
+  }
+
+  class SimpleStaticGallery[A[_ <: Nat]](val config: GalleryConfig, val complex: FiniteComplex[A])(
+    implicit r: AffixableFamily[A]
+  ) extends StaticGallery[A] { thisGallery => 
+
+    type GalleryPanelType[N <: Nat] = SimpleStaticGalleryPanel[N]
+    type GalleryBoxType[N <: Nat] = SimpleStaticGalleryCellBox[N] 
+    type GalleryEdgeType[N <: Nat] = SimpleStaticGalleryCellEdge[N]
+
+    def element : Element = galleryElement
+    def bounds: Bounds = galleryBounds
+
+    val panels : NonemptySuite[SimpleStaticGalleryPanel] =
+      createPanels(complex.n)(complex.value)
+
+    val (galleryElement, galleryBounds) : (Element, Bounds) = {
+      val (panelEls, bnds) = elementsAndBounds
+      (viewport(config.width, config.height, bnds, panelEls: _*), bnds)
+    }
+
+    def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0] =
+      new SimpleStaticGalleryObjectPanel(nst)
+
+    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : GalleryPanelType[S[P]] =
+      new SimpleStaticGalleryNestingPanel(p)(bn, Some(en))
+
+    abstract class SimpleStaticGalleryPanel[N <: Nat]
+        extends StaticGalleryPanel[N] {
+
+      type BoxType = SimpleStaticGalleryCellBox[N]
+      type EdgeType = SimpleStaticGalleryCellEdge[N]
+
+      def cellBox(lbl: A[N], addr: Address[S[N]], isExt: Boolean) : BoxType =
+        new SimpleStaticGalleryCellBox(this, lbl, addr, isExt)
+
+      def cellEdge : EdgeType =
+        new SimpleStaticGalleryCellEdge(this)
+
+    }
+
+    class SimpleStaticGalleryCellBox[N <: Nat](
+      val panel: SimpleStaticGalleryPanel[N],
+      val label: A[N],
+      val address: Address[S[N]],
+      val isExternal: Boolean
+    ) extends StaticGalleryCellBox[A[N], N] {
+
+      type PanelType = SimpleStaticGalleryPanel[N]
+
+      val decoration = panel.affixable.decoration(label)
+      makeMouseInvisible(labelElement)
+
+    }
+
+    class SimpleStaticGalleryCellEdge[N <: Nat](
+      val panel: SimpleStaticGalleryPanel[N]
+    ) extends StaticCellEdge[A[N], N]
 
 
+    class SimpleStaticGalleryObjectPanel(val nesting: Nesting[A[_0], _0])
+        extends SimpleStaticGalleryPanel[_0] with StaticObjectPanel[A[_0]] {
 
-//   //   val panels : NonemptySuite[PanelType] =
-//   //     createPanels(complex.n)(complex.value)
+      def panelDim = Z
+      val affixable = r(Z)
+      val config = thisGallery.config.panelConfig
+      val boxNesting = generateBoxes(nesting.dim)(nesting)
 
-//   //   val (galleryElement, galleryBounds) : (Element, Bounds) = {
-//   //     val (panelEls, bnds) = elementsAndBounds
-//   //     (group(panelEls: _*), bnds)
-//   //   }
+      layoutObjects(boxNesting)
 
-//   //   def element : Element = galleryElement
-//   //   def bounds: Bounds = galleryBounds
+    }
 
-//   // }
+    class SimpleStaticGalleryNestingPanel[P <: Nat](p: P)(
+      val nesting: Nesting[A[S[P]], S[P]], edgeOpt: Option[Nesting[A[P], P]]
+    ) extends SimpleStaticGalleryPanel[S[P]] with StaticNestingPanel[A[S[P]], P] {
 
-//   // //============================================================================================
-//   // // CONSTRUCTOR
-//   // //
+      def panelDim = S(p)
+      val affixable = r(S(p))
+      val config = thisGallery.config.panelConfig
+      val boxNesting = generateBoxes(nesting.dim)(nesting)
 
-//   // object StaticGallery {
+      val edgeNesting : Nesting[EdgeType, P] =
+        edgeOpt match {
+          case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
+          case Some(et) => connectEdges(et map (_ => cellEdge), boxNesting)
+        }
 
-//   //   def apply[A[_ <: Nat], E <: Element](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A, E]) : StaticGallery[A, E] =
-//   //     new StaticGallery(cfg, cmplx)
+      layout(boxNesting, edgeNesting)
 
-//   // }
+    }
+
+  }
+
+  //============================================================================================
+  // CONSTRUCTOR
+  //
+
+  object SimpleStaticGallery {
+
+    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(
+      implicit cfg: GalleryConfig, r: AffixableFamily[A]
+    ) : SimpleStaticGallery[A] =
+      new SimpleStaticGallery(cfg, cmplx)
+
+  }
 
 }

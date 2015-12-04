@@ -50,15 +50,35 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
     el(svgAttrs.transform:="scale(" ++ x.toString ++ ", " ++ y.toString ++ ")")
   }
 
+  def addClass(el: Element, str: String) : Element = {
+    import implicits._
+    el(attrs.cls := str)
+  }
+
   def makeMouseInvisible(el: Element) : Element = {
     import implicits._
     el(svgAttrs.pointerEvents:="none")
   }
 
-  def viewport(bounds: Bounds, elems: Element*) : ViewportType = {
+  def viewport(width: Int, height: Int, bounds: Bounds, elems: Element*) : ViewportType = {
     import svgTags._
     import implicits._
-    svg(svgAttrs.viewBox:=bounds.dimString)(elems)
+
+    val styleString = 
+      "<style> " ++ 
+        "rect { fill : white } " ++ 
+        "rect.variable { fill : #FFE21F  } " ++
+        "rect.composite { fill : #FF5F68 } " ++ 
+        "rect.universal { fill : #54C8FF } " ++ 
+        "</style>"
+
+    svg(
+      svgAttrs.width := width,
+      svgAttrs.height := height,
+      svgAttrs.viewBox := bounds.dimString,
+      svgAttrs.xmlns := "http://www.w3.org/2000/svg"
+    )(raw(styleString), elems)
+
   }
 
   def group(elems: Element*) : GroupType = {
@@ -76,7 +96,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
       svgAttrs.height:=height.toString,
       svgAttrs.rx:=cornerRadius.toString,
       svgAttrs.ry:=cornerRadius.toString,
-      svgAttrs.fill:=fill,
+      //svgAttrs.fill:=fill,
       svgAttrs.stroke:=stroke,
       svgAttrs.strokeWidth:=strokeWidth.toString
     )

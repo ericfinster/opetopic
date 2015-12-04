@@ -101,6 +101,10 @@ object JsDomFramework extends ActiveFramework
     el.uiElement.setAttributeNS(null, "pointer-events", "none") ; el
   }
 
+  def addClass(el: Element, cls: String) : Element = {
+    el.addClass(cls) ; el
+  }
+
   abstract class JsDomParentElement extends JsDomElement {
 
     private var myChildren: Seq[Element] = Seq()
@@ -130,7 +134,7 @@ object JsDomFramework extends ActiveFramework
   def viewport : ViewportType = 
     new JsDomViewport
 
-  def viewport(bounds: Bounds, elems: Element*) : ViewportType = 
+  def viewport(width: Int, height: Int, bounds: Bounds, elems: Element*) : ViewportType = 
     new JsDomViewport(bounds, elems)
 
   class JsDomViewport extends JsDomParentElement with Viewport {

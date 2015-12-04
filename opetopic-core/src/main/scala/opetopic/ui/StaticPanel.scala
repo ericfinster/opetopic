@@ -31,10 +31,6 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
         case (a, addr, cn) => Box(cellBox(a, addr, false), cn)
       })
 
-    def seekToAddress(addr: Address[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
-      boxNesting.seekTo(addr)
-
-
   }
 
   trait StaticCellBox[A, N <: Nat] extends CellBox[A, N] {
@@ -48,7 +44,13 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
       val locatedLabel = translate(labelElement, labelXPos - labelBounds.x, labelYPos - labelBounds.y)
 
-      group(rect(x, y, width, height, cornerRadius, "black", strokeWidth, "none"), locatedLabel)
+      val r = 
+        addClass(
+          rect(x, y, width, height, cornerRadius, "black", strokeWidth, ""),
+          decoration.classString
+        )
+
+      group(r, locatedLabel)
 
     }
 
@@ -142,6 +144,9 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
     def cellEdge : EdgeType =
       new SimpleStaticCellEdge(this)
+
+    def seekToAddress(addr: Address[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
+      boxNesting.seekTo(addr)
 
   }
 

@@ -8,8 +8,11 @@
 package opetopic.js.codebuilder
 
 import org.scalajs.jquery._
+import org.scalajs.dom
 import scalatags.JsDom.all._
+import scala.scalajs.js
 import scala.scalajs.js.Dynamic.{literal => lit}
+
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
@@ -35,55 +38,7 @@ import OpetopicTypeChecker._
 
 class DesignBlockPane {
 
-  sealed trait Cell[N <: Nat] {
-    def id: String
-    def face: Complex[Cell, N]
-    def expr: Expr
-    def ty: Expr
-    def dim: N
-    var isLeftExt: Option[Expr] = None
-    var isRightExt: Option[Expr] = None
-  }
-
-  case class ObjectCell(
-    val id: String,
-    val expr: Expr
-  ) extends Cell[_0] {
-    val face = Complex[Cell] >> Obj(this)
-    val ty = EOb(catVar)
-    val dim = Z
-  }
-
-  case class HigherCell[P <: Nat](
-    val id: String,
-    val expr: Expr,
-    val frm: Complex[Cell, P]
-  ) extends Cell[S[P]] {
-    val dim = frm.length
-    val face = frm >> Dot(this, dim)
-    val frmExpr : ExprComplex[P] = frm.map(CellToExpr)
-    val ty = ECell(catVar, frmExpr)
-  }
-
-  object Cell {
-
-    type CNst[N <: Nat] = Nesting[Cell[N], N]
-
-    @natElim
-    def apply[N <: Nat](n: N)(id: String, expr: Expr, suite: Suite[CNst, N]) : Cell[N] = {
-      case (Z, id, expr, _) => ObjectCell(id, expr)
-      case (S(p: P), id, expr, suite) => HigherCell[P](id, expr, suite)
-    }
-
-  }
-
-  object CellToExpr extends IndexedMap[Cell, ConstExpr] {
-    def apply[N <: Nat](n: N)(cell: Cell[N]) : Expr = 
-      cell.expr
-  }
-
-  type OptCell[N <: Nat] = Option[Cell[N]]
-  type OptCellCmplx[N <: Nat] = Complex[OptCell, N]
+  import Cell._
 
   implicit object CellAffixableFamily extends AffixableFamily[Cell] {
     def apply[N <: Nat](n: N) : Affixable[Cell[N]] = 
@@ -103,9 +58,66 @@ class DesignBlockPane {
 
   var activeCell : Option[Sigma[Cell]] = None
   var activeInstance : Option[EditorInstance] = None
+  var instanceCount : Int = 0
+  var hotkeysEnabled : Boolean = true
 
-  val environmentMenu = 
-    div(cls := "ui large selection list").render
+  var onSidebarShown : () => Unit = () => println("sidebar shown")
+
+  def initialize: Unit = {
+
+    jQuery(accordion).accordion()
+    jQuery(uiElement).find(".ui.dropdown").dropdown(lit(on = "hover"))
+
+    jQuery(formSidebar).sidebar(lit(
+      context = jQuery(tabContainer),
+      dimPage = false,
+      closable = false,
+      onShow = { () => onSidebarShown() }
+    ))
+
+    jQuery(uiElement).keypress((e : JQueryEventObject) => {
+      if (hotkeysEnabled) {
+        e.which match {
+          case 97 => onAssumeVariable
+          case 102 => onComposeDiagram
+          case 101 => for { i <- activeInstance } { i.editor.extrudeSelection }
+          case 100 => for { i <- activeInstance } { i.editor.extrudeDrop }
+          case 112 => for { i <- activeInstance } { i.editor.sprout }
+          case 108 => ()
+          case 118 => for { i <- activeInstance } { i.selectionToSvg }
+          case _ => ()
+        }
+      }
+    })
+
+    newInstance
+
+  }
+
+  def newInstance: Unit = {
+
+    val instance = new EditorInstance
+    instanceCount += 1
+
+    val icStr = instanceCount.toString
+    val tabName = "tab-" ++ icStr
+
+    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
+      instance.editor.element.uiElement
+    ).render
+
+    val label = 
+      a(cls := "ui grey circular label", 
+        onclick := { () => { jQuery(tab).tab("change tab", tabName) ; activeInstance = Some(instance) } }
+      )(icStr).render
+
+    jQuery(tabs).append(tab)
+    jQuery(tabLabels).append(label)
+    jQuery(tab).tab("change tab", tabName)
+
+    activeInstance = Some(instance)
+
+  }
 
   def pasteToCursor: Unit = 
     for {
@@ -137,32 +149,92 @@ class DesignBlockPane {
 
   }
 
-  var instanceCount: Int = 0
+  def onAssumeVariable: Unit = {
 
-  def newInstance: Unit = {
+    val idInput = input(`type` := "text", placeholder := "Identifier").render
+    val isLeftExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden")
+    val isRightExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden")
 
-    val instance = new EditorInstance
-    instanceCount += 1
+    val varForm =
+      form(cls := "ui form")(
+        div(cls := "inline fields")(
+          div(cls := "field")(
+            label("Assume Variable:"),
+            idInput
+          ),
+          div(cls := "field")(
+            div(cls := "ui checkbox")(
+              isLeftExt,
+              label("Left Extension")
+            )
+          ),
+          div(cls := "field")(
+            div(cls := "ui checkbox")(
+              isRightExt,
+              label("Right Extension")
+            )
+          ),
+          button(cls := "ui button", `type` := "submit")("Ok")
+        )
+      ).render
 
-    val icStr = instanceCount.toString
-    val tabName = "tab-" ++ icStr
+    jQuery(formSidebar).empty().append(
+      div(cls := "ui basic segment")(varForm).render
+    )
 
-    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
-      instance.editor.element.uiElement
-    ).render
+    onSidebarShown = { () => jQuery(idInput).focus() }
 
-    val label = 
-      a(cls := "ui grey circular label", 
-        onclick := { () => { jQuery(tab).tab("change tab", tabName) ; activeInstance = Some(instance) } }
-      )(icStr).render
+    jQuery(varForm).on("submit", (e : JQueryEventObject) => { 
+      e.preventDefault 
+      hotkeysEnabled = true
+      jQuery(formSidebar).sidebar("hide")
+      jQuery(uiElement).focus
+      val id = jQuery(idInput).value().toString
+      for { i <- activeInstance } { i.assumeVariable(id) }
+    })
 
-    jQuery(tabs).append(tab)
-    jQuery(tabLabels).append(label)
-    jQuery(tab).tab("change tab", tabName)
-
-    activeInstance = Some(instance)
+    hotkeysEnabled = false
+    jQuery(formSidebar).sidebar("show")
 
   }
+
+  def onComposeDiagram : Unit = {
+
+    val idInput = input(`type` := "text", placeholder := "Identifier").render
+
+    val compForm =
+      form(cls := "ui form")(
+        div(cls := "inline fields")(
+          div(cls := "field")(
+            label("Compose Diagram:"),
+            idInput
+          ),
+          button(cls := "ui button", `type` := "submit")("Ok")
+        )
+      ).render
+
+    jQuery(formSidebar).empty().append(
+      div(cls := "ui basic segment")(compForm).render
+    )
+
+    onSidebarShown = { () => jQuery(idInput).focus() }
+
+    jQuery(compForm).on("submit", (e : JQueryEventObject) => { 
+      e.preventDefault 
+      hotkeysEnabled = true
+      jQuery(formSidebar).sidebar("hide")
+      jQuery(uiElement).focus
+      val id = jQuery(idInput).value().toString
+      for { i <- activeInstance } { i.composeDiagram(id) }
+    })
+
+    hotkeysEnabled = false
+    jQuery(formSidebar).sidebar("show")
+
+  }
+
+  val environmentMenu = 
+    div(cls := "ui large selection list").render
 
   val accordion = 
     div(cls := "ui fluid vertical accordion menu")(
@@ -184,9 +256,18 @@ class DesignBlockPane {
       )
     ).render
 
-  val tabs = div(style := "min-height: 310px").render
+  val tabs = div(cls := "ui basic segment", style := "min-height: 310px").render
+  val formSidebar = div(cls := "ui bottom sidebar").render
+
+  val tabContainer = div(cls := "ui attached pushable segment", style := "overflow: hidden")(
+    formSidebar,
+    div(cls := "pusher")(
+      tabs
+    )
+  ).render
+
   val tabLabels = 
-    div(cls := "ui center aligned segment")(
+    div(cls := "ui center aligned bottom attached segment")(
       a(cls := "ui grey circular label", onclick := { () => newInstance })("+")
     ).render
 
@@ -197,7 +278,7 @@ class DesignBlockPane {
           accordion
         ),
         div(cls := "ten wide center aligned column")(
-          div(cls := "ui menu")(
+          div(cls := "ui top attached menu")(
             div(cls := "ui dropdown item")(
               "Shape",
               i(cls := "dropdown icon"),
@@ -216,7 +297,8 @@ class DesignBlockPane {
               )
             )
           ),
-          tabs, tabLabels
+          tabContainer,
+          tabLabels
         ),
         div(cls := "three wide column")(
           p("Right column")
@@ -235,36 +317,6 @@ class DesignBlockPane {
     bottomElement,
     environmentPopup
   ).render
-
-  jQuery(uiElement).keypress((e : JQueryEventObject) => {
-    e.which match {
-      case 97 => {
-        jQuery("#var-input").value("")
-        jQuery(".ui.modal.var").modal(lit(onApprove = { (x: Any) =>
-          for { i <- activeInstance }{ i.assumeVariable(jQuery("#var-input").value().asInstanceOf[String]) }
-        }))
-        jQuery(".ui.modal.var").modal("show")
-      }
-      case 102 => {
-        jQuery("#comp-input").value("")
-        jQuery(".ui.modal.fill").modal(lit(onApprove = { (x: Any) =>
-          for { i <- activeInstance }{ i.composeDiagram(jQuery("#comp-input").value().asInstanceOf[String]) }
-        }))
-        jQuery(".ui.modal.fill").modal("show")
-      }
-      case 101 => for { i <- activeInstance } { i.editor.extrudeSelection }
-      case 100 => for { i <- activeInstance } { i.editor.extrudeDrop }
-      case 112 => for { i <- activeInstance } { i.editor.sprout }
-      case 108 => {
-        jQuery("#lift-input").value("")
-        jQuery(".ui.modal.lift").modal(lit(onApprove = { (x: Any) =>
-          for { i <- activeInstance }{ i.lift(jQuery("#lift-input").value().asInstanceOf[String]) }
-        }))
-        jQuery(".ui.modal.lift").modal("show")
-      }
-      case _ => ()
-    }
-  })
 
   //============================================================================================
   // SEMANTICS
@@ -303,6 +355,21 @@ class DesignBlockPane {
     def onSelectAsRoot(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
       currentBox = Some(boxsig)
     }
+
+    def selectionToSvg: Unit = 
+      for {
+        boxsig <- currentBox
+        lc <- boxsig.value.labelComplex
+      } {
+
+        val exporter = new SvgExporter(lc)
+
+        jQuery(".ui.modal.svgexport").find("#exportlink").
+          attr(lit(href = "data:text/plain;charset=utf-8," ++ js.URIUtils.encodeURIComponent(exporter.svgString)))
+
+        jQuery(".ui.modal.svgexport").modal("show")
+
+      }
 
     // You could really clean things up with more of
     // this kind of stuff ...

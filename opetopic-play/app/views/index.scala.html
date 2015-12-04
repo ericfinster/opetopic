@@ -2,15 +2,38 @@
 
 @main("Home") {
 
-  <div class="ui container main">
-    <div class="ui segment raised">
+  <style>
+    p {
+      font-size: 16px;
+      line-height: 1.5;
+    }
+  </style>
 
-      <h2 class="ui dividing header">Welcome to Opetopic!</h2>
+  <div class="main">
+    <div class="ui container" style="margin-top: 10px;">
 
-      <p>
-	Opetopic is an experimental graphical proof assistant for 
-	higher category theory.  Have a look around!
-      </p>
+      <div class="ui segment raised">
+
+	<h2 class="ui dividing header">Welcome to Opetopic!</h2>
+
+	<p>
+	  Opetopic is an experimental graphical proof assistant for 
+	  higher category theory. 
+	</p>
+
+	<div class="ui basic center aligned segment">
+	  @svgs.unitright()
+	</div>
+
+	<p>
+	  The above diagram is a diagrammatic proof of the right unit
+	  law for morphisms in a higher category.  For an explanation
+	  of what this means, see
+	  the <a href="/docs">documentation</a>.
+	</p>
+
+      </div>
+
     </div>
   </div>
 

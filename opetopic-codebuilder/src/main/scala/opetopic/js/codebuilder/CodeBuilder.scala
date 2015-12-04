@@ -25,8 +25,7 @@ object CodeBuilder extends JSApp {
   def addDesignBlock: Unit = {
     val pane = new DesignBlockPane
     jQuery("#panes").append(pane.uiElement)
-    jQuery(pane.accordion).accordion()
-    jQuery(pane.uiElement).find(".ui.dropdown").dropdown(lit(on = "hover"))
+    pane.initialize
   }
 
   def main : Unit = {
