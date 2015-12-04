@@ -40,28 +40,11 @@ class DesignBlockPane {
 
   import Cell._
 
-  implicit object CellAffixableFamily extends AffixableFamily[Cell] {
-    def apply[N <: Nat](n: N) : Affixable[Cell[N]] = 
-      new Affixable[Cell[N]] {
-        type ElementType = TextType
-        def decoration(cell: Cell[N]) = 
-          cell.isLeftExt match {
-            case None => 
-              cell.expr match {
-                case EVar(_) => Decoration(text(cell.id), "variable")
-                case _ => Decoration(text(cell.id), "composite")
-              }
-            case Some(_) => Decoration(text(cell.id), "universal")
-          }
-      }
-  }
-
   var activeCell : Option[Sigma[Cell]] = None
   var activeInstance : Option[EditorInstance] = None
   var instanceCount : Int = 0
   var hotkeysEnabled : Boolean = true
-
-  var onSidebarShown : () => Unit = () => println("sidebar shown")
+  var onSidebarShown : () => Unit = () => ()
 
   def initialize: Unit = {
 
@@ -257,7 +240,7 @@ class DesignBlockPane {
     ).render
 
   val tabs = div(cls := "ui basic segment", style := "min-height: 310px").render
-  val formSidebar = div(cls := "ui bottom sidebar").render
+  val formSidebar = div(cls := "ui bottom sidebar", style := "z-index: 10 ; background-color: white").render
 
   val tabContainer = div(cls := "ui attached pushable segment", style := "overflow: hidden")(
     formSidebar,
@@ -317,6 +300,26 @@ class DesignBlockPane {
     bottomElement,
     environmentPopup
   ).render
+
+  //============================================================================================
+  // CELL AFFIXABLE INSTANCE
+  //
+
+  implicit object CellAffixableFamily extends AffixableFamily[Cell] {
+    def apply[N <: Nat](n: N) : Affixable[Cell[N]] = 
+      new Affixable[Cell[N]] {
+        type ElementType = TextType
+        def decoration(cell: Cell[N]) = 
+          cell.isLeftExt match {
+            case None => 
+              cell.expr match {
+                case EVar(_) => Decoration(text(cell.id), "variable")
+                case _ => Decoration(text(cell.id), "composite")
+              }
+            case Some(_) => Decoration(text(cell.id), "universal")
+          }
+      }
+  }
 
   //============================================================================================
   // SEMANTICS
@@ -825,5 +828,6 @@ class DesignBlockPane {
     }
 
   }
+
 
 }
