@@ -259,8 +259,6 @@ object OpetopicTypeChecker {
   // TYPE ENVIRONMENT
   //
 
-  type Gamma = List[(Name, TVal)]
-
   def lookupG[A, B](a0: A, prs: List[(A, B)]) : G[B] = 
     prs.find({ case (a, b) => a == a0 }) match {
       case None => fail("lookupG: " ++ a0.toString)

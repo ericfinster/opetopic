@@ -16,6 +16,8 @@ package object tt {
   type Nf = Val
   type TVal = Val
 
+  type Gamma = List[(Name, TVal)]
+
   type ConstExpr[N <: Nat] = Expr
   type ConstVal[N <: Nat] = Val
 

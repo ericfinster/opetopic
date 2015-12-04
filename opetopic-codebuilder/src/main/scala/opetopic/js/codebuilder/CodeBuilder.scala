@@ -16,25 +16,14 @@ import opetopic.js.JQuerySemanticUI._
 
 object CodeBuilder extends JSApp {
 
-  // def addCodeBlock: Unit = {
-  //   val pane = new CodeBlockPane
-  //   jQuery("#panes").append(pane.uiElement)
-  //   pane.initialize
-  // }
-
-  def addDesignBlock: Unit = {
-    val pane = new DesignBlockPane
-    jQuery("#panes").append(pane.uiElement)
-    pane.initialize
-  }
-
   def main : Unit = {
 
     println("Launched Opetopic CodeBuilder.")
 
-    addDesignBlock
+    val pane = new ContextPane
+    jQuery("#panes").append(pane.uiElement)
+    pane.initialize
 
   }
-
 
 }

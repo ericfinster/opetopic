@@ -13,6 +13,10 @@ import scalaz.\/
 import scalaz.-\/
 import scalaz.\/-
 
+case class ShapeError(str: String) {
+  def this() = this("Unknown Shape Error")
+}
+
 trait TypeDefs extends NatConstants {
 
   //============================================================================================

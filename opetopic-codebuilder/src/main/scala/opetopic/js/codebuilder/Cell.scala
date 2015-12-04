@@ -59,4 +59,48 @@ object Cell {
       cell.expr
   }
 
+  object ActiveInstance {
+
+    import opetopic.js.JsDomFramework._
+
+    implicit object CellAffixableFamily extends AffixableFamily[Cell] {
+      def apply[N <: Nat](n: N) : Affixable[Cell[N]] =
+        new Affixable[Cell[N]] {
+          type ElementType = TextType
+          def decoration(cell: Cell[N]) =
+            cell.isLeftExt match {
+              case None =>
+                cell.expr match {
+                  case EVar(_) => Decoration(text(cell.id), "variable")
+                  case _ => Decoration(text(cell.id), "composite")
+                }
+              case Some(_) => Decoration(text(cell.id), "universal")
+            }
+        }
+    }
+
+  }
+
+  object StaticInstance {
+
+    import opetopic.ui.ScalatagsTextFramework._
+
+    implicit object StaticCellAffixableFamily extends AffixableFamily[Cell] {
+      def apply[N <: Nat](n: N) : Affixable[Cell[N]] =
+        new Affixable[Cell[N]] {
+          type ElementType = TextType
+          def decoration(cell: Cell[N]) =
+            cell.isLeftExt match {
+              case None =>
+                cell.expr match {
+                  case EVar(_) => Decoration(text(cell.id), "variable")
+                  case _ => Decoration(text(cell.id), "composite")
+                }
+              case Some(_) => Decoration(text(cell.id), "universal")
+            }
+        }
+    }
+
+  }
+
 }

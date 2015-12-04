@@ -13,6 +13,7 @@ import opetopic.tt._
 import syntax.complex._
 
 import Cell._
+import StaticInstance._
 import ScalatagsTextFramework._
 
 class SvgExporter[N <: Nat](cmplx: Complex[OptCell, N]) {
@@ -36,22 +37,6 @@ class SvgExporter[N <: Nat](cmplx: Complex[OptCell, N]) {
       minViewY = Some(15000),
       spacerBounds = Bounds(0, 0, 600, 600)
     )
-
-  implicit object StaticCellAffixableFamily extends AffixableFamily[Cell] {
-    def apply[N <: Nat](n: N) : Affixable[Cell[N]] =
-      new Affixable[Cell[N]] {
-        type ElementType = TextType
-        def decoration(cell: Cell[N]) =
-          cell.isLeftExt match {
-            case None =>
-              cell.expr match {
-                case EVar(_) => Decoration(text(cell.id), "variable")
-                case _ => Decoration(text(cell.id), "composite")
-              }
-            case Some(_) => Decoration(text(cell.id), "universal")
-          }
-      }
-  }
 
   implicit val spacerBounds = Bounds(0, 0, 10, 10)
 

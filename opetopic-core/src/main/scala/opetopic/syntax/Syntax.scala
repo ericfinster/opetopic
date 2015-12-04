@@ -15,4 +15,11 @@ trait Syntax {
   object cardinal extends ToCardinalOps
   object suite extends ToSuiteOps
 
+  object all 
+      extends ToTreeOps 
+      with ToComplexOps
+      with ToNestingOps
+      with ToCardinalOps
+      with ToSuiteOps
+
 }
