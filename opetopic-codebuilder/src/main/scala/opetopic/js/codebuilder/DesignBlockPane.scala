@@ -66,7 +66,7 @@ class DesignBlockPane {
           case 101 => for { i <- activeInstance } { i.editor.extrudeSelection }
           case 100 => for { i <- activeInstance } { i.editor.extrudeDrop }
           case 112 => for { i <- activeInstance } { i.editor.sprout }
-          case 108 => ()
+          case 108 => onLiftCell
           case 118 => for { i <- activeInstance } { i.selectionToSvg }
           case _ => ()
         }
@@ -135,8 +135,8 @@ class DesignBlockPane {
   def onAssumeVariable: Unit = {
 
     val idInput = input(`type` := "text", placeholder := "Identifier").render
-    val isLeftExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden")
-    val isRightExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden")
+    val isLeftExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
+    // val isRightExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden")
 
     val varForm =
       form(cls := "ui form")(
@@ -151,12 +151,12 @@ class DesignBlockPane {
               label("Left Extension")
             )
           ),
-          div(cls := "field")(
-            div(cls := "ui checkbox")(
-              isRightExt,
-              label("Right Extension")
-            )
-          ),
+          // div(cls := "field")(
+          //   div(cls := "ui checkbox")(
+          //     isRightExt,
+          //     label("Right Extension")
+          //   )
+          // ),
           button(cls := "ui button", `type` := "submit")("Ok")
         )
       ).render
@@ -165,6 +165,8 @@ class DesignBlockPane {
       div(cls := "ui basic segment")(varForm).render
     )
 
+    jQuery(varForm).find(".checkbox").checkbox()
+
     onSidebarShown = { () => jQuery(idInput).focus() }
 
     jQuery(varForm).on("submit", (e : JQueryEventObject) => { 
@@ -172,8 +174,9 @@ class DesignBlockPane {
       hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
       jQuery(uiElement).focus
-      val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { i.assumeVariable(id) }
+      val id = jQuery(idInput).value().asInstanceOf[String]
+      val lex = jQuery(isLeftExt).prop("checked").asInstanceOf[Boolean]
+      for { i <- activeInstance } { i.assumeVariable(id, lex) }
     })
 
     hotkeysEnabled = false
@@ -209,6 +212,41 @@ class DesignBlockPane {
       jQuery(uiElement).focus
       val id = jQuery(idInput).value().toString
       for { i <- activeInstance } { i.composeDiagram(id) }
+    })
+
+    hotkeysEnabled = false
+    jQuery(formSidebar).sidebar("show")
+
+  }
+
+  def onLiftCell : Unit = {
+
+    val idInput = input(`type` := "text", placeholder := "Identifier").render
+
+    val liftForm =
+      form(cls := "ui form")(
+        div(cls := "inline fields")(
+          div(cls := "field")(
+            label("Lift Cell:"),
+            idInput
+          ),
+          button(cls := "ui button", `type` := "submit")("Ok")
+        )
+      ).render
+
+    jQuery(formSidebar).empty().append(
+      div(cls := "ui basic segment")(liftForm).render
+    )
+
+    onSidebarShown = { () => jQuery(idInput).focus() }
+
+    jQuery(liftForm).on("submit", (e : JQueryEventObject) => { 
+      e.preventDefault 
+      hotkeysEnabled = true
+      jQuery(formSidebar).sidebar("hide")
+      jQuery(uiElement).focus
+      val id = jQuery(idInput).value().toString
+      for { i <- activeInstance } { i.lift(id) }
     })
 
     hotkeysEnabled = false
@@ -398,15 +436,15 @@ class DesignBlockPane {
     // ASSUME A VARIABLE
     //
 
-    def assumeVariable(id: String): Unit = 
+    def assumeVariable(id: String, isLex: Boolean): Unit = 
       for {
         boxsig <- currentBox
         fc <- boxsig.value.faceComplex
-      } { doAssume(boxsig.n)(fc, id) }
+      } { doAssume(boxsig.n)(fc, id, isLex) }
 
     @natElim
-    def doAssume[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : Unit = {
-      case (Z, Complex(_, Obj(b)), id) => 
+    def doAssume[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String, isLex: Boolean) : Unit = {
+      case (Z, Complex(_, Obj(b)), id, isLex) => 
         b.optLabel match {
           case None => {
 
@@ -425,8 +463,8 @@ class DesignBlockPane {
           }
           case Some(_) => println("Cell is occupied")
         }
-      case (Z, _, _) => println("Malformed complex")
-      case (S(p: P), Complex(tl, Dot(b, _)), id) => 
+      case (Z, _, _, _) => println("Malformed complex")
+      case (S(p: P), Complex(tl, Dot(b, _)), id, isLex) => 
         b.optLabel match {
           case None => {
 
@@ -446,7 +484,17 @@ class DesignBlockPane {
                     (id, eval(varType, rho)) +=: context
                     environment = UpVar(rho, PVar(id), Nt(Gen(lRho(rho), "TC#")))
 
+                    val isLexOpt : Option[Expr] =
+                      if (isLex) {
+                        val lexId = id ++ "-is-lex"
+                        val lexType = ELeftExt(EVar(id))
+                        (lexId, eval(lexType, environment)) +=: context
+                        environment = UpVar(environment, PVar(lexId), Nt(Gen(lRho(environment), "TC#")))
+                        Some(EVar(id ++ "-is-lex"))
+                      } else None
+
                     val cell = HigherCell[P](id, EVar(id), cellCmplx)
+                    cell.isLeftExt = isLexOpt
 
                     registerCell(cell)
 
@@ -464,7 +512,7 @@ class DesignBlockPane {
           }
           case Some(_) => println("Cell is occupied")
         }
-      case (S(p: P), _, _) => println("Malformed complex")
+      case (S(p: P), _, _, _) => println("Malformed complex")
     }
 
     //============================================================================================
