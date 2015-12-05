@@ -17,8 +17,8 @@ sealed trait Cell[N <: Nat] {
   def expr: Expr
   def ty: Expr
   def dim: N
-  var isLeftExt: Option[Expr] = None
-  var isRightExt: Option[Expr] = None
+  var isLeftExt : Option[Property[N]] = None
+  var isRightExt : Option[Property[N]] = None
 }
 
 case class ObjectCell(

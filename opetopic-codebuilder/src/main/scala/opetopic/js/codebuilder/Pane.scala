@@ -11,5 +11,6 @@ trait Pane {
 
   var hotkeysEnabled = true
   def env : EditorEnvironment
+  def focus: Unit
 
 }

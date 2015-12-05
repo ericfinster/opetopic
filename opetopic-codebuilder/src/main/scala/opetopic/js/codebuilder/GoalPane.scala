@@ -23,10 +23,16 @@ abstract class GoalPane extends Pane { thisPane =>
   //
 
   var activeCell : Option[Sigma[Cell]] = None
+  var activeProperty : Option[Sigma[Property]] = None
 
   val env = new EditorEnvironment {
+
     def registerCell[N <: Nat](cell: Cell[N]) : Unit = 
       thisPane.registerCell(cell)
+
+    def registerProperty[N <: Nat](prop: Property[N]) : Unit = 
+      thisPane.registerProperty(prop)
+
   }
 
   val stack = new EditorStack(thisPane)
@@ -51,6 +57,8 @@ abstract class GoalPane extends Pane { thisPane =>
   // BEHAVIORS
   //
 
+  def focus: Unit = jQuery(uiElement).focus()
+
   def pasteToCursor: Unit = 
     for {
       cell <- activeCell
@@ -72,12 +80,27 @@ abstract class GoalPane extends Pane { thisPane =>
 
     jQuery(item).popup(lit(
       movePopup = false,
-      popup = environmentPopup,
+      popup = cellPopup,
       context = jQuery(uiElement),
       hoverable = "true",
       position = "right center",
       on = "click"
     ))
+
+  }
+
+  def registerProperty[N <: Nat](prop: Property[N]) : Unit = {
+
+    val item =
+      div(
+        cls := "item",
+        onclick := { () => activeProperty = Some(Sigma(prop.dim)(prop)) }
+      )(
+        div(cls := "content", style := "margin-left: 10px")(prop.id)
+      ).render
+
+
+    jQuery(propertyList).append(item)
 
   }
 
@@ -129,7 +152,7 @@ abstract class GoalPane extends Pane { thisPane =>
       )
     )
 
-  val environmentPopup =
+  val cellPopup =
     div(id := "envPopup", cls := "ui vertical popup menu", style := "display: none")(
       a(cls := "item", onclick := { () => pasteToCursor })("Paste to Cursor"),
       a(cls := "item", onclick := { () => () })("Paste to New Editor"),
@@ -139,7 +162,7 @@ abstract class GoalPane extends Pane { thisPane =>
   val uiElement = 
     div(tabindex := 0)(
       pane,
-      environmentPopup
+      cellPopup
     ).render
 
 

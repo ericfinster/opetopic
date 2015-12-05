@@ -14,15 +14,28 @@ import scalaz.\/
 import scalaz.\/-
 import scalaz.-\/
 
+import scalaz.std.string._
+
 import OpetopicTypeChecker._
 
 package object codebuilder {
 
   type EditorM[+A] = \/[String, A]
 
+  implicit class EditorOps[A](m: EditorM[A]) {
+    def withFilter(f: A => Boolean) : EditorM[A] = 
+      m.filter(f)
+  }
+
   def fromShape[A](s: ShapeM[A]) : EditorM[A] =
     s match {
-      case -\/(ShapeError(msg)) => -\/(msg)
+      case -\/(ShapeError(msg)) => -\/("Shape error: " ++ msg)
+      case \/-(a) => \/-(a)
+    }
+
+  def fromShape[A](s: ShapeM[A], onError : String => String) : EditorM[A] =
+    s match {
+      case -\/(ShapeError(msg)) => -\/(onError(msg))
       case \/-(a) => \/-(a)
     }
 

@@ -39,6 +39,7 @@ abstract class EditorEnvironment {
     OpetopicTypeChecker.check(rho, gma, e, v)
 
   def registerCell[N <: Nat](cell: Cell[N]) : Unit 
+  def registerProperty[N <: Nat](prop: Property[N]) : Unit
 
 }
 

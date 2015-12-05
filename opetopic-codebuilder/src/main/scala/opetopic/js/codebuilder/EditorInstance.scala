@@ -19,6 +19,7 @@ import scalaz.\/-
 import scalaz.-\/
 
 import scalaz.std.option._
+import scalaz.std.string._
 
 import JsDomFramework._
 import Cell.ActiveInstance._
@@ -155,19 +156,19 @@ class EditorInstance(env: EditorEnvironment) {
                   env.gma = (id, env.eval(varType)) :: env.gma
                   env.rho = UpVar(env.rho, PVar(id), env.genV)
 
-                  val isLexOpt : Option[Expr] =
+                  val cell = HigherCell[P](id, EVar(id), cellCmplx)
+                  env.registerCell(cell)
+
+                  cell.isLeftExt = 
                     if (isLex) {
                       val lexId = id ++ "-is-lex"
                       val lexType = ELeftExt(EVar(id))
                       env.gma = (lexId, env.eval(lexType)) :: env.gma
                       env.rho = UpVar(env.rho, PVar(lexId), env.genV)
-                      Some(EVar(id ++ "-is-lex"))
+                      val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
+                      env.registerProperty(lexProp)
+                      Some(lexProp)
                     } else None
-
-                  val cell = HigherCell[P](id, EVar(id), cellCmplx)
-                  cell.isLeftExt = isLexOpt
-
-                  env.registerCell(cell)
 
                   b.optLabel = Some(cell)
                   b.panel.refresh
@@ -198,7 +199,6 @@ class EditorInstance(env: EditorEnvironment) {
       _ <- doCompose(boxsig.n)(fc, id) 
     } yield ()
 
-  // Rewrite this.  It's terrible.
   @natElim
   def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : EditorM[Unit] = {
     case (Z, cmplx, id) => editorError("Dimension too low to compose")
@@ -210,14 +210,13 @@ class EditorInstance(env: EditorEnvironment) {
         _ <- forceNone(compBox.optLabel, "Composite cell not empty")
         _ <- forceNone(fillBox.optLabel, "Filling cell not empty")
         compCmplx <- fromShape(fillCmplx.target)
-        pr <- (
+        (web, cn) <- (
           fillCmplx.map(EditorBoxToExpr).tail match {
             case Complex(web, Box(_, cn)) => editorSucceed((web, cn))
             case _ => editorError("Malformed tail ...")
           }
         )
 
-        (web, cn) = pr
         pd = cn.map(_.baseValue)
         comp = EComp(env.catExpr, web, pd)
         fill = EFill(env.catExpr, web, pd)
@@ -256,20 +255,35 @@ class EditorInstance(env: EditorEnvironment) {
 
         })(_ => {
 
-          // Handle composition of left extensions
-          val compLeftExtEv : Option[Expr] =
-            for {
-              prTr <- bcn.traverse({
-                case b =>
-                  for {
-                    cell <- b.baseValue.optLabel
-                    lextEv <- cell.isLeftExt
-                  } yield EPair(cell.expr, lextEv)
-              })
-            } yield EFillerCompLeftExt(env.catExpr, web, prTr)
+          @natElim
+          def doCompLeftExt[K <: Nat](k: K)(c: Cell[K]) : Unit = {
+            case (Z, _) => ()
+            case (S(p), c) => {
+              c.isLeftExt =
+                for {
+                  prTr <- bcn.traverse({
+                    case b =>
+                      for {
+                        cell <- b.baseValue.optLabel
+                        lextEv <- cell.isLeftExt
+                      } yield EPair(cell.expr, lextEv.expr)
+                  })
+                } yield IsLeftExtension(
+                  id ++ "-is-lex", 
+                  EFillerCompLeftExt(env.catExpr, web, prTr), c
+                )
+            }
+          }
 
-          compCell.isLeftExt = compLeftExtEv
-          fillCell.isLeftExt = Some(fillLeftExt)
+          doCompLeftExt(compCell.dim)(compCell)
+
+          fillCell.isLeftExt = Some(
+            IsLeftExtension(
+              idDef ++ "-is-lex",
+              fillLeftExt,
+              fillCell
+            )
+          )
 
           // Not sure why I need this ...
           compBox.optLabel = Some(compCell)
@@ -277,6 +291,9 @@ class EditorInstance(env: EditorEnvironment) {
 
           env.registerCell(compCell)
           env.registerCell(fillCell)
+
+          for { p <- compCell.isLeftExt } { env.registerProperty(p) }
+          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
 
           compBox.panel.refresh
           fillBox.panel.refresh
@@ -293,50 +310,10 @@ class EditorInstance(env: EditorEnvironment) {
   // PASTING
   //
 
-
   type BNst[N <: Nat] = Nesting[EditorBox[N], N]
   type CNst[N <: Nat] = Nesting[Cell[N], N]
   type PNst[N <: Nat] = Nesting[(EditorBox[N], Cell[N]), N]
   type BCPair[N <: Nat] = (BNst[N], CNst[N])
-
-  object Updater extends IndexedOp[PNst] {
-    def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
-      pr.foreach({ case (b, c) => b.optLabel = Some(c) })
-      pr.baseValue._1.panel.refresh
-    }
-  }
-
-  object Matcher extends IndexedTraverse[EditorM, BCPair, PNst] {
-    def apply[N <: Nat](n: N)(pr: BCPair[N]) : EditorM[PNst[N]] = {
-
-      val (bnst, cnst) = pr
-      val fillings: HashMap[EditorBox[N], Expr] = HashMap.empty
-
-      fromShape(
-        Nesting.matchTraverse(bnst, cnst)({
-          case (b, c) =>
-            b.optLabel match {
-              case None => {
-                if (fillings.isDefinedAt(b)) {
-                  if (fillings(b) != c.expr) {
-                    opetopic.fail("Loop conflict")
-                  } else opetopic.succeed((b, c))
-                } else {
-                  fillings(b) = c.expr
-                  opetopic.succeed((b, c))
-                }
-              }
-              case Some(d) =>
-                if (d.expr == c.expr) // Or something similar ...
-                  succeed((b, c))
-                else
-                  opetopic.fail("Expression mismatch.")
-            }
-        })
-      )
-
-    }
-  }
 
   @natElim
   def doPaste[N <: Nat](n: N)(cell: Cell[N]): EditorM[Unit] = {
@@ -378,19 +355,60 @@ class EditorInstance(env: EditorEnvironment) {
     }
   }
 
+  object Updater extends IndexedOp[PNst] {
+    def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
+      pr.foreach({ case (b, c) => b.optLabel = Some(c) })
+      pr.baseValue._1.panel.refresh
+    }
+  }
+
+  object Matcher extends IndexedTraverse[EditorM, BCPair, PNst] {
+    def apply[N <: Nat](n: N)(pr: BCPair[N]) : EditorM[PNst[N]] = {
+
+      val (bnst, cnst) = pr
+      val fillings: HashMap[EditorBox[N], Expr] = HashMap.empty
+
+      fromShape(
+        Nesting.matchTraverse(bnst, cnst)({
+          case (b, c) =>
+            b.optLabel match {
+              case None => {
+                if (fillings.isDefinedAt(b)) {
+                  if (fillings(b) != c.expr) {
+                    opetopic.fail("Loop conflict")
+                  } else opetopic.succeed((b, c))
+                } else {
+                  fillings(b) = c.expr
+                  opetopic.succeed((b, c))
+                }
+              }
+              case Some(d) =>
+                if (d.expr == c.expr) // Or something similar ...
+                  succeed((b, c))
+                else
+                  opetopic.fail("Expression mismatch.")
+            }
+        })
+      )
+
+    }
+  }
+
   //============================================================================================
-  // LIFTING
+  // LEFT LIFTING
   //
 
-  def liftCell(id: String) : EditorM[Unit] =
+  def leftLift(id: String) : EditorM[Unit] =
     for {
       boxsig <- attempt(currentBox, "Nothing Selected")
       fc <- fromShape(boxsig.value.faceComplex)
-      _ <- doLift(boxsig.n)(fc, id) 
+      _ <- doLeftLift(boxsig.n)(fc, id) 
     } yield ()
 
+  // Rewrite this in the style of the right lifting below
+
   @natElim
-  def doLift[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String): EditorM[Unit] = {
+  def doLeftLift[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String): EditorM[Unit] = {
     case (Z, _, _) => editorError("Cannot lift here")
     case (S(p: P), _, _) => editorError("Cannot lift here")
     case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _)), id) => {
@@ -418,10 +436,19 @@ class EditorInstance(env: EditorEnvironment) {
                         }
                       })
 
-                      val leftBal = EApp(ELeftBal(ce, frm, lexCell.expr, lexEv), tgtCell.expr)
+                      val addrOpt : Option[Address[S[P]]] = nch.mapWithAddress({
+                        case (EEmpty, a) => Some(a)
+                        case (_, a) => None
+                      }).nodes.filter(_.isDefined).head
+
+                      val leftBal = EApp(ELeftBal(ce, frm, lexCell.expr, lexEv.expr), tgtCell.expr)
                       val lift = EApp(ELift(ce, nchFrm, nch, leftBal), liftCell.expr)
                       val liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, leftBal), liftCell.expr)
                       val liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, leftBal), liftCell.expr)
+                      val liftFillerRightExt = 
+                        EApp(EApp(EApp(
+                          EFillerLeftIsRight(ce, nchFrm, nch, leftBal), liftCell.expr),
+                          liftFiller), liftFillerLeftExt)
 
                       // An observation:  Here you asign the actual expression to the cell.
                       // But shouldn't you really just use the variable?  You are going to add
@@ -434,7 +461,13 @@ class EditorInstance(env: EditorEnvironment) {
                         _ = rootBox.optLabel = Some(liftCell)
                         fillFrm <- new SuccBoxOps(fillBox).cellComplex
                         fillCell = HigherCell(idDef, liftFiller, fillFrm)
-                        _ = fillCell.isLeftExt = Some(liftFillerLeftExt)
+                        _ = fillCell.isLeftExt = Some(
+                          IsLeftExtension(idDef ++ "-is-lex", liftFillerLeftExt, fillCell)
+                        )
+                        addr <- fromOption(addrOpt, "Could not find right extension address")
+                        _ = fillCell.isRightExt = Some(
+                          IsRightExtension(idDef ++ "-is-rex", liftFillerRightExt, fillCell, addr)
+                        )
                         _ = fillBox.optLabel = Some(fillCell)
 
                         // Setup the types ...
@@ -472,6 +505,9 @@ class EditorInstance(env: EditorEnvironment) {
                           env.registerCell(liftCell)
                           env.registerCell(fillCell)
 
+                          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
+                          for { p <- fillCell.isRightExt } { env.registerProperty(p) }
+
                           rootBox.panel.refresh
                           fillBox.panel.refresh
                           editor.refreshGallery
@@ -497,5 +533,157 @@ class EditorInstance(env: EditorEnvironment) {
     case (S(S(p: P)), _, _) => editorError("Malformed lift")
   }
 
+  //============================================================================================
+  // RIGHT LIFTING
+  //
+
+  def rightLift(id: String) : EditorM[Unit] =
+    for {
+      boxsig <- attempt(currentBox, "Nothing Selected")
+      fc <- fromShape(boxsig.value.faceComplex)
+      _ <- doRightLift(boxsig.n)(fc, id) 
+    } yield ()
+
+  @natElim
+  def doRightLift[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String): EditorM[Unit] = {
+    case (Z, _, _) => editorError("Cannot lift here")
+    case (S(p: P), _, _) => editorError("Cannot lift here")
+    case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _)), id) => {
+
+      val idDef = id ++ "-def"
+
+      for {
+        liftCell <- attempt(liftBox.optLabel, "Empty lifting cell")
+        (rexBox, emptyBox) <- (
+          cn.nodes match {
+            case rexNst :: emptyNst :: Nil => editorSucceed((rexNst.baseValue, emptyNst.baseValue))
+            case _ => editorError("Must have exactly two source cells")
+          }
+        )
+        rexCell <- attempt(rexBox.optLabel, "Missing right extension cell")
+        _ <- forceNone(emptyBox.optLabel, "Target for lift is occupied")
+        rexEv <- (
+          rexCell.isRightExt match {
+            case Some(p : IsRightExtension[P]) => editorSucceed(p)
+            case _ => editorError("Missing right extension evidence")
+          }
+        )
+        tgtZipper <- fromShape(tl.head.seekTo(rexEv.addr :: Nil), 
+          msg => "Failed to find extension cell because of shape error: " ++ msg
+        )
+        (baseBox, extBox) <- (
+          tgtZipper._1 match {
+            case Box(baseBox, cn) => 
+              cn.nodes match {
+                case extNst :: Nil => editorSucceed((baseBox, extNst.baseValue))
+                case _ => editorError("Extension is not globular")
+              }
+            case _ => editorError("Extension cell was external")
+          }
+        )
+        baseCell <- attempt(baseBox.optLabel, "Base extension cell is empty")
+        extCell <- attempt(extBox.optLabel, "Extending source cell is empty")
+        (ce, frm) <- (
+          rexCell.ty match {
+            case ECell(ce, frm) => editorSucceed((ce, frm))
+            case _ => editorError("Right extension has unexpected frame type")
+          }
+        )
+
+        // Everything should be in scope.  Time to construct the lift.
+
+        nchFrm : ExprComplex[P] = tl.map(EditorBoxToExpr)
+        nch : Tree[Expr, S[P]] = cn.map((n: Nesting[EditorBox[S[P]], S[P]]) => {
+          n.baseValue.optLabel match {
+            case None => EEmpty
+            case Some(c) => c.expr
+          }
+        })
+
+        rexAddr <- fromOption(
+          nch.mapWithAddress({
+            case (EEmpty, a) => Some(a)
+            case (_, a) => None
+          }).nodes.filter(_.isDefined).head,
+          "Failed to isolate new right extension address"
+        )
+
+        rightBal = EApp(ERightBal(ce, frm, rexCell.expr, rbAddr(p)(rexEv.addr), rexEv.expr), extCell.expr)
+        lift = EApp(ELift(ce, nchFrm, nch, rightBal), liftCell.expr)
+        liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, rightBal), liftCell.expr)
+        liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, rightBal), liftCell.expr)
+        liftFillerRightExt = EApp(EApp(EApp(
+          EFillerLeftIsRight(ce, nchFrm, nch, rightBal), liftCell.expr),
+          liftFiller), 
+          liftFillerLeftExt
+        )
+
+        liftFrm <- new SuccBoxOps(emptyBox).cellComplex
+        liftCell = HigherCell(id, lift, liftFrm)
+        _ = { emptyBox.optLabel = Some(liftCell) }
+
+        fillFrm <- new SuccBoxOps(fillBox).cellComplex
+        fillCell = HigherCell(idDef, liftFiller, fillFrm)
+        _ = { 
+          fillCell.isLeftExt = Some(
+            IsLeftExtension(idDef ++ "-is-lex", liftFillerLeftExt, fillCell))
+          fillCell.isRightExt = Some(
+            IsRightExtension(idDef ++ "-is-rex", liftFillerRightExt, fillCell, rexAddr))
+          fillBox.optLabel = Some(fillCell)
+        }
+
+        // Setup the types to check against
+        rightBalTy = EBal(ce, nchFrm, nch)
+        liftTy = liftCell.ty
+        liftFillerTy = fillCell.ty
+        liftFillerLeftExtTy = ELeftExt(liftFiller)
+        liftFillerRightExtTy = ERightExt(liftFiller, rbAddr(S(p))(rexAddr))
+
+        // Typecheck
+        _ <- runCheck(
+          for {
+            _ <- env.checkT(rightBalTy)
+            rightBalVal = env.eval(rightBalTy)
+            _ <- env.check(rightBal, rightBalVal)
+            _ <- env.checkT(liftTy)
+            liftTyVal = env.eval(liftTy)
+            _ <- env.check(lift, liftTyVal)
+            _ <- env.checkT(liftFillerTy)
+            liftFillerTyVal = env.eval(liftFillerTy)
+            _ <- env.check(liftFiller, liftFillerTyVal)
+            // And you should do the witnessess too ....
+          } yield {
+            env.extendContext(id, liftTyVal)
+            env.extendContext(idDef, liftFillerTyVal)
+            env.extendEnvironment(id, env.eval(lift))
+            env.extendEnvironment(idDef, env.eval(liftFiller))
+          }
+        )(msg => { // On Error
+
+          fillBox.optLabel = None
+          emptyBox.optLabel = None
+
+          editorError("Typechecking error: " ++ msg)
+
+        })(_ => { // On Success
+
+          env.registerCell(liftCell)
+          env.registerCell(fillCell)
+
+          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
+          for { p <- fillCell.isRightExt } { env.registerProperty(p) }
+
+          emptyBox.panel.refresh
+          fillBox.panel.refresh
+          editor.refreshGallery
+
+          editorSucceed(())
+
+        })
+      } yield ()
+
+    }
+    case (S(S(p: P)), _, _) => editorError("Malformed lift")
+  }
 
 }

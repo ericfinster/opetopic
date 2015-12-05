@@ -23,10 +23,16 @@ class ContextPane extends Pane { thisPane =>
   //
 
   var activeCell : Option[Sigma[Cell]] = None
+  var activeProperty : Option[Sigma[Property]] = None
 
   val env = new EditorEnvironment {
+
     def registerCell[N <: Nat](cell: Cell[N]) : Unit = 
       thisPane.registerCell(cell)
+
+    def registerProperty[N <: Nat](prop: Property[N]) : Unit = 
+      thisPane.registerProperty(prop)
+
   }
 
   val stack = new EditorStack(thisPane)
@@ -49,7 +55,8 @@ class ContextPane extends Pane { thisPane =>
           case 100 => for { i <- stack.activeInstance } { i.editor.extrudeDrop }
           case 112 => for { i <- stack.activeInstance } { i.editor.sprout }
           case 103 => newCellGoal
-          case 108 => stack.onLiftCell
+          case 108 => stack.onLeftLift
+          case 114 => stack.onRightLift
           case 118 => stack.onExportToSVG
           case _ => ()
         }
@@ -64,6 +71,8 @@ class ContextPane extends Pane { thisPane =>
   //============================================================================================
   // BEHAVIORS
   //
+
+  def focus: Unit = jQuery(uiElement).focus()
 
   def pasteToCursor: Unit = 
     for {
@@ -98,12 +107,27 @@ class ContextPane extends Pane { thisPane =>
 
     jQuery(item).popup(lit(
       movePopup = false,
-      popup = environmentPopup,
+      popup = cellPopup,
       context = jQuery(uiElement),
       hoverable = "true",
       position = "right center",
       on = "click"
     ))
+
+  }
+
+  def registerProperty[N <: Nat](prop: Property[N]) : Unit = {
+
+    val item =
+      div(
+        cls := "item",
+        onclick := { () => activeProperty = Some(Sigma(prop.dim)(prop)) }
+      )(
+        div(cls := "content", style := "margin-left: 10px")(prop.id)
+      ).render
+
+
+    jQuery(propertyList).append(item)
 
   }
 
@@ -151,7 +175,7 @@ class ContextPane extends Pane { thisPane =>
       )
     )
 
-  val environmentPopup =
+  val cellPopup =
     div(id := "envPopup", cls := "ui vertical popup menu", style := "display: none")(
       a(cls := "item", onclick := { () => pasteToCursor })("Paste to Cursor"),
       a(cls := "item", onclick := { () => () })("Paste to New Editor"),
@@ -161,7 +185,7 @@ class ContextPane extends Pane { thisPane =>
   val uiElement = 
     div(tabindex := 0)(
       pane,
-      environmentPopup
+      cellPopup
     ).render
 
 }

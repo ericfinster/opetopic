@@ -129,7 +129,7 @@ class EditorStack(pane: Pane) {
       e.preventDefault 
       pane.hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
-      jQuery(uiElement).focus
+      pane.focus
       val id = jQuery(idInput).value().asInstanceOf[String]
       val lex = jQuery(isLeftExt).prop("checked").asInstanceOf[Boolean]
       for { i <- activeInstance } { i.assumeVariable(id, lex) }
@@ -165,7 +165,7 @@ class EditorStack(pane: Pane) {
       e.preventDefault 
       pane.hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
-      jQuery(uiElement).focus
+      pane.focus
       val id = jQuery(idInput).value().toString
       for { i <- activeInstance } { i.composeDiagram(id) }
     })
@@ -175,7 +175,7 @@ class EditorStack(pane: Pane) {
 
   }
 
-  def onLiftCell : Unit = {
+  def onLeftLift : Unit = {
 
     val idInput = input(`type` := "text", placeholder := "Identifier").render
 
@@ -200,9 +200,44 @@ class EditorStack(pane: Pane) {
       e.preventDefault 
       pane.hotkeysEnabled = true
       jQuery(formSidebar).sidebar("hide")
-      jQuery(uiElement).focus
+      pane.focus
       val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { i.liftCell(id) }
+      for { i <- activeInstance } { i.leftLift(id) }
+    })
+
+    pane.hotkeysEnabled = false
+    jQuery(formSidebar).sidebar("show")
+
+  }
+
+  def onRightLift : Unit = {
+
+    val idInput = input(`type` := "text", placeholder := "Identifier").render
+
+    val liftForm =
+      form(cls := "ui form")(
+        div(cls := "inline fields")(
+          div(cls := "field")(
+            label("Lift Cell:"),
+            idInput
+          ),
+          button(cls := "ui button", `type` := "submit")("Ok")
+        )
+      ).render
+
+    jQuery(formSidebar).empty().append(
+      div(cls := "ui basic segment")(liftForm).render
+    )
+
+    onSidebarShown = { () => jQuery(idInput).focus() }
+
+    jQuery(liftForm).on("submit", (e : JQueryEventObject) => { 
+      e.preventDefault 
+      pane.hotkeysEnabled = true
+      jQuery(formSidebar).sidebar("hide")
+      pane.focus
+      val id = jQuery(idInput).value().toString
+      for { i <- activeInstance } { i.rightLift(id) }
     })
 
     pane.hotkeysEnabled = false
