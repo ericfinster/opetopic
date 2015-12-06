@@ -107,7 +107,7 @@ class EditorInstance(env: EditorEnvironment) {
     } yield { new SvgExporter(lc).svgString }
 
   //============================================================================================
-  // ASSUME A VARIABLE
+  // ASSUMPTIONS
   //
 
   def assumeVariable(id: String, isLex: Boolean): EditorM[Unit] =
@@ -189,7 +189,7 @@ class EditorInstance(env: EditorEnvironment) {
   }
 
   //============================================================================================
-  // COMPOSE A DIAGRAM
+  // COMPOSITION
   //
 
   def composeDiagram(id: String): EditorM[Unit] =
@@ -405,130 +405,125 @@ class EditorInstance(env: EditorEnvironment) {
       _ <- doLeftLift(boxsig.n)(fc, id) 
     } yield ()
 
-  // Rewrite this in the style of the right lifting below
-
   @natElim
   def doLeftLift[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String): EditorM[Unit] = {
     case (Z, _, _) => editorError("Cannot lift here")
     case (S(p: P), _, _) => editorError("Cannot lift here")
-    case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _)), id) => {
+    case (S(S(p: P)), Complex(Complex(tl, Box(liftingBox, cn)), Dot(fillBox, _)), id) => {
 
-      val tgtBox = tl.head.baseValue
+      val idDef = id ++ "-def"
 
-      (tgtBox.optLabel, liftBox.optLabel, cn.nodes) match {
-        case (Some(tgtCell), Some(liftCell), rootNst :: lexNst :: Nil) => {
-          (rootNst.baseValue.optLabel, lexNst.baseValue.optLabel) match {
-            case (None, Some(lexCell)) => {
-              lexCell.isLeftExt match {
-                case Some(lexEv) => {
-
-                  lexCell.ty match {
-                    case ECell(ce, frm) => {
-
-                      val idDef = id ++ "-def"
-                      val rootBox = rootNst.baseValue
-
-                      val nchFrm : ExprComplex[P] = tl.map(EditorBoxToExpr)
-                      val nch : Tree[Expr, S[P]] = cn.map((n: Nesting[EditorBox[S[P]], S[P]]) => {
-                        n.baseValue.optLabel match {
-                          case None => EEmpty
-                          case Some(c) => c.expr
-                        }
-                      })
-
-                      val addrOpt : Option[Address[S[P]]] = nch.mapWithAddress({
-                        case (EEmpty, a) => Some(a)
-                        case (_, a) => None
-                      }).nodes.filter(_.isDefined).head
-
-                      val leftBal = EApp(ELeftBal(ce, frm, lexCell.expr, lexEv.expr), tgtCell.expr)
-                      val lift = EApp(ELift(ce, nchFrm, nch, leftBal), liftCell.expr)
-                      val liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, leftBal), liftCell.expr)
-                      val liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, leftBal), liftCell.expr)
-                      val liftFillerRightExt = 
-                        EApp(EApp(EApp(
-                          EFillerLeftIsRight(ce, nchFrm, nch, leftBal), liftCell.expr),
-                          liftFiller), liftFillerLeftExt)
-
-                      // An observation:  Here you asign the actual expression to the cell.
-                      // But shouldn't you really just use the variable?  You are going to add
-                      // it to the context, and I suspect the saves a lot in terms of typechecking....
-
-                      for {
-
-                        frm <- new SuccBoxOps(rootBox).cellComplex  // Implicts aren't working for this ...
-                        liftCell = HigherCell(id, lift, frm)
-                        _ = rootBox.optLabel = Some(liftCell)
-                        fillFrm <- new SuccBoxOps(fillBox).cellComplex
-                        fillCell = HigherCell(idDef, liftFiller, fillFrm)
-                        _ = fillCell.isLeftExt = Some(
-                          IsLeftExtension(idDef ++ "-is-lex", liftFillerLeftExt, fillCell)
-                        )
-                        addr <- fromOption(addrOpt, "Could not find right extension address")
-                        _ = fillCell.isRightExt = Some(
-                          IsRightExtension(idDef ++ "-is-rex", liftFillerRightExt, fillCell, addr)
-                        )
-                        _ = fillBox.optLabel = Some(fillCell)
-
-                        // Setup the types ...
-                        leftBalTy = EBal(ce, nchFrm, nch)
-                        liftTy = liftCell.ty
-                        liftFillerTy = fillCell.ty
-                        liftFillerLeftExtTy = ELeftExt(liftFiller)
-
-                        _ <- runCheck(
-                          for {
-                            _ <- env.checkT(leftBalTy)
-                            leftBalVal = env.eval(leftBalTy)
-                            _ <- env.check(leftBal, leftBalVal)
-                            _ <- env.checkT(liftTy)
-                            liftTyVal = env.eval(liftTy)
-                            _ <- env.check(lift, liftTyVal)
-                            _ <- env.checkT(liftFillerTy)
-                            liftFillerTyVal = env.eval(liftFillerTy)
-                            _ <- env.check(liftFiller, liftFillerTyVal)
-                          } yield {
-                            env.extendContext(id, liftTyVal)
-                            env.extendContext(idDef, liftFillerTyVal)
-                            env.extendEnvironment(id, env.eval(lift))
-                            env.extendEnvironment(idDef, env.eval(liftFiller))
-                          }
-                        )(msg => { // On Error
-
-                          fillBox.optLabel = None
-                          rootBox.optLabel = None
-
-                          editorError("Lift failed: " ++ msg)
-
-                        })(_ => { // On succeed
-
-                          env.registerCell(liftCell)
-                          env.registerCell(fillCell)
-
-                          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
-                          for { p <- fillCell.isRightExt } { env.registerProperty(p) }
-
-                          rootBox.panel.refresh
-                          fillBox.panel.refresh
-                          editor.refreshGallery
-
-                          editorSucceed(())
-
-                        })
-                      } yield ()
-                    }
-                    case _ => editorError("Unexpected: lex cell has a bizzare type")
-                  }
-
-                }
-                case None => editorError("Cell is not a left extension")
-              }
-            }
-            case _ => editorError("Not a liftable position")
+      for {
+        liftingCell <- attempt(liftingBox.optLabel, "Lifting cell is empty")
+        (lexBox, emptyBox) <- (
+          cn.nodes match {
+            case emptyNst :: lexNst :: Nil => editorSucceed((lexNst.baseValue, emptyNst.baseValue))
+            case _ => editorError("Must have exactly two source cells")
           }
+        )
+        lexCell <- attempt(lexBox.optLabel, "Missing left extension cell")
+        _ <- forceNone(emptyBox.optLabel, "Lift target is not empty")
+        lexEv <- (
+          lexCell.isLeftExt match {
+            case Some(p : IsLeftExtension[P]) => editorSucceed(p)
+            case _ => editorError("Missing left extension evidence")
+          }
+        )
+        extBox = tl.head.baseValue
+        extCell <- attempt(extBox.optLabel, "Extension cell is empty")
+        (ce, frm) <- (
+          lexCell.ty match {
+            case ECell(ce, frm) => editorSucceed((ce, frm))
+            case _ => editorError("Left extension cell has unexpected frame type")
+          }
+        )
+
+        // Lift setup is valid, build the lift
+
+        nchFrm : ExprComplex[P] = tl.map(EditorBoxToExpr)
+        nch : Tree[Expr, S[P]] = cn.map((n: Nesting[EditorBox[S[P]], S[P]]) => {
+          n.baseValue.optLabel match {
+            case None => EEmpty
+            case Some(c) => c.expr
+          }
+        })
+
+        rexAddr <- attempt(
+          nch.mapWithAddress({
+            case (EEmpty, a) => Some(a)
+            case (_, a) => None
+          }).nodes.filter(_.isDefined).head,
+          "Failed to retrieve extension address"
+        )
+
+        leftBal = EApp(ELeftBal(ce, frm, lexCell.expr, lexEv.expr), extCell.expr)
+        lift = EApp(ELift(ce, nchFrm, nch, leftBal), liftingCell.expr)
+        liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, leftBal), liftingCell.expr)
+        liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, leftBal), liftingCell.expr)
+        liftFillerRightExt = EApp(EApp(EApp(
+          EFillerLeftIsRight(ce, nchFrm, nch, leftBal), liftingCell.expr),
+          liftFiller), liftFillerLeftExt)
+
+        liftFrm <- new SuccBoxOps(emptyBox).cellComplex  
+        liftCell = HigherCell(id, lift, liftFrm)
+        _ = { emptyBox.optLabel = Some(liftCell) }
+
+        fillFrm <- new SuccBoxOps(fillBox).cellComplex
+        fillCell = HigherCell(idDef, liftFiller, fillFrm)
+        _ = {
+          fillCell.isLeftExt = Some(
+            IsLeftExtension(idDef ++ "-is-lex", liftFillerLeftExt, fillCell))
+          fillCell.isRightExt = Some(
+            IsRightExtension(idDef ++ "-is-rex", liftFillerRightExt, fillCell, rexAddr))
+          fillBox.optLabel = Some(fillCell)
         }
-        case _ => editorError("Not a liftable position")
-      }
+
+        // Setup the types ...
+        leftBalTy = EBal(ce, nchFrm, nch)
+        liftTy = liftCell.ty
+        liftFillerTy = fillCell.ty
+        liftFillerLeftExtTy = ELeftExt(liftFiller)
+
+        _ <- runCheck(
+          for {
+            _ <- env.checkT(leftBalTy)
+            leftBalVal = env.eval(leftBalTy)
+            _ <- env.check(leftBal, leftBalVal)
+            _ <- env.checkT(liftTy)
+            liftTyVal = env.eval(liftTy)
+            _ <- env.check(lift, liftTyVal)
+            _ <- env.checkT(liftFillerTy)
+            liftFillerTyVal = env.eval(liftFillerTy)
+            _ <- env.check(liftFiller, liftFillerTyVal)
+          } yield {
+            env.extendContext(id, liftTyVal)
+            env.extendContext(idDef, liftFillerTyVal)
+            env.extendEnvironment(id, env.eval(lift))
+            env.extendEnvironment(idDef, env.eval(liftFiller))
+          }
+        )(msg => { // On Error
+
+          fillBox.optLabel = None
+          emptyBox.optLabel = None
+
+          editorError("Lift failed: " ++ msg)
+
+        })(_ => { // On succeed
+
+          env.registerCell(liftCell)
+          env.registerCell(fillCell)
+
+          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
+          for { p <- fillCell.isRightExt } { env.registerProperty(p) }
+
+          emptyBox.panel.refresh
+          fillBox.panel.refresh
+          editor.refreshGallery
+
+          editorSucceed(())
+
+        })
+      } yield ()
     }
     case (S(S(p: P)), _, _) => editorError("Malformed lift")
   }
@@ -548,12 +543,12 @@ class EditorInstance(env: EditorEnvironment) {
   def doRightLift[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String): EditorM[Unit] = {
     case (Z, _, _) => editorError("Cannot lift here")
     case (S(p: P), _, _) => editorError("Cannot lift here")
-    case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _)), id) => {
+    case (S(S(p: P)), Complex(Complex(tl, Box(liftingBox, cn)), Dot(fillBox, _)), id) => {
 
       val idDef = id ++ "-def"
 
       for {
-        liftCell <- attempt(liftBox.optLabel, "Empty lifting cell")
+        liftingCell <- attempt(liftingBox.optLabel, "Empty lifting cell")
         (rexBox, emptyBox) <- (
           cn.nodes match {
             case rexNst :: emptyNst :: Nil => editorSucceed((rexNst.baseValue, emptyNst.baseValue))
@@ -609,11 +604,11 @@ class EditorInstance(env: EditorEnvironment) {
         )
 
         rightBal = EApp(ERightBal(ce, frm, rexCell.expr, rbAddr(p)(rexEv.addr), rexEv.expr), extCell.expr)
-        lift = EApp(ELift(ce, nchFrm, nch, rightBal), liftCell.expr)
-        liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, rightBal), liftCell.expr)
-        liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, rightBal), liftCell.expr)
+        lift = EApp(ELift(ce, nchFrm, nch, rightBal), liftingCell.expr)
+        liftFiller = EApp(ELiftFiller(ce, nchFrm, nch, rightBal), liftingCell.expr)
+        liftFillerLeftExt = EApp(ELiftFillerLeftExt(ce, nchFrm, nch, rightBal), liftingCell.expr)
         liftFillerRightExt = EApp(EApp(EApp(
-          EFillerLeftIsRight(ce, nchFrm, nch, rightBal), liftCell.expr),
+          EFillerLeftIsRight(ce, nchFrm, nch, rightBal), liftingCell.expr),
           liftFiller), 
           liftFillerLeftExt
         )
@@ -685,5 +680,28 @@ class EditorInstance(env: EditorEnvironment) {
     }
     case (S(S(p: P)), _, _) => editorError("Malformed lift")
   }
+
+  //============================================================================================
+  // RIGHT ASSERTION
+  //
+
+  def assertRightExtension: Unit = 
+    for {
+      boxsig <- attempt(currentBox, "Nothing Selected")
+      fc <- fromShape(boxsig.value.faceComplex)
+      _ <- doRightAssertion(boxsig.n)(fc) 
+    } yield ()
+    
+  @natElim
+  def doRightAssertion[N <: Nat](n: N)(cmplx: Complex[EditorBox, N]): EditorM[Unit] = {
+    case (Z, _) => editorError("Dimension is too low")
+    case (S(p: P), _) => editorError("Dimension is too low")
+    case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _))) => {
+      editorSucceed(())
+    }
+    case (S(S(p: P)), _) => editorError("Malformed complex")
+  }
+
+
 
 }
