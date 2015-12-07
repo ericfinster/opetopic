@@ -33,6 +33,9 @@ abstract class GoalPane extends Pane { thisPane =>
     def registerProperty[N <: Nat](prop: Property[N]) : Unit = 
       thisPane.registerProperty(prop)
 
+    def registerParameter[N <: Nat](cell: Cell[N]) : Unit = ()
+    def registerParameter[N <: Nat](prop : Property[N]) : Unit = ()
+
   }
 
   val stack = new EditorStack(thisPane)

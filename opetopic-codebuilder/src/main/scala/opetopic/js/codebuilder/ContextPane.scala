@@ -33,6 +33,12 @@ class ContextPane extends Pane { thisPane =>
     def registerProperty[N <: Nat](prop: Property[N]) : Unit = 
       thisPane.registerProperty(prop)
 
+    def registerParameter[N <: Nat](cell : Cell[N]) : Unit = 
+      thisPane.registerParameter(cell)
+
+    def registerParameter[N <: Nat](prop : Property[N]) : Unit = 
+      thisPane.registerParameter(prop)
+
   }
 
   val stack = new EditorStack(thisPane)
@@ -57,6 +63,7 @@ class ContextPane extends Pane { thisPane =>
           case 103 => newCellGoal
           case 108 => stack.onLeftLift
           case 114 => stack.onRightLift
+          case 115 => stack.onAssertRight
           case 118 => stack.onExportToSVG
           case _ => ()
         }
@@ -78,7 +85,7 @@ class ContextPane extends Pane { thisPane =>
     for {
       cell <- activeCell
       i <- stack.activeInstance
-    }{ i.doPaste(cell.n)(cell.value) }
+    }{ stack.run(i.doPaste(cell.n)(cell.value)) }
 
   def newCellGoal: Unit = 
     for {
@@ -131,6 +138,34 @@ class ContextPane extends Pane { thisPane =>
 
   }
 
+  def registerParameter[N <: Nat](cell : Cell[N]) : Unit = {
+
+    val item =
+      div(
+        cls := "item",
+        onclick := { () => () }
+      )(
+        div(cls := "content", style := "margin-left: 10px")(cell.id)
+      ).render
+
+    jQuery(parameterList).append(item)
+
+  }
+
+  def registerParameter[N <: Nat](prop : Property[N]) : Unit = {
+
+    val item =
+      div(
+        cls := "item",
+        onclick := { () => () }
+      )(
+        div(cls := "content", style := "margin-left: 10px")(prop.id)
+      ).render
+
+    jQuery(parameterList).append(item)
+
+  }
+
   //============================================================================================
   // UI COMPONENTS
   //
@@ -153,10 +188,14 @@ class ContextPane extends Pane { thisPane =>
       )
     ).render
 
+  val parameterList = 
+    div(cls := "ui large selection list").render
+
   val rightAccordion = 
     div(cls := "ui fluid vertical accordion menu")(
       div(cls := "item")(
-        div(cls := "active title")(i(cls := "dropdown icon"), "Context")
+        div(cls := "active title")(i(cls := "dropdown icon"), "Parameters"),
+        div(cls := "active context")(parameterList)
       )
     ).render
 

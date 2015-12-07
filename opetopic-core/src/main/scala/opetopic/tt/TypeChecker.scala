@@ -295,7 +295,7 @@ object OpetopicTypeChecker {
         } yield gma1
       case d@(Drec(p, a, e)) => 
         for {
-          _ <- checkT(rho, gma, e)
+          _ <- checkT(rho, gma, a)
           t = eval(a, rho)
           gen = genV(rho)
           gma1 <- upG(gma, p, t, gen)

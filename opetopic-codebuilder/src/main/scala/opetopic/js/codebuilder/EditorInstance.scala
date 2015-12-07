@@ -128,6 +128,7 @@ class EditorInstance(env: EditorEnvironment) {
           env.gma = (id, env.eval(cell.ty)) :: env.gma
           env.rho = UpVar(env.rho, PVar(id), env.genV)
           env.registerCell(cell)
+          env.registerParameter(cell)
 
           b.optLabel = Some(cell)
           b.panel.refresh
@@ -158,6 +159,7 @@ class EditorInstance(env: EditorEnvironment) {
 
                   val cell = HigherCell[P](id, EVar(id), cellCmplx)
                   env.registerCell(cell)
+                  env.registerParameter(cell)
 
                   cell.isLeftExt = 
                     if (isLex) {
@@ -167,6 +169,7 @@ class EditorInstance(env: EditorEnvironment) {
                       env.rho = UpVar(env.rho, PVar(lexId), env.genV)
                       val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
                       env.registerProperty(lexProp)
+                      env.registerParameter(lexProp)
                       Some(lexProp)
                     } else None
 
@@ -685,7 +688,7 @@ class EditorInstance(env: EditorEnvironment) {
   // RIGHT ASSERTION
   //
 
-  def assertRightExtension: Unit = 
+  def assertRightExtension: EditorM[Unit] = 
     for {
       boxsig <- attempt(currentBox, "Nothing Selected")
       fc <- fromShape(boxsig.value.faceComplex)
@@ -696,8 +699,75 @@ class EditorInstance(env: EditorEnvironment) {
   def doRightAssertion[N <: Nat](n: N)(cmplx: Complex[EditorBox, N]): EditorM[Unit] = {
     case (Z, _) => editorError("Dimension is too low")
     case (S(p: P), _) => editorError("Dimension is too low")
-    case (S(S(p: P)), Complex(Complex(tl, Box(liftBox, cn)), Dot(fillBox, _))) => {
-      editorSucceed(())
+    case (S(S(p: P)), Complex(Complex(tl, Box(liftedBox, cn)), Dot(filledBox, _))) => {
+
+      for {
+        liftedCell <- attempt(liftedBox.optLabel, "Lifted cell is empty")
+        filledCell <- attempt(filledBox.optLabel, "Filled cell is empty")
+        filledLexEv <- (
+          filledCell.isLeftExt match {
+            case Some(flev : IsLeftExtension[S[P]]) => editorSucceed(flev)
+            case _ => editorError("No left extension evidence")
+          }
+        )
+        (lexBox, liftBox) <- (
+          cn.nodes match {
+            case liftNst :: lexNst :: Nil => editorSucceed((lexNst.baseValue, liftNst.baseValue))
+            case _ => editorError("Must have exactly two source cells")
+          }
+        )
+        lexCell <- attempt(lexBox.optLabel, "Left extension cell is missing")
+        liftCell <- attempt(liftBox.optLabel, "Lift cell is missing")
+        lexEv <- (
+          lexCell.isLeftExt match {
+            case Some(ev : IsLeftExtension[P]) => editorSucceed(ev)
+            case _ => editorError("Left extension cell is missing evidence")
+          }
+        )
+        extBox = tl.head.baseValue
+        extCell <- attempt(extBox.optLabel, "Extension cell is empty")
+        (ce, frm) <- (
+          lexCell.ty match {
+            case ECell(ce, frm) => editorSucceed((ce, frm))
+            case _ => editorError("Left extension cell has unexpected frame type")
+          }
+        )
+
+        nchFrm : ExprComplex[P] = tl.map(EditorBoxToExpr)
+        nch : Tree[Expr, S[P]] = cn.map((n: Nesting[EditorBox[S[P]], S[P]]) => {
+          val box = n.baseValue  // This could be done better ...
+          if (box == liftBox) {
+            EEmpty
+          } else box.optLabel.get.expr
+        })
+
+        // Right, the niche is wrong because you have to remove the
+        // liftCell.
+        rexAddr <- fromOption(
+          nch.mapWithAddress({
+            case (EEmpty, a) => Some(a)
+            case (_, a) => None
+          }).nodes.filter(_.isDefined).head,
+          "Failed to isolate new right extension address"
+        )
+
+        leftBal = EApp(ELeftBal(ce, frm, lexCell.expr, lexEv.expr), extCell.expr)
+        rexEv = EApp(EApp(EApp(
+          EFillerLeftIsRight(ce, nchFrm, nch, leftBal), liftedCell.expr),
+          filledCell.expr), filledLexEv.expr)
+
+        // Right, well, he needs to be typechecked ...
+
+      } yield {
+
+        val rexProp = 
+          IsRightExtension(filledCell.id ++ "-is-rex", rexEv, filledCell, rexAddr)
+
+        filledCell.isRightExt = Some(rexProp)
+        env.registerProperty(rexProp)
+
+      }
+
     }
     case (S(S(p: P)), _) => editorError("Malformed complex")
   }

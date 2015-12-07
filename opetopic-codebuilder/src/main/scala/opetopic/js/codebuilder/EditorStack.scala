@@ -12,6 +12,9 @@ import scalatags.JsDom.all._
 import scala.scalajs.js
 import scala.scalajs.js.Dynamic.{literal => lit}
 
+import scalaz.-\/
+import scalaz.\/-
+
 import opetopic.js._
 import JQuerySemanticUI._
 
@@ -71,8 +74,6 @@ class EditorStack(pane: Pane) {
 
     activeInstance = Some(instance)
 
-    println("Created new instance ...")
-
   }
 
   def onExportToSVG: Unit = 
@@ -87,6 +88,13 @@ class EditorStack(pane: Pane) {
       jQuery(".ui.modal.svgexport").modal("show")
 
     }
+
+  def run[A](m: EditorM[A]) : Unit = {
+    m match {
+      case -\/(msg) => println(msg)
+      case \/-(a) => ()
+    }
+  }
 
   def onAssumeVariable: Unit = {
 
@@ -132,7 +140,7 @@ class EditorStack(pane: Pane) {
       pane.focus
       val id = jQuery(idInput).value().asInstanceOf[String]
       val lex = jQuery(isLeftExt).prop("checked").asInstanceOf[Boolean]
-      for { i <- activeInstance } { i.assumeVariable(id, lex) }
+      for { i <- activeInstance } { run(i.assumeVariable(id, lex)) }
     })
 
     pane.hotkeysEnabled = false
@@ -167,7 +175,7 @@ class EditorStack(pane: Pane) {
       jQuery(formSidebar).sidebar("hide")
       pane.focus
       val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { i.composeDiagram(id) }
+      for { i <- activeInstance } { run(i.composeDiagram(id)) }
     })
 
     pane.hotkeysEnabled = false
@@ -202,7 +210,7 @@ class EditorStack(pane: Pane) {
       jQuery(formSidebar).sidebar("hide")
       pane.focus
       val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { i.leftLift(id) }
+      for { i <- activeInstance } { run(i.leftLift(id)) }
     })
 
     pane.hotkeysEnabled = false
@@ -237,13 +245,16 @@ class EditorStack(pane: Pane) {
       jQuery(formSidebar).sidebar("hide")
       pane.focus
       val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { i.rightLift(id) }
+      for { i <- activeInstance } { run(i.rightLift(id)) }
     })
 
     pane.hotkeysEnabled = false
     jQuery(formSidebar).sidebar("show")
 
   }
+
+  def onAssertRight : Unit =
+    for { i <- activeInstance } { run(i.assertRightExtension) }
 
   //============================================================================================
   // UI COMPONENTS
