@@ -34,6 +34,23 @@ class EditorInstance(env: EditorEnvironment) {
 
   var currentBox: Option[Sigma[EditorBox]] = None
 
+  trait BoxAction[A] {
+    def objectAction(box : EditorBox[_0]) : EditorM[A]
+    def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : EditorM[A]
+  }
+
+  @natElim
+  def dispatchAction[A, N <: Nat](n: N)(box: EditorBox[N], action: BoxAction[A]) : EditorM[A] = {
+    case (Z, box, action) => action.objectAction(box)
+    case (S(p), box, action) => action.cellAction(p)(box)
+  }
+
+  def withSelection[A](action: BoxAction[A]) : EditorM[A] = 
+    currentBox match {
+      case None => editorError("Nothing selected")
+      case Some(boxsig) => dispatchAction(boxsig.n)(boxsig.value, action)
+    }
+
   def onSelectAsRoot(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
     currentBox = Some(boxsig)
   }
@@ -110,86 +127,84 @@ class EditorInstance(env: EditorEnvironment) {
   // ASSUMPTIONS
   //
 
-  def assumeVariable(id: String, isLex: Boolean): EditorM[Unit] =
+  def assumeObject(box: EditorBox[_0], id: String) : EditorM[Unit] = 
     for {
-      boxsig <- attempt(currentBox, "Nothing Selected")
-      fc <- fromShape(boxsig.value.faceComplex)
-      _ <- doAssume(boxsig.n)(fc, id, isLex)
-    } yield ()
+      _ <- forceNone(box.optLabel, "Cell is occupied")
+    } yield {
 
-  @natElim
-  def doAssume[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String, isLex: Boolean) : EditorM[Unit] = {
-    case (Z, Complex(_, Obj(b)), id, isLex) =>
-      b.optLabel match {
-        case None => {
+      val cell = ObjectCell(id, EVar(id))
 
-          val cell = ObjectCell(id, EVar(id))
+      env.gma = (id, env.eval(cell.ty)) :: env.gma
+      env.rho = UpVar(env.rho, PVar(id), env.genV)
+      env.registerCell(cell)
+      env.registerParameter(cell)
 
-          env.gma = (id, env.eval(cell.ty)) :: env.gma
-          env.rho = UpVar(env.rho, PVar(id), env.genV)
-          env.registerCell(cell)
-          env.registerParameter(cell)
+      box.optLabel = Some(cell)
+      box.panel.refresh
+      editor.refreshGallery
 
-          b.optLabel = Some(cell)
-          b.panel.refresh
-          editor.refreshGallery
+    }
 
-          editorSucceed(())
+  def assumeCell[P <: Nat](p: P)(box: EditorBox[S[P]], id: String, isLex: Boolean, rexAddrOpt: Option[Address[P]]): EditorM[Unit] = 
+    for {
+      _ <- forceNone(box.optLabel, "Cell is occupied")
+      cellCmplx <- new SuccBoxOps(box).cellComplex
+      frmCmplx <- new SuccBoxOps(box).frameComplex
+      varType = ECell(env.catExpr, frmCmplx)
 
-        }
-        case Some(_) => editorError("Cell is occupied")
-      }
-    case (Z, _, _, _) => editorError("Malformed complex")
-    case (S(p: P), Complex(tl, Dot(b, _)), id, isLex) =>
-      b.optLabel match {
-        case None => {
+      // Make sure the type is valid
+      _ <- runCheck(
 
-          tl.traverse(ExtractCells) match {
-            case \/-(cellCmplx) => {
+        env.checkT(varType)
 
-              val frmCmplx : ExprComplex[P] = tl.map(EditorBoxToExpr)
-              val varType : Expr = ECell(env.catExpr, frmCmplx)
+      )(msg => {
 
-              checkT(env.rho, env.gma, varType) match {
-                case -\/(msg) => editorError("Error: " ++ msg)
-                case \/-(()) => {
+        editorError("Type checking error: " ++ msg)
 
-                  env.gma = (id, env.eval(varType)) :: env.gma
-                  env.rho = UpVar(env.rho, PVar(id), env.genV)
+      })(_ => {
 
-                  val cell = HigherCell[P](id, EVar(id), cellCmplx)
-                  env.registerCell(cell)
-                  env.registerParameter(cell)
+        env.extendContext(id, env.eval(varType))
+        env.extendEnvironment(id, env.genV)
 
-                  cell.isLeftExt = 
-                    if (isLex) {
-                      val lexId = id ++ "-is-lex"
-                      val lexType = ELeftExt(EVar(id))
-                      env.gma = (lexId, env.eval(lexType)) :: env.gma
-                      env.rho = UpVar(env.rho, PVar(lexId), env.genV)
-                      val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
-                      env.registerProperty(lexProp)
-                      env.registerParameter(lexProp)
-                      Some(lexProp)
-                    } else None
+        val cell = HigherCell[P](id, EVar(id), cellCmplx)
+        env.registerCell(cell)
+        env.registerParameter(cell)
 
-                  b.optLabel = Some(cell)
-                  b.panel.refresh
-                  editor.refreshGallery
+        cell.isLeftExt =
+          if (isLex) {
+            val lexId = id ++ "-is-lex"
+            val lexType = ELeftExt(EVar(id))
+            env.extendContext(lexId, env.eval(lexType))
+            env.extendEnvironment(lexId, env.genV)
+            val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
+            env.registerProperty(lexProp)
+            env.registerParameter(lexProp)
+            Some(lexProp)
+          } else None
 
-                  editorSucceed(())
-
-                }
-              }
+        cell.isRightExt = 
+          rexAddrOpt match {
+            case None => None
+            case Some(rexAddr) => {
+              val rexId = id ++ "-is-rex"
+              val rexType = ERightExt(EVar(id), rbAddr(p)(rexAddr))
+              env.extendContext(rexId, env.eval(rexType))
+              env.extendEnvironment(rexId, env.genV)
+              val rexProp = IsRightExtension(rexId, EVar(rexId), cell, rexAddr)
+              env.registerProperty(rexProp)
+              env.registerParameter(rexProp)
+              Some(rexProp)
             }
-            case -\/(_) => editorError("There are non-full cells")
           }
 
-        }
-        case Some(_) => editorError("Cell is occupied")
-      }
-    case (S(p: P), _, _, _) => editorError("Malformed complex")
-  }
+        box.optLabel = Some(cell)
+        box.panel.refresh
+        editor.refreshGallery
+
+        editorSucceed(())
+
+      })
+    } yield ()
 
   //============================================================================================
   // COMPOSITION
@@ -735,14 +750,12 @@ class EditorInstance(env: EditorEnvironment) {
 
         nchFrm : ExprComplex[P] = tl.map(EditorBoxToExpr)
         nch : Tree[Expr, S[P]] = cn.map((n: Nesting[EditorBox[S[P]], S[P]]) => {
-          val box = n.baseValue  // This could be done better ...
+          val box = n.baseValue  // Is there a better way to do this?
           if (box == liftBox) {
             EEmpty
           } else box.optLabel.get.expr
         })
 
-        // Right, the niche is wrong because you have to remove the
-        // liftCell.
         rexAddr <- fromOption(
           nch.mapWithAddress({
             case (EEmpty, a) => Some(a)
@@ -765,6 +778,9 @@ class EditorInstance(env: EditorEnvironment) {
 
         filledCell.isRightExt = Some(rexProp)
         env.registerProperty(rexProp)
+
+        filledBox.panel.refresh
+        editor.refreshGallery
 
       }
 

@@ -15,6 +15,7 @@ import scala.scalajs.js.Dynamic.{literal => lit}
 import scalaz.-\/
 import scalaz.\/-
 
+import opetopic._
 import opetopic.js._
 import JQuerySemanticUI._
 
@@ -26,7 +27,7 @@ class EditorStack(pane: Pane) {
 
   var activeInstance : Option[EditorInstance] = None
   var instanceCount : Int = 0
-  var onSidebarShown : () => Unit = () => ()
+  var rightExtAddress : Option[Sigma[Address]] = None
 
   def env = pane.env
 
@@ -38,12 +39,68 @@ class EditorStack(pane: Pane) {
 
     jQuery(uiElement).find(".ui.dropdown").dropdown(lit(on = "hover"))
 
-    jQuery(formSidebar).sidebar(lit(
-      context = jQuery(tabContainer),
-      dimPage = false,
-      closable = false,
-      onShow = { () => onSidebarShown() }
+    jQuery(assumeItem).popup(lit(
+      inline = true,
+      position = "bottom left",
+      hoverable = "true",
+      on = "click",
+      onShow = { () => onAssumePopupShow },
+      onVisible = { () => onAssumePopupVisible },
+      onHidden = { () => onAssumePopupHidden }
     ))
+
+    jQuery(composeItem).popup(lit(
+      inline = true,
+      position = "bottom left",
+      hoverable = "true",
+      on = "click",
+      onVisible = { () => onComposePopupVisible },
+      onHidden = { () => onComposePopupHidden }
+    ))
+
+    jQuery(lexItem).popup(lit(
+      inline = true,
+      position = "bottom left",
+      hoverable = "true",
+      on = "click",
+      onVisible = { () => onLexPopupVisible },
+      onHidden = { () => onLexPopupHidden }
+    ))
+
+    jQuery(rexItem).popup(lit(
+      inline = true,
+      position = "bottom left",
+      hoverable = "true",
+      on = "click",
+      onVisible = { () => onRexPopupVisible },
+      onHidden = { () => onRexPopupHidden }
+    ))
+
+    jQuery(assumePopup).find(".ui.checkbox").checkbox()
+
+    jQuery(assumePopup).find(".ui.form").on("submit", 
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        onAssumePopupSubmit
+      })
+
+    jQuery(composePopup).find(".ui.form").on("submit", 
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        onComposePopupSubmit
+      })
+
+    jQuery(lexPopup).find(".ui.form").on("submit", 
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        onLexPopupSubmit
+      })
+
+    jQuery(rexPopup).find(".ui.form").on("submit", 
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        onRexPopupSubmit
+      })
 
   }
 
@@ -96,184 +153,316 @@ class EditorStack(pane: Pane) {
     }
   }
 
-  def onAssumeVariable: Unit = {
+  //============================================================================================
+  // ASSUME VARIABLE EVENT
+  //
 
-    val idInput = input(`type` := "text", placeholder := "Identifier").render
-    val isLeftExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
-    // val isRightExt = input(`type` := "checkbox", tabindex := 0, cls := "hidden")
+  def onAssumeVariable: Unit = 
+    jQuery(assumeItem).popup("show")
 
-    val varForm =
-      form(cls := "ui form")(
-        div(cls := "inline fields")(
-          div(cls := "field")(
-            label("Assume Variable:"),
-            idInput
-          ),
-          div(cls := "field")(
-            div(cls := "ui checkbox")(
-              isLeftExt,
-              label("Left Extension")
-            )
-          ),
-          // div(cls := "field")(
-          //   div(cls := "ui checkbox")(
-          //     isRightExt,
-          //     label("Right Extension")
-          //   )
-          // ),
-          button(cls := "ui button", `type` := "submit")("Ok")
-        )
-      ).render
+  def onAssumePopupShow : Unit = {
+    run(
+      for {
+        i <- attempt(activeInstance, "No active instance")
+        _ <- i.withSelection(new i.BoxAction[Unit] {
 
-    jQuery(formSidebar).empty().append(
-      div(cls := "ui basic segment")(varForm).render
+          import Cell.ActiveInstance._
+          import JsDomFramework._
+          import syntax.complex._
+
+          def objectAction(box: i.EditorBox[_0]) : EditorM[Unit] = {
+            jQuery(frameDisplay).empty()
+            editorSucceed(())
+          }
+
+          def cellAction[Q <: Nat](q: Q)(box : i.EditorBox[S[Q]]) : EditorM[Unit] = {
+            for {
+              cellCmplx <- new i.SuccBoxOps(box).cellComplex
+            } yield {
+              val panel = ActivePanel(cellCmplx.head)
+
+              panel.onBoxClicked = { (box: SimpleActiveCellBox[Cell[Q], Q]) => {
+                if (box.isExternal) {
+                  rightExtAddress = Some(Sigma[Address, Q](q)(box.address.head))
+                }
+              }}
+
+              jQuery(frameDisplay).empty().append(panel.element.uiElement)
+            }
+          }
+        })
+      } yield ()
     )
+  }
 
-    jQuery(varForm).find(".checkbox").checkbox()
-
-    onSidebarShown = { () => jQuery(idInput).focus() }
-
-    jQuery(varForm).on("submit", (e : JQueryEventObject) => { 
-      e.preventDefault 
-      pane.hotkeysEnabled = true
-      jQuery(formSidebar).sidebar("hide")
-      pane.focus
-      val id = jQuery(idInput).value().asInstanceOf[String]
-      val lex = jQuery(isLeftExt).prop("checked").asInstanceOf[Boolean]
-      for { i <- activeInstance } { run(i.assumeVariable(id, lex)) }
-    })
+  def onAssumePopupVisible : Unit = {
 
     pane.hotkeysEnabled = false
-    jQuery(formSidebar).sidebar("show")
+    jQuery(varIdInput).focus()
 
   }
 
-  def onComposeDiagram : Unit = {
+  def onAssumePopupHidden : Unit = {
 
-    val idInput = input(`type` := "text", placeholder := "Identifier").render
-
-    val compForm =
-      form(cls := "ui form")(
-        div(cls := "inline fields")(
-          div(cls := "field")(
-            label("Compose Diagram:"),
-            idInput
-          ),
-          button(cls := "ui button", `type` := "submit")("Ok")
-        )
-      ).render
-
-    jQuery(formSidebar).empty().append(
-      div(cls := "ui basic segment")(compForm).render
-    )
-
-    onSidebarShown = { () => jQuery(idInput).focus() }
-
-    jQuery(compForm).on("submit", (e : JQueryEventObject) => { 
-      e.preventDefault 
-      pane.hotkeysEnabled = true
-      jQuery(formSidebar).sidebar("hide")
-      pane.focus
-      val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { run(i.composeDiagram(id)) }
-    })
-
-    pane.hotkeysEnabled = false
-    jQuery(formSidebar).sidebar("show")
+    jQuery(varIdInput).value("")
+    pane.hotkeysEnabled = true
+    pane.focus
 
   }
 
-  def onLeftLift : Unit = {
+  def onAssumePopupSubmit : Unit = {
 
-    val idInput = input(`type` := "text", placeholder := "Identifier").render
+    val id = jQuery(varIdInput).value().asInstanceOf[String]
+    val lex = jQuery(isLexCheckbox).prop("checked").asInstanceOf[Boolean]
+    val rex = jQuery(isRexCheckbox).prop("checked").asInstanceOf[Boolean]
 
-    val liftForm =
-      form(cls := "ui form")(
-        div(cls := "inline fields")(
-          div(cls := "field")(
-            label("Lift Cell:"),
-            idInput
-          ),
-          button(cls := "ui button", `type` := "submit")("Ok")
-        )
-      ).render
+    jQuery(assumeItem).popup("hide")
 
-    jQuery(formSidebar).empty().append(
-      div(cls := "ui basic segment")(liftForm).render
+    run(
+      for {
+        i <- attempt(activeInstance, "No active instance")
+        _ <- i.withSelection(new i.BoxAction[Unit] {
+
+          def objectAction(box: i.EditorBox[_0]) : EditorM[Unit] = 
+            i.assumeObject(box, id)
+
+          def cellAction[Q <: Nat](q: Q)(box : i.EditorBox[S[Q]]) : EditorM[Unit] = {
+
+            import TypeLemmas._
+
+            for {
+              rexAddrOpt <- (
+                if (rex) {
+                  for {
+                    addrSig <- attempt(rightExtAddress, "Right extension selected, but no address given.")
+                    ev <- attempt(matchNatPair(addrSig.n, q), "Address has wrong dimension")
+                    addr = rewriteNatIn[Address, addrSig.N, Q](ev)(addrSig.value)
+                  } yield Some(addr)
+                } else editorSucceed(None)
+              )
+              _ <- i.assumeCell(q)(box, id, lex, rexAddrOpt)
+            } yield ()
+          }
+        })
+      } yield ()
     )
-
-    onSidebarShown = { () => jQuery(idInput).focus() }
-
-    jQuery(liftForm).on("submit", (e : JQueryEventObject) => { 
-      e.preventDefault 
-      pane.hotkeysEnabled = true
-      jQuery(formSidebar).sidebar("hide")
-      pane.focus
-      val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { run(i.leftLift(id)) }
-    })
-
-    pane.hotkeysEnabled = false
-    jQuery(formSidebar).sidebar("show")
 
   }
 
-  def onRightLift : Unit = {
+  //============================================================================================
+  // COMPOSE EVENT
+  //
 
-    val idInput = input(`type` := "text", placeholder := "Identifier").render
+  def onComposeDiagram : Unit = 
+    jQuery(composeItem).popup("show")
 
-    val liftForm =
-      form(cls := "ui form")(
-        div(cls := "inline fields")(
-          div(cls := "field")(
-            label("Lift Cell:"),
-            idInput
-          ),
-          button(cls := "ui button", `type` := "submit")("Ok")
-        )
-      ).render
 
-    jQuery(formSidebar).empty().append(
-      div(cls := "ui basic segment")(liftForm).render
-    )
-
-    onSidebarShown = { () => jQuery(idInput).focus() }
-
-    jQuery(liftForm).on("submit", (e : JQueryEventObject) => { 
-      e.preventDefault 
-      pane.hotkeysEnabled = true
-      jQuery(formSidebar).sidebar("hide")
-      pane.focus
-      val id = jQuery(idInput).value().toString
-      for { i <- activeInstance } { run(i.rightLift(id)) }
-    })
+  def onComposePopupVisible : Unit = {
 
     pane.hotkeysEnabled = false
-    jQuery(formSidebar).sidebar("show")
+    jQuery(compIdInput).focus()
 
   }
 
-  def onAssertRight : Unit =
-    for { i <- activeInstance } { run(i.assertRightExtension) }
+  def onComposePopupHidden : Unit = {
+
+    jQuery(compIdInput).value("")
+    pane.hotkeysEnabled = true
+    pane.focus
+
+  }
+
+  def onComposePopupSubmit : Unit = {
+
+    val id = jQuery(compIdInput).value().asInstanceOf[String]
+    jQuery(composeItem).popup("hide")
+
+    run(
+      for {
+        i <- attempt(activeInstance, "No active instance")
+        _ <- i.composeDiagram(id)
+      } yield ()
+    )
+  }
+
+  //============================================================================================
+  // LEFT EXTEND EVENT
+  //
+
+  def onLeftLift : Unit = 
+    jQuery(lexItem).popup("show")
+
+  def onLexPopupVisible : Unit = {
+
+    pane.hotkeysEnabled = false
+    jQuery(lexIdInput).focus()
+
+  }
+
+  def onLexPopupHidden : Unit = {
+
+    jQuery(lexIdInput).value("")
+    pane.hotkeysEnabled = true
+    pane.focus
+
+  }
+
+  def onLexPopupSubmit : Unit = {
+
+    val id = jQuery(lexIdInput).value().asInstanceOf[String]
+    jQuery(lexItem).popup("hide")
+
+    run(
+      for {
+        i <- attempt(activeInstance, "No active instance")
+        _ <- i.leftLift(id)
+      } yield ()
+    )
+
+  }
+
+  //============================================================================================
+  // RIGHT EXTEND EVENT
+  //
+
+  def onRightLift : Unit = 
+    jQuery(rexItem).popup("show")
+
+  def onRexPopupVisible : Unit = {
+
+    pane.hotkeysEnabled = false
+    jQuery(rexIdInput).focus()
+
+  }
+
+  def onRexPopupHidden : Unit = {
+
+    jQuery(rexIdInput).value("")
+    pane.hotkeysEnabled = true
+    pane.focus
+
+  }
+
+  def onRexPopupSubmit : Unit = {
+
+    val id = jQuery(rexIdInput).value().asInstanceOf[String]
+    jQuery(rexItem).popup("hide")
+
+    run(
+      for {
+        i <- attempt(activeInstance, "No active instance")
+        _ <- i.rightLift(id)
+      } yield ()
+    )
+
+  }
+
+  //============================================================================================
+  // ASSERT RIGHT EVENT
+  //
+
+  def onAssertRight : Unit = 
+    for { i <- activeInstance } { 
+      run(i.assertRightExtension) 
+    }
 
   //============================================================================================
   // UI COMPONENTS
   //
 
+  // Assume Popup Components
+
+  val assumeItem = a(cls := "assume item")("Assume", i(cls := "dropdown icon")).render
+  val varIdInput = input(`type` := "text", placeholder := "Identifier").render
+  val isLexCheckbox = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
+  val isRexCheckbox = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
+  val frameDisplay = div(cls := "ui basic segment").render
+
+  val assumePopup =
+    div(cls := "ui bottom left popup transition hidden")(
+      div(cls := "ui basic left aligned segment")(
+        form(cls := "ui form")(
+          div(cls := "field")(
+            label("Assume Variable:"),
+            varIdInput
+          ),
+          div(cls := "field")(
+            div(cls := "ui checkbox")(
+              isLexCheckbox,
+              label("Left Extension")
+            )
+          ),
+          div(cls := "field")(
+            div(cls := "ui checkbox")(
+              isRexCheckbox,
+              label("Right Extension")
+            )
+          )
+        ),
+        frameDisplay
+      )
+    ).render
+
+  // Compose Popup Components
+
+  val composeItem = a(cls := "item")("Compose", i(cls := "dropdown icon")).render
+  val compIdInput = input(`type` := "text", placeholder := "Identifier").render
+
+  val composePopup =
+    div(cls := "ui bottom left popup transition hidden")(
+      div(cls := "ui basic left aligned segment")(
+        form(cls := "ui form")(
+          div(cls := "field")(
+            label("Compose Diagram:"),
+            compIdInput
+          )
+        )
+      )
+    ).render
+
+  // Compose Popup Components
+
+  val lexItem = a(cls := "item")("Left Extend", i(cls := "dropdown icon")).render
+  val lexIdInput = input(`type` := "text", placeholder := "Identifier").render
+
+  val lexPopup =
+    div(cls := "ui bottom left popup transition hidden")(
+      div(cls := "ui basic left aligned segment")(
+        form(cls := "ui form")(
+          div(cls := "field")(
+            label("Left Extension:"),
+            lexIdInput
+          )
+        )
+      )
+    ).render
+
+  // Rex Popup Components
+
+  val rexItem = a(cls := "item")("Right Extend", i(cls := "dropdown icon")).render
+  val rexIdInput = input(`type` := "text", placeholder := "Identifier").render
+
+  val rexPopup =
+    div(cls := "ui bottom left popup transition hidden")(
+      div(cls := "ui basic left aligned segment")(
+        form(cls := "ui form")(
+          div(cls := "field")(
+            label("Right Extension:"),
+            rexIdInput
+          )
+        )
+      )
+    ).render
+
+  // Tabs
+
   val tabs = div(cls := "ui basic segment", style := "min-height: 310px").render
-  val formSidebar = div(cls := "ui bottom sidebar", style := "z-index: 10 ; background-color: white").render
-
-  val tabContainer = div(cls := "ui attached pushable segment", style := "overflow: hidden")(
-    formSidebar,
-    div(cls := "pusher")(
-      tabs
-    )
-  ).render
-
   val tabLabels = 
     div(cls := "ui center aligned bottom attached segment")(
       a(cls := "ui grey circular label", onclick := { () => newInstance })("+")
     ).render
+
+  // Main UI Element
 
   val uiElement = 
     div(
@@ -287,16 +476,18 @@ class EditorStack(pane: Pane) {
             a(cls := "item")("Precompose")
           )
         ),
-        div(cls := "ui dropdown item")(
-          "Term",
-          i(cls := "dropdown icon"),
-          div(cls := "menu")(
-            a(cls := "item")("Assume Variable"),
-            a(cls := "item")("Compose Diagram")
-          )
-        )
+        assumeItem,
+        assumePopup,
+        composeItem,
+        composePopup,
+        lexItem,
+        lexPopup,
+        rexItem,
+        rexPopup
       ),
-      tabContainer,
+      div(cls := "ui attached segment", style := "overflow: hidden")(
+        tabs
+      ),
       tabLabels
     ).render
 

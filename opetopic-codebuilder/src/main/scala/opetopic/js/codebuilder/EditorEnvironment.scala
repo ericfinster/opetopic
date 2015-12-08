@@ -14,6 +14,14 @@ import scalaz.\/
 
 import OpetopicTypeChecker._
 
+// What you should do is make this an independent class
+// with some callbacks so that it can be instantiated and
+// copied and that kind of thing.
+
+// Then the interface can hook the various callbacks to render
+// whatever information is necessary, but the environment wrapper
+// itself stays independent and flexible ...
+
 abstract class EditorEnvironment {
 
   val catExpr : Expr = EVar("X")

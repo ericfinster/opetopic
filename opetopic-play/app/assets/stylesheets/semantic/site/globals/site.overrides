@@ -12,11 +12,19 @@
 .variable.hovered { fill: @lightYellowHover }
 .variable.selected { fill: @lightYellowFocus }
 
-.composite { fill: @lightRed }
-.composite.hovered { fill: @lightRedHover }
-.composite.selected { fill: @lightRedFocus }
+.composite { fill: @lightOrange }
+.composite.hovered { fill: @lightOrangeHover }
+.composite.selected { fill: @lightOrangeFocus }
 
-.universal { fill: @lightBlue }
-.universal.hovered { fill: @lightBlueHover }
-.universal.selected { fill: @lightBlueFocus }
+.left-extension { fill: @lightBlue }
+.left-extension.hovered { fill: @lightBlueHover }
+.left-extension.selected { fill: @lightBlueFocus }
+
+.right-extension { fill: @lightRed }
+.right-extension.hovered { fill: @lightRedHover }
+.right-extension.selected { fill: @lightRedFocus }
+
+.dual-extension { fill: @lightViolet }
+.dual-extension.hovered { fill: @lightVioletHover }
+.dual-extension.selected { fill: @lightVioletFocus }
 
