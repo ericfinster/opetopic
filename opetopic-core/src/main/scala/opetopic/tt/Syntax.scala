@@ -9,6 +9,9 @@ package opetopic.tt
 
 import opetopic._
 
+// Eduardo Gimenez -- something on cofix ....
+// Coq reference manual for cofix
+
 // Expressions
 sealed trait Expr
 case object EType extends Expr

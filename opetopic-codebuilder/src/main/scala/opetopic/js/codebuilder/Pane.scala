@@ -10,7 +10,7 @@ package opetopic.js.codebuilder
 trait Pane {
 
   var hotkeysEnabled = true
-  def env : EditorEnvironment
+  def env : Environment
   def focus: Unit
 
 }

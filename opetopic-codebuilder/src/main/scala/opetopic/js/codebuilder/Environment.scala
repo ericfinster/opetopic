@@ -14,15 +14,18 @@ import scalaz.\/
 
 import OpetopicTypeChecker._
 
-// What you should do is make this an independent class
-// with some callbacks so that it can be instantiated and
-// copied and that kind of thing.
+trait Registry {
 
-// Then the interface can hook the various callbacks to render
-// whatever information is necessary, but the environment wrapper
-// itself stays independent and flexible ...
+  def registerCell[N <: Nat](cell: Cell[N]) : Unit 
+  def registerProperty[N <: Nat](prop: Property[N]) : Unit
 
-abstract class EditorEnvironment {
+  def registerParameter[N <: Nat](cell : Cell[N]) : Unit
+  def registerParameter[N <: Nat](prop : Property[N]) : Unit
+
+}
+
+
+class Environment {
 
   val catExpr : Expr = EVar("X")
 
@@ -46,11 +49,12 @@ abstract class EditorEnvironment {
   def check(e: Expr, v: Val) : G[Unit] = 
     OpetopicTypeChecker.check(rho, gma, e, v)
 
-  def registerCell[N <: Nat](cell: Cell[N]) : Unit 
-  def registerProperty[N <: Nat](prop: Property[N]) : Unit
-
-  def registerParameter[N <: Nat](cell : Cell[N]) : Unit
-  def registerParameter[N <: Nat](prop : Property[N]) : Unit
+  def duplicate: Environment = {
+    val env = new Environment
+    env.rho = rho
+    env.gma = gma
+    env
+  }
 
 }
 

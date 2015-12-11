@@ -21,17 +21,17 @@ import JsDomFramework._
 import Cell.ActiveInstance._
 import Cell._
 
-class CellGoalPane[N <: Nat](frm: Complex[Cell, N]) extends GoalPane {
+// class CellGoalPane[N <: Nat](frm: Complex[Cell, N]) extends GoalPane {
 
-  implicit val emptyBnds = defaultGalleryConfig.spacerBounds
+//   implicit val emptyBnds = defaultGalleryConfig.spacerBounds
 
-  val optComplex = frm.map[OptCell](toOptionMap[Cell]) >> Dot(None, frm.length)
-  val goalComplex = ActiveGallery[OptCell](optComplex)
+//   val optComplex = frm.map[OptCell](toOptionMap[Cell]) >> Dot(None, frm.length)
+//   val goalComplex = ActiveGallery[OptCell](optComplex)
 
-  val goal = div(
-    h2(cls := "ui dividing header")("Goal"),
-    goalComplex.element.uiElement
-  )
+//   val goal = div(
+//     h2(cls := "ui dividing header")("Goal"),
+//     goalComplex.element.uiElement
+//   )
 
 
-}
+// }

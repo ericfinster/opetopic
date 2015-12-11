@@ -25,7 +25,7 @@ import JsDomFramework._
 import Cell.ActiveInstance._
 import OpetopicTypeChecker._
 
-class EditorInstance(env: EditorEnvironment) {
+class EditorInstance(reg : Registry, env: Environment) {
 
   type EditorBox[N <: Nat] = editor.CardinalCellBox[N]
 
@@ -136,8 +136,8 @@ class EditorInstance(env: EditorEnvironment) {
 
       env.gma = (id, env.eval(cell.ty)) :: env.gma
       env.rho = UpVar(env.rho, PVar(id), env.genV)
-      env.registerCell(cell)
-      env.registerParameter(cell)
+      reg.registerCell(cell)
+      reg.registerParameter(cell)
 
       box.optLabel = Some(cell)
       box.panel.refresh
@@ -167,8 +167,8 @@ class EditorInstance(env: EditorEnvironment) {
         env.extendEnvironment(id, env.genV)
 
         val cell = HigherCell[P](id, EVar(id), cellCmplx)
-        env.registerCell(cell)
-        env.registerParameter(cell)
+        reg.registerCell(cell)
+        reg.registerParameter(cell)
 
         cell.isLeftExt =
           if (isLex) {
@@ -177,8 +177,8 @@ class EditorInstance(env: EditorEnvironment) {
             env.extendContext(lexId, env.eval(lexType))
             env.extendEnvironment(lexId, env.genV)
             val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
-            env.registerProperty(lexProp)
-            env.registerParameter(lexProp)
+            reg.registerProperty(lexProp)
+            reg.registerParameter(lexProp)
             Some(lexProp)
           } else None
 
@@ -191,8 +191,8 @@ class EditorInstance(env: EditorEnvironment) {
               env.extendContext(rexId, env.eval(rexType))
               env.extendEnvironment(rexId, env.genV)
               val rexProp = IsRightExtension(rexId, EVar(rexId), cell, rexAddr)
-              env.registerProperty(rexProp)
-              env.registerParameter(rexProp)
+              reg.registerProperty(rexProp)
+              reg.registerParameter(rexProp)
               Some(rexProp)
             }
           }
@@ -307,11 +307,11 @@ class EditorInstance(env: EditorEnvironment) {
           compBox.optLabel = Some(compCell)
           fillBox.optLabel = Some(fillCell)
 
-          env.registerCell(compCell)
-          env.registerCell(fillCell)
+          reg.registerCell(compCell)
+          reg.registerCell(fillCell)
 
-          for { p <- compCell.isLeftExt } { env.registerProperty(p) }
-          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
+          for { p <- compCell.isLeftExt } { reg.registerProperty(p) }
+          for { p <- fillCell.isLeftExt } { reg.registerProperty(p) }
 
           compBox.panel.refresh
           fillBox.panel.refresh
@@ -528,11 +528,11 @@ class EditorInstance(env: EditorEnvironment) {
 
         })(_ => { // On succeed
 
-          env.registerCell(liftCell)
-          env.registerCell(fillCell)
+          reg.registerCell(liftCell)
+          reg.registerCell(fillCell)
 
-          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
-          for { p <- fillCell.isRightExt } { env.registerProperty(p) }
+          for { p <- fillCell.isLeftExt } { reg.registerProperty(p) }
+          for { p <- fillCell.isRightExt } { reg.registerProperty(p) }
 
           emptyBox.panel.refresh
           fillBox.panel.refresh
@@ -680,11 +680,11 @@ class EditorInstance(env: EditorEnvironment) {
 
         })(_ => { // On Success
 
-          env.registerCell(liftCell)
-          env.registerCell(fillCell)
+          reg.registerCell(liftCell)
+          reg.registerCell(fillCell)
 
-          for { p <- fillCell.isLeftExt } { env.registerProperty(p) }
-          for { p <- fillCell.isRightExt } { env.registerProperty(p) }
+          for { p <- fillCell.isLeftExt } { reg.registerProperty(p) }
+          for { p <- fillCell.isRightExt } { reg.registerProperty(p) }
 
           emptyBox.panel.refresh
           fillBox.panel.refresh
@@ -777,7 +777,7 @@ class EditorInstance(env: EditorEnvironment) {
           IsRightExtension(filledCell.id ++ "-is-rex", rexEv, filledCell, rexAddr)
 
         filledCell.isRightExt = Some(rexProp)
-        env.registerProperty(rexProp)
+        reg.registerProperty(rexProp)
 
         filledBox.panel.refresh
         editor.refreshGallery

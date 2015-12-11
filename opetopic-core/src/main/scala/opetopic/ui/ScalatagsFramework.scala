@@ -68,8 +68,10 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
       "<style> " ++ 
         "rect { fill : white } " ++ 
         "rect.variable { fill : #FFE21F  } " ++
-        "rect.composite { fill : #FF5F68 } " ++ 
-        "rect.universal { fill : #54C8FF } " ++ 
+        "rect.composite { fill : #FF851B } " ++ 
+        "rect.left-extension { fill : #54C8FF } " ++ 
+        "rect.right-extension { fill : #FF695E } " ++ 
+        "rect.dual-extension { fill : #A291FB } " ++ 
         "</style>"
 
     svg(

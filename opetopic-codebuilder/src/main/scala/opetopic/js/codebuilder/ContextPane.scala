@@ -16,7 +16,7 @@ import opetopic.js._
 
 import JQuerySemanticUI._
 
-class ContextPane extends Pane { thisPane => 
+class ContextPane extends Pane with Registry { thisPane => 
 
   //============================================================================================
   // STATE
@@ -25,22 +25,7 @@ class ContextPane extends Pane { thisPane =>
   var activeCell : Option[Sigma[Cell]] = None
   var activeProperty : Option[Sigma[Property]] = None
 
-  val env = new EditorEnvironment {
-
-    def registerCell[N <: Nat](cell: Cell[N]) : Unit = 
-      thisPane.registerCell(cell)
-
-    def registerProperty[N <: Nat](prop: Property[N]) : Unit = 
-      thisPane.registerProperty(prop)
-
-    def registerParameter[N <: Nat](cell : Cell[N]) : Unit = 
-      thisPane.registerParameter(cell)
-
-    def registerParameter[N <: Nat](prop : Property[N]) : Unit = 
-      thisPane.registerParameter(prop)
-
-  }
-
+  val env = new Environment 
   val stack = new EditorStack(thisPane)
 
   //============================================================================================
@@ -60,7 +45,7 @@ class ContextPane extends Pane { thisPane =>
           case 101 => for { i <- stack.activeInstance } { i.editor.extrudeSelection }
           case 100 => for { i <- stack.activeInstance } { i.editor.extrudeDrop }
           case 112 => for { i <- stack.activeInstance } { i.editor.sprout }
-          case 103 => newCellGoal
+          case 103 => () // newCellGoal
           case 108 => stack.onLeftLift
           case 114 => stack.onRightLift
           case 115 => stack.onAssertRight
@@ -87,17 +72,36 @@ class ContextPane extends Pane { thisPane =>
       i <- stack.activeInstance
     }{ stack.run(i.doPaste(cell.n)(cell.value)) }
 
-  def newCellGoal: Unit = 
+  def addLeftExtensionGoal: Unit = 
     for {
-      i <- stack.activeInstance
-      frm <- i.selectionFrame
+      cell <- activeCell
     } {
 
-      val pane = new CellGoalPane(frm.value)
-      jQuery("#panes").append(pane.uiElement)
-      pane.initialize
+      val lexGoal = new Goal(env.duplicate)
+
+      val goalRow =
+        tr(
+          td("Left Extension"),
+          td(cell.value.id)
+        ).render
+
+      jQuery(openGoalsBody).append(goalRow)
 
     }
+
+  def addRightExtensionGoal: Unit = ()
+
+  // def newCellGoal: Unit = 
+  //   for {
+  //     i <- stack.activeInstance
+  //     frm <- i.selectionFrame
+  //   } {
+
+  //     val pane = new CellGoalPane(frm.value)
+  //     jQuery("#panes").append(pane.uiElement)
+  //     pane.initialize
+
+  //   }
 
   def registerCell[N <: Nat](cell: Cell[N]) : Unit = {
 
@@ -199,14 +203,30 @@ class ContextPane extends Pane { thisPane =>
       )
     ).render
 
-  val pane : HtmlTag = 
+  val openGoalsBody = tbody().render
+  val openGoalsTable = table(cls := "ui celled table")(
+    thead(tr(th("Type"), th("Identifier"))),
+    openGoalsBody,
+    tfoot(tr(th(colspan := 2)(
+      button(cls := "ui right floated primary button")("Go!")
+    )))
+  ).render
+
+  val openGoalsPane = 
+    div(cls := "ui raised left aligned segment", style := "min-height: 250px")(
+      h2(cls := "ui dividing header")("Open Goals"),
+      openGoalsTable
+    )
+
+  val pane = 
     div(cls := "ui raised segment")(
       div(cls := "ui celled grid")(
         div(cls := "three wide column")(
           leftAccordion
         ),
         div(cls := "ten wide center aligned column")(
-          stack.uiElement
+          stack.uiElement,
+          openGoalsPane
         ),
         div(cls := "three wide column")(
           rightAccordion
@@ -217,8 +237,9 @@ class ContextPane extends Pane { thisPane =>
   val cellPopup =
     div(id := "envPopup", cls := "ui vertical popup menu", style := "display: none")(
       a(cls := "item", onclick := { () => pasteToCursor })("Paste to Cursor"),
-      a(cls := "item", onclick := { () => () })("Paste to New Editor"),
-      a(cls := "item", onclick := { () => () })("Show Universal")
+      // a(cls := "item", onclick := { () => () })("Paste to New Editor"),
+      a(cls := "item", onclick := { () => addLeftExtensionGoal })("Show Left Extension"),
+      a(cls := "item", onclick := { () => addRightExtensionGoal })("Show Right Extension")
     ).render
 
   val uiElement = 

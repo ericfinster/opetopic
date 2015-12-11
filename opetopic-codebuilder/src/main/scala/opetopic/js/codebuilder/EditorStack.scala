@@ -19,7 +19,7 @@ import opetopic._
 import opetopic.js._
 import JQuerySemanticUI._
 
-class EditorStack(pane: Pane) {
+class EditorStack(pane: Pane with Registry) {
 
   //============================================================================================
   // STATE
@@ -110,7 +110,7 @@ class EditorStack(pane: Pane) {
 
   def newInstance: Unit = {
 
-    val instance = new EditorInstance(env)
+    val instance = new EditorInstance(pane, env)
     instanceCount += 1
 
     val icStr = instanceCount.toString

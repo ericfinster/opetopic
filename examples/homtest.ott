@@ -27,9 +27,3 @@ let vcomp : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (g :
     	    (a : TwoGlob X x y f g) -> (b : TwoGlob X x y g h) -> TwoGlob X x y f h
 	  = \X. \x. \y. \f. \g. \h. \a. \b. comp (homType X x y) f g h a b
 
--- Super cool!!
--- The thing is that you now need to say
--- that this term *reduces* to the explicit term
--- you would give for this composition.
--- Moreover, all of the guys which take a category as a parameter
--- should reduce down to associated expanded versions in the original base category
