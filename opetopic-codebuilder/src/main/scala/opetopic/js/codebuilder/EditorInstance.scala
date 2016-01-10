@@ -710,6 +710,11 @@ class EditorInstance(reg : Registry, env: Environment) {
       _ <- doRightAssertion(boxsig.n)(fc) 
     } yield ()
     
+  // BUG!!! - We do not quite check that the shape is right.  (Presumably
+  // this would be caught by the typechecker.)  The point is that the "liftBox"
+  // must be unary, since left extensions are only defined for unary outgoing
+  // cells.
+
   @natElim
   def doRightAssertion[N <: Nat](n: N)(cmplx: Complex[EditorBox, N]): EditorM[Unit] = {
     case (Z, _) => editorError("Dimension is too low")

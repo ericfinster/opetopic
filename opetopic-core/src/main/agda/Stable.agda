@@ -1,10 +1,9 @@
+{-# OPTIONS --no-termination-check --no-positivity-check #-}
 --
 --  Stable.agda - Stable Higher Dimensional Trees
 --
 --  Eric Finster
 --
-
-{-# OPTIONS --no-termination-check --no-positivity-check #-}
 
 open import Prelude
 open import Mtl
@@ -27,17 +26,54 @@ module Stable where
   freeIsFunctor : {F : Set → Set} ⦃ isF : Functor F ⦄ → Functor (Free F)
   freeIsFunctor = record { fmap = mapFree }
 
-  test0 : Free Id ℕ
-  test0 = end 
+  Tr : (n : ℕ) → Set → Set
+  Tr zero = Id
+  Tr (suc n) = Free (Tr n)
 
-  test1 : Free Id ℕ
-  test1 = fix 3 end
+  TrF : (n : ℕ) → Functor (Tr n)
+  TrF zero = idF
+  TrF (suc n) = freeIsFunctor ⦃ TrF n ⦄
 
-  test2 : Free Id ℕ
-  test2 = fix 7 (fix 14 end)
+  encode : (n : ℕ) (A : Set) → Tree A n → Tr n A
+  encode zero A (pt a) = a
+  encode (suc n) A leaf = end
+  encode (suc n) A (node a sh) = 
+    fix a (encode n (Free (Tr n) A) (mapTree sh (encode (suc n) A)))
 
-  test3 : Free (Free Id) ℕ
-  test3 = fix 3 (fix end (fix end end))
+  decode : (n : ℕ) (A : Set) → Tr n A → Tree A n
+  decode zero A a = pt a
+  decode (suc n) A end = leaf
+  decode (suc n) A (fix a sh) = 
+    node a (decode n (Tree A (suc n)) (fmap (decode (suc n) A) sh))
+    where open Functor (TrF n)
+
+  -- data FunFix (F : Set → Set) (X : Set) : Set where
+  --   • : F (FunFix F X) → FunFix F X
+
+  -- StableAddress : Set
+  -- StableAddress = FunFix List ⊤
+
+  -- st0 : StableAddress
+  -- st0 = • []
+
+  -- st1 : StableAddress
+  -- st1 = • (• [] ∷ • (• [] ∷ • [] ∷ []) ∷ [])
+  
+  -- smthing : StableAddress → StableAddress
+  -- smthing s = • (s ∷ [])
+
+  data SA : Set where
+    ⟨_⟩ : List SA → SA
+
+  sa0 : SA
+  sa0 = ⟨ [] ⟩
+
+  sa1 : SA
+  sa1 = ⟨ ⟨ [] ⟩ ∷ ⟨ [] ⟩ ∷ [] ⟩
+
+  --
+  --  Fixing the result
+  --
 
   data FreeFix (F : Set → Set) (X : Set) : Set where
     done : FreeFix F X

@@ -1,0 +1,5 @@
+--
+--  records.ott - testing records
+--
+
+let unit : Type = record { }

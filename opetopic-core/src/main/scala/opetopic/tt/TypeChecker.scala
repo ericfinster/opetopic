@@ -122,6 +122,8 @@ object OpetopicTypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
+      case EProj(f, e) => Proj(f, eval(e, rho))
+      case ERec(fs) => Rec(for { Field(f, e) <- fs } yield (f , e), rho )
       case ECat => Cat
       case EOb(EHom(e, c)) => eval(ECell(e, c), rho)
       case EOb(e) => Ob(eval(e, rho))
@@ -174,6 +176,7 @@ object OpetopicTypeChecker {
       case Pair(u, v) => EPair(rbV(i, u), rbV(i, v))
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
+      case Proj(f, v) => EProj(f, rbV(i, v))
       case Nt(k) => rbN(i, k)
       case Cat => ECat
       case Ob(Hom(v, c)) => rbV(i, Cell(v, c))

@@ -37,6 +37,7 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
+    | record 
     | "comp" ~ expr3 ~ nicheExpr ^^
         { case "comp" ~ e ~ ne => EComp(e, ne.value._1, ne.value._2) }
     | "fill" ~ expr3 ~ nicheExpr ^^
@@ -66,8 +67,17 @@ object OpetopicParser extends RegexParsers with PackratParsers {
     | expr2
   )
 
+  lazy val record: PackratParser[ERec] = 
+    "record" ~ "{" ~ repsep(field, "|") ~ "}" ^^
+      { case "record" ~ "{" ~ fs ~ "}" => ERec(fs) }
+
+  lazy val field: PackratParser[Field] = 
+    ident ~ expr ^^ { case id ~ e => Field(id, e) }
+
   lazy val expr2: PackratParser[Expr] = (
-      expr2 ~ expr3 ^^
+      "$" ~ ident ~ expr3 ^^
+        { case "$" ~ id ~ e => EProj(id, e) }
+    | expr2 ~ expr3 ^^
         { case e ~ f => EApp(e, f) }
     | expr3
   )

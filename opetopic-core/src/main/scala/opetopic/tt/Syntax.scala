@@ -29,6 +29,10 @@ case class EFst(e: Expr) extends Expr
 case class ESnd(e: Expr) extends Expr
 case class EDec(d: Decl, e: Expr) extends Expr
 case class EApp(e: Expr, f: Expr) extends Expr
+case class ERec(fs: List[Field]) extends Expr
+case class EProj(id: Ident, e: Expr) extends Expr
+
+case class Field(id: Ident, e: Expr)
 
 // Categories and Cells
 case object ECat extends Expr
@@ -67,6 +71,8 @@ case class Lam(c: Clos) extends Val
 case class Pair(v: Val, w: Val) extends Val
 case class Pi(v: Val, c: Clos) extends Val
 case class Sig(v: Val, c: Clos) extends Val
+case class Proj(f: Name, v: Val) extends Val
+case class Rec(sc: SClos) extends Val
 case class Nt(n: Neut) extends Val
 
 case object Cat extends Val
