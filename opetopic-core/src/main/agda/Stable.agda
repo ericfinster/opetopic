@@ -11,95 +11,109 @@ open import Tree
 
 module Stable where
 
-  data Free (F : Set → Set) (X : Set) : Set where
-    end : Free F X
-    fix : X → F (Free F X) → Free F X
+  -- An elementary description of stable trees
 
-  FreeId : Set → Set
-  FreeId = Free Id
+  data ST (A : Set) : Set where
+    lf : ST A
+    nd : A → ST (ST A) → ST A
 
-  mapFree : {F : Set → Set} ⦃ isF : Functor F ⦄ {X Y : Set} (f : X → Y) (m : Free F X) → Free F Y
-  mapFree f end = end
-  mapFree f (fix x m) = fix (f x) (fmap (mapFree f) m)
-    where open Functor ⦃ ... ⦄ 
-    
-  freeIsFunctor : {F : Set → Set} ⦃ isF : Functor F ⦄ → Functor (Free F)
-  freeIsFunctor = record { fmap = mapFree }
+  mapST : {A B : Set} → (f : A → B) → ST A → ST B
+  mapST f lf = lf
+  mapST f (nd a sh) = nd (f a) (mapST (mapST f) sh)
 
-  Tr : (n : ℕ) → Set → Set
-  Tr zero = Id
-  Tr (suc n) = Free (Tr n)
+  obj : {A : Set} → A → ST A
+  obj a = nd a (nd lf lf)
 
-  TrF : (n : ℕ) → Functor (Tr n)
-  TrF zero = idF
-  TrF (suc n) = freeIsFunctor ⦃ TrF n ⦄
+  stabilize : {A : Set} {n : ℕ} → Tree A n → ST A
+  stabilize (pt a) = obj a
+  stabilize leaf = lf
+  stabilize (node a sh) = nd a (mapST stabilize (stabilize sh))
 
-  encode : (n : ℕ) (A : Set) → Tree A n → Tr n A
-  encode zero A (pt a) = a
-  encode (suc n) A leaf = end
-  encode (suc n) A (node a sh) = 
-    fix a (encode n (Free (Tr n) A) (mapTree sh (encode (suc n) A)))
-
-  decode : (n : ℕ) (A : Set) → Tr n A → Tree A n
-  decode zero A a = pt a
-  decode (suc n) A end = leaf
-  decode (suc n) A (fix a sh) = 
-    node a (decode n (Tree A (suc n)) (fmap (decode (suc n) A) sh))
-    where open Functor (TrF n)
-
-  -- data FunFix (F : Set → Set) (X : Set) : Set where
-  --   • : F (FunFix F X) → FunFix F X
-
-  -- StableAddress : Set
-  -- StableAddress = FunFix List ⊤
-
-  -- st0 : StableAddress
-  -- st0 = • []
-
-  -- st1 : StableAddress
-  -- st1 = • (• [] ∷ • (• [] ∷ • [] ∷ []) ∷ [])
-  
-  -- smthing : StableAddress → StableAddress
-  -- smthing s = • (s ∷ [])
+  -- Addresses and lookup
 
   data SA : Set where
     ⟨_⟩ : List SA → SA
 
-  sa0 : SA
-  sa0 = ⟨ [] ⟩
+  lookup : {A : Set} (tr : ST A) (addr : SA) → Maybe A
+  lookup lf addr = nothing
+  lookup (nd a sh) ⟨ [] ⟩ = just a
+  lookup (nd a sh) ⟨ sa ∷ sas ⟩ = lookup sh sa >>= (λ b → lookup b ⟨ sas ⟩ )
+    where open Monad maybeM
 
-  sa1 : SA
-  sa1 = ⟨ ⟨ [] ⟩ ∷ ⟨ [] ⟩ ∷ [] ⟩
-
-  --
-  --  Fixing the result
-  --
-
-  data FreeFix (F : Set → Set) (X : Set) : Set where
-    done : FreeFix F X
-    more : Free (FreeFix F) X → FreeFix F X
+  -- Derivatives, Contexts and Zippers
 
   mutual 
 
-    mapFreeFix : {F : Set → Set} ⦃ isF : Functor F ⦄ {X Y : Set} (f : X → Y) → FreeFix F X → FreeFix F Y
-    mapFreeFix f done = done
-    mapFreeFix {F} ⦃ isF ⦄ f (more m) = more (mapFree {FreeFix F} ⦃ freeFixIsFunctor ⦄ f m)
+    data ST-Γ (A : Set) : Set where
+      • : ST-Γ A
+      ⟨_,_⟩∶_ : A → ST-∂ (ST A) → ST-Γ A → ST-Γ A
 
-    freeFixIsFunctor : {F : Set → Set} ⦃ isF : Functor F ⦄ → Functor (FreeFix F)
-    freeFixIsFunctor = record { fmap = mapFreeFix }
+    data ST-∂ (A : Set) : Set where
+      at : ST (ST A) → ST-Γ A → ST-∂ A
 
-  STree : Set → Set
-  STree X = Free (FreeFix Id) X
+    ST-Z : Set → Set
+    ST-Z A = ST A × ST-Γ A
 
-  data Nest (A : Set) : Set where
-    ext : (a : A) → Nest A
-    int : (a : A) → (cn : FreeFix Id (Nest A)) → Nest A
+    plug : {A : Set} → ST-∂ A → A → ST A
+    plug (at sh Γ) a = close Γ (nd a sh) 
 
-  stabilize : {A : Set} {n : ℕ} (t : Tree A n) → STree A
-  stabilize (pt a) = fix a (more (fix end (more end)))
-  stabilize leaf = end
-  stabilize (node a sh) = fix a (more (stabilize (mapTree sh stabilize)))
+    close : {A : Set} → ST-Γ A → ST A → ST A
+    close • tr = tr
+    close (⟨ a , ∂ ⟩∶ Γ) tr = close Γ (nd a (plug ∂ tr))
 
-  toTree : {A : Set} (n : Nest A) → STree A
-  toTree (ext a) = end
-  toTree (int a cn) = fix a (mapFreeFix {Id} ⦃ idF ⦄ toTree cn)
+    goto : {A : Set} → ST-Z A → SA → Maybe (ST-Z A)
+    goto z ⟨ [] ⟩ = just z
+    goto z ⟨ sa ∷ sas ⟩ = 
+      goto z ⟨ sas ⟩ 
+      >>= (λ { (lf , Γ) → nothing 
+             ; (nd a sh , Γ) → goto (sh , •) sa 
+                                >>= (λ { (lf , hΓ) → nothing 
+                                       ; (nd br hsh , hΓ) → just (br , ⟨ a , at hsh hΓ ⟩∶ Γ) }) })
+      where open Monad maybeM
+
+    _+∶_ : SA → SA → SA
+    sa +∶ ⟨ sas ⟩ = ⟨ sa ∷ sas ⟩
+
+    _++∶_ : SA → SA → SA
+    ⟨ s ⟩ ++∶ ⟨ t ⟩ = ⟨ s ++ t ⟩
+
+    addrOf : {A : Set} → ST-Γ A → SA
+    addrOf • = ⟨ [] ⟩
+    addrOf (⟨ a , at _ hΓ ⟩∶ Γ) = addrOf hΓ +∶ addrOf Γ
+
+  -- What are stable nestings?
+
+  data SN (A : Set) : Set where
+    dot : A → SN A
+    box : A → ST (SN A) → SN A
+
+  toST : {A : Set} → SN A → ST A
+  toST (dot a) = obj a
+  toST (box a cn) = nd a (mapST toST cn)
+
+  -- An address predicate?
+
+  data HasAddr {A : Set} : ST A → SA → Set where
+    lfAddr : HasAddr lf ⟨ [] ⟩ 
+    zpAddr : (tr : ST A) → (Γ : ST-Γ A) → (sa : SA) → (ev : HasAddr tr sa) → 
+             HasAddr (close Γ tr) (sa ++∶ addrOf Γ)
+
+  -- It's intersting to wonder about this kind of stable
+  -- multiplication.  Something like it surely works.
+
+  st-graft : {A : Set} → ST A → ST (ST A) → Maybe (ST A)
+  st-graft = {!!}
+
+  st-join : {A : Set} → ST (ST A) → Maybe (ST A)
+  st-join lf = just lf
+  st-join (nd st ssh) = {!!}
+
+  -- And I guess the point of the above would be that, given a
+  -- stable nesting, you would try to compute the spine and make
+  -- sure that the spine of one was exactly the tree reflection
+  -- of the other.
+
+  -- Hmmm ... can I encode some kind of type system here that
+  -- let's me check when functions between stable opetopes are
+  -- well formed ????
+
