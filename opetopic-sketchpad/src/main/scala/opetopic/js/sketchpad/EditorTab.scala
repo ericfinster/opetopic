@@ -31,7 +31,8 @@ class EditorTab {
     )
 
   val editor = CardinalEditor[ConstString]
-  // editor.onSelectAsRoot = showBoxProperties
+  editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.refreshFacePreview }
+  editor.onDeselectAll = () => { activeBox = None }
 
   val uiElement = 
     div(tabindex := 0)(
@@ -48,26 +49,6 @@ class EditorTab {
     }
   })
 
-  // jQuery(uiElement).keydown((e : JQueryEventObject) => {
-  //   if (e.which == 8) {
-  //     e.preventDefault
-  //     if (mode == LabelMode) deleteFromLabel
-  //   }
-  // }).keypress((e : JQueryEventObject) => {
-  //   mode match {
-  //     case DeformMode => 
-  //       e.which match {
-  //         case 101 => editor.extrudeSelection
-  //         case 100 => editor.extrudeDrop
-  //         case 112 => editor.sprout
-  //         case _ => ()
-  //       }
-  //     case LabelMode => {
-  //       val c = e.which.toChar
-  //       if (c.isLetterOrDigit) appendToLabel(c)
-  //     }
-  //   }
-  // })
-
+  var activeBox: Option[Sigma[editor.CardinalCellBox]] = None
 
 }

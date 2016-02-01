@@ -9,16 +9,19 @@
       <div id="panes">
 	<div class="ui grid sketch-main">
 
-	  <div class="three wide column">
-	    <div class="ui raised segment">
-	      <p>Left side</p>
-	    </div>
+	  <div class="two wide column">
+	    <!-- <div class="ui raised segment"> -->
+	    <!--   <p>Left side</p> -->
+	    <!-- </div> -->
 	  </div>
 
-	  <div class="ten wide center aligned column">
+	  <div class="twelve wide center aligned column">
 
 	    <div class="ui raised segment">
-	      <div id="sketch-tabs" class="ui top attached segment">
+	      <div class="ui top attached menu">
+		<a class="item">Shape<i class="dropdown icon"></i></a>
+	      </div>
+	      <div id="sketch-tabs" class="ui middle attached segment">
 	      </div>
 	      <div id="sketch-tab-menu" class="ui bottom attached tabular menu">
 		<div class="right menu">
@@ -30,14 +33,37 @@
 	    </div>
 
 	    <div class="ui raised segment">
-	      <p>The properties view</p>
+	      <div class="ui top attached segment">
+		<div class="ui active tab" data-tab="face-tab">
+		  <div class="ui divided grid" style="min-height: 120px">
+		    <div class="four wide column">
+		      <form class="ui form">
+			<div class="field">
+			  <label>Label</label>
+			  <input type="text" name="label-input" placeholder="Label">
+			</div>			
+		      </form>
+		    </div>
+		    <div class="twelve wide column">
+		      <div id="face-pane"></div>
+		    </div>
+		  </div>
+		</div>
+		<div class="ui tab" data-tab="clipboard-tab">
+		  <p>Sorry, no clipboard just yet...</p>
+		</div>
+	      </div>
+	      <div id="sketch-prop-tab-menu" class="ui bottom attached tabular menu">
+		<a class="active item" data-tab="face-tab">Face Viewer</a>
+		<a class="item" data-tab="clipboard-tab">Clipboard</a>
+	      </div>
 	    </div>
 	  </div>
 
-	  <div class="three wide column">
-	    <div class="ui raised segment">
-	      <p>Right side</p>
-	    </div>
+	  <div class="two wide column">
+	    <!-- <div class="ui raised segment"> -->
+	    <!--   <p>Right side</p> -->
+	    <!-- </div> -->
 	  </div>
 
 	</div>

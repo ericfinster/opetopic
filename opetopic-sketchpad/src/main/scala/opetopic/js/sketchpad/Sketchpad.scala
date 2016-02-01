@@ -7,11 +7,16 @@
 
 package opetopic.js.sketchpad
 
-import scala.scalajs.js
+import scala.scalajs.{js => sjs}
 import scala.scalajs.js.JSApp
 import org.scalajs.dom._
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
+
+import opetopic._
+import opetopic.js._
+import syntax.complex._
+import JsDomFramework._
 
 // import org.denigma.codemirror.extensions.EditorConfig
 // import org.denigma.codemirror.{CodeMirror, EditorConfiguration}
@@ -36,8 +41,9 @@ object Sketchpad extends JSApp {
 
     println("Launched Opetopic Sketchpad.")
 
-    // addEditorTab
     jQuery("#new-tab").click((e : JQueryEventObject) => { addEditorTab })
+    jQuery("#sketch-prop-tab-menu .item").tab()
+    addEditorTab
 
   }
 
@@ -47,10 +53,11 @@ object Sketchpad extends JSApp {
 
     val editorTab = new EditorTab
 
-    val tabName = "tab-" ++ tabCount.toString
     tabCount += 1
+    val tc = tabCount.toString
+    val tabName = "tab-" ++ tc
 
-    val tabItem = div(cls := "item", "data-tab".attr := tabName)("Untitled").render
+    val tabItem = a(cls := "item", "data-tab".attr := tabName)(tc).render
     val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
       editorTab.uiElement
     ).render
@@ -58,37 +65,43 @@ object Sketchpad extends JSApp {
     jQuery(".right.menu").before(tabItem)
     jQuery("#sketch-tabs").append(tab)
 
-    jQuery(tabItem).tab()
+    jQuery(tabItem).tab(sjs.Dynamic.literal(
+      onVisible = (s: String) => { activeTab = Some(editorTab) }
+    ))
+
     jQuery(tabItem).click()
 
   }
 
+  val propertyGalleryConfig: GalleryConfig =
+    GalleryConfig(
+      panelConfig = defaultPanelConfig,
+      width = 1000,
+      height = 85,
+      spacing = 1500,
+      minViewX = Some(60000),
+      minViewY = Some(6000),
+      spacerBounds = Bounds(0, 0, 600, 600)
+    )
 
-  // def newInstance: Unit = {
+  var activeTab: Option[EditorTab] = None
 
-  //   val instance = new EditorInstance(pane, env)
-  //   instanceCount += 1
+  def refreshFacePreview: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+      lblCmplx <- bs.value.labelComplex
+    } {
 
-  //   val icStr = instanceCount.toString
-  //   val tabName = "tab-" ++ icStr
+      val gallery = ActiveGallery(propertyGalleryConfig, lblCmplx)(
+        new AffixableFamily[tab.editor.OptA] {
+          def apply[N <: Nat](n: N) : Affixable[tab.editor.OptA[N]] =
+            Affixable.optionAffixable(propertyGalleryConfig.spacerBounds, tab.editor.r(n))
+        }
+      )
 
-  //   val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
-  //     instance.editor.element.uiElement
-  //   ).render
+      jQuery("#face-pane").empty().append(gallery.element.uiElement)
 
-  //   val label = 
-  //     a(cls := "ui grey circular label", 
-  //       onclick := { () => { jQuery(tab).tab("change tab", tabName) ; activeInstance = Some(instance) } }
-  //     )(icStr).render
-
-  //   jQuery(tabs).append(tab)
-  //   jQuery(tabLabels).append(label)
-  //   jQuery(tab).tab("change tab", tabName)
-
-  //   activeInstance = Some(instance)
-
-  // }
-
-
+    }
 
 }

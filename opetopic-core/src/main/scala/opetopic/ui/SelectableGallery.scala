@@ -46,6 +46,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
 
     var onSelect : Sigma[GalleryBoxType] => Unit = { _ => () }
     var onSelectAsRoot : Sigma[GalleryBoxType] => Unit = { _ => () }
+    var onDeselectAll : () => Unit = { () => () }
 
     trait Selection {
 
@@ -78,6 +79,7 @@ trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSe
         box.deselect
       }
 
+      onDeselectAll()
       selection = None
     }
     
