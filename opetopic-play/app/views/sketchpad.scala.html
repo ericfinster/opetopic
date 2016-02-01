@@ -48,12 +48,12 @@
 			<form class="ui form">
 			  <div class="field">
 			    <label>Label</label>
-			    <input type="text" name="label-input" placeholder="Label">
+			    <input type="text" id="label-input" placeholder="Label">
 			  </div>
 			  <div class="field">
 			    <label>Colors</label>
 			    <div class="ui buttons">
-			      <button type="button" id="fill-color-btn" class="ui labeled icon button"><i class="dropdown icon"></i>Fill</button>
+			      <button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
 			      <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
 			    </div>
 			  </div>
@@ -90,24 +90,24 @@
     <div class="ui color-select popup segments" style="min-width: 150px; padding: 5px 5px 5px 5px;">
       <!-- <div class="ui compact segments"> -->
 	<div class="ui compact basic segment" style="padding-bottom: 0px">
-	  <button type="button" class="ui small red icon button"></button>
-	  <button type="button" class="ui small orange icon button"></button>
-	  <button type="button" class="ui small yellow icon button"></button>
+	  <button type="button" data-color="red" class="ui small red icon button"></button>
+	  <button type="button" data-color="orange" class="ui small orange icon button"></button>
+	  <button type="button" data-color="yellow" class="ui small yellow icon button"></button>
 	</div>
 	<div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
-	  <button type="button" class="ui small green icon button"></button>
-	  <button type="button" class="ui small teal icon button"></button>
-	  <button type="button" class="ui small blue icon button"></button>
+	  <button type="button" data-color="green" class="ui small green icon button"></button>
+	  <button type="button" data-color="teal" class="ui small teal icon button"></button>
+	  <button type="button" data-color="blue" class="ui small blue icon button"></button>
 	</div>
 	<div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
-	  <button type="button" class="ui small violet icon button"></button>
-	  <button type="button" class="ui small purple icon button"></button>
-	  <button type="button" class="ui small pink icon button"></button>
+	  <button type="button" data-color="violet" class="ui small violet icon button"></button>
+	  <button type="button" data-color="purple" class="ui small purple icon button"></button>
+	  <button type="button" data-color="pink" class="ui small pink icon button"></button>
 	</div>
 	<div class="ui compact basic segment" style="padding-top: 0px">
-	  <button type="button" class="ui small black icon button"></button>
-	  <button type="button" class="ui small grey icon button"></button>
-	  <button type="button" class="ui small basic white icon button"></button>
+	  <button type="button" data-color="black" class="ui small black icon button"></button>
+	  <button type="button" data-color="grey" class="ui small grey icon button"></button>
+	  <button type="button" data-color="white" class="ui small basic white icon button"></button>
 	</div>
       <!-- </div> -->
     </div>

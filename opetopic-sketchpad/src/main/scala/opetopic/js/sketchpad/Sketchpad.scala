@@ -47,20 +47,42 @@ object Sketchpad extends JSApp {
     jQuery("#fill-color-btn").popup(sjs.Dynamic.literal(
       popup = jQuery(".color-select.popup"),
       movePopup = false,
-      on = "click"
+      on = "click",
+      onShow = () => { isFill = true }
     ))
 
     jQuery("#stroke-color-btn").popup(sjs.Dynamic.literal(
       popup = jQuery(".color-select.popup"),
       movePopup = false,
-      on = "click"
+      on = "click",
+      onShow = () => { isFill = false }
     ))
+
+    jQuery("#label-input").on("input", () => {
+      updateLabel
+    })
+
+    jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
+      val colorStr = jQuery(e.target).attr("data-color").toString
+
+      if (isFill) {
+        jQuery("#fill-color-btn").removeClass(fillColor).addClass(colorStr).popup("hide")
+        fillColor = colorStr
+      } else {
+        jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(colorStr).popup("hide")
+        strokeColor = colorStr
+      }
+    })
 
     addEditorTab
 
   }
 
   var tabCount: Int = 0
+
+  var isFill: Boolean = true
+  var fillColor: String = "white"
+  var strokeColor: String = "black"
 
   def addEditorTab: Unit = {
 
@@ -86,11 +108,38 @@ object Sketchpad extends JSApp {
 
   }
 
+  def unescapeUnicode(str: String): String =
+    """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
+      m => Integer.parseInt(m.group(1), 16).toChar.toString)
+
+  def updateLabel: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+    } {
+
+      val box = bs.value
+
+      val labelVal = jQuery("#label-input").value().toString
+
+      if (labelVal == "") {
+        box.optLabel = None
+      } else {
+
+        val mk = CellMarker[bs.N](unescapeUnicode(labelVal), "white", "black")
+        box.optLabel = Some(mk)
+      }
+
+      box.panel.refresh
+      tab.editor.refreshGallery
+
+    }
+
   val propertyGalleryConfig: GalleryConfig =
     GalleryConfig(
       panelConfig = defaultPanelConfig,
-      width = 1000,
-      height = 85,
+      width = 950,
+      height = 150,
       spacing = 1500,
       minViewX = Some(60000),
       minViewY = Some(6000),
@@ -106,6 +155,12 @@ object Sketchpad extends JSApp {
       lblCmplx <- bs.value.labelComplex
     } {
 
+      bs.value.optLabel match {
+        case None => jQuery("#label-input").value("")
+        case Some(mk) => jQuery("#label-input").value(mk.label)
+      }
+
+      // This is super ugly ...
       val gallery = ActiveGallery(propertyGalleryConfig, lblCmplx)(
         new AffixableFamily[tab.editor.OptA] {
           def apply[N <: Nat](n: N) : Affixable[tab.editor.OptA[N]] =
