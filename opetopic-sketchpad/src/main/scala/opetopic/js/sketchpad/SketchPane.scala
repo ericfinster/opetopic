@@ -58,7 +58,7 @@ class SketchPane {
         i(cls := "dropdown icon"),
         div(cls := "menu")(
           a(cls := "item")("To Scala"),
-          a(cls := "item", onclick := { () => showOpetopicCode })("To OpetopicTT"),
+          a(cls := "item", onclick := { () => () /* showOpetopicCode */ })("To OpetopicTT"),
           div(cls := "divider"),
           a(cls := "item")("As Png"),
           a(cls := "item")("As Svg")
@@ -122,15 +122,15 @@ class SketchPane {
     jQuery(uiElement).find("#deform-mode-btn").addClass("active")
   }
 
-  def showOpetopicCode: Unit = 
-    for {
-      boxsig <- currentBox
-      lblCmplx <- boxsig.value.labelComplex
-    } {
-      Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
-      jQuery(".ui.modal").modal("show")
-      Sketchpad.editor.refresh()
-    }
+  // def showOpetopicCode: Unit = 
+  //   for {
+  //     boxsig <- currentBox
+  //     lblCmplx <- boxsig.value.labelComplex
+  //   } {
+  //     Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
+  //     jQuery(".ui.modal").modal("show")
+  //     Sketchpad.editor.refresh()
+  //   }
 
   var currentBox: Option[Sigma[editor.CardinalCellBox]] = None
 
