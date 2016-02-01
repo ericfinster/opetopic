@@ -16,6 +16,12 @@
 	  </div>
 
 	  <div class="twelve wide center aligned column">
+	    
+	    <div class="ui raised blue inverted segment">
+	      <div class="header">
+		<h3>Opetopic Sketchpad</h3>
+	      </div>
+	    </div>
 
 	    <div class="ui raised segment">
 	      <div class="ui top attached menu">
@@ -36,13 +42,24 @@
 	      <div class="ui top attached segment">
 		<div class="ui active tab" data-tab="face-tab">
 		  <div class="ui divided grid" style="min-height: 120px">
-		    <div class="four wide column">
-		      <form class="ui form">
-			<div class="field">
-			  <label>Label</label>
-			  <input type="text" name="label-input" placeholder="Label">
-			</div>			
-		      </form>
+		    <div class="four wide left aligned column">
+
+		      <div class="ui segment">
+			<form class="ui form">
+			  <div class="field">
+			    <label>Label</label>
+			    <input type="text" name="label-input" placeholder="Label">
+			  </div>
+			  <div class="field">
+			    <label>Colors</label>
+			    <div class="ui buttons">
+			      <button type="button" id="fill-color-btn" class="ui labeled icon button"><i class="dropdown icon"></i>Fill</button>
+			      <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
+			    </div>
+			  </div>
+			</form>
+		      </div>
+
 		    </div>
 		    <div class="twelve wide column">
 		      <div id="face-pane"></div>
@@ -68,6 +85,31 @@
 
 	</div>
       </div>
+    </div>
+
+    <div class="ui color-select popup segments" style="min-width: 150px; padding: 5px 5px 5px 5px;">
+      <!-- <div class="ui compact segments"> -->
+	<div class="ui compact basic segment" style="padding-bottom: 0px">
+	  <button type="button" class="ui small red icon button"></button>
+	  <button type="button" class="ui small orange icon button"></button>
+	  <button type="button" class="ui small yellow icon button"></button>
+	</div>
+	<div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
+	  <button type="button" class="ui small green icon button"></button>
+	  <button type="button" class="ui small teal icon button"></button>
+	  <button type="button" class="ui small blue icon button"></button>
+	</div>
+	<div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
+	  <button type="button" class="ui small violet icon button"></button>
+	  <button type="button" class="ui small purple icon button"></button>
+	  <button type="button" class="ui small pink icon button"></button>
+	</div>
+	<div class="ui compact basic segment" style="padding-top: 0px">
+	  <button type="button" class="ui small black icon button"></button>
+	  <button type="button" class="ui small grey icon button"></button>
+	  <button type="button" class="ui small basic white icon button"></button>
+	</div>
+      <!-- </div> -->
     </div>
   </div>
 

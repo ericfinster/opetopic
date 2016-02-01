@@ -35,7 +35,7 @@ class EditorTab {
   editor.onDeselectAll = () => { activeBox = None }
 
   val uiElement = 
-    div(tabindex := 0)(
+    div(cls := "nofocus", tabindex := 0)(
       editor.element.uiElement
     ).render
 

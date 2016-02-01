@@ -43,6 +43,19 @@ object Sketchpad extends JSApp {
 
     jQuery("#new-tab").click((e : JQueryEventObject) => { addEditorTab })
     jQuery("#sketch-prop-tab-menu .item").tab()
+
+    jQuery("#fill-color-btn").popup(sjs.Dynamic.literal(
+      popup = jQuery(".color-select.popup"),
+      movePopup = false,
+      on = "click"
+    ))
+
+    jQuery("#stroke-color-btn").popup(sjs.Dynamic.literal(
+      popup = jQuery(".color-select.popup"),
+      movePopup = false,
+      on = "click"
+    ))
+
     addEditorTab
 
   }
