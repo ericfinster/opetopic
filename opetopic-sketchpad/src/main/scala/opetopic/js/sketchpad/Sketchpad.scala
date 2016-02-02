@@ -14,6 +14,7 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 
 import opetopic._
+import opetopic.ui._
 import opetopic.js._
 import syntax.complex._
 import JsDomFramework._
@@ -63,16 +64,23 @@ object Sketchpad extends JSApp {
     })
 
     jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
-      val colorStr = jQuery(e.target).attr("data-color").toString
+
+      val color= jQuery(e.target).attr("data-color").toString
 
       if (isFill) {
-        jQuery("#fill-color-btn").removeClass(fillColor).addClass(colorStr).popup("hide")
-        fillColor = colorStr
+
+        jQuery("#fill-color-btn").removeClass(fillColor).addClass(color).popup("hide")
+        fillColor = color
+        updateFillColor
+
       } else {
-        jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(colorStr).popup("hide")
-        strokeColor = colorStr
+        jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(color).popup("hide")
+        strokeColor = color
       }
+
     })
+
+    jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
 
     addEditorTab
 
@@ -122,12 +130,9 @@ object Sketchpad extends JSApp {
 
       val labelVal = jQuery("#label-input").value().toString
 
-      if (labelVal == "") {
-        box.optLabel = None
-      } else {
-
-        val mk = CellMarker[bs.N](unescapeUnicode(labelVal), "white", "black")
-        box.optLabel = Some(mk)
+      box.optLabel match {
+        case None => box.optLabel = Some(CellMarker(unescapeUnicode(labelVal)))
+        case Some(mk) => box.optLabel = Some(mk.copy(label = unescapeUnicode(labelVal)))
       }
 
       box.panel.refresh
@@ -135,10 +140,32 @@ object Sketchpad extends JSApp {
 
     }
 
+  def updateFillColor: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+    } {
+
+      val (f, fh, fs) = CellMarker.colorTripleGen(fillColor)
+
+      bs.value.optLabel match {
+        case None => bs.value.optLabel = Some(CellMarker("", 
+          DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
+        ))
+        case Some(mk) => bs.value.optLabel = Some(mk.copy(
+          colorSpec = mk.colorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
+        ))
+      }
+
+      bs.value.panel.refresh
+      tab.editor.refreshGallery
+
+    }
+
   val propertyGalleryConfig: GalleryConfig =
     GalleryConfig(
       panelConfig = defaultPanelConfig,
-      width = 950,
+      width = 900,
       height = 150,
       spacing = 1500,
       minViewX = Some(60000),
@@ -161,15 +188,29 @@ object Sketchpad extends JSApp {
       }
 
       // This is super ugly ...
+      implicit val bnds = propertyGalleryConfig.spacerBounds
       val gallery = ActiveGallery(propertyGalleryConfig, lblCmplx)(
-        new AffixableFamily[tab.editor.OptA] {
-          def apply[N <: Nat](n: N) : Affixable[tab.editor.OptA[N]] =
-            Affixable.optionAffixable(propertyGalleryConfig.spacerBounds, tab.editor.r(n))
-        }
+        VisualizableFamily.optionVisualizableFamily(bnds, tab.editor.v)
       )
 
       jQuery("#face-pane").empty().append(gallery.element.uiElement)
 
     }
 
+  def takeSnapshot: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+      lblCmplx <- bs.value.labelComplex
+    } {
+
+      val exporter = new SvgExporter(lblCmplx)
+
+      jQuery(".ui.modal.svgexport").find("#exportlink").
+        attr(sjs.Dynamic.literal(href = "data:text/plain;charset=utf-8," ++
+          sjs.URIUtils.encodeURIComponent(exporter.svgString)))
+
+      jQuery(".ui.modal.svgexport").modal("show")
+
+    }
 }

@@ -33,10 +33,10 @@ abstract class UIFramework {
   def group(elem: Element*) : GroupType
   def rect(x: Size, y: Size, width: Size, height: Size, r: Size, stroke: String, strokeWidth: Size, fill: String) : RectangleType
   def path(d: String, stroke: String, strokeWidth: Size, fill: String) : PathType
-  def text(str: String) : BoundedElement[TextType]
+  def text(str: String) : BoundedElement
   def toast(str: String) : Unit = ()
 
-  def spacer(bnds: Bounds) : BoundedElement[Element] = 
+  def spacer(bnds: Bounds) : BoundedElement = 
     BoundedElement(group(), bnds)
 
   case class Transform(
@@ -50,7 +50,6 @@ abstract class UIFramework {
   def translate(el: Element, x: Size, y: Size) : Element
   def scale(el: Element, x: Size, y: Size) : Element
 
-  def addClass(el: Element, cls: String) : Element
   def makeMouseInvisible(el: Element) : Element
 
   //============================================================================================
@@ -72,15 +71,15 @@ abstract class UIFramework {
 
   }
 
-  trait BoundedElement[+E <: Element] {
-    def element: E
+  trait BoundedElement {
+    def element: Element
     def bounds: Bounds
   }
 
   object BoundedElement {
 
-    def apply[E <: Element](el: E, bnds: Bounds) = 
-      new BoundedElement[E] {
+    def apply(el: Element, bnds: Bounds) = 
+      new BoundedElement {
         val element = el
         val bounds = bnds
       }
@@ -88,74 +87,84 @@ abstract class UIFramework {
   }
 
   //============================================================================================
-  // AFFIXABLE TYPECLASS
+  // VISUALIZABLE TYPECLASS
   //
 
-  // Okay, we shouldn't use a color hint, we should use a class.
-  // Then the idea is that we can define all this in css using all
-  // of the semantic options available to us.
-
-  case class Decoration[+E <: Element](
-    val boundedElement : BoundedElement[E],
-    val classString: String = "cell"
-  )
-
-  trait Affixable[A] {
-    type ElementType <: Element
-    def decoration(a: A) : Decoration[ElementType]
+  sealed trait Visualization[N <: Nat] {
+    def colorSpec: ColorSpec
+    def labelElement: BoundedElement
   }
 
-  object Affixable {
+  object Visualization {
 
-    implicit object StringAffixable extends Affixable[String] {
-      type ElementType = TextType
-      def decoration(str: String) = Decoration(text(str))
+    @natElim
+    def apply[N <: Nat](n: N)(c: ColorSpec, le: BoundedElement) : Visualization[N] = {
+      case (Z, c, le) => ObjectVisualization(c, le)
+      case (S(p), c, le) => CellVisualization(c, le)
     }
 
-    implicit object IntAffixable extends Affixable[Int] {
-      type ElementType = TextType
-      def decoration(i: Int) = Decoration(text(i.toString))
-    }
+  }
 
-    implicit def optionAffixable[A](implicit bnds: Bounds, r: Affixable[A]) : Affixable[Option[A]] =
-      new Affixable[Option[A]] {
-        type ElementType = Element
-        def decoration(opt: Option[A]) =
-          opt match {
-            case None => Decoration(spacer(bnds))
-            case Some(a) => r.decoration(a)
+  case class ObjectVisualization(
+    val colorSpec: ColorSpec,
+    val labelElement: BoundedElement
+  ) extends Visualization[_0]
+
+  case class CellVisualization[P <: Nat](
+    val colorSpec: ColorSpec,
+    val labelElement: BoundedElement,
+    val rootEdgeElement: Option[BoundedElement] = None,
+    val leafEdgeElements: Option[Tree[Option[BoundedElement], P]] = None
+  ) extends Visualization[S[P]]
+
+  trait Visualizable[A, N <: Nat] {
+    def visualize(a: A) : Visualization[N]
+  }
+
+  object Visualizable {
+
+    // implicit def familyVisualizer[A[_ <: Nat], N <: Nat](implicit v: VisualizableFamily[A]) : Visualizable[A[N], N] = 
+    //   new Visualizable[A[N], N] {
+    //     def visualize(a: A[N]) = v.visualize(n)(a)
+    //   }
+
+  }
+
+  trait VisualizableFamily[A[_ <: Nat]] {
+    def visualize[N <: Nat](n: N)(a: A[N]) : Visualization[N]
+  }
+
+  object VisualizableFamily {
+
+    implicit def optionVisualizableFamily[A[_ <: Nat]](implicit bnds : Bounds, av: VisualizableFamily[A])
+        : VisualizableFamily[Lambda[`N <: Nat` => Option[A[N]]]] =
+      new VisualizableFamily[Lambda[`N <: Nat` => Option[A[N]]]] {
+        def visualize[N <: Nat](n: N)(o: Option[A[N]]) : Visualization[N] = 
+          o match {
+            case None => Visualization(n)(DefaultColorSpec, spacer(bnds))
+            case Some(a) => av.visualize(n)(a)
           }
       }
 
-    implicit def polarityAffixable[A](implicit r: Affixable[A]) : Affixable[Polarity[A]] =
-      new Affixable[Polarity[A]] {
-        type ElementType = Element
-        def decoration(pol: Polarity[A]) =
-          pol match {
-            case Positive() => Decoration(text("+"))
-            case Negative() => Decoration(text("-"))
-            case Neutral(a) => r.decoration(a)
-          }
+    implicit def polarityVisualizableFamily[A[_ <: Nat]](implicit av: VisualizableFamily[A])
+        : VisualizableFamily[Lambda[`N <: Nat` => Polarity[A[N]]]] =
+      new VisualizableFamily[Lambda[`N <: Nat` => Polarity[A[N]]]] {
+        def visualize[N <: Nat](n: N)(p: Polarity[A[N]]) : Visualization[N] = ???
       }
 
-  }
-
-  trait AffixableFamily[A[_ <: Nat]] {
-    def apply[N <: Nat](n: N) : Affixable[A[N]]
-  }
-
-  object AffixableFamily {
-
-    implicit def constAffixable[A](implicit a: Affixable[A]) : AffixableFamily[Lambda[`N <: Nat` => A]] =
-      new AffixableFamily[Lambda[`N <: Nat` => A]] {
-        def apply[N <: Nat](n: N) = a
+    implicit def poloptVisualizableFamily[A[_ <: Nat]](implicit bnds: Bounds, av: VisualizableFamily[A])
+        : VisualizableFamily[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] =
+      new VisualizableFamily[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] {
+        def visualize[N <: Nat](n: N)(p: Polarity[Option[A[N]]]) : Visualization[N] = 
+          polarityVisualizableFamily[Lambda[`K <: Nat` => Option[A[K]]]](
+            optionVisualizableFamily[A](bnds, av)
+          ).visualize(n)(p)
       }
 
-    implicit def optAffixable[A[_ <: Nat]](implicit bnds: Bounds, af: AffixableFamily[A])
-        : AffixableFamily[Lambda[`N <: Nat` => Option[A[N]]]] =
-      new AffixableFamily[Lambda[`N <: Nat` => Option[A[N]]]] {
-        def apply[N <: Nat](n: N) =
-          Affixable.optionAffixable[A[N]](bnds, af(n))
+    implicit val constStringVisualizable : VisualizableFamily[ConstString] = 
+      new VisualizableFamily[ConstString] {
+        def visualize[N <: Nat](n: N)(str: String) : Visualization[N] = 
+          Visualization(n)(DefaultColorSpec, text(str))
       }
 
   }
@@ -164,7 +173,7 @@ abstract class UIFramework {
   // TEXT RENDERING
   //
 
-  def renderTextGroup(str: String, font: ScalaSVGFont, stroke: String, strokeWidth: Size, fill: String) : BoundedElement[GroupType] = {
+  def renderTextGroup(str: String, font: ScalaSVGFont, stroke: String, strokeWidth: Size, fill: String) : (GroupType, Bounds) = {
 
     var advance : Size = zero
     var ascent : Size = zero
@@ -191,10 +200,7 @@ abstract class UIFramework {
 
     })).flatten
 
-    BoundedElement(
-      group(paths: _*),
-      Bounds(zero, -ascent, advance, ascent + descent)
-    )
+    (group(paths: _*), Bounds(zero, -ascent, advance, ascent + descent))
 
   }
 

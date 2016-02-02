@@ -89,20 +89,10 @@ object JsDomFramework extends ActiveFramework
       el.onmouseout = { (e : MouseEvent) => onMouseOut(e) }
     }
 
-    def addClass(cls: String): Unit = 
-      uiElement.classList.add(cls)
-
-    def removeClass(cls: String): Unit = 
-      uiElement.classList.remove(cls)
-
   }
 
   def makeMouseInvisible(el: Element) : Element = {
     el.uiElement.setAttributeNS(null, "pointer-events", "none") ; el
-  }
-
-  def addClass(el: Element, cls: String) : Element = {
-    el.addClass(cls) ; el
   }
 
   abstract class JsDomParentElement extends JsDomElement {
@@ -256,11 +246,6 @@ object JsDomFramework extends ActiveFramework
     def fill: String = svgRect.getAttributeNS(null, "fill")
     def fill_=(s: String): Unit = svgRect.setAttributeNS(null, "fill", s)
 
-    def hover: Unit = addClass("hovered") // svgRect.setAttribute("class", "rect-hover")
-    def unhover: Unit = removeClass("hovered") // svgRect.setAttribute("class", "")
-    def select: Unit = addClass("selected") // svgRect.setAttribute("class", "rect-select")
-    def deselect: Unit = removeClass("selected") // svgRect.setAttribute("class", "")
-
   }
 
   //============================================================================================
@@ -328,8 +313,8 @@ object JsDomFramework extends ActiveFramework
   // TEXT
   //
 
-  def text(str: String) : BoundedElement[TextType] = {
-    new BoundedElement[TextType] {
+  def text(str: String) : BoundedElement = {
+    new BoundedElement {
       val element = new JsDomText(str)
       val bounds = element.bounds
     }
@@ -349,9 +334,9 @@ object JsDomFramework extends ActiveFramework
 
     def text: String = myText 
     def text_=(s: String) = {
-      val be = renderTextGroup(s, AsanaMathMain, "black", 1, "black")
-      myGroup = be.element
-      myBounds = be.bounds
+      val (g, b) = renderTextGroup(s, AsanaMathMain, "black", 1, "black")
+      myGroup = g
+      myBounds = b
 
       // If there are event handlers attached to this text element, 
       // they will get lost when you update the text, I think.

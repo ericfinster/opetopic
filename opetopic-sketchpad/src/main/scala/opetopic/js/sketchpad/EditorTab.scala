@@ -30,6 +30,8 @@ class EditorTab {
       spacerBounds = Bounds(0, 0, 600, 600)
     )
 
+  import CellMarker.ActiveInstance._
+
   val editor = CardinalEditor[CellMarker]
   editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.refreshFacePreview }
   editor.onDeselectAll = () => { activeBox = None }

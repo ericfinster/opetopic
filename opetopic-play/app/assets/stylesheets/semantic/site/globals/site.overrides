@@ -28,3 +28,19 @@
 .dual-extension.hovered { fill: @lightVioletHover }
 .dual-extension.selected { fill: @lightVioletFocus }
 
+/*
+ *  Cell colors
+ */
+
+.sketch-cell-red { fill: @red }
+.sketch-cell-orange { fill: @orange }
+.sketch-cell-yellow { fill: @yellow }
+.sketch-cell-green { fill: @green }
+.sketch-cell-teal { fill: @teal }
+.sketch-cell-blue { fill: @blue }
+.sketch-cell-violet { fill: @violet }
+.sketch-cell-purple { fill: @purple }
+.sketch-cell-pink { fill: @pink }
+.sketch-cell-black { fill: @black }
+.sketch-cell-grey { fill: @grey }
+.sketch-cell-white { fill: @white }

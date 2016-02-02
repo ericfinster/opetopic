@@ -21,7 +21,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
   import isNumeric._
 
   class CardinalEditor[A[_ <: Nat]](c: FiniteCardinal[Lambda[`N <: Nat` => Option[A[N]]]])(
-    implicit val config: GalleryConfig, val r: AffixableFamily[A]
+    implicit val config: GalleryConfig, val v: VisualizableFamily[A]
   ) extends SelectableGallery[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] { thisEditor =>
 
     type OptA[N <: Nat] = Option[A[N]]
@@ -365,7 +365,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       def optLabel: OptA[N] = myOptLabel
       def optLabel_=(opt: OptA[N]): Unit = {
         myOptLabel = opt
-        decoration = panel.affixable.decoration(label)
+        visualization = panel.visualize(label)
         makeMouseInvisible(labelElement)
       }
 
@@ -377,7 +377,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       def nestingAddress: Address[S[N]] = 
         Cardinal.cardinalAddressComplete(S(boxDim))(address)
 
-      var decoration = panel.affixable.decoration(label)
+      var visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
 
       boxRect.onClick = (e: UIMouseEvent) => { thisEditor.select(thisBox) }
@@ -433,13 +433,12 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       val nestingAddress: Address[S[N]] = List()
       val isExternal: Boolean = false
       val isPolarized: Boolean = true
-      val decoration = panel.affixable.decoration(label)
+      val visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
 
       boxRect.onClick = { (e : UIMouseEvent) => thisEditor.deselectAll }
       boxRect.onMouseOver = { (e : UIMouseEvent) => () }
       boxRect.onMouseOut = { (e : UIMouseEvent) => () }
-      boxRect.addClass("polarized")
 
       override def canSelect = false
       def isExternal_=(b: Boolean): Unit = ()
@@ -458,13 +457,12 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       val nestingAddress: Address[S[S[P]]] = List(List())
       val isExternal: Boolean = true
       val isPolarized: Boolean = true
-      val decoration = panel.affixable.decoration(label)
+      val visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
 
       boxRect.onClick = { (e : UIMouseEvent) => thisEditor.deselectAll }
       boxRect.onMouseOver = { (e : UIMouseEvent) => () }
       boxRect.onMouseOut = { (e : UIMouseEvent) => () }
-      boxRect.addClass("polarized")
 
       override def canSelect = false
       def isExternal_=(b: Boolean): Unit = ()
@@ -501,12 +499,10 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       val config = thisEditor.config.panelConfig
 
-      val affixable : Affixable[PolOptA[N]] = 
-        Affixable.polarityAffixable(
-          Affixable.optionAffixable(
-            thisEditor.config.spacerBounds, r(panelDim)
-          )
-        )
+      def visualize(a: PolOptA[N]) : Visualization[N] = {
+        implicit val bnds = thisEditor.config.spacerBounds
+        implicitly[VisualizableFamily[PolOptA]].visualize(panelDim)(a)
+      }
 
       def seekToAddress(addr: CardinalAddress[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
         for {
@@ -598,7 +594,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
   object CardinalEditor {
 
-    def apply[A[_ <: Nat]](implicit config: GalleryConfig, r: AffixableFamily[A]) : CardinalEditor[A] = {
+    def apply[A[_ <: Nat]](implicit config: GalleryConfig, v: VisualizableFamily[A]) : CardinalEditor[A] = {
       type OptA[K <: Nat] = Option[A[K]]
       new CardinalEditor[A](toFiniteCardinal[OptA, _0](Cardinal[OptA] >> Pt(Obj(None))))
     }

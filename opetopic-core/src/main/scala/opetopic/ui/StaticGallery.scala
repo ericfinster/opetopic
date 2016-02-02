@@ -36,7 +36,7 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
   }
 
   class SimpleStaticGallery[A[_ <: Nat]](val config: GalleryConfig, val complex: FiniteComplex[A])(
-    implicit r: AffixableFamily[A]
+    implicit v: VisualizableFamily[A]
   ) extends StaticGallery[A] { thisGallery => 
 
     type GalleryPanelType[N <: Nat] = SimpleStaticGalleryPanel[N]
@@ -72,6 +72,9 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
       def cellEdge : EdgeType =
         new SimpleStaticGalleryCellEdge(this)
 
+      def visualize(a: A[N]) : Visualization[N] = 
+        v.visualize(panelDim)(a)
+
     }
 
     class SimpleStaticGalleryCellBox[N <: Nat](
@@ -83,7 +86,7 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
 
       type PanelType = SimpleStaticGalleryPanel[N]
 
-      val decoration = panel.affixable.decoration(label)
+      val visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
 
     }
@@ -97,7 +100,6 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
         extends SimpleStaticGalleryPanel[_0] with StaticObjectPanel[A[_0]] {
 
       def panelDim = Z
-      val affixable = r(Z)
       val config = thisGallery.config.panelConfig
       val boxNesting = generateBoxes(nesting.dim)(nesting)
 
@@ -110,7 +112,6 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
     ) extends SimpleStaticGalleryPanel[S[P]] with StaticNestingPanel[A[S[P]], P] {
 
       def panelDim = S(p)
-      val affixable = r(S(p))
       val config = thisGallery.config.panelConfig
       val boxNesting = generateBoxes(nesting.dim)(nesting)
 
@@ -133,7 +134,7 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
   object SimpleStaticGallery {
 
     def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(
-      implicit cfg: GalleryConfig, r: AffixableFamily[A]
+      implicit cfg: GalleryConfig, v: VisualizableFamily[A]
     ) : SimpleStaticGallery[A] =
       new SimpleStaticGallery(cfg, cmplx)
 

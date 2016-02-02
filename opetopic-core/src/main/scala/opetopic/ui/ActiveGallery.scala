@@ -94,7 +94,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
   }
 
   class SimpleActiveGallery[A[_ <: Nat]](val config: GalleryConfig, val complex: FiniteComplex[A])(
-    implicit r: AffixableFamily[A]
+    implicit v: VisualizableFamily[A]
   ) extends ActiveGallery[A] { thisGallery =>
 
     type GalleryPanelType[N <: Nat] = SimpleActiveGalleryPanel[N]
@@ -135,6 +135,9 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       def cellEdge : EdgeType =
         new SimpleActiveGalleryCellEdge(this)
 
+      def visualize(a: A[N]) : Visualization[N] = 
+        v.visualize(panelDim)(a)
+
     }
 
     class SimpleActiveGalleryCellBox[N <: Nat](
@@ -146,7 +149,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
       type PanelType = SimpleActiveGalleryPanel[N]
 
-      val decoration = panel.affixable.decoration(label)
+      val visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
 
     }
@@ -159,7 +162,6 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
         extends SimpleActiveGalleryPanel[_0] with ActiveObjectPanel[A[_0]] {
 
       def panelDim = Z
-      val affixable = r(Z)
       val config = thisGallery.config.panelConfig
       val boxNesting = generateBoxes(nesting.dim)(nesting)
 
@@ -172,7 +174,6 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     ) extends SimpleActiveGalleryPanel[S[P]] with ActiveNestingPanel[A[S[P]], P] {
 
       def panelDim = S(p)
-      val affixable = r(S(p))
       val config = thisGallery.config.panelConfig
       val boxNesting = generateBoxes(nesting.dim)(nesting)
 
@@ -194,10 +195,10 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   object ActiveGallery {
 
-    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, r: AffixableFamily[A]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, v: VisualizableFamily[A]) : ActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
-    def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit r: AffixableFamily[A]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : ActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
   }

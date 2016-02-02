@@ -41,7 +41,7 @@
 	    <div class="ui raised segment">
 	      <div class="ui top attached segment">
 		<div class="ui active tab" data-tab="face-tab">
-		  <div class="ui divided grid" style="min-height: 120px">
+		  <div class="ui divided grid">
 		    <div class="four wide left aligned column">
 
 		      <div class="ui segment">
@@ -62,7 +62,12 @@
 
 		    </div>
 		    <div class="twelve wide column">
-		      <div id="face-pane"></div>
+		      <div class="ui top attached segment">
+			<div id="face-pane" style="min-height: 150px"></div>
+		      </div>
+		      <div class="ui right aligned bottom attached segment">
+			<button type="button" id="snapshot-btn" class="ui right labeled blue icon button">Snapshot<i class="camera icon"></i></button>
+		      </div>
 		    </div>
 		  </div>
 		</div>
@@ -111,6 +116,20 @@
 	</div>
       <!-- </div> -->
     </div>
+
+    <div class="ui modal small svgexport">
+      <div class="header">Export SVG</div>
+      <div class="ui basic segment center aligned">
+	<a href="" id="exportlink" download="output.svg">Download the file</a>
+      </div>
+      <div class="actions">
+	<div class="ui positive right labeled icon button">
+	  Great!
+	  <i class="checkmark icon"></i>
+	</div>      
+      </div>
+    </div>
+
   </div>
 
   @if(Play.isProd(Play.current)) {

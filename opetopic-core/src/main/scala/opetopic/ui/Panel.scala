@@ -25,9 +25,7 @@ trait HasPanels { self : UIFramework =>
     val cornerRadius : Size
   )
 
-  trait Panel[A, N <: Nat] extends BoundedElement[Element] {
-
-    val affixable : Affixable[A]
+  trait Panel[A, N <: Nat] extends BoundedElement {
 
     val config : PanelConfig
     import config._
@@ -39,6 +37,8 @@ trait HasPanels { self : UIFramework =>
 
     def nesting: Nesting[A, N]
     def boxNesting: Nesting[BoxType, N]
+
+    def visualize(a: A) : Visualization[N]
 
     //============================================================================================
     // ADDRESSING
@@ -173,7 +173,7 @@ trait HasPanels { self : UIFramework =>
   //
 
   // The box should already contain a component for the label ...
-  trait CellBox[A, N <: Nat] extends Rooted with BoundedElement[Element] {
+  trait CellBox[A, N <: Nat] extends Rooted with BoundedElement {
 
     type PanelType <: Panel[A, N]
     type BoxAddressType
@@ -186,11 +186,11 @@ trait HasPanels { self : UIFramework =>
     def address: BoxAddressType
     def nestingAddress: Address[S[N]]
     def isExternal: Boolean
-    def decoration: Decoration[panel.affixable.ElementType]
+    def visualization : Visualization[N]
 
-    def labelElement : Element = decoration.boundedElement.element
-    def labelBounds : Bounds = decoration.boundedElement.bounds
-    def classString : String = decoration.classString
+    def labelElement : Element = visualization.labelElement.element
+    def labelBounds : Bounds = visualization.labelElement.bounds
+    def colorSpec : ColorSpec = visualization.colorSpec
 
     def bounds: Bounds = Bounds(x, y, width, height)
 
@@ -276,7 +276,7 @@ trait HasPanels { self : UIFramework =>
   //
 
 
-  trait CellEdge[A, N <: Nat] extends EdgeLike with BoundedElement[Element] {
+  trait CellEdge[A, N <: Nat] extends EdgeLike with BoundedElement {
 
     val panel: Panel[A, N]
     import panel.config._

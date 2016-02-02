@@ -64,22 +64,12 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
     import svgTags._
     import implicits._
 
-    val styleString = 
-      "<style> " ++ 
-        "rect { fill : white } " ++ 
-        "rect.variable { fill : #FFE21F  } " ++
-        "rect.composite { fill : #FF851B } " ++ 
-        "rect.left-extension { fill : #54C8FF } " ++ 
-        "rect.right-extension { fill : #FF695E } " ++ 
-        "rect.dual-extension { fill : #A291FB } " ++ 
-        "</style>"
-
     svg(
       svgAttrs.width := width,
       svgAttrs.height := height,
       svgAttrs.viewBox := bounds.dimString,
       svgAttrs.xmlns := "http://www.w3.org/2000/svg"
-    )(raw(styleString), elems)
+    )(elems)
 
   }
 
@@ -98,7 +88,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
       svgAttrs.height:=height.toString,
       svgAttrs.rx:=cornerRadius.toString,
       svgAttrs.ry:=cornerRadius.toString,
-      //svgAttrs.fill:=fill,
+      svgAttrs.fill:=fill,
       svgAttrs.stroke:=stroke,
       svgAttrs.strokeWidth:=strokeWidth.toString
     )
@@ -117,8 +107,10 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
 
   }
 
-  def text(str: String) : BoundedElement[TextType] = 
-    renderTextGroup(str, AsanaMathMain, "black", 1, "black")
+  def text(str: String) : BoundedElement = {
+    val (g, b) = renderTextGroup(str, AsanaMathMain, "black", 1, "black")
+    BoundedElement(g, b)
+  }
 
 }
 

@@ -1,191 +1,191 @@
-/**
-  * EditorPane.scala - An Editor Pane component
-  * 
-  * @author Eric Finster
-  * @version 0.1 
-  */
+// /**
+//   * EditorPane.scala - An Editor Pane component
+//   * 
+//   * @author Eric Finster
+//   * @version 0.1 
+//   */
 
-package opetopic.js
+// package opetopic.js
 
-import org.scalajs.jquery._
-import scalatags.JsDom.all._
+// import org.scalajs.jquery._
+// import scalatags.JsDom.all._
 
-import opetopic._
-import opetopic.ui._
-import syntax.complex._
-import syntax.cardinal._
-import JsDomFramework._
+// import opetopic._
+// import opetopic.ui._
+// import syntax.complex._
+// import syntax.cardinal._
+// import JsDomFramework._
 
-class EditorPane {
+// class EditorPane {
 
-  sealed trait PaneMode
-  case object LabelMode extends PaneMode
-  case object DeformMode extends PaneMode
+//   sealed trait PaneMode
+//   case object LabelMode extends PaneMode
+//   case object DeformMode extends PaneMode
 
-  private var mode : PaneMode = DeformMode
+//   private var mode : PaneMode = DeformMode
 
-  val baseConfig: GalleryConfig =
-    GalleryConfig(
-      panelConfig = defaultPanelConfig,
-      width = 1000,
-      height = 85,
-      spacing = 1500,
-      minViewX = Some(60000),
-      minViewY = Some(6000),
-      spacerBounds = Bounds(0, 0, 600, 600)
-    )
+//   val baseConfig: GalleryConfig =
+//     GalleryConfig(
+//       panelConfig = defaultPanelConfig,
+//       width = 1000,
+//       height = 85,
+//       spacing = 1500,
+//       minViewX = Some(60000),
+//       minViewY = Some(6000),
+//       spacerBounds = Bounds(0, 0, 600, 600)
+//     )
 
-  val editor = CardinalEditor[ConstString]
-  editor.onSelectAsRoot = showBoxProperties
+//   val editor = CardinalEditor[ConstString]
+//   editor.onSelectAsRoot = showBoxProperties
 
-  val topMenuElement = 
-    div(cls := "ui top attached menu raised")(
-      div(cls := "ui dropdown simple item")(
-        "Shape",
-        i(cls := "dropdown icon"),
-        div(cls := "menu")(
-          a(cls := "item")("Extrude"),
-          a(cls := "item")("Drop"),
-          a(cls := "item")("Precomp")
-        )
-      ),
-      div(cls := "ui dropdown simple item")(
-        "Export",
-        i(cls := "dropdown icon"),
-        div(cls := "menu")(
-          a(cls := "item")("To Scala"),
-          a(cls := "item")("To OpetopiTT"),
-          div(cls := "divider"),
-          a(cls := "item")("As Png"),
-          a(cls := "item")("As Svg")
-        )
-      ),
-      div(cls := "ui item")(
-        div(cls := "ui buttons")(
-          button(id := "deform-mode-btn", cls := "ui labeled active icon button", onclick := { () => setDeformMode })(
-            i(cls := "cubes icon"), "Deform"
-          ),
-          button(id := "label-mode-btn", cls := "ui labeled icon button", onclick := { () => setLabelMode })(
-            i(cls := "tag icon"), "Label"
-          )
-        )
-      )
-    ).render
+//   val topMenuElement = 
+//     div(cls := "ui top attached menu raised")(
+//       div(cls := "ui dropdown simple item")(
+//         "Shape",
+//         i(cls := "dropdown icon"),
+//         div(cls := "menu")(
+//           a(cls := "item")("Extrude"),
+//           a(cls := "item")("Drop"),
+//           a(cls := "item")("Precomp")
+//         )
+//       ),
+//       div(cls := "ui dropdown simple item")(
+//         "Export",
+//         i(cls := "dropdown icon"),
+//         div(cls := "menu")(
+//           a(cls := "item")("To Scala"),
+//           a(cls := "item")("To OpetopiTT"),
+//           div(cls := "divider"),
+//           a(cls := "item")("As Png"),
+//           a(cls := "item")("As Svg")
+//         )
+//       ),
+//       div(cls := "ui item")(
+//         div(cls := "ui buttons")(
+//           button(id := "deform-mode-btn", cls := "ui labeled active icon button", onclick := { () => setDeformMode })(
+//             i(cls := "cubes icon"), "Deform"
+//           ),
+//           button(id := "label-mode-btn", cls := "ui labeled icon button", onclick := { () => setLabelMode })(
+//             i(cls := "tag icon"), "Label"
+//           )
+//         )
+//       )
+//     ).render
 
-  val paneElement = 
-    div(cls := "ui attached center aligned segment").render
+//   val paneElement = 
+//     div(cls := "ui attached center aligned segment").render
 
-  paneElement.appendChild(editor.element.uiElement)
+//   paneElement.appendChild(editor.element.uiElement)
 
-  val facePaneElement = 
-    div(cls := "ui bottom attached raised center aligned segment").render
+//   val facePaneElement = 
+//     div(cls := "ui bottom attached raised center aligned segment").render
 
-  val spacerElement = div().render
+//   val spacerElement = div().render
 
-  val uiElement = div(tabindex := 0).render
-  uiElement.appendChild(topMenuElement)
-  uiElement.appendChild(paneElement)
-  uiElement.appendChild(facePaneElement)
-  uiElement.appendChild(spacerElement)
+//   val uiElement = div(tabindex := 0).render
+//   uiElement.appendChild(topMenuElement)
+//   uiElement.appendChild(paneElement)
+//   uiElement.appendChild(facePaneElement)
+//   uiElement.appendChild(spacerElement)
 
-  jQuery(uiElement).keydown((e : JQueryEventObject) => {
-    if (e.which == 8) {
-      e.preventDefault
-      if (mode == LabelMode) deleteFromLabel
-    }
-  }).keypress((e : JQueryEventObject) => {
-    mode match {
-      case DeformMode => 
-        e.which match {
-          case 101 => editor.extrudeSelection
-          case 100 => editor.extrudeDrop
-          case 112 => editor.sprout
-          case _ => ()
-        }
-      case LabelMode => {
-        val c = e.which.toChar
-        if (c.isLetterOrDigit) appendToLabel(c)
-      }
-    }
-  }).focus()
+//   jQuery(uiElement).keydown((e : JQueryEventObject) => {
+//     if (e.which == 8) {
+//       e.preventDefault
+//       if (mode == LabelMode) deleteFromLabel
+//     }
+//   }).keypress((e : JQueryEventObject) => {
+//     mode match {
+//       case DeformMode => 
+//         e.which match {
+//           case 101 => editor.extrudeSelection
+//           case 100 => editor.extrudeDrop
+//           case 112 => editor.sprout
+//           case _ => ()
+//         }
+//       case LabelMode => {
+//         val c = e.which.toChar
+//         if (c.isLetterOrDigit) appendToLabel(c)
+//       }
+//     }
+//   }).focus()
 
-  def setLabelMode: Unit = {
-    mode = LabelMode
-    jQuery(uiElement).find("#deform-mode-btn").removeClass("active")
-    jQuery(uiElement).find("#label-mode-btn").addClass("active")
-  }
+//   def setLabelMode: Unit = {
+//     mode = LabelMode
+//     jQuery(uiElement).find("#deform-mode-btn").removeClass("active")
+//     jQuery(uiElement).find("#label-mode-btn").addClass("active")
+//   }
 
-  def setDeformMode: Unit = {
-    mode = DeformMode
-    jQuery(uiElement).find("#label-mode-btn").removeClass("active")
-    jQuery(uiElement).find("#deform-mode-btn").addClass("active")
-  }
+//   def setDeformMode: Unit = {
+//     mode = DeformMode
+//     jQuery(uiElement).find("#label-mode-btn").removeClass("active")
+//     jQuery(uiElement).find("#deform-mode-btn").addClass("active")
+//   }
 
-  var currentBox: Option[Sigma[editor.CardinalCellBox]] = None
+//   var currentBox: Option[Sigma[editor.CardinalCellBox]] = None
 
-  def deleteFromLabel: Unit = 
-    for {
-      boxsig <- currentBox
-      box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
-    } {
+//   def deleteFromLabel: Unit = 
+//     for {
+//       boxsig <- currentBox
+//       box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+//     } {
 
-      val curLabel: String = 
-        box.optLabel.getOrElse("")
+//       val curLabel: String = 
+//         box.optLabel.getOrElse("")
 
-      val trimmedLabel: String = 
-        if (curLabel.length > 0)
-          curLabel.init
-        else
-          curLabel
+//       val trimmedLabel: String = 
+//         if (curLabel.length > 0)
+//           curLabel.init
+//         else
+//           curLabel
 
-      box.optLabel = if (trimmedLabel == "") None else Some(trimmedLabel)
+//       box.optLabel = if (trimmedLabel == "") None else Some(trimmedLabel)
 
-      box.panel.refresh
-      editor.refreshGallery
+//       box.panel.refresh
+//       editor.refreshGallery
 
-    }
+//     }
 
-  def appendToLabel(c: Char) : Unit =
-    for {
-      boxsig <- currentBox
-      box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
-    } {
+//   def appendToLabel(c: Char) : Unit =
+//     for {
+//       boxsig <- currentBox
+//       box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+//     } {
 
-      val curLabel: String = 
-        box.optLabel.getOrElse("")
+//       val curLabel: String = 
+//         box.optLabel.getOrElse("")
 
-      box.optLabel = Some(curLabel + c)
-      box.panel.refresh
-      editor.refreshGallery
+//       box.optLabel = Some(curLabel + c)
+//       box.panel.refresh
+//       editor.refreshGallery
 
-    }
+//     }
 
-  def showBoxProperties(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
+//   def showBoxProperties(boxsig: Sigma[editor.CardinalCellBox]) : Unit = {
 
-    currentBox = Some(boxsig)
-    val box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
+//     currentBox = Some(boxsig)
+//     val box = boxsig.value.asInstanceOf[editor.NeutralCellBox[boxsig.N]]
 
-    for {
-      lblCmplx <- box.labelComplex
-    } {
+//     for {
+//       lblCmplx <- box.labelComplex
+//     } {
 
-      val gallery = ActiveGallery(baseConfig, lblCmplx)(
-        new AffixableFamily[editor.OptA] {
-          def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] =
-            Affixable.optionAffixable(baseConfig.spacerBounds, editor.r(n))
-        }
-      )
+//       val gallery = ActiveGallery(baseConfig, lblCmplx)(
+//         new AffixableFamily[editor.OptA] {
+//           def apply[N <: Nat](n: N) : Affixable[editor.OptA[N]] =
+//             Affixable.optionAffixable(baseConfig.spacerBounds, editor.r(n))
+//         }
+//       )
 
-      val div = facePaneElement
+//       val div = facePaneElement
 
-      val lc = div.lastChild
-      if (lc != null) div.removeChild(lc)
+//       val lc = div.lastChild
+//       if (lc != null) div.removeChild(lc)
 
-      div.appendChild(gallery.element.uiElement)
+//       div.appendChild(gallery.element.uiElement)
 
-    }
+//     }
 
-  }
+//   }
 
 
-}
+// }

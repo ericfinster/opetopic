@@ -63,25 +63,28 @@ object Cell {
 
     import opetopic.js.JsDomFramework._
 
-    implicit def cellAffixable[N <: Nat] : Affixable[Cell[N]] = 
-      new Affixable[Cell[N]] {
-        type ElementType = TextType
-        def decoration(cell: Cell[N]) =
-          (cell.isLeftExt, cell.isRightExt) match {
-            case (None, None) =>
-              cell.expr match {
-                case EVar(_) => Decoration(text(cell.id), "variable")
-                case _ => Decoration(text(cell.id), "composite")
-              }
-            case (Some(_), None) => Decoration(text(cell.id), "left-extension")
-            case (None, Some(_)) => Decoration(text(cell.id), "right-extension")
-            case (Some(_), Some(_)) => Decoration(text(cell.id), "dual-extension")
-          }
-      }
+    // implicit def cellAffixable[N <: Nat] : Affixable[Cell[N]] = 
+    //   new Affixable[Cell[N]] {
+    //     type ElementType = TextType
+    //     def decoration(cell: Cell[N]) =
+    //       (cell.isLeftExt, cell.isRightExt) match {
+    //         case (None, None) =>
+    //           cell.expr match {
+    //             case EVar(_) => Decoration(text(cell.id)) //, "variable")
+    //             case _ => Decoration(text(cell.id)) //, "composite")
+    //           }
+    //         case (Some(_), None) => Decoration(text(cell.id)) //, "left-extension")
+    //         case (None, Some(_)) => Decoration(text(cell.id)) // , "right-extension")
+    //         case (Some(_), Some(_)) => Decoration(text(cell.id)) //, "dual-extension")
+    //       }
+    //   }
 
-    implicit object CellAffixableFamily extends AffixableFamily[Cell] {
-      def apply[N <: Nat](n: N) : Affixable[Cell[N]] = cellAffixable[N]
-    }
+    // implicit object CellAffixableFamily extends AffixableFamily[Cell] {
+    //   def apply[N <: Nat](n: N) : Affixable[Cell[N]] = cellAffixable[N]
+    // }
+
+    implicit def cellVisualizable[N <: Nat] : Visualizable[Cell[N], N] = ???
+    implicit val cellVisualizableFamilt : VisualizableFamily[Cell] = ???
 
   }
 
@@ -89,23 +92,25 @@ object Cell {
 
     import opetopic.ui.ScalatagsTextFramework._
 
-    implicit object StaticCellAffixableFamily extends AffixableFamily[Cell] {
-      def apply[N <: Nat](n: N) : Affixable[Cell[N]] =
-        new Affixable[Cell[N]] {
-          type ElementType = TextType
-          def decoration(cell: Cell[N]) =
-            (cell.isLeftExt, cell.isRightExt) match {
-              case (None, None) => 
-                cell.expr match {
-                  case EVar(_) => Decoration(text(cell.id), "variable")
-                  case _ => Decoration(text(cell.id), "composite")
-                }
-              case (Some(_), None) => Decoration(text(cell.id), "left-extension")
-              case (None, Some(_)) => Decoration(text(cell.id), "right-extension")
-              case (Some(_), Some(_)) => Decoration(text(cell.id), "dual-extension")
-            }
-        }
-    }
+    implicit val cellVisualizable : VisualizableFamily[Cell] = ???
+
+    // implicit object StaticCellAffixableFamily extends AffixableFamily[Cell] {
+    //   def apply[N <: Nat](n: N) : Affixable[Cell[N]] =
+    //     new Affixable[Cell[N]] {
+    //       type ElementType = TextType
+    //       def decoration(cell: Cell[N]) =
+    //         (cell.isLeftExt, cell.isRightExt) match {
+    //           case (None, None) => 
+    //             cell.expr match {
+    //               case EVar(_) => Decoration(text(cell.id)) //, "variable")
+    //               case _ => Decoration(text(cell.id)) //, "composite")
+    //             }
+    //           case (Some(_), None) => Decoration(text(cell.id)) //, "left-extension")
+    //           case (None, Some(_)) => Decoration(text(cell.id)) //, "right-extension")
+    //           case (Some(_), Some(_)) => Decoration(text(cell.id)) //, "dual-extension")
+    //         }
+    //     }
+    // }
 
   }
 
