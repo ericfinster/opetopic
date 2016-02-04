@@ -25,9 +25,24 @@ case class ObjectMarker(
 case class CellMarker[P <: Nat](
   val label: String,
   val colorSpec: ColorSpec = DefaultColorSpec,
-  val rootEdgeDecoration: Boolean = false,
-  val leafEdgeDecorations: Option[Tree[Boolean, P]] = None
+  val rootEdgeDecoration: TriangleDec = Nonexistant,
+  val leafEdgeDecorations: Option[Tree[TriangleDec, P]] = None
 ) extends Marker[S[P]] 
+
+sealed trait TriangleDec {
+
+  def next : TriangleDec = 
+    this match {
+      case Nonexistant => BlackTriangle
+      case BlackTriangle => RedTriangle
+      case RedTriangle => Nonexistant
+    }
+
+}
+
+case object Nonexistant extends TriangleDec
+case object BlackTriangle extends TriangleDec
+case object RedTriangle extends TriangleDec
 
 object Marker {
 
@@ -43,13 +58,26 @@ object Marker {
 
     import JsDomFramework._
 
-    def spcr = spacer(Bounds(0,0,600,600))
-    def triUp = polygon("red", 100, "red", List((150, 0), (300, 300), (0, 300)))
-    def triDown = polygon("red", 100, "red", List((0, 0), (150, 300), (300, 0)))
+    def lblEl(lbl: String) = 
+      if (lbl == "") spacer(Bounds(0,0,600,600)) else text(lbl)
+
+    def triUp(c: String) = polygon(c, 100, c, List((150, 0), (300, 300), (0, 300)))
+    def triDown(c: String) = polygon(c, 100, c, List((0, 0), (150, 300), (300, 0)))
     def bnds = Bounds(0, 0, 300, 300)
 
-    def lblEl(lbl: String) = 
-      if (lbl == "") spcr else text(lbl)
+    def renderUp(d: TriangleDec) : Option[BoundedElement] =
+      d match {
+        case Nonexistant => None
+        case BlackTriangle => Some(BoundedElement(triUp("black"), bnds))
+        case RedTriangle => Some(BoundedElement(triUp("red"), bnds))
+      }
+
+    def renderDown(d: TriangleDec) : Option[BoundedElement] =
+      d match {
+        case Nonexistant => None
+        case BlackTriangle => Some(BoundedElement(triDown("black"), bnds))
+        case RedTriangle => Some(BoundedElement(triDown("red"), bnds))
+      }
 
     implicit val markerFamily : VisualizableFamily[Marker] = 
       new VisualizableFamily[Marker] {
@@ -58,9 +86,9 @@ object Marker {
           case (Z, ObjectMarker(lbl, spec)) => ObjectVisualization(spec, lblEl(lbl))
           case (S(p: P), CellMarker(lbl, spec, rd, eds)) => {
 
-            val markRoot = if (rd) Some(BoundedElement(triDown, bnds)) else None
-            val markLeaves = eds map ((tr : Tree[Boolean, P]) => {
-              tr map ((b: Boolean) => if (b) Some(BoundedElement(triUp, bnds)) else None )
+            val markRoot = renderDown(rd)
+            val markLeaves = eds map ((tr : Tree[TriangleDec, P]) => {
+              tr map renderUp
             })
 
             CellVisualization(spec, lblEl(lbl), markRoot, markLeaves)

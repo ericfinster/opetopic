@@ -230,9 +230,9 @@ object Sketchpad extends JSApp {
             val frameNesting = lc.tail.head
             val panel = ActivePanel(frameNesting)
 
-            def defaultLeafDecs : Tree[Boolean, P] = 
+            def defaultLeafDecs : Tree[TriangleDec, P] = 
               frameNesting match {
-                case Box(bv, cn) => cn map (_ => false)
+                case Box(bv, cn) => cn map (_ => Nonexistant)
                 case _ => throw new IllegalArgumentException("Malformed complex")
               }
 
@@ -240,7 +240,7 @@ object Sketchpad extends JSApp {
 
               val curMk : CellMarker[P] = 
                 box.optLabel match {
-                  case None => CellMarker("", DefaultColorSpec, false, Some(defaultLeafDecs))
+                  case None => CellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
                   case Some(CellMarker(l, s, r, None)) => CellMarker(l, s, r, Some(defaultLeafDecs))
                   case Some(mk @ CellMarker(l, s, r, Some(_))) => mk
                 }
@@ -250,10 +250,10 @@ object Sketchpad extends JSApp {
                 for {
                   lds <- fromOpt(curMk.leafEdgeDecorations)
                   zp <- lds.seekTo(b.address.head)
-                  bln <- zp._1.rootValue
+                  d <- zp._1.rootValue
                 } {
 
-                  val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(! bln))
+                  val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(d.next))
                   box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
 
                   box.panel.refresh
@@ -263,7 +263,7 @@ object Sketchpad extends JSApp {
 
               } else {
 
-                box.optLabel = Some(curMk.copy(rootEdgeDecoration = ! curMk.rootEdgeDecoration))
+                box.optLabel = Some(curMk.copy(rootEdgeDecoration = curMk.rootEdgeDecoration.next))
 
                 box.panel.refresh
                 tab.editor.refreshGallery
