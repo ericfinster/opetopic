@@ -253,8 +253,6 @@ object Sketchpad extends JSApp {
                   bln <- zp._1.rootValue
                 } {
 
-                  println("Input toggle!")
-
                   val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(! bln))
                   box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
 

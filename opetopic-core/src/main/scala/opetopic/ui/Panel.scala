@@ -20,6 +20,7 @@ trait HasPanels { self : UIFramework =>
   case class PanelConfig(
     val internalPadding : Size,
     val externalPadding : Size,
+    val decorationPadding : Size,
     val leafWidth : Size,
     val strokeWidth : Size,
     val cornerRadius : Size
@@ -695,34 +696,34 @@ trait HasPanels { self : UIFramework =>
                       ))
                     } yield ztr) getOrElse (layoutTree map (l => (l, None)))).nodes
 
-                  val (leftMostChild, rightMostChild, heightOfChildren, totalShim) =
-                    (descendantMarkers foldLeft (localLayout, localLayout, zero, zero))({
+                  val (leftMostChild, rightMostChild, heightOfChildren, topShim) =
+                    (descendantMarkers foldLeft (localLayout, localLayout, zero, externalPadding))({
                       case ((lcMarker, rcMarker, ht, ts), (thisMarker, thisDecOpt)) => {
 
-                        val topShim = 
+                        val thisShim = 
                           thisDecOpt match {
-                            case None => zero
+                            case None => externalPadding
                             case Some(be) => {
 
                               val re = thisMarker.rootEdge
-                              val decMkr = new re.DecorationMarker(be, re.edgeStartX, - localLayout.height - externalPadding)
+                              val decMkr = new re.DecorationMarker(be, re.edgeStartX, - localLayout.height - decorationPadding)
                               localLayout.element.horizontalDependants += decMkr
                               localLayout.element.verticalDependants += decMkr
 
-                              be.bounds.height
+                              be.bounds.height + decorationPadding + strokeWidth
 
                             }
                           }
 
                         if (! thisMarker.exterior) {
-                          thisMarker.element.shiftUp(localLayout.height + externalPadding + topShim)
+                          thisMarker.element.shiftUp(localLayout.height + thisShim)
                           localLayout.element.verticalDependants += thisMarker.element
                         }
 
                         val newLeftChild = if (thisMarker.leftEdge < lcMarker.leftEdge) thisMarker else lcMarker
                         val newRightChild = if (thisMarker.rightEdge > rcMarker.rightEdge) thisMarker else rcMarker
 
-                        (newLeftChild, newRightChild, max(ht, thisMarker.height), max(ts, topShim))
+                        (newLeftChild, newRightChild, max(ht, thisMarker.height), max(ts, thisShim))
 
                       }
                     })
@@ -734,11 +735,11 @@ trait HasPanels { self : UIFramework =>
                       case Some(be) => {
 
                         val re = localLayout.rootEdge
-                        val decMkr = new re.DecorationMarker(be, re.edgeStartX, externalPadding)
+                        val decMkr = new re.DecorationMarker(be, re.edgeStartX, decorationPadding)
                         localLayout.element.horizontalDependants += decMkr
                         localLayout.element.verticalDependants += decMkr
 
-                        be.bounds.height
+                        be.bounds.height + decorationPadding
 
                       }
                     }
@@ -752,7 +753,7 @@ trait HasPanels { self : UIFramework =>
                     val exterior = false
                     val rootEdge = localLayout.rootEdge
 
-                    override def height = bottomShim + localLayout.height + totalShim + externalPadding + heightOfChildren
+                    override def height = bottomShim + localLayout.height + topShim + heightOfChildren
 
                     override def leftInternalMargin =
                       (localLayout.element.rootX  - leftMostChild.element.rootX) + leftMostChild.leftInternalMargin

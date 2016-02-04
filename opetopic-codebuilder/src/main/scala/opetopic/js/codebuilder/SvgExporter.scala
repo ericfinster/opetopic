@@ -22,6 +22,7 @@ class SvgExporter[N <: Nat](cmplx: Complex[OptCell, N]) {
     PanelConfig(
       internalPadding = 400,
       externalPadding = 600,
+      decorationPadding = 400,
       leafWidth = 200,
       strokeWidth = 100,
       cornerRadius = 200
