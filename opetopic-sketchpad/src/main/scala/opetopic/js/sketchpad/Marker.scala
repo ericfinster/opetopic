@@ -15,28 +15,19 @@ import syntax.tree._
 sealed trait Marker[N <: Nat] {
   def label: String
   def colorSpec: ColorSpec
-
-  def withLabel(lbl: String) : Marker[N]
-  def withColorSpec(spec: ColorSpec) : Marker[N]
 }
 
 case class ObjectMarker(
   val label: String,
   val colorSpec: ColorSpec = DefaultColorSpec
-) extends Marker[_0] {
-  def withLabel(lbl: String) = ObjectMarker(lbl, colorSpec)
-  def withColorSpec(spec: ColorSpec) = ObjectMarker(label, spec)
-}
+) extends Marker[_0] 
 
 case class CellMarker[P <: Nat](
   val label: String,
   val colorSpec: ColorSpec = DefaultColorSpec,
   val rootEdgeDecoration: Boolean = false,
   val leafEdgeDecorations: Option[Tree[Boolean, P]] = None
-) extends Marker[S[P]] {
-  def withLabel(lbl: String) = CellMarker(lbl, colorSpec, rootEdgeDecoration, leafEdgeDecorations)
-  def withColorSpec(spec: ColorSpec) = CellMarker(label, spec, rootEdgeDecoration, leafEdgeDecorations)
-}
+) extends Marker[S[P]] 
 
 object Marker {
 

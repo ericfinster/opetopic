@@ -128,15 +128,27 @@ object Sketchpad extends JSApp {
       bs <- tab.activeBox
     } {
 
-      val box = bs.value
-      val labelVal = jQuery("#label-input").value().toString
+      val labelVal = unescapeUnicode(
+        jQuery("#label-input").value().toString
+      )
 
-      box.optLabel match {
-        case None => box.optLabel = Some(Marker(bs.n)(unescapeUnicode(labelVal), DefaultColorSpec))
-        case Some(mk) => box.optLabel = Some(mk.withLabel(unescapeUnicode(labelVal)))
+      @natElim
+      def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
+        case (Z, box) => 
+          box.optLabel match {
+            case None => box.optLabel = Some(ObjectMarker(labelVal, DefaultColorSpec))
+            case Some(ObjectMarker(l, s)) => box.optLabel = Some(ObjectMarker(labelVal, s))
+          }
+        case (S(p: P), box) => 
+          box.optLabel match {
+            case None => box.optLabel = Some(CellMarker(labelVal, DefaultColorSpec))
+            case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(labelVal, s, r, e))
+          }
       }
 
-      box.panel.refresh
+      doUpdate(bs.n)(bs.value)
+
+      bs.value.panel.refresh
       tab.editor.refreshGallery
 
     }
@@ -149,14 +161,21 @@ object Sketchpad extends JSApp {
 
       val (f, fh, fs) = colorTripleGen(fillColor)
 
-      bs.value.optLabel match {
-        case None => bs.value.optLabel = Some(Marker(bs.n)("", 
-          DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
-        ))
-        case Some(mk) => bs.value.optLabel = Some(
-          mk.withColorSpec(mk.colorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs))
-        )
+      @natElim
+      def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
+        case (Z, box) =>
+          box.optLabel match {
+            case None => box.optLabel = Some(ObjectMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+            case Some(ObjectMarker(l, s)) => box.optLabel = Some(ObjectMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
+          }
+        case (S(p: P), box) => 
+          box.optLabel match {
+            case None => box.optLabel = Some(CellMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+            case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(l, s.copy(fill = f, fillHovered = fh, fillSelected = fs), r, e))
+          }
       }
+
+      doUpdate(bs.n)(bs.value)
 
       bs.value.panel.refresh
       tab.editor.refreshGallery
@@ -181,6 +200,8 @@ object Sketchpad extends JSApp {
       tab <- activeTab
       bs <- tab.activeBox
     } {
+
+      // Okay, I think I see the problem.
 
       import tab._
       implicit val bsDim = bs.n
@@ -209,22 +230,19 @@ object Sketchpad extends JSApp {
             val frameNesting = lc.tail.head
             val panel = ActivePanel(frameNesting)
 
+            def defaultLeafDecs : Tree[Boolean, P] = 
+              frameNesting match {
+                case Box(bv, cn) => cn map (_ => false)
+                case _ => throw new IllegalArgumentException("Malformed complex")
+              }
+
             panel.onBoxClicked = { (b: SimpleActiveCellBox[editor.OptA[P], P]) => {
 
               val curMk : CellMarker[P] = 
                 box.optLabel match {
-                  case None => {
-
-                    val srcTree : Tree[Boolean, P] =
-                      frameNesting match {
-                        case Box(bv, cn) => cn map (_ => false)
-                        case _ => throw new IllegalArgumentException("Malformed complex")
-                      }
-
-                      CellMarker("", DefaultColorSpec, false, Some(srcTree))
-
-                  }
-                  case Some(mk : CellMarker[P]) => mk
+                  case None => CellMarker("", DefaultColorSpec, false, Some(defaultLeafDecs))
+                  case Some(CellMarker(l, s, r, None)) => CellMarker(l, s, r, Some(defaultLeafDecs))
+                  case Some(mk @ CellMarker(l, s, r, Some(_))) => mk
                 }
 
               if (b.isExternal) {
@@ -234,6 +252,8 @@ object Sketchpad extends JSApp {
                   zp <- lds.seekTo(b.address.head)
                   bln <- zp._1.rootValue
                 } {
+
+                  println("Input toggle!")
 
                   val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(! bln))
                   box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
