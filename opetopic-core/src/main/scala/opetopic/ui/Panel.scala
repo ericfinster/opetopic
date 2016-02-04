@@ -73,7 +73,7 @@ trait HasPanels { self : UIFramework =>
       val element : Rooted
       val exterior : Boolean  // This is really a bad name for this .. you should change it
 
-      val rootEdge : EdgeLike
+      val rootEdge : CellEdge[A, N]
 
       def height : Size = zero
 
@@ -142,7 +142,7 @@ trait HasPanels { self : UIFramework =>
     // EDGE MARKERS
     //
 
-    class EdgeStartMarker(edge : EdgeLike) extends Rooted {
+    class EdgeStartMarker(edge : CellEdge[A, N]) extends Rooted {
 
       def rootX : Size = edge.edgeStartX
       def rootX_=(u : Size) : Unit =
@@ -154,7 +154,7 @@ trait HasPanels { self : UIFramework =>
 
     }
 
-    class EdgeEndMarker(edge : EdgeLike) extends Rooted {
+    class EdgeEndMarker(edge : CellEdge[A, N]) extends Rooted {
 
       def rootX : Size = edge.edgeEndX
       def rootX_=(u : Size) : Unit =
@@ -276,12 +276,32 @@ trait HasPanels { self : UIFramework =>
   //
 
 
-  trait CellEdge[A, N <: Nat] extends EdgeLike with BoundedElement {
+  trait CellEdge[A, N <: Nat] extends BoundedElement {
 
     val panel: Panel[A, N]
     import panel.config._
 
+    var edgeStartX : Size = zero
+    var edgeStartY : Size = zero
+
+    var edgeEndX : Size = zero
+    var edgeEndY : Size = zero
+
+    val edgeDecorations : ListBuffer[DecorationMarker] = ListBuffer.empty
+
+    class DecorationMarker(val be: BoundedElement) extends Rooted {
+
+      edgeDecorations += this
+
+      var rootX : Size = edgeStartX
+      var rootY : Size = externalPadding
+
+    }
+
     def bounds: Bounds = {
+
+      // Hmm.  But this may no longer be true:
+      // We have to check all the decorations.
 
       val (x, width) =
         if (isOrdered.gt(edgeEndX, edgeStartX)) {
@@ -357,6 +377,12 @@ trait HasPanels { self : UIFramework =>
     import config._
 
     def edgeNesting: Nesting[EdgeType, P]
+
+    // This terrible hack happens because boxes are not correctly
+    // indexed over dimension.  Eventually you have to fix this, but
+    // honestly, right now, I just don't have the heart.
+    def cellVisualization(box: BoxType) : CellVisualization[P] = 
+      box.visualization.asInstanceOf[CellVisualization[P]]
 
     //============================================================================================
     // EDGE NESTING GENERATION
@@ -656,24 +682,67 @@ trait HasPanels { self : UIFramework =>
                   localLayout <- layoutNesting(sn, layoutTree)
                 } yield {
 
-                  val descendantMarkers : List[LayoutMarker] = layoutTree.nodes
+                  // Get the cell visualization info from the just finished box
+                  val localVis : CellVisualization[P] = 
+                    cellVisualization(sn.baseValue)
 
-                  val (leftMostChild, rightMostChild, heightOfChildren) =
-                    (descendantMarkers foldLeft (localLayout, localLayout, zero))({
-                      case ((lcMarker, rcMarker, ht), thisMarker) => {
+                  // Zip together the incoming markers and any decoration information
+                  val descendantMarkers : List[(LayoutMarker, Option[BoundedElement])] = 
+                    ((for {
+                      lees <- localVis.leafEdgeElements
+                      ztr <- toOpt(Tree.matchTraverse(layoutTree, lees)(
+                        (l : LayoutMarker, o: Option[BoundedElement]) => succeed((l, o))
+                      ))
+                    } yield ztr) getOrElse (layoutTree map (l => (l, None)))).nodes
+
+                  val (leftMostChild, rightMostChild, heightOfChildren, totalShim) =
+                    (descendantMarkers foldLeft (localLayout, localLayout, zero, zero))({
+                      case ((lcMarker, rcMarker, ht, ts), (thisMarker, thisDecOpt)) => {
+
+                        val topShim = 
+                          thisDecOpt match {
+                            case None => zero
+                            case Some(be) => {
+
+                              // val decMkr = new localLayout.rootEdge.DecorationMarker(be)
+                              // localLayout.element.horizontalDependants += decMkr
+                              // localLayout.element.verticalDependants += decMkr
+
+                              be.bounds.height
+
+                            }
+                          }
 
                         if (! thisMarker.exterior) {
-                          thisMarker.element.shiftUp(localLayout.height + externalPadding)
+                          thisMarker.element.shiftUp(localLayout.height + externalPadding + topShim)
                           localLayout.element.verticalDependants += thisMarker.element
                         }
 
                         val newLeftChild = if (thisMarker.leftEdge < lcMarker.leftEdge) thisMarker else lcMarker
                         val newRightChild = if (thisMarker.rightEdge > rcMarker.rightEdge) thisMarker else rcMarker
 
-                        (newLeftChild, newRightChild, max(ht, thisMarker.height))
+                        (newLeftChild, newRightChild, max(ht, thisMarker.height), max(ts, topShim))
 
                       }
                     })
+
+                  // Calculate the bottom shim necessary to clear any outgoing edge marker
+                  val bottomShim =
+                    localVis.rootEdgeElement match {
+                      case None => zero
+                      case Some(be) => {
+
+                        val decMkr = new localLayout.rootEdge.DecorationMarker(be)
+                        localLayout.element.horizontalDependants += decMkr
+                        localLayout.element.verticalDependants += decMkr
+
+                        be.bounds.height
+
+                      }
+                    }
+
+                  // Shift up the local layout to make room
+                  localLayout.element.shiftUp(bottomShim)
 
                   val marker = new LayoutMarker {
 
@@ -681,7 +750,7 @@ trait HasPanels { self : UIFramework =>
                     val exterior = false
                     val rootEdge = localLayout.rootEdge
 
-                    override def height = localLayout.height + externalPadding + heightOfChildren
+                    override def height = bottomShim + localLayout.height + totalShim + externalPadding + heightOfChildren
 
                     override def leftInternalMargin =
                       (localLayout.element.rootX  - leftMostChild.element.rootX) + leftMostChild.leftInternalMargin
@@ -773,14 +842,14 @@ trait HasPanels { self : UIFramework =>
   // EDGE HELPERS
   //
 
-  trait EdgeLike {
+  // trait EdgeLike {
 
-    var edgeStartX : Size = zero
-    var edgeStartY : Size = zero
+  //   var edgeStartX : Size = zero
+  //   var edgeStartY : Size = zero
 
-    var edgeEndX : Size = zero
-    var edgeEndY : Size = zero
+  //   var edgeEndX : Size = zero
+  //   var edgeEndY : Size = zero
 
-  }
+  // }
 
 }

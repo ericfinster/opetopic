@@ -121,15 +121,6 @@ abstract class UIFramework {
     def visualize(a: A) : Visualization[N]
   }
 
-  object Visualizable {
-
-    // implicit def familyVisualizer[A[_ <: Nat], N <: Nat](implicit v: VisualizableFamily[A]) : Visualizable[A[N], N] = 
-    //   new Visualizable[A[N], N] {
-    //     def visualize(a: A[N]) = v.visualize(n)(a)
-    //   }
-
-  }
-
   trait VisualizableFamily[A[_ <: Nat]] {
     def visualize[N <: Nat](n: N)(a: A[N]) : Visualization[N]
   }
@@ -149,7 +140,12 @@ abstract class UIFramework {
     implicit def polarityVisualizableFamily[A[_ <: Nat]](implicit av: VisualizableFamily[A])
         : VisualizableFamily[Lambda[`N <: Nat` => Polarity[A[N]]]] =
       new VisualizableFamily[Lambda[`N <: Nat` => Polarity[A[N]]]] {
-        def visualize[N <: Nat](n: N)(p: Polarity[A[N]]) : Visualization[N] = ???
+        def visualize[N <: Nat](n: N)(p: Polarity[A[N]]) : Visualization[N] = 
+          p match {
+            case Positive() => Visualization(n)(PolarityColorSpec, text("+"))
+            case Negative() => Visualization(n)(PolarityColorSpec, text("-"))
+            case Neutral(a) => av.visualize(n)(a)
+          }
       }
 
     implicit def poloptVisualizableFamily[A[_ <: Nat]](implicit bnds: Bounds, av: VisualizableFamily[A])
@@ -165,6 +161,11 @@ abstract class UIFramework {
       new VisualizableFamily[ConstString] {
         def visualize[N <: Nat](n: N)(str: String) : Visualization[N] = 
           Visualization(n)(DefaultColorSpec, text(str))
+      }
+
+    implicit val visVisualizableFamily : VisualizableFamily[Visualization] = 
+      new VisualizableFamily[Visualization] {
+        def visualize[N <: Nat](n: N)(v: Visualization[N]) = v
       }
 
   }

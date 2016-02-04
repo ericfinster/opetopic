@@ -12,11 +12,11 @@ import opetopic.ui._
 import opetopic.tt._
 import syntax.complex._
 
-import CellMarker._
+import Marker._
 import StaticInstance._
 import ScalatagsTextFramework._
 
-class SvgExporter[N <: Nat](cmplx: Complex[OptCellMarker, N]) {
+class SvgExporter[N <: Nat](cmplx: Complex[OptMarker, N]) {
 
   implicit val staticPanelConfig =
     PanelConfig(

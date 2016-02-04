@@ -88,7 +88,18 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
       p
     }
 
-    val element = edgePath
+    // Right, well, this appears to be safe, even though it's a
+    // bit worriesome ...
+    def element = {
+      val transDecs = edgeDecorations map ((mk : DecorationMarker) => {
+        translate(mk.be.element, 
+          mk.rootX - mk.be.bounds.x - half(mk.be.bounds.width), 
+          mk.rootY - mk.be.bounds.y - half(mk.be.bounds.height) 
+        )
+      })
+
+      group((edgePath +: transDecs) : _*)
+    }
 
     def render : Unit = {
       edgePath.d = pathString

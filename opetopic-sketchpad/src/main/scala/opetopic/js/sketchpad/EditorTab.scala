@@ -30,9 +30,10 @@ class EditorTab {
       spacerBounds = Bounds(0, 0, 600, 600)
     )
 
-  import CellMarker.ActiveInstance._
 
-  val editor = CardinalEditor[CellMarker]
+  import Marker.ActiveInstance._
+
+  val editor : CardinalEditor[Marker] = CardinalEditor[Marker]
   editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.refreshFacePreview }
   editor.onDeselectAll = () => { activeBox = None }
 
@@ -52,5 +53,14 @@ class EditorTab {
   })
 
   var activeBox: Option[Sigma[editor.CardinalCellBox]] = None
+
+  implicit val optAFamily : VisualizableFamily[editor.OptA] = 
+    VisualizableFamily.optionVisualizableFamily(baseConfig.spacerBounds, editor.v)
+
+  implicit def optAVisualizable[N <: Nat](implicit n: N) : Visualizable[editor.OptA[N], N] = 
+    new Visualizable[editor.OptA[N], N] {
+      def visualize(o: editor.OptA[N]) : Visualization[N] = 
+        optAFamily.visualize(n)(o)
+    }
 
 }

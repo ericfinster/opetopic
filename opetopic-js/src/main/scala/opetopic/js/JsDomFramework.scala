@@ -201,15 +201,14 @@ object JsDomFramework extends ActiveFramework
   def rect : RectangleType = 
     new JsDomRectangle
 
-  def rect(x: Int, y: Int, width: Int, height: Int, r: Int, stroke: String, strokeWidth: Int, fill: String) : RectangleType =
-    new JsDomRectangle(x, y, width, height, r, stroke, strokeWidth, fill)
+  def rect(x: Int, y: Int, width: Int, height: Int, r: Int, stroke: String, strokeWidth: Int, fill: String) : RectangleType = {
+    val rct = new JsDomRectangle
+    rct.x = x ; rct.y = y ; rct.width = width ; rct.height = height ; rct.r = r
+    rct.stroke = stroke ; rct.strokeWidth = strokeWidth ; rct.fill = fill
+    rct
+  }
 
   class JsDomRectangle extends JsDomElement with Rectangle {
-
-    def this(x: Int, y: Int, width: Int, height: Int, r: Int, stroke: String, strokeWitdth: Int, fill: String) = {
-      this ; this.x = x ; this.y = y ; this.width = width ; this.height = height
-      this.r = r ; this.stroke = stroke ; this.strokeWidth = strokeWidth ; this.fill = fill
-    }
 
     val svgRect = 
       document.createElementNS(svgns, "rect").

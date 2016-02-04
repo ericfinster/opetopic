@@ -44,6 +44,7 @@ object Sketchpad extends JSApp {
 
     jQuery("#new-tab").click((e : JQueryEventObject) => { addEditorTab })
     jQuery("#sketch-prop-tab-menu .item").tab()
+    jQuery("#cell-props-menu .item").tab()
 
     jQuery("#fill-color-btn").popup(sjs.Dynamic.literal(
       popup = jQuery(".color-select.popup"),
@@ -127,12 +128,11 @@ object Sketchpad extends JSApp {
     } {
 
       val box = bs.value
-
       val labelVal = jQuery("#label-input").value().toString
 
       box.optLabel match {
-        case None => box.optLabel = Some(CellMarker(unescapeUnicode(labelVal)))
-        case Some(mk) => box.optLabel = Some(mk.copy(label = unescapeUnicode(labelVal)))
+        case None => box.optLabel = Some(Marker(bs.n)(unescapeUnicode(labelVal), DefaultColorSpec))
+        case Some(mk) => box.optLabel = Some(mk.withLabel(unescapeUnicode(labelVal)))
       }
 
       box.panel.refresh
@@ -146,23 +146,23 @@ object Sketchpad extends JSApp {
       bs <- tab.activeBox
     } {
 
-      val (f, fh, fs) = CellMarker.colorTripleGen(fillColor)
+      // val (f, fh, fs) = CellMarker.colorTripleGen(fillColor)
 
-      bs.value.optLabel match {
-        case None => bs.value.optLabel = Some(CellMarker("", 
-          DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
-        ))
-        case Some(mk) => bs.value.optLabel = Some(mk.copy(
-          colorSpec = mk.colorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
-        ))
-      }
+      // bs.value.optLabel match {
+      //   case None => bs.value.optLabel = Some(CellMarker("", 
+      //     DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
+      //   ))
+      //   case Some(mk) => bs.value.optLabel = Some(mk.copy(
+      //     colorSpec = mk.colorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
+      //   ))
+      // }
 
-      bs.value.panel.refresh
-      tab.editor.refreshGallery
+      // bs.value.panel.refresh
+      // tab.editor.refreshGallery
 
     }
 
-  val propertyGalleryConfig: GalleryConfig =
+  val propConfig: GalleryConfig =
     GalleryConfig(
       panelConfig = defaultPanelConfig,
       width = 900,
@@ -179,21 +179,43 @@ object Sketchpad extends JSApp {
     for {
       tab <- activeTab
       bs <- tab.activeBox
-      lblCmplx <- bs.value.labelComplex
     } {
 
-      bs.value.optLabel match {
-        case None => jQuery("#label-input").value("")
-        case Some(mk) => jQuery("#label-input").value(mk.label)
+      import tab._
+      implicit val bsDim = bs.n
+
+      val lblStr = (bs.value.optLabel map (_.label)) getOrElse ""
+      jQuery("#label-input").value(lblStr)
+
+      @natElim
+      def doRefresh[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
+        case (Z, box) => {
+          for {
+            lc <- box.labelComplex
+          } {
+
+            val gallery = ActiveGallery(propConfig, lc)
+            jQuery("#face-pane").empty().append(gallery.element.uiElement)
+            jQuery("#edge-prop-tab").empty().text("Cell is an object")
+
+          }
+        }
+        case (S(p: P), box) => {
+          for {
+            lc <- box.labelComplex
+          } {
+
+            val panel = ActivePanel(lc.tail.head)
+
+            val gallery = ActiveGallery(propConfig, lc)
+            jQuery("#face-pane").empty().append(gallery.element.uiElement)
+            jQuery("#edge-prop-tab").empty().append(panel.element.uiElement)
+
+          }
+        }
       }
 
-      // This is super ugly ...
-      implicit val bnds = propertyGalleryConfig.spacerBounds
-      val gallery = ActiveGallery(propertyGalleryConfig, lblCmplx)(
-        VisualizableFamily.optionVisualizableFamily(bnds, tab.editor.v)
-      )
-
-      jQuery("#face-pane").empty().append(gallery.element.uiElement)
+      doRefresh(bs.n)(bs.value)
 
     }
 
@@ -204,13 +226,32 @@ object Sketchpad extends JSApp {
       lblCmplx <- bs.value.labelComplex
     } {
 
-      val exporter = new SvgExporter(lblCmplx)
+      // val exporter = new SvgExporter(lblCmplx)
 
-      jQuery(".ui.modal.svgexport").find("#exportlink").
-        attr(sjs.Dynamic.literal(href = "data:text/plain;charset=utf-8," ++
-          sjs.URIUtils.encodeURIComponent(exporter.svgString)))
+      // jQuery(".ui.modal.svgexport").find("#exportlink").
+      //   attr(sjs.Dynamic.literal(href = "data:text/plain;charset=utf-8," ++
+      //     sjs.URIUtils.encodeURIComponent(exporter.svgString)))
 
-      jQuery(".ui.modal.svgexport").modal("show")
+      // jQuery(".ui.modal.svgexport").modal("show")
 
     }
+
+  def colorTripleGen(color: String) : (String, String, String) = 
+    color match {
+      case "red"    => ("#DB2828", "#DB2828", "#DB2828")
+      case "orange" => ("#F2711C", "#F2711C", "#F2711C")
+      case "yellow" => ("#FBBD08", "#FBBD08", "#FBBD08")
+      case "olive"  => ("#B5CC18", "#B5CC18", "#B5CC18")
+      case "green"  => ("#21BA45", "#21BA45", "#21BA45")
+      case "teal"   => ("#00B5AD", "#00B5AD", "#00B5AD")
+      case "blue"   => ("#2185D0", "#2185D0", "#2185D0")
+      case "violet" => ("#6435C9", "#6435C9", "#6435C9")
+      case "purple" => ("#A333C8", "#A333C8", "#A333C8")
+      case "pink"   => ("#E03997", "#E03997", "#E03997")
+      case "brown"  => ("#A5673F", "#A5673F", "#A5673F")
+      case "grey"   => ("#767676", "#767676", "#767676")
+      case "black"  => ("#1B1C1D", "#1B1C1D", "#1B1C1D")
+      case _ => ("#FFFFFF", "#F3F4F5", "#DCDDDE")
+    }
+
 }
