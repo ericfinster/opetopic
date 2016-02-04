@@ -32,6 +32,8 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
     import panel.config._
 
+    var label : A
+
     val boxRect = {
       val r = rect
       r.r = cornerRadius
@@ -227,7 +229,7 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
   class SimpleActiveCellBox[A, N <: Nat](
     val panel: SimpleActivePanel[A, N], 
-    val label: A, 
+    var label: A, 
     val address: Address[S[N]], 
     val isExternal: Boolean
   ) extends ActiveCellBox[A, N] { thisBox =>

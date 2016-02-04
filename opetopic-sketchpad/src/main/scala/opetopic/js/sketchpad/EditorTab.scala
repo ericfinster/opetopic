@@ -34,7 +34,7 @@ class EditorTab {
   import Marker.ActiveInstance._
 
   val editor : CardinalEditor[Marker] = CardinalEditor[Marker]
-  editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.refreshFacePreview }
+  editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.displayCell }
   editor.onDeselectAll = () => { activeBox = None }
 
   val uiElement = 

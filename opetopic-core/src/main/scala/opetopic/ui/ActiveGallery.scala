@@ -26,7 +26,16 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
     val galleryViewport = viewport
     def element: Element = galleryViewport
-    def bounds: Bounds = elementsAndBounds._2
+    var bounds: Bounds = Bounds(zero,zero,zero,zero)
+
+    def refreshGallery : Unit = {
+      val (panelEls, bnds) = elementsAndBounds
+      galleryViewport.width = config.width
+      galleryViewport.height = config.height
+      galleryViewport.setBounds(bnds)
+      galleryViewport.children = panelEls
+      bounds = bnds
+    }
 
     trait ActiveGalleryPanel[N <: Nat] extends ActivePanel[A[N], N] with ComplexPanel[N] {
 
@@ -106,16 +115,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     val panels : NonemptySuite[GalleryPanelType] =
       createPanels(complex.n)(complex.value)
 
-    def initialize : Unit = {
-      val (panelEls, bnds) = elementsAndBounds
-      galleryViewport.width = config.width
-      galleryViewport.height = config.height
-      galleryViewport.setBounds(bnds)
-      galleryViewport.children = panelEls
-      refreshFaceComplexes
-    }
-
-    initialize
+    refreshGallery
 
     def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0] =
       new SimpleActiveGalleryObjectPanel(nst)
@@ -142,7 +142,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
     class SimpleActiveGalleryCellBox[N <: Nat](
       val panel: SimpleActiveGalleryPanel[N],
-      val label: A[N],
+      var label: A[N],
       val address: Address[S[N]],
       val isExternal: Boolean
     ) extends ActiveGalleryCellBox[A[N], N] {

@@ -18,6 +18,7 @@ import opetopic.ui._
 import opetopic.js._
 import syntax.tree._
 import syntax.complex._
+import syntax.suite._
 import JsDomFramework._
 
 // import org.denigma.codemirror.extensions.EditorConfig
@@ -151,6 +152,7 @@ object Sketchpad extends JSApp {
 
       bs.value.panel.refresh
       tab.editor.refreshGallery
+      refreshFaceGallery
 
     }
 
@@ -180,6 +182,7 @@ object Sketchpad extends JSApp {
 
       bs.value.panel.refresh
       tab.editor.refreshGallery
+      refreshFaceGallery
 
     }
 
@@ -209,6 +212,7 @@ object Sketchpad extends JSApp {
 
       bs.value.panel.refresh
       tab.editor.refreshGallery
+      refreshFaceGallery
 
     }
 
@@ -225,7 +229,22 @@ object Sketchpad extends JSApp {
 
   var activeTab: Option[EditorTab] = None
 
-  def refreshFacePreview: Unit = 
+  def refreshFaceGallery: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+      lc <- bs.value.labelComplex
+    } {
+
+      import tab._
+      implicit val bsDim = bs.n
+
+      val gallery = ActiveGallery(propConfig, lc)
+      jQuery("#face-pane").empty().append(gallery.element.uiElement)
+
+    }
+
+  def displayCell: Unit = 
     for {
       tab <- activeTab
       bs <- tab.activeBox
@@ -242,15 +261,8 @@ object Sketchpad extends JSApp {
       @natElim
       def doRefresh[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
         case (Z, box) => {
-          for {
-            lc <- box.labelComplex
-          } {
-
-            val gallery = ActiveGallery(propConfig, lc)
-            jQuery("#face-pane").empty().append(gallery.element.uiElement)
-            jQuery("#edge-prop-tab").empty().text("Cell is an object")
-
-          }
+          jQuery("#edge-prop-tab").empty().text("Cell is an object")
+          refreshFaceGallery
         }
         case (S(p: P), box) => {
           for {
@@ -288,6 +300,7 @@ object Sketchpad extends JSApp {
 
                   box.panel.refresh
                   tab.editor.refreshGallery
+                  refreshFaceGallery
 
                 }
 
@@ -297,15 +310,14 @@ object Sketchpad extends JSApp {
 
                 box.panel.refresh
                 tab.editor.refreshGallery
+                refreshFaceGallery
 
               }
 
             }}
 
-
-            val gallery = ActiveGallery(propConfig, lc)
-            jQuery("#face-pane").empty().append(gallery.element.uiElement)
             jQuery("#edge-prop-tab").empty().append(panel.element.uiElement)
+            refreshFaceGallery
 
           }
         }

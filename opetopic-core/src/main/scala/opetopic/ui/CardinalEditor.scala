@@ -371,6 +371,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
       def label: PolOptA[N] = 
         Neutral(optLabel)
+      def label_=(po : PolOptA[N]): Unit = ()
 
       val isPolarized = false
       var address: CardinalAddress[S[N]] = addr
@@ -429,6 +430,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     ) extends CardinalCellBox[N] {
 
       val label: PolOptA[N] = Positive()
+      def label_=(po : PolOptA[N]): Unit = ()
       val address: CardinalAddress[S[N]] = null // No address for polarized cells
       val nestingAddress: Address[S[N]] = List()
       val isExternal: Boolean = false
@@ -453,6 +455,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     ) extends CardinalCellBox[S[P]] {
 
       val label: PolOptA[S[P]] = Negative()
+      def label_=(po : PolOptA[S[P]]): Unit = ()
       val address: CardinalAddress[S[S[P]]] = null  // No address for the polarized cells ...
       val nestingAddress: Address[S[S[P]]] = List(List())
       val isExternal: Boolean = true
