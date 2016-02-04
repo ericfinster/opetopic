@@ -44,6 +44,7 @@ abstract class ActiveFramework extends UIFramework {
   type TextType <: Element with Text
   type PathType <: Element with Path
   type GroupType <: Element with Group
+  type PolygonType <: Element with Polygon
   type ViewportType <: Element with Viewport
   type RectangleType <: Element with Rectangle
 
@@ -92,6 +93,15 @@ abstract class ActiveFramework extends UIFramework {
       viewWidth = bounds.width
       viewHeight = bounds.height
     }
+
+  }
+
+  trait Polygon { thisPoly : Element with PolygonType => 
+
+    var points: List[(Size, Size)]
+    var stroke: String
+    var strokeWidth: Size
+    var fill: String
 
   }
 

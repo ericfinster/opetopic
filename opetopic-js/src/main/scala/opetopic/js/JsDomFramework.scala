@@ -15,6 +15,7 @@ import org.scalajs.dom.raw.SVGGElement
 import org.scalajs.dom.raw.SVGSVGElement
 import org.scalajs.dom.raw.SVGPathElement
 import org.scalajs.dom.raw.SVGRectElement
+import org.scalajs.dom.raw.SVGPolygonElement
 import org.scalajs.dom.raw.SVGTransformable
 
 import opetopic.ui._
@@ -58,6 +59,7 @@ object JsDomFramework extends ActiveFramework
   type PathType = JsDomPath
   type TextType = JsDomText
   type GroupType = JsDomGroup
+  type PolygonType = JsDomPolygon
   type ViewportType = JsDomViewport
   type RectangleType = JsDomRectangle
 
@@ -191,6 +193,50 @@ object JsDomFramework extends ActiveFramework
 
     def getViewboxString : String = 
       svgSvg.getAttributeNS(null, "viewBox")
+
+  }
+
+  //============================================================================================
+  // POLYGONS
+  //
+
+  def polygon : PolygonType = 
+    new JsDomPolygon
+
+  def polygon(stroke: String, strokeWidth: Int, fill: String, pts: List[(Int, Int)]) : PolygonType = {
+    val p = new JsDomPolygon
+    p.stroke = stroke ; p.strokeWidth = strokeWidth ; p.fill = fill ; p.points = pts
+    p
+  }
+
+  class JsDomPolygon extends JsDomElement with Polygon {
+
+    val svgPoly = 
+      document.createElementNS(svgns, "polygon").
+        asInstanceOf[SVGPolygonElement]
+
+    installHandlers(svgPoly)
+
+    val uiElement = svgPoly
+
+    var myPoints : List[(Int, Int)] = Nil
+
+    def points: List[(Int, Int)] = myPoints
+    def points_=(pts: List[(Int, Int)]): Unit = {
+      myPoints = pts
+      svgPoly.setAttributeNS(null, "points", 
+        (pts map ({ case (x, y) => x.toString ++ "," ++ y.toString })).mkString(" ")
+      )
+    }
+
+    def stroke: String = svgPoly.getAttributeNS(null, "stroke")
+    def stroke_=(s: String): Unit = svgPoly.setAttributeNS(null, "stroke", s)
+
+    def strokeWidth: Int = svgPoly.getAttributeNS(null, "stroke-width").toInt
+    def strokeWidth_=(i : Int): Unit = svgPoly.setAttributeNS(null, "stroke-width", i.toString)
+
+    def fill: String = svgPoly.getAttributeNS(null, "fill")
+    def fill_=(s: String): Unit = svgPoly.setAttributeNS(null, "fill", s)
 
   }
 

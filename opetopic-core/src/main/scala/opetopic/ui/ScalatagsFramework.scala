@@ -26,6 +26,7 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
   type PathType = Element
   type TextType = Element
   type GroupType = Element
+  type PolygonType = Element
   type RectangleType = Element
   type ViewportType = Element
 
@@ -76,6 +77,18 @@ class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Bui
   def group(elems: Element*) : GroupType = {
     import svgTags._
     g(elems)
+  }
+
+  def polygon(stroke: String, strokeWidth: Int, fill: String, pts: List[(Int, Int)]) : PolygonType = {
+    import implicits._
+
+    svgTags.polygon(
+      svgAttrs.points:=(pts map ({ case (x, y) => x.toString ++ "," ++ y.toString })).mkString(" "),
+      svgAttrs.stroke:=stroke,
+      svgAttrs.strokeWidth:=strokeWidth.toString,
+      svgAttrs.fill:=fill
+    )
+
   }
 
   def rect(x : Int, y: Int, width: Int, height: Int, cornerRadius: Int, stroke: String, strokeWidth: Int, fill: String) : RectangleType = {

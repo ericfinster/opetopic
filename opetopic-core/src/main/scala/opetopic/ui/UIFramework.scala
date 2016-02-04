@@ -17,6 +17,7 @@ abstract class UIFramework {
   type PathType <: Element
   type TextType <: Element
   type GroupType <: Element
+  type PolygonType <: Element
   type ViewportType <: Element
   type RectangleType <: Element
 
@@ -31,6 +32,7 @@ abstract class UIFramework {
 
   def viewport(width: Size, height: Size, bounds: Bounds, elem: Element*) : ViewportType
   def group(elem: Element*) : GroupType
+  def polygon(stroke: String, strokeWidth: Size, fill: String, pts: List[(Size, Size)]) : PolygonType
   def rect(x: Size, y: Size, width: Size, height: Size, r: Size, stroke: String, strokeWidth: Size, fill: String) : RectangleType
   def path(d: String, stroke: String, strokeWidth: Size, fill: String) : PathType
   def text(str: String) : BoundedElement
