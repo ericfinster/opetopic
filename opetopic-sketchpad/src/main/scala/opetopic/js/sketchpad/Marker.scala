@@ -44,9 +44,9 @@ object Marker {
     import JsDomFramework._
 
     def spcr = spacer(Bounds(0,0,600,600))
-    def emkr = rect(0, 0, 300, 300, 100, "red", 100, "red")
+    def triUp = polygon("red", 100, "red", List((150, 0), (300, 300), (0, 300)))
+    def triDown = polygon("red", 100, "red", List((0, 0), (150, 300), (300, 0)))
     def bnds = Bounds(0, 0, 300, 300)
-    def bdel = BoundedElement(emkr, bnds)
 
     def lblEl(lbl: String) = 
       if (lbl == "") spcr else text(lbl)
@@ -58,9 +58,9 @@ object Marker {
           case (Z, ObjectMarker(lbl, spec)) => ObjectVisualization(spec, lblEl(lbl))
           case (S(p: P), CellMarker(lbl, spec, rd, eds)) => {
 
-            val markRoot = if (rd) Some(bdel) else None
+            val markRoot = if (rd) Some(BoundedElement(triDown, bnds)) else None
             val markLeaves = eds map ((tr : Tree[Boolean, P]) => {
-              tr map ((b: Boolean) => if (b) Some(bdel) else None )
+              tr map ((b: Boolean) => if (b) Some(BoundedElement(triUp, bnds)) else None )
             })
 
             CellVisualization(spec, lblEl(lbl), markRoot, markLeaves)
