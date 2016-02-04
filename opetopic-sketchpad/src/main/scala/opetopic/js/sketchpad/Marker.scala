@@ -58,12 +58,12 @@ object Marker {
 
     import JsDomFramework._
 
-    def lblEl(lbl: String) = 
+    def lblEl(lbl: String) =
       if (lbl == "") spacer(Bounds(0,0,600,600)) else text(lbl)
 
-    def triUp(c: String) = polygon(c, 100, c, List((150, 0), (300, 300), (0, 300)))
-    def triDown(c: String) = polygon(c, 100, c, List((0, 0), (150, 300), (300, 0)))
-    def bnds = Bounds(0, 0, 300, 300)
+    def triUp(c: String) : PolygonType = polygon(c, 100, c, List((150, 0), (300, 300), (0, 300)))
+    def triDown(c: String) : PolygonType = polygon(c, 100, c, List((0, 0), (150, 300), (300, 0)))
+    def bnds : Bounds = Bounds(0, 0, 300, 300)
 
     def renderUp(d: TriangleDec) : Option[BoundedElement] =
       d match {
@@ -79,7 +79,7 @@ object Marker {
         case RedTriangle => Some(BoundedElement(triDown("red"), bnds))
       }
 
-    implicit val markerFamily : VisualizableFamily[Marker] = 
+    implicit val markerFamily : VisualizableFamily[Marker] =
       new VisualizableFamily[Marker] {
         @natElim
         def visualize[N <: Nat](n: N)(mk: Marker[N]) : Visualization[N] = {
@@ -101,53 +101,47 @@ object Marker {
 
   object StaticInstance {
 
-    import opetopic.ui.ScalatagsTextFramework._
+    import ScalatagsTextFramework._
 
-    implicit val skinFamily : VisualizableFamily[Marker] = ???
+    def lblEl(lbl: String) =
+      if (lbl == "") spacer(Bounds(0,0,600,600)) else text(lbl)
+
+    def triUp(c: String) : PolygonType = polygon(c, 100, c, List((150, 0), (300, 300), (0, 300)))
+    def triDown(c: String) : PolygonType = polygon(c, 100, c, List((0, 0), (150, 300), (300, 0)))
+    def bnds : Bounds = Bounds(0, 0, 300, 300)
+
+    def renderUp(d: TriangleDec) : Option[BoundedElement] =
+      d match {
+        case Nonexistant => None
+        case BlackTriangle => Some(BoundedElement(triUp("black"), bnds))
+        case RedTriangle => Some(BoundedElement(triUp("red"), bnds))
+      }
+
+    def renderDown(d: TriangleDec) : Option[BoundedElement] =
+      d match {
+        case Nonexistant => None
+        case BlackTriangle => Some(BoundedElement(triDown("black"), bnds))
+        case RedTriangle => Some(BoundedElement(triDown("red"), bnds))
+      }
+
+    implicit val markerFamily : VisualizableFamily[Marker] =
+      new VisualizableFamily[Marker] {
+        @natElim
+        def visualize[N <: Nat](n: N)(mk: Marker[N]) : Visualization[N] = {
+          case (Z, ObjectMarker(lbl, spec)) => ObjectVisualization(spec, lblEl(lbl))
+          case (S(p: P), CellMarker(lbl, spec, rd, eds)) => {
+
+            val markRoot = renderDown(rd)
+            val markLeaves = eds map ((tr : Tree[TriangleDec, P]) => {
+              tr map renderUp
+            })
+
+            CellVisualization(spec, lblEl(lbl), markRoot, markLeaves)
+
+          }
+        }
+      }
 
   }
 
 }
-
-// // object CellMarker {
-
-// //   type OptCellMarker[N <: Nat] = Option[CellMarker[N]]
-
-// //   object ActiveInstance {
-
-// //     import JsDomFramework._
-
-// //     implicit object CellMarkerFamily extends VisualizableFamily[CellMarker] {
-
-// //       def spcr = spacer(Bounds(0,0,600,600))
-// //       def emkr = rect(0, 0, 300, 300, 100, "red", 100, "red")
-
-// //       @natElim
-// //       def visualize[N <: Nat](n: N)(mk: CellMarker[N]) : Visualization[N] = {
-// //         case (Z, mk) => Visualization(Z)(mk.colorSpec, if (mk.label == "") spcr else text(mk.label))
-// //         case (S(p), mk) => {
-// //           CellVisualization(
-// //             mk.colorSpec,
-// //             if (mk.label == "") spcr else text(mk.label),
-// //             Some(BoundedElement(emkr, Bounds(0, 0, 300, 300))),
-// //             None
-// //           )
-// //         }
-// //       }
-// //     }
-
-// //   }
-
-// //   object StaticInstance {
-
-// //     import opetopic.ui.ScalatagsTextFramework._
-
-// //     implicit object CellMarkerFamily extends VisualizableFamily[CellMarker] {
-// //       def visualize[N <: Nat](n: N)(mk: CellMarker[N]) : Visualization[N] = 
-// //         Visualization(n)(mk.colorSpec, text(mk.label))
-// //     }
-
-// //   }
-
-// // }
-

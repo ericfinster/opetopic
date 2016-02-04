@@ -471,14 +471,48 @@ trait HasPanels { self : UIFramework =>
       } {
 
         val baseBox = nst.baseValue
+        val localVis : CellVisualization[P] =
+          cellVisualization(baseBox)
 
-        // Set the positions of incoming edges
-        for { em <- elt } {
+        val incomingLeafInfo = 
+          ((for {
+            lees <- localVis.leafEdgeElements
+            ztr <- toOpt(Tree.matchTraverse(elt, lees)(
+              (l: LayoutMarker, o: Option[BoundedElement]) => succeed((l, o))
+            ))
+          } yield ztr) getOrElse (elt map (l => (l, None)))).nodes
+
+        for {
+          (em , decOpt) <- incomingLeafInfo
+        } {
+
           em.rootEdge.edgeStartY = baseBox.y - (fromInt(2) * externalPadding)
+
+          decOpt match {
+            case None => ()
+            case Some(be) => {
+              val re = em.rootEdge
+              val decMkr = new re.DecorationMarker(be, re.edgeStartX, -baseBox.height - decorationPadding)
+              mk.element.horizontalDependants += decMkr
+              mk.element.verticalDependants += decMkr
+            }
+          }
+
         }
 
         // Set the position of the outgoing edge
         mk.rootEdge.edgeEndY = baseBox.rootY + (fromInt(2) * externalPadding)
+
+        // Position the root edge decoration
+        localVis.rootEdgeElement match {
+          case None => ()
+          case Some(be) => {
+            val re = mk.rootEdge
+            val decMkr = new re.DecorationMarker(be, re.edgeStartX, decorationPadding)
+            mk.element.horizontalDependants += decMkr
+            mk.element.verticalDependants += decMkr
+          }
+        }
 
       }
 

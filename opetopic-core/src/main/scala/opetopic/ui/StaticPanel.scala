@@ -57,7 +57,16 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
     import panel.config._
 
     def element: Element = {
-      path(pathString, "black", strokeWidth, "none")
+
+      val transDecs = edgeDecorations map ((mk : DecorationMarker) => {
+        translate(mk.be.element, 
+          mk.rootX - mk.be.bounds.x - half(mk.be.bounds.width), 
+          mk.rootY - mk.be.bounds.y - half(mk.be.bounds.height) 
+        )
+      })
+
+      group((path(pathString, "black", strokeWidth, "none") +: transDecs) : _*)
+
     }
 
   }

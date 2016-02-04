@@ -35,7 +35,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
     val boxRect = {
       val r = rect
       r.r = cornerRadius
-      r.stroke = "black"
       r.strokeWidth = strokeWidth
       r
     }

@@ -78,6 +78,7 @@ object Sketchpad extends JSApp {
       } else {
         jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(color).popup("hide")
         strokeColor = color
+        updateStrokeColor
       }
 
     })
@@ -172,6 +173,35 @@ object Sketchpad extends JSApp {
           box.optLabel match {
             case None => box.optLabel = Some(CellMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
             case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(l, s.copy(fill = f, fillHovered = fh, fillSelected = fs), r, e))
+          }
+      }
+
+      doUpdate(bs.n)(bs.value)
+
+      bs.value.panel.refresh
+      tab.editor.refreshGallery
+
+    }
+
+  def updateStrokeColor: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+    } {
+
+      val (st, sh, ss) = colorTripleGen(strokeColor)
+
+      @natElim
+      def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
+        case (Z, box) =>
+          box.optLabel match {
+            case None => box.optLabel = Some(ObjectMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case Some(ObjectMarker(l, s)) => box.optLabel = Some(ObjectMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+          }
+        case (S(p: P), box) => 
+          box.optLabel match {
+            case None => box.optLabel = Some(CellMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), r, e))
           }
       }
 
@@ -289,16 +319,16 @@ object Sketchpad extends JSApp {
     for {
       tab <- activeTab
       bs <- tab.activeBox
-      lblCmplx <- bs.value.labelComplex
+      lc <- bs.value.labelComplex
     } {
 
-      // val exporter = new SvgExporter(lblCmplx)
+      val exporter = new SvgExporter(lc)
 
-      // jQuery(".ui.modal.svgexport").find("#exportlink").
-      //   attr(sjs.Dynamic.literal(href = "data:text/plain;charset=utf-8," ++
-      //     sjs.URIUtils.encodeURIComponent(exporter.svgString)))
+      jQuery(".ui.modal.svgexport").find("#exportlink").
+        attr(sjs.Dynamic.literal(href = "data:text/plain;charset=utf-8," ++
+          sjs.URIUtils.encodeURIComponent(exporter.svgString)))
 
-      // jQuery(".ui.modal.svgexport").modal("show")
+      jQuery(".ui.modal.svgexport").modal("show")
 
     }
 
