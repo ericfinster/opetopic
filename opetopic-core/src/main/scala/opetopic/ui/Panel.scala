@@ -289,12 +289,12 @@ trait HasPanels { self : UIFramework =>
 
     val edgeDecorations : ListBuffer[DecorationMarker] = ListBuffer.empty
 
-    class DecorationMarker(val be: BoundedElement) extends Rooted {
+    class DecorationMarker(val be: BoundedElement, initX: Size, initY: Size) extends Rooted {
 
       edgeDecorations += this
 
-      var rootX : Size = edgeStartX
-      var rootY : Size = externalPadding
+      var rootX : Size = initX
+      var rootY : Size = initY
 
     }
 
@@ -704,9 +704,10 @@ trait HasPanels { self : UIFramework =>
                             case None => zero
                             case Some(be) => {
 
-                              // val decMkr = new localLayout.rootEdge.DecorationMarker(be)
-                              // localLayout.element.horizontalDependants += decMkr
-                              // localLayout.element.verticalDependants += decMkr
+                              val re = thisMarker.rootEdge
+                              val decMkr = new re.DecorationMarker(be, re.edgeStartX, - localLayout.height - externalPadding)
+                              localLayout.element.horizontalDependants += decMkr
+                              localLayout.element.verticalDependants += decMkr
 
                               be.bounds.height
 
@@ -732,7 +733,8 @@ trait HasPanels { self : UIFramework =>
                       case None => zero
                       case Some(be) => {
 
-                        val decMkr = new localLayout.rootEdge.DecorationMarker(be)
+                        val re = localLayout.rootEdge
+                        val decMkr = new re.DecorationMarker(be, re.edgeStartX, externalPadding)
                         localLayout.element.horizontalDependants += decMkr
                         localLayout.element.verticalDependants += decMkr
 

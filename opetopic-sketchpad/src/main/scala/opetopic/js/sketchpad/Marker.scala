@@ -42,9 +42,6 @@ object Marker {
 
   type OptMarker[N <: Nat] = Option[Marker[N]]
 
-  // def apply[N <: Nat](n: N)(lbl: String) : Marker[N] = 
-  //   Marker(n)(lbl, DefaultColorSpec)
-
   @natElim
   def apply[N <: Nat](n: N)(lbl: String, spec: ColorSpec) : Marker[N] = {
     case (Z, lbl, spec) => ObjectMarker(lbl, spec)
@@ -55,28 +52,28 @@ object Marker {
 
     import JsDomFramework._
 
+    def spcr = spacer(Bounds(0,0,600,600))
+    def emkr = rect(0, 0, 300, 300, 100, "red", 100, "red")
+    def bnds = Bounds(0, 0, 300, 300)
+    def bdel = BoundedElement(emkr, bnds)
+
+    def lblEl(lbl: String) = 
+      if (lbl == "") spcr else text(lbl)
+
     implicit val markerFamily : VisualizableFamily[Marker] = 
       new VisualizableFamily[Marker] {
         @natElim
         def visualize[N <: Nat](n: N)(mk: Marker[N]) : Visualization[N] = {
-          case (Z, ObjectMarker(lbl, spec)) => ObjectVisualization(spec, text(lbl))
+          case (Z, ObjectMarker(lbl, spec)) => ObjectVisualization(spec, lblEl(lbl))
           case (S(p: P), CellMarker(lbl, spec, rd, eds)) => {
 
-            val markRoot = 
-              if (rd)
-                Some(BoundedElement(rect(0, 0, 300, 300, 100, "red", 100, "red"), Bounds(0, 0, 300, 300)))
-              else
-                None
-
+            val markRoot = if (rd) Some(bdel) else None
             val markLeaves = eds map ((tr : Tree[Boolean, P]) => {
-              tr map ((b: Boolean) => 
-                if (b)
-                  Some(BoundedElement(rect(0, 0, 300, 300, 100, "red", 100, "red"), Bounds(0, 0, 300, 300)))
-                else None
-              )
+              tr map ((b: Boolean) => if (b) Some(bdel) else None )
             })
 
-            CellVisualization(spec, text(lbl), markRoot, markLeaves)
+            CellVisualization(spec, lblEl(lbl), markRoot, markLeaves)
+
           }
         }
       }

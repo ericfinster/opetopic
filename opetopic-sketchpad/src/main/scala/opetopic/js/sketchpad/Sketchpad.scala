@@ -16,6 +16,7 @@ import scalatags.JsDom.all._
 import opetopic._
 import opetopic.ui._
 import opetopic.js._
+import syntax.tree._
 import syntax.complex._
 import JsDomFramework._
 
@@ -146,19 +147,19 @@ object Sketchpad extends JSApp {
       bs <- tab.activeBox
     } {
 
-      // val (f, fh, fs) = CellMarker.colorTripleGen(fillColor)
+      val (f, fh, fs) = colorTripleGen(fillColor)
 
-      // bs.value.optLabel match {
-      //   case None => bs.value.optLabel = Some(CellMarker("", 
-      //     DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
-      //   ))
-      //   case Some(mk) => bs.value.optLabel = Some(mk.copy(
-      //     colorSpec = mk.colorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
-      //   ))
-      // }
+      bs.value.optLabel match {
+        case None => bs.value.optLabel = Some(Marker(bs.n)("", 
+          DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)
+        ))
+        case Some(mk) => bs.value.optLabel = Some(
+          mk.withColorSpec(mk.colorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs))
+        )
+      }
 
-      // bs.value.panel.refresh
-      // tab.editor.refreshGallery
+      bs.value.panel.refresh
+      tab.editor.refreshGallery
 
     }
 
@@ -205,7 +206,54 @@ object Sketchpad extends JSApp {
             lc <- box.labelComplex
           } {
 
-            val panel = ActivePanel(lc.tail.head)
+            val frameNesting = lc.tail.head
+            val panel = ActivePanel(frameNesting)
+
+            panel.onBoxClicked = { (b: SimpleActiveCellBox[editor.OptA[P], P]) => {
+
+              val curMk : CellMarker[P] = 
+                box.optLabel match {
+                  case None => {
+
+                    val srcTree : Tree[Boolean, P] =
+                      frameNesting match {
+                        case Box(bv, cn) => cn map (_ => false)
+                        case _ => throw new IllegalArgumentException("Malformed complex")
+                      }
+
+                      CellMarker("", DefaultColorSpec, false, Some(srcTree))
+
+                  }
+                  case Some(mk : CellMarker[P]) => mk
+                }
+
+              if (b.isExternal) {
+
+                for {
+                  lds <- fromOpt(curMk.leafEdgeDecorations)
+                  zp <- lds.seekTo(b.address.head)
+                  bln <- zp._1.rootValue
+                } {
+
+                  val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(! bln))
+                  box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
+
+                  box.panel.refresh
+                  tab.editor.refreshGallery
+
+                }
+
+              } else {
+
+                box.optLabel = Some(curMk.copy(rootEdgeDecoration = ! curMk.rootEdgeDecoration))
+
+                box.panel.refresh
+                tab.editor.refreshGallery
+
+              }
+
+            }}
+
 
             val gallery = ActiveGallery(propConfig, lc)
             jQuery("#face-pane").empty().append(gallery.element.uiElement)

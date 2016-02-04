@@ -45,11 +45,11 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
   def seekTo(addr: Address[N]) : ShapeM[Zipper[A, N]] = 
     Tree.seekTo(tr.dim)(tr, addr)
 
-  //   def rootOption : Option[A] =
-  //     Tree.rootOption(tr)
+  def withRootValue(a: A) : Tree[A, N] = 
+    Tree.rootReplace(tr, a)
 
-  //   def constWith[B](b : B) : Tree[N, B] =
-  //     Tree.map(tr)(_ => b)
+  def rootValue : ShapeM[A] =
+    Tree.rootValue(tr)
 
 }
 
