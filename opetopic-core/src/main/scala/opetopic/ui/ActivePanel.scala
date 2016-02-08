@@ -50,7 +50,7 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
     def onClick: Unit = ()
 
-    def setHoveredStyle: Unit = { if (! isSelected) boxRect.fill = visualization.colorSpec.fillHovered }
+    def setHoveredStyle: Unit = { if (! isSelected) { boxRect.fill = visualization.colorSpec.fillHovered } }
     def setUnhoveredStyle: Unit = { boxRect.fill = if (isSelected) visualization.colorSpec.fillSelected else visualization.colorSpec.fill }
     def setSelectedStyle: Unit = { boxRect.fill = visualization.colorSpec.fillSelected }
     def setDeselectedStyle: Unit = { boxRect.fill = visualization.colorSpec.fill }

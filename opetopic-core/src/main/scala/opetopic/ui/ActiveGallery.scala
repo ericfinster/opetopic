@@ -65,7 +65,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
       def nestingAddress = address
 
-      def hoverFaces : Unit =
+      def hoverFaces : Unit = 
         foreachFace(new IndexedOp[GalleryBoxType] {
           def apply[N <: Nat](n: N)(pb: GalleryBoxType[N]) = pb.setHoveredStyle
         })
@@ -116,6 +116,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       createPanels(complex.n)(complex.value)
 
     refreshGallery
+    refreshFaceComplexes
 
     def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0] =
       new SimpleActiveGalleryObjectPanel(nst)
