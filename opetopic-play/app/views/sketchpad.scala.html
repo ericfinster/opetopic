@@ -74,6 +74,7 @@
 			<div id="face-pane" style="min-height: 160px"></div>
 		      </div>
 		      <div class="ui right aligned bottom attached segment">
+			<button type="button" id="code-btn" class="ui right labeled blue icon button">Code<i class="file text icon"></i></button>
 			<button type="button" id="snapshot-btn" class="ui right labeled blue icon button">Snapshot<i class="camera icon"></i></button>
 		      </div>
 		    </div>
@@ -129,6 +130,19 @@
       <div class="header">Export SVG</div>
       <div class="ui basic segment center aligned">
 	<a href="" id="exportlink" download="output.svg">Download the file</a>
+      </div>
+      <div class="actions">
+	<div class="ui positive right labeled icon button">
+	  Great!
+	  <i class="checkmark icon"></i>
+	</div>      
+      </div>
+    </div>
+
+    <div class="ui modal small codeexport">
+      <div class="header">Export Code</div>
+      <div class="ui basic segment center aligned">
+	<p id="code-text"></p>
       </div>
       <div class="actions">
 	<div class="ui positive right labeled icon button">

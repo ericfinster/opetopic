@@ -85,6 +85,7 @@ object Sketchpad extends JSApp {
     })
 
     jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
+    jQuery("#code-btn").on("click", () => { showScalaCode })
 
     addEditorTab
 
@@ -344,12 +345,22 @@ object Sketchpad extends JSApp {
 
     }
 
-  def showOpetopicCode: Unit = 
+  def showScalaCode: Unit = 
     for {
       tab <- activeTab
       bs <- tab.activeBox
       lc <- bs.value.labelComplex
     } {
+
+      import opetopic.pprint._
+
+      implicit val c : Config = Config()
+      import tab._
+
+      val test = ScalaPPrint.pprintComplex(lc).mkString
+
+      jQuery("#code-text").empty().text(test)
+      jQuery(".ui.modal.codeexport").modal("show")
 
       // Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
       // jQuery(".ui.modal").modal("show")
@@ -375,3 +386,4 @@ object Sketchpad extends JSApp {
     }
 
 }
+

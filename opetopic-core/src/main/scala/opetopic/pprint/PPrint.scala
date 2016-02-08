@@ -24,6 +24,10 @@ trait PPrint[T] {
   def render(t: T, c: Config): Iter[String]
 }
 
+trait IndexedPPrint[T[_ <: Nat]] {
+  def render[N <: Nat](n: N)(t: T[N], c: Config): Iter[String]
+}
+
 trait PPrintBase {
 
   def pprint[A](a: A)(implicit c: Config, p: PPrint[A]) : String = 
@@ -37,7 +41,6 @@ trait PPrintBase {
   //
 
   implicit val defaultConfig = Config()
-
 
   //============================================================================================
   // IMPLICITS
@@ -55,6 +58,11 @@ trait PPrintBase {
   implicit def nestingIsPPrint[A, N <: Nat](implicit ap: PPrint[A]): PPrint[Nesting[A, N]] = 
     new PPrint[Nesting[A, N]] {
       def render(n: Nesting[A, N], c: Config) = pprintNesting(n.dim)(n, c)
+    }
+
+  def atIndex[T[_ <: Nat], N <: Nat](n: N, ap: IndexedPPrint[T]) : PPrint[T[N]] = 
+    new PPrint[T[N]] {
+      def render(t: T[N], c: Config) = ap.render(n)(t, c)
     }
 
 }

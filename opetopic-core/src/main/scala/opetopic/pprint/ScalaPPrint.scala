@@ -13,6 +13,7 @@ import annotation.tailrec
 import opetopic._
 import syntax.tree._
 import syntax.nesting._
+import syntax.complex._
 
 object ScalaPPrint extends PPrintBase {
 
@@ -52,8 +53,20 @@ object ScalaPPrint extends PPrintBase {
         })
     }
 
-  // def pprintComplex[A[_ <: Nat], N <: Nat](n: N)(cmplx: Complex[A, N], c: Config)(implicit ap: IndexedPPrint[A]) : Iter[String] = {
-  // }
+  @natElim
+  def doPprintComplex[A[_ <: Nat], N <: Nat](n: N)(cmplx: Complex[A, N], c: Config, ap: IndexedPPrint[A]) : Iter[String] = {
+    case (Z, Complex(tl, hd), c, ap) => {
+      implicit val npp = atIndex(Z, ap)
+      pprintNesting(Z)(hd, c)
+    }
+    case (S(p), Complex(tl, hd), c, ap) => {
+      implicit val npp = atIndex(S(p), ap)
+      doPprintComplex(p)(tl, c, ap) ++ Iter(" >> ") ++ pprintNesting(S(p))(hd, c)
+    }
+  }
+
+  def pprintComplex[A[_ <: Nat], N <: Nat](cmplx: Complex[A, N])(implicit c: Config, ap: IndexedPPrint[A]) : Iter[String] = 
+    doPprintComplex(cmplx.dim)(cmplx, c, ap)
 
   def pprintNat[N <: Nat](n: N, c: Config) : Iter[String] = 
     n match {
