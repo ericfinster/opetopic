@@ -20,7 +20,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicSketchpad, opetopicCodebuilder)
+lazy val clients = Seq(opetopicSketchpad, opetopicCodebuilder, opetopicTutorial)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -40,6 +40,19 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   ).enablePlugins(PlayScala).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
+
+lazy val opetopicTutorial = (project in file("opetopic-tutorial")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
+      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
 
 lazy val opetopicCodebuilder = (project in file("opetopic-codebuilder")).
   settings(commonSettings: _*).

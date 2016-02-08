@@ -29,4 +29,12 @@ object Application extends Controller {
     }
   }
 
+  def showTutorial(page: String) = Action {
+    page match {
+      case "intro" => Ok(views.html.tutorial.intro())
+      case _ => Ok("Not found: " ++ page)
+    }
+  }
+
+
 }

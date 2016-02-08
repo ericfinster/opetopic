@@ -1,0 +1,45 @@
+@(content: Html)
+
+@import play.api.Play
+
+@main("Tutorial") {
+
+  <style>
+    .ui.list .item {
+      font-size: 20px;
+    }
+  </style>
+
+  <div class="main">
+    <div class="article">
+      <div id="panes">
+
+	<div class="ui grid">
+
+	  <div class="two wide column">
+	  </div>
+	  
+	  <div class="twelve wide column">
+	    <div class="ui raised segment" style="min-height: 400px">
+	      @content
+	    </div>
+	  </div>
+
+	  <div class="two wide column">
+	  </div>
+
+	</div>
+
+      </div>
+    </div>
+  </div>
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopictutorial-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopictutorial-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopictutorial-launcher.js")' type="text/javascript"></script>
+
+}

@@ -39,7 +39,7 @@ class SvgExporter[N <: Nat](cmplx: Complex[OptMarker, N]) {
       spacerBounds = Bounds(0, 0, 600, 600)
     )
 
-  implicit val spacerBounds = Bounds(0, 0, 10, 10)
+  implicit val spacerBounds = Bounds(0, 0, 600, 600)
 
   val staticGallery = SimpleStaticGallery(cmplx)
 

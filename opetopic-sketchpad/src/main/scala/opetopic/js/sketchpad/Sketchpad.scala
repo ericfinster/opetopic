@@ -357,7 +357,7 @@ object Sketchpad extends JSApp {
       case "purple" => ("#A333C8", "#A333C8", "#A333C8")
       case "pink"   => ("#E03997", "#E03997", "#E03997")
       case "brown"  => ("#A5673F", "#A5673F", "#A5673F")
-      case "grey"   => ("#767676", "#767676", "#767676")
+      case "grey"   => ("lightgrey", "darkgrey", "grey")
       case "black"  => ("#1B1C1D", "#1B1C1D", "#1B1C1D")
       case _ => ("#FFFFFF", "#F3F4F5", "#DCDDDE")
     }
