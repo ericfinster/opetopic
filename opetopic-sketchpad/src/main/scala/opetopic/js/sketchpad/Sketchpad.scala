@@ -344,6 +344,18 @@ object Sketchpad extends JSApp {
 
     }
 
+  def showOpetopicCode: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+      lc <- bs.value.labelComplex
+    } {
+
+      // Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
+      // jQuery(".ui.modal").modal("show")
+      // Sketchpad.editor.refresh()
+    }
+
   def colorTripleGen(color: String) : (String, String, String) = 
     color match {
       case "red"    => ("#DB2828", "#DB2828", "#DB2828")
