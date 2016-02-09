@@ -18,7 +18,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   import isNumeric._
 
-  trait ActiveGallery[A[_ <: Nat]] extends ComplexGallery[A] with SelectableGallery[A] {
+  trait ActiveGallery[A[_ <: Nat]] extends ComplexGallery[A] with SelectableGallery[A] { thisGallery => 
 
     type GalleryPanelType[N <: Nat] <: ActiveGalleryPanel[N]
     type GalleryBoxType[N <: Nat] <: ActiveGalleryCellBox[A[N], N]
@@ -36,6 +36,9 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       galleryViewport.children = panelEls
       bounds = bnds
     }
+
+    var onHover : Sigma[GalleryBoxType] => Unit = { _ => () }
+    var onUnhover : Sigma[GalleryBoxType] => Unit = { _ => () }
 
     trait ActiveGalleryPanel[N <: Nat] extends ActivePanel[A[N], N] with ComplexPanel[N] {
 
@@ -152,6 +155,15 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
       val visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
+
+      //============================================================================================
+      // HOVERING EVENTS
+      //
+
+      override def setHoveredStyle: Unit = { super.setHoveredStyle ; thisGallery.onHover(Sigma(boxDim)(this)) }
+      override def setUnhoveredStyle: Unit = { super.setUnhoveredStyle ; thisGallery.onUnhover(Sigma(boxDim)(this)) }
+      override def setSelectedStyle: Unit = { super.setSelectedStyle }
+      override def setDeselectedStyle: Unit = { super.setDeselectedStyle }
 
     }
 
