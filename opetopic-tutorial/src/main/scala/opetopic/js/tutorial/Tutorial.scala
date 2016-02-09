@@ -80,6 +80,15 @@ object Tutorial extends JSApp {
         case _ => str
       }
 
+    gallery.onSelectAsRoot = (bs: Sigma[gallery.GalleryBoxType]) => { 
+      for {
+        lc <- bs.value.labelComplex
+      } {
+        val faceGallery = ActiveGallery(lc)
+        jQuery("#face-pane").empty().append(faceGallery.element.uiElement)
+      }
+    }
+
     gallery.onHover = (bs : Sigma[gallery.GalleryBoxType]) => {
       for {
         lbl <- bs.value.label
@@ -98,8 +107,7 @@ object Tutorial extends JSApp {
       }
     }
 
-
-    jQuery("#demo").append(gallery.element.uiElement)
+    jQuery("#gallery-pane").append(gallery.element.uiElement)
 
   }
 

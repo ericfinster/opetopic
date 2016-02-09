@@ -4,8 +4,20 @@
 
   <h1 class="ui dividing header">Opetopic Tutorial</h1>
 
-  <div id="demo"></div>
-
-  @tutorial.svgs.threecell()
+  <div class="ui celled grid">
+    <div class="row">
+      <div class="eight wide column">
+	<div id="gallery-pane"></div>
+      </div>
+      <div class="eight wide column">
+	<div id="face-pane"></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="sixteen wide center aligned column">
+	@tutorial.svgs.threecell()
+      </div>
+    </div>
+  </div>
 
 }

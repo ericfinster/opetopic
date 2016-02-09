@@ -21,7 +21,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
   trait ActiveGallery[A[_ <: Nat]] extends ComplexGallery[A] with SelectableGallery[A] { thisGallery => 
 
     type GalleryPanelType[N <: Nat] <: ActiveGalleryPanel[N]
-    type GalleryBoxType[N <: Nat] <: ActiveGalleryCellBox[A[N], N]
+    type GalleryBoxType[N <: Nat] <: ActiveGalleryCellBox[N]
     type GalleryEdgeType[N <: Nat] <: ActiveCellEdge[A[N], N]
 
     val galleryViewport = viewport
@@ -57,11 +57,19 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
     }
 
-    trait ActiveGalleryCellBox[A, N <: Nat] extends ActiveCellBox[A, N] {
+    trait ActiveGalleryCellBox[N <: Nat] extends ActiveCellBox[A[N], N] {
 
       type BoxAddressType = Address[S[N]]
 
       var faceComplex : Option[Complex[GalleryBoxType, N]] = None
+      
+      def labelComplex : ShapeM[Complex[A, N]] = 
+        for {
+          fc <- fromOpt(faceComplex)
+        } yield fc.map(new IndexedMap[GalleryBoxType, A] {
+          def apply[N <: Nat](n: N)(box: GalleryBoxType[N]) =
+            box.label
+        })
 
       boxRect.onMouseOver = { (e: UIMouseEvent) => { hoverFaces } }
       boxRect.onMouseOut = { (e: UIMouseEvent) => { unhoverFaces } }
@@ -149,12 +157,14 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       var label: A[N],
       val address: Address[S[N]],
       val isExternal: Boolean
-    ) extends ActiveGalleryCellBox[A[N], N] {
+    ) extends ActiveGalleryCellBox[N] { thisBox => 
 
       type PanelType = SimpleActiveGalleryPanel[N]
 
       val visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
+
+      boxRect.onClick = (e: UIMouseEvent) => { thisGallery.selectAsRoot(thisBox) }
 
       //============================================================================================
       // HOVERING EVENTS
@@ -208,10 +218,10 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   object ActiveGallery {
 
-    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, v: VisualizableFamily[A]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
-    def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : ActiveGallery[A] = 
+    def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
       new SimpleActiveGallery(cfg, cmplx)
 
   }
