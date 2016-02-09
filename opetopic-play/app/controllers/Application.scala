@@ -32,6 +32,7 @@ object Application extends Controller {
   def showTutorial(page: String) = Action {
     page match {
       case "intro" => Ok(views.html.tutorial.intro())
+      case "liftings" => Ok(views.html.tutorial.liftings())
       case _ => Ok("Not found: " ++ page)
     }
   }

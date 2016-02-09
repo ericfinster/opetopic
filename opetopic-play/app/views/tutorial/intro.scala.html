@@ -2,22 +2,36 @@
 
 @tutorial.tutorial {
 
-  <h1 class="ui dividing header">Opetopic Tutorial</h1>
+  <!-- First tab -->
+  <div class="ui active tab" data-tab="geometry">
 
-  <div class="ui celled grid">
-    <div class="row">
-      <div class="eight wide column">
-	<div id="gallery-pane"></div>
+    <h1 class="ui dividing header">Opetopic Geometry</h1>
+
+    <div class="ui celled grid">
+      <div class="row">
+	<div class="eight wide column">
+	  <div id="gallery-pane"></div>
+	</div>
+	<div class="eight wide column">
+	  <div id="face-pane"></div>
+	</div>
       </div>
-      <div class="eight wide column">
-	<div id="face-pane"></div>
+      <div class="row">
+	<div class="sixteen wide center aligned column">
+	  @tutorial.svgs.threecell()
+	</div>
       </div>
     </div>
-    <div class="row">
-      <div class="sixteen wide center aligned column">
-	@tutorial.svgs.threecell()
-      </div>
-    </div>
+
+  </div>
+
+  <!-- Second tab -->
+  <div id="ext-tab" class="ui tab" data-tab="extensions">
+
+    <h1 class="ui dividing header">Extensions</h1>
+
+    @tutorial.svgs.cellctxt()
+
   </div>
 
 }

@@ -15,7 +15,9 @@ import scalatags.JsDom.all._
 
 import opetopic._
 import opetopic.ui._
-import opetopic.js.JsDomFramework.{defaultGalleryConfig => _, _}
+import opetopic.js._
+import JQuerySemanticUI._
+import JsDomFramework.{defaultGalleryConfig => _, _}
 import syntax.complex._
 
 object Tutorial extends JSApp {
@@ -23,6 +25,12 @@ object Tutorial extends JSApp {
   def main: Unit = {
 
     println("Tutorial started ...")
+
+    jQuery().tab()
+    jQuery("#next-btn").on("click", () => {
+      println("Trying to show extensions ...")
+      jQuery().tab("show-tab", "extensions")
+    })
 
     import Examples._
 
