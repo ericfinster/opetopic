@@ -2,8 +2,33 @@
 
 @tutorial.tutorial {
 
-  <!-- First tab -->
-  <div class="ui active tab" data-tab="geometry">
+  <!-- Title Page -->
+  <div id="title-page" class="ui active tab" data-tab="title-page">
+    
+    <div class="ui center aligned basic segment">
+      <div style="min-height: 100px"></div>
+      <h1 class="ui header">Higher Categories with Families</h1>
+      <h2 class="ui header">Eric Finster</h2>
+    </div>
+
+  </div>
+
+  <!-- The Basics -->
+  <div id="basics" class="ui tab" data-tab="basics">
+
+    <h1 class="ui dividing header">Opetopic Diagrams - The Basics</h1>
+
+    <div class="ui basic center aligned segment">
+      @tutorial.svgs.opetope()
+    </div>
+
+    <div class="ui basic center aligned segment">
+      @tutorial.svgs.zoom()
+    </div>
+  </div>
+
+  <!-- Geometry -->
+  <div id="geometry" class="ui tab" data-tab="geometry">
 
     <h1 class="ui dividing header">Opetopic Geometry</h1>
 
@@ -25,12 +50,121 @@
 
   </div>
 
-  <!-- Second tab -->
-  <div id="ext-tab" class="ui tab" data-tab="extensions">
+  <!-- Left Extensions -->
+  <div id="left-extension" class="ui tab" data-tab="left-extension">
 
-    <h1 class="ui dividing header">Extensions</h1>
+    <h1 class="ui dividing header">Left Extensions</h1>
 
-    @tutorial.svgs.cellctxt()
+    <div class="ui segments">
+      <div class="ui center aligned segment">
+	@tutorial.svgs.cellctxt()
+      </div>
+      <div class="ui center aligned segment">
+	@tutorial.svgs.lext1()
+      </div>
+      <div class="ui center aligned segment">
+	@tutorial.svgs.lext2()
+      </div>
+    </div>
+
+  </div>
+
+  <div id="right-extension" class="ui tab" data-tab="right-extension">
+
+    <h1 class="ui dividing header">Right Extensions</h1>
+
+    <div class="ui segments">
+      <div class="ui center aligned segment">
+	@tutorial.svgs.cellctxt()
+      </div>
+      <div class="ui center aligned segment">
+	@tutorial.svgs.rext1()
+      </div>
+      <div class="ui center aligned segment">
+	@tutorial.svgs.rext2()
+      </div>
+    </div>
+
+  </div>
+
+  <div id="property-markers" class="ui tab" data-tab="property-markers">
+
+    <h1 class="ui dividing header">Property Judgements</h1>
+
+    <div class="ui segments">
+      <div class="ui center aligned segment">
+	@tutorial.svgs.lunivmk()
+      </div>
+      <div class="ui center aligned segment">
+	@tutorial.svgs.runivmk()
+      </div>
+    </div>
+
+  </div>
+
+  <div id="univ-props" class="ui tab" data-tab="univ-props">
+
+    <h1 class="ui dividing header">Universal Properties</h1>
+
+    <div id="uprops-menu" class="ui fluid vertical accordion menu">
+      <div class="item">
+	<div class="active title"><i class="dropdown icon"></i>Left Universality</div>
+	<div class="active content">
+	  <div class="ui center aligned top attached segment">
+	    @tutorial.svgs.luniv1()
+	  </div>
+	  <div class="ui bottom attached segment">
+	    <p>
+	      1) For all s, t, p, q as indicated, there exists u and v such that v is left universal.
+	    </p>
+	  </div>
+	  <div class="ui center aligned top attached segment">
+	    @tutorial.svgs.luniv2()
+	  </div>
+	  <div class="ui bottom attached segment">
+	    <p>2) For all s, t, p, q such that q is left universal, q is right universal at p</p>
+	  </div>
+	</div>
+      </div>
+      <div class="item">
+	<div class="title"><i class="dropdown icon"></i>Right Universality</div>
+	<div class="content">
+	  <div class="ui center aligned top attached segment">
+	    @tutorial.svgs.runiv1()
+	  </div>
+	  <div class="ui bottom attached segment">
+	    <p>
+	      1) For all s, t, p, q as indicated, there exists u and v such that v is left universal.
+	    </p>
+	  </div>
+	  <div class="ui center aligned top attached segment">
+	    @tutorial.svgs.runiv2()
+	  </div>
+	  <div class="ui bottom attached segment">
+	    <p>2) For all s, t, p, q such that q is left universal, q is right universal at p</p>
+	  </div>
+	</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="opcats" class="ui tab" data-tab="opcats">
+
+    <h1 class="ui dividing header">Opetopic Categories</h1>
+
+    <div class="ui segments">
+      <div class="ui segment">
+	<p>1) Every pasting digram admits a left universal filler.</p>
+
+	<div class="ui center aligned plain segment">
+	  @tutorial.svgs.composition()
+	</div>
+      </div>
+      <div class="ui segment">
+	<p>2) If all but one face of a left universal cell is left universal, so is the remaining face.</p>
+      </div>
+    </div>
 
   </div>
 

@@ -133,17 +133,17 @@ object OpetopicTypeChecker {
       case EHom(e, c) => Hom(eval(e, rho), c.map(EvalMap(rho)))
       case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case ELeftExt(e) => LeftExt(eval(e, rho))
-      case ERightExt(e, a) => RightExt(eval(e, rho), a)
-      case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case ELeftBal(ce, c, e, f) => Nt(LeftBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), eval(f, rho)))
-      case ERightBal(ce, c, e, a, f) => Nt(RightBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), a, eval(f, rho)))
-      case EFillerLeftExt(e, fp, nch) => FillerLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case EFillerCompLeftExt(e, fp, nch) => FillerCompLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case ELift(e, fp, nch, ev) => Nt(Lift(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
-      case ELiftFiller(e, fp, nch, ev) => Nt(LiftFiller(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
-      case ELiftFillerLeftExt(e, fp, nch, ev) => Nt(LiftFillerLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
-      case EFillerLeftIsRight(e, fp, nch, ev) => Nt(FillerLeftIsRight(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
+      // case ELeftExt(e) => LeftExt(eval(e, rho))
+      // case ERightExt(e, a) => RightExt(eval(e, rho), a)
+      // case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      // case ELeftBal(ce, c, e, f) => Nt(LeftBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), eval(f, rho)))
+      // case ERightBal(ce, c, e, a, f) => Nt(RightBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), a, eval(f, rho)))
+      // case EFillerLeftExt(e, fp, nch) => FillerLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      // case EFillerCompLeftExt(e, fp, nch) => FillerCompLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      // case ELift(e, fp, nch, ev) => Nt(Lift(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
+      // case ELiftFiller(e, fp, nch, ev) => Nt(LiftFiller(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
+      // case ELiftFillerLeftExt(e, fp, nch, ev) => Nt(LiftFillerLeftExt(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
+      // case EFillerLeftIsRight(e, fp, nch, ev) => Nt(FillerLeftIsRight(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)), eval(ev, rho)))
     }
 
   //============================================================================================
@@ -187,11 +187,11 @@ object OpetopicTypeChecker {
       case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
       case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
-      case LeftExt(v) => ELeftExt(rbV(i, v))
-      case RightExt(v, a) => ERightExt(rbV(i, v), a)
-      case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
-      case FillerLeftExt(v, fp, nch) => EFillerLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
-      case FillerCompLeftExt(v, fp, nch) => EFillerCompLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      // case LeftExt(v) => ELeftExt(rbV(i, v))
+      // case RightExt(v, a) => ERightExt(rbV(i, v), a)
+      // case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      // case FillerLeftExt(v, fp, nch) => EFillerLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      // case FillerCompLeftExt(v, fp, nch) => EFillerCompLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
 
   }
@@ -202,12 +202,12 @@ object OpetopicTypeChecker {
       case App(k, m) => EApp(rbN(i, k), rbV(i, m))
       case Fst(k) => EFst(rbN(i, k))
       case Snd(k) => ESnd(rbN(i, k))
-      case RightBal(cv, c, v, a, w) => ERightBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), a, rbV(i, w))
-      case LeftBal(cv, c, v, w) => ELeftBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), rbV(i, w))
-      case Lift(v, fp, nch, ev) => ELift(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
-      case LiftFiller(v, fp, nch, ev) => ELiftFiller(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
-      case LiftFillerLeftExt(v, fp, nch, ev) => ELiftFillerLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
-      case FillerLeftIsRight(v, fp, nch, ev) => EFillerLeftIsRight(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
+      // case RightBal(cv, c, v, a, w) => ERightBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), a, rbV(i, w))
+      // case LeftBal(cv, c, v, w) => ELeftBal(rbV(i, cv), c.map(RbMap(i)), rbV(i, v), rbV(i, w))
+      // case Lift(v, fp, nch, ev) => ELift(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
+      // case LiftFiller(v, fp, nch, ev) => ELiftFiller(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
+      // case LiftFillerLeftExt(v, fp, nch, ev) => ELiftFillerLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
+      // case FillerLeftIsRight(v, fp, nch, ev) => EFillerLeftIsRight(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)), rbV(i, ev))
     }
 
   def rbRho(i: Int, r: Rho) : List[Expr] = 
@@ -494,11 +494,11 @@ object OpetopicTypeChecker {
         case u => fail("extCellG " ++ u.toString)
       }
 
-    def extLeftExt(tv: TVal) : G[Val] = 
-      tv match {
-        case LeftExt(v) => pure(v)
-        case u => fail("extLeftExt: " ++ u.toString)
-      }
+    // def extLeftExt(tv: TVal) : G[Val] = 
+    //   tv match {
+    //     case LeftExt(v) => pure(v)
+    //     case u => fail("extLeftExt: " ++ u.toString)
+    //   }
 
     e0 match {
       case EVar(x) => lookupG(x, gma)
@@ -553,271 +553,271 @@ object OpetopicTypeChecker {
         } yield Cell(cv, cmplx.map(EvalMap(rho)))
 
       }
-      case ELeftExt(e) => {
-        for {
-          t <- checkI(rho, gma, e)
-          pr <- extCellG(t)
-        } yield Type
-      }
-      case ERightExt(e, a) => {
-        for {
-          t <- checkI(rho, gma, e)
-          pr <- extCellG(t)
-          frmCmplx = pr._2
-          addr <- parseAddress(frmCmplx.dim)(a)
-          frm <- extractFrame(frmCmplx.head)
-          _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
-        } yield Type
-      }
-      case EBal(e, fp, nch) => {
+      // case ELeftExt(e) => {
+      //   for {
+      //     t <- checkI(rho, gma, e)
+      //     pr <- extCellG(t)
+      //   } yield Type
+      // }
+      // case ERightExt(e, a) => {
+      //   for {
+      //     t <- checkI(rho, gma, e)
+      //     pr <- extCellG(t)
+      //     frmCmplx = pr._2
+      //     addr <- parseAddress(frmCmplx.dim)(a)
+      //     frm <- extractFrame(frmCmplx.head)
+      //     _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
+      //   } yield Type
+      // }
+      // case EBal(e, fp, nch) => {
 
-        val cmplx : ExprComplex[Nat] = 
-          fp >> Box(EEmpty, toPd(nch))
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EEmpty, toPd(nch))
 
-        for {
-          _ <- check(rho, gma, e, Cat)
-          cv = eval(e, rho)
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          _ <- frm._2.traverse(
-            (face: ExprComplex[Nat]) => {
-              face.headValue match {
-                case EEmpty => pure(())  // Skip the empty face ...
-                case _ => checkCell(cmplx.dim)(rho, gma, face, cv)
-              }
-            }
-          )
-          empties = frm._2.nodes.filter(_.headValue == EEmpty)
-          res <- (
-            if (empties.length != 1)
-              fail("A balanced niche must have one empty cell!") 
-            else pure(Type)
-          )
-        } yield res
-      }
-      case ELeftBal(ce, c, e, f) => {
+      //   for {
+      //     _ <- check(rho, gma, e, Cat)
+      //     cv = eval(e, rho)
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     _ <- frm._2.traverse(
+      //       (face: ExprComplex[Nat]) => {
+      //         face.headValue match {
+      //           case EEmpty => pure(())  // Skip the empty face ...
+      //           case _ => checkCell(cmplx.dim)(rho, gma, face, cv)
+      //         }
+      //       }
+      //     )
+      //     empties = frm._2.nodes.filter(_.headValue == EEmpty)
+      //     res <- (
+      //       if (empties.length != 1)
+      //         fail("A balanced niche must have one empty cell!") 
+      //       else pure(Type)
+      //     )
+      //   } yield res
+      // }
+      // case ELeftBal(ce, c, e, f) => {
 
-        val cdim = c.dim
-        val cc = c >> Dot(e, S(cdim))
-        val cvar = "CV#" ++ lRho(rho).toString
+      //   val cdim = c.dim
+      //   val cc = c >> Dot(e, S(cdim))
+      //   val cvar = "CV#" ++ lRho(rho).toString
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          _ <- checkCell(S(cdim))(rho, gma, cc, cv)
-          _ <- check(rho, gma, f, LeftExt(eval(e, rho)))
-          lext <- fromShape(
-            Complex.leftExtension[ConstExpr, Nat](cdim)(cc, EVar(cvar), EEmpty)
-          )
-          tgtCell <- fromShape(cc.target)
-          tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
-        } yield Pi(tgtTy, Cl(PVar(cvar), EBal(ce, lext._1, lext._2), rho))
-      }
-      case ERightBal(ce, c, e, a, f) => {
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     _ <- checkCell(S(cdim))(rho, gma, cc, cv)
+      //     _ <- check(rho, gma, f, LeftExt(eval(e, rho)))
+      //     lext <- fromShape(
+      //       Complex.leftExtension[ConstExpr, Nat](cdim)(cc, EVar(cvar), EEmpty)
+      //     )
+      //     tgtCell <- fromShape(cc.target)
+      //     tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
+      //   } yield Pi(tgtTy, Cl(PVar(cvar), EBal(ce, lext._1, lext._2), rho))
+      // }
+      // case ERightBal(ce, c, e, a, f) => {
 
-        val cdim = c.dim
-        val cc = c >> Dot(e, S(cdim))
-        val cvar = "CV#" ++ lRho(rho).toString
+      //   val cdim = c.dim
+      //   val cc = c >> Dot(e, S(cdim))
+      //   val cvar = "CV#" ++ lRho(rho).toString
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          _ <- checkCell(S(cdim))(rho, gma, cc, cv)
-          _ <- check(rho, gma, f, RightExt(eval(e, rho), a))
-          addr <- parseAddress(cdim)(a)
-          rext <- fromShape(
-            Complex.rightExtension[ConstExpr, Nat](cdim)(cc, addr, EVar(cvar), EEmpty)
-          )
-          srcCell <- fromShape(Complex.sourceAt(cdim)(c, addr :: Nil))
-          srcTy <- extractCellType(cdim)(srcCell, cv, rho)
-        } yield Pi(srcTy, Cl(PVar(cvar), EBal(ce, rext._1, rext._2), rho))
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     _ <- checkCell(S(cdim))(rho, gma, cc, cv)
+      //     _ <- check(rho, gma, f, RightExt(eval(e, rho), a))
+      //     addr <- parseAddress(cdim)(a)
+      //     rext <- fromShape(
+      //       Complex.rightExtension[ConstExpr, Nat](cdim)(cc, addr, EVar(cvar), EEmpty)
+      //     )
+      //     srcCell <- fromShape(Complex.sourceAt(cdim)(c, addr :: Nil))
+      //     srcTy <- extractCellType(cdim)(srcCell, cv, rho)
+      //   } yield Pi(srcTy, Cl(PVar(cvar), EBal(ce, rext._1, rext._2), rho))
 
-      }
-      case EFillerLeftExt(e, fp, nch) => {
+      // }
+      // case EFillerLeftExt(e, fp, nch) => {
 
-        val cmplx : ExprComplex[Nat] = 
-          fp >> Box(EComp(e, fp, nch), toPd(nch))
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EComp(e, fp, nch), toPd(nch))
 
-        for {
-          _ <- check(rho, gma, e, Cat)
-          cv = eval(e, rho)
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          _ <- frm._2.traverse(
-            (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, cv)
-          )
-        } yield LeftExt(eval(EFill(e, fp, nch), rho))
+      //   for {
+      //     _ <- check(rho, gma, e, Cat)
+      //     cv = eval(e, rho)
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     _ <- frm._2.traverse(
+      //       (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, cv)
+      //     )
+      //   } yield LeftExt(eval(EFill(e, fp, nch), rho))
 
-      }
-      case EFillerCompLeftExt(e, fp, nch) => {
+      // }
+      // case EFillerCompLeftExt(e, fp, nch) => {
 
-        for {
-          _ <- check(rho, gma, e, Cat)
-          cv = eval(e, rho)
-          prTr <- nch.traverse({
-            case EPair(c, ev) => pure((c, ev))
-            case _ => fail("Not a pair")
-          })
-          (cTr, eTr) = Tree.unzip(prTr)
-          (cmplx : ExprComplex[Nat]) = fp >> Box(EComp(e, fp, cTr), toPd(cTr))
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          _ <- frm._2.traverse(
-            (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, cv)
-          )
-          _ <- prTr.traverse({
-            case (c, ev) => check(rho, gma, ev, LeftExt(eval(c, rho)))
-          })
-        } yield LeftExt(eval(EComp(e, fp, cTr), rho))
+      //   for {
+      //     _ <- check(rho, gma, e, Cat)
+      //     cv = eval(e, rho)
+      //     prTr <- nch.traverse({
+      //       case EPair(c, ev) => pure((c, ev))
+      //       case _ => fail("Not a pair")
+      //     })
+      //     (cTr, eTr) = Tree.unzip(prTr)
+      //     (cmplx : ExprComplex[Nat]) = fp >> Box(EComp(e, fp, cTr), toPd(cTr))
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     _ <- frm._2.traverse(
+      //       (face: ExprComplex[Nat]) => checkCell(cmplx.dim)(rho, gma, face, cv)
+      //     )
+      //     _ <- prTr.traverse({
+      //       case (c, ev) => check(rho, gma, ev, LeftExt(eval(c, rho)))
+      //     })
+      //   } yield LeftExt(eval(EComp(e, fp, cTr), rho))
 
-      }
-      case ELift(ce, fp, nch, ev) => {
+      // }
+      // case ELift(ce, fp, nch, ev) => {
 
-        val cmplx : ExprComplex[Nat] = 
-          fp >> Box(EEmpty, toPd(nch))
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EEmpty, toPd(nch))
 
-        val cdim = cmplx.dim
-        val cvar = "CV#" ++ lRho(rho).toString
+      //   val cdim = cmplx.dim
+      //   val cvar = "CV#" ++ lRho(rho).toString
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
-            case (face, addr) => 
-              face.headValue match {
-                case EEmpty => pure(-\/(addr))
-                case _ => for {
-                  _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
-                } yield \/-(())
-              }
-          })
-          res <- (
-            ckResTr.nodes.filter(_.isLeft) match {
-              case -\/(addr) :: Nil => 
-                for {
-                  tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
-                  tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
-                  srcCell <- fromShape(Complex.sourceAt(cdim)(cmplx, addr :: Nil))
-                  srcTyExpr <- extractCellTypeExpr(cdim)(srcCell, ce)
-                } yield Pi(tgtTy, Cl(PVar(cvar), srcTyExpr, rho))
-              case _ => fail("Malformed punctured niche.")
-            }
-          )
-        } yield res
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
+      //       case (face, addr) => 
+      //         face.headValue match {
+      //           case EEmpty => pure(-\/(addr))
+      //           case _ => for {
+      //             _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
+      //           } yield \/-(())
+      //         }
+      //     })
+      //     res <- (
+      //       ckResTr.nodes.filter(_.isLeft) match {
+      //         case -\/(addr) :: Nil => 
+      //           for {
+      //             tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
+      //             tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
+      //             srcCell <- fromShape(Complex.sourceAt(cdim)(cmplx, addr :: Nil))
+      //             srcTyExpr <- extractCellTypeExpr(cdim)(srcCell, ce)
+      //           } yield Pi(tgtTy, Cl(PVar(cvar), srcTyExpr, rho))
+      //         case _ => fail("Malformed punctured niche.")
+      //       }
+      //     )
+      //   } yield res
 
-      }
-      case ELiftFiller(ce, fp, nch, ev) => {
+      // }
+      // case ELiftFiller(ce, fp, nch, ev) => {
 
-        val cmplx : ExprComplex[Nat] = 
-          fp >> Box(EEmpty, toPd(nch))
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EEmpty, toPd(nch))
 
-        val cdim = cmplx.dim
-        val cvar = "CV#" ++ lRho(rho).toString
+      //   val cdim = cmplx.dim
+      //   val cvar = "CV#" ++ lRho(rho).toString
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
-            case (face, addr) => 
-              face.headValue match {
-                case EEmpty => pure(-\/(addr))
-                case _ => for {
-                  _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
-                } yield \/-(())
-              }
-          })
-          res <- (
-            ckResTr.nodes.filter(_.isLeft) match {
-              case -\/(addr) :: Nil => 
-                for {
-                  tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
-                  tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
-                  srcTr = nch map {
-                    case EEmpty => Nesting.external(cdim)(EApp(ELift(ce, fp, nch, ev), EVar(cvar)))
-                    case e => Nesting.external(cdim)(e)
-                  }
-                } yield Pi(tgtTy, Cl(PVar(cvar), ECell(ce, fp >> Box(EVar(cvar), srcTr)), rho))
-              case _ => fail("Malformed punctured niche.")
-            }
-          )
-        } yield res
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
+      //       case (face, addr) => 
+      //         face.headValue match {
+      //           case EEmpty => pure(-\/(addr))
+      //           case _ => for {
+      //             _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
+      //           } yield \/-(())
+      //         }
+      //     })
+      //     res <- (
+      //       ckResTr.nodes.filter(_.isLeft) match {
+      //         case -\/(addr) :: Nil => 
+      //           for {
+      //             tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
+      //             tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
+      //             srcTr = nch map {
+      //               case EEmpty => Nesting.external(cdim)(EApp(ELift(ce, fp, nch, ev), EVar(cvar)))
+      //               case e => Nesting.external(cdim)(e)
+      //             }
+      //           } yield Pi(tgtTy, Cl(PVar(cvar), ECell(ce, fp >> Box(EVar(cvar), srcTr)), rho))
+      //         case _ => fail("Malformed punctured niche.")
+      //       }
+      //     )
+      //   } yield res
 
-      }
-      case ELiftFillerLeftExt(ce, fp, nch, ev) => {
+      // }
+      // case ELiftFillerLeftExt(ce, fp, nch, ev) => {
 
-        val cmplx : ExprComplex[Nat] = 
-          fp >> Box(EEmpty, toPd(nch))
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EEmpty, toPd(nch))
 
-        val cdim = cmplx.dim
-        val cvar = "CV#" ++ lRho(rho).toString
+      //   val cdim = cmplx.dim
+      //   val cvar = "CV#" ++ lRho(rho).toString
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
-            case (face, addr) => 
-              face.headValue match {
-                case EEmpty => pure(-\/(addr))
-                case _ => for {
-                  _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
-                } yield \/-(())
-              }
-          })
-          tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
-          tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
-        } yield Pi(tgtTy, Cl(PVar(cvar), ELeftExt(EApp(ELiftFiller(ce, fp, nch, ev), EVar(cvar))), rho))
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
+      //       case (face, addr) => 
+      //         face.headValue match {
+      //           case EEmpty => pure(-\/(addr))
+      //           case _ => for {
+      //             _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
+      //           } yield \/-(())
+      //         }
+      //     })
+      //     tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
+      //     tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
+      //   } yield Pi(tgtTy, Cl(PVar(cvar), ELeftExt(EApp(ELiftFiller(ce, fp, nch, ev), EVar(cvar))), rho))
 
-      }
-      case EFillerLeftIsRight(ce, fp, nch, ev) => {
+      // }
+      // case EFillerLeftIsRight(ce, fp, nch, ev) => {
 
-        val cmplx : ExprComplex[Nat] = 
-          fp >> Box(EEmpty, toPd(nch))
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EEmpty, toPd(nch))
 
-        val cdim = cmplx.dim
+      //   val cdim = cmplx.dim
 
-        val l = lRho(rho)
-        val cvar = "CV#" ++ l.toString
-        val fvar = "CV#" ++ (l + 1).toString
-        val evvar = "CV#" ++ (l + 2).toString
+      //   val l = lRho(rho)
+      //   val cvar = "CV#" ++ l.toString
+      //   val fvar = "CV#" ++ (l + 1).toString
+      //   val evvar = "CV#" ++ (l + 2).toString
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          cm <- fromShape(cmplx.comultiply)
-          frm <- extractFrame(cm.head)
-          ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
-            case (face, addr) => 
-              face.headValue match {
-                case EEmpty => pure(-\/(addr))
-                case _ => for {
-                  _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
-                } yield \/-(())
-              }
-          })
-          res <- (
-            ckResTr.nodes.filter(_.isLeft) match {
-              case -\/(addr) :: Nil => 
-                for {
-                  tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
-                  tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
-                  srcTr = nch map {
-                    case EEmpty => Nesting.external(cdim)(EApp(ELift(ce, fp, nch, ev), EVar(cvar)))
-                    case e => Nesting.external(cdim)(e)
-                  }
-                  fillExprTy = ECell(ce, fp >> Box(EVar(cvar), srcTr))
-                  fillPiExpr = EPi(PVar(fvar), fillExprTy, EPi(PVar(evvar), ELeftExt(EVar(fvar)), ERightExt(EVar(fvar), rbAddr(cdim)(addr))))
-                } yield Pi(tgtTy, Cl(PVar(cvar), fillPiExpr, rho))
-              case _ => fail("Malformed punctured niche.")
-            }
-          )
-        } yield res
-      }
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     cm <- fromShape(cmplx.comultiply)
+      //     frm <- extractFrame(cm.head)
+      //     ckResTr <- frm._2.traverseWithAddress[G, \/[Address[Nat], Unit]]({
+      //       case (face, addr) => 
+      //         face.headValue match {
+      //           case EEmpty => pure(-\/(addr))
+      //           case _ => for {
+      //             _ <- checkCell(cmplx.dim)(rho, gma, face, cv)
+      //           } yield \/-(())
+      //         }
+      //     })
+      //     res <- (
+      //       ckResTr.nodes.filter(_.isLeft) match {
+      //         case -\/(addr) :: Nil => 
+      //           for {
+      //             tgtCell <- fromShape(Complex.sourceAt(cdim)(cmplx, Nil))
+      //             tgtTy <- extractCellType(cdim)(tgtCell, cv, rho)
+      //             srcTr = nch map {
+      //               case EEmpty => Nesting.external(cdim)(EApp(ELift(ce, fp, nch, ev), EVar(cvar)))
+      //               case e => Nesting.external(cdim)(e)
+      //             }
+      //             fillExprTy = ECell(ce, fp >> Box(EVar(cvar), srcTr))
+      //             fillPiExpr = EPi(PVar(fvar), fillExprTy, EPi(PVar(evvar), ELeftExt(EVar(fvar)), ERightExt(EVar(fvar), rbAddr(cdim)(addr))))
+      //           } yield Pi(tgtTy, Cl(PVar(cvar), fillPiExpr, rho))
+      //         case _ => fail("Malformed punctured niche.")
+      //       }
+      //     )
+      //   } yield res
+      // }
       case e => fail("checkI: " ++ e.toString)
     }
 

@@ -22,15 +22,40 @@ import syntax.complex._
 
 object Tutorial extends JSApp {
 
+  val slides = List(
+    "title-page",
+    "basics",
+    "geometry",
+    "left-extension",
+    "right-extension",
+    "property-markers",
+    "univ-props",
+    "opcats"
+  )
+
+  var index = 0
+
   def main: Unit = {
 
     println("Tutorial started ...")
 
     jQuery().tab()
     jQuery("#next-btn").on("click", () => {
-      println("Trying to show extensions ...")
-      jQuery().tab("show-tab", "extensions")
+      if (index < slides.length - 1) {
+        index += 1
+        val slideName = slides(index)
+        jQuery("#" ++ slideName).tab("change tab", slideName)
+      }
     })
+    jQuery("#prev-btn").on("click", () => {
+      if (index > 0) {
+        index -= 1
+        val slideName = slides(index)
+        jQuery("#" ++ slideName).tab("change tab", slideName)
+      }
+    })
+
+    jQuery("#uprops-menu").accordion()
 
     import Examples._
 

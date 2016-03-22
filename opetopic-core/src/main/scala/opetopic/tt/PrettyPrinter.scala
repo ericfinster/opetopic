@@ -45,17 +45,17 @@ object PrettyPrinter {
       case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " frame"
       case EComp(e, fp, nch) => "comp"
       case EFill(e, fp, nch) => "fill"
-      case ELeftExt(e) => "isLeftExt " ++ prettyPrint(e)
-      case ERightExt(e, a) => "isRightExt " ++ prettyPrint(e)
-      case EBal(e, fp, nch) => "isBalanced"
-      case ELeftBal(_, _, e, f) => "leftBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
-      case ERightBal(_, _, e, a, f) => "rightBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
-      case EFillerLeftExt(_, _, _) => "fillerLeftExt"
-      case EFillerCompLeftExt(_, _, _) => "fillerCompLeftExt"
-      case ELift(_, _, _, _) => "lift"
-      case ELiftFiller(_, _, _, _) => "liftFiller"
-      case ELiftFillerLeftExt(_, _, _, _) => "liftFillerLeftExt"
-      case EFillerLeftIsRight(_, _, _, _) => "fillerLeftIsRight"
+      // case ELeftExt(e) => "isLeftExt " ++ prettyPrint(e)
+      // case ERightExt(e, a) => "isRightExt " ++ prettyPrint(e)
+      // case EBal(e, fp, nch) => "isBalanced"
+      // case ELeftBal(_, _, e, f) => "leftBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
+      // case ERightBal(_, _, e, a, f) => "rightBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
+      // case EFillerLeftExt(_, _, _) => "fillerLeftExt"
+      // case EFillerCompLeftExt(_, _, _) => "fillerCompLeftExt"
+      // case ELift(_, _, _, _) => "lift"
+      // case ELiftFiller(_, _, _, _) => "liftFiller"
+      // case ELiftFillerLeftExt(_, _, _, _) => "liftFillerLeftExt"
+      // case EFillerLeftIsRight(_, _, _, _) => "fillerLeftIsRight"
     }
 
 }
