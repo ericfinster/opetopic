@@ -95,8 +95,8 @@ case class Fst(n: Neut) extends Neut
 case class Snd(n: Neut) extends Neut
 
 // Property deconstructors are neutral ...
-case class LiftLeft[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
-case class FillLeft[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
+case class LiftLeft[N <: Nat](v: Val, vv: Val) extends Neut
+case class FillLeft[N <: Nat](v: Val, vv: Val) extends Neut
 case class FillLeftIsLeft[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
 case class FillLeftIsRight[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
 case class LiftRight[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
