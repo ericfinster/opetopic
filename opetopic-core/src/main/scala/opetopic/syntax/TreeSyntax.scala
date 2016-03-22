@@ -51,6 +51,11 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
   def rootValue : ShapeM[A] =
     Tree.rootValue(tr)
 
+  def asPd : Tree[Nesting[A, N], N] = {
+    val dim = tr.dim
+    Tree.map(tr)(Nesting.external(dim)(_))
+  }
+
 }
 
 trait ToTreeOps {

@@ -46,14 +46,16 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "isLeftExt" ~ e => EIsLeftExt(e) }
     | "isRightExt" ~ expr3 ~ addrExpr ^^
         { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
+    | "fillIsLeft" ~ expr3 ~ nicheExpr ^^
+        { case "fillIsLeft" ~ e ~ ne => EFillIsLeft(e, ne.value._1, ne.value._2) }
+    | "liftLeft" ~ expr3 ~ expr3 ^^
+        { case "liftLeft" ~ e ~ ev => ELiftLeft(e, ev) }
     // | "isBalanced" ~ expr3 ~ nicheExpr ^^
     //     { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
     // | "leftBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
     //     { case "leftBalanced" ~ ce ~ frm ~ e ~ f => ELeftBal(ce, frm.value, e, f) }
     // | "rightBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ addrExpr ~ expr3 ^^
     //     { case "rightBalanced" ~ ce ~ frm ~ e ~ a ~ f => ERightBal(ce, frm.value, e, a, f) }
-    // | "fillerLeftExt" ~ expr3 ~ nicheExpr ^^
-    //     { case "fillerLeftExt" ~ e ~ ne => EFillerLeftExt(e, ne.value._1, ne.value._2) }
     // | "fillerCompLeftExt" ~ expr3 ~ nicheExpr ^^
     //     { case "fillerCompLeftExt" ~ e ~ ne => EFillerCompLeftExt(e, ne.value._1, ne.value._2) }
     // | "lift" ~ expr3 ~ nicheExpr ~ expr3 ^^
