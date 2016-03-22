@@ -23,98 +23,98 @@ let id : (X : Cat) -> (x : Obj X) -> Arrow X x x
 let refl : (X : Cat) -> (x : Obj X) -> Loop X x (id X x)
     	 = \X. \x. fill X [ obj x ]>> { leaf } 
 
-let reflIsLeftExt : (X : Cat) -> (x : Obj X) -> isLeftExt (refl X x)
-    		  = \X. \x. fillerLeftExt X [ obj x ]>> { leaf }  
+-- let reflIsLeftExt : (X : Cat) -> (x : Obj X) -> isLeftExt (refl X x)
+--     		  = \X. \x. fillerLeftExt X [ obj x ]>> { leaf }  
 
-let balancedArrow : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> Type
-    		  = \X. \x. \y. \z. \f. isBalanced X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } 
+-- let balancedArrow : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> Type
+--     		  = \X. \x. \y. \z. \f. isBalanced X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } 
 
-let liftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> (h : Arrow X x z) -> Arrow X y z
-    	     = \X. \x. \y. \z. \f. \ev. lift X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
+-- let liftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> (h : Arrow X x z) -> Arrow X y z
+--     	     = \X. \x. \y. \z. \f. \ev. lift X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
 
-let liftFillerTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> 
-    		     (h : Arrow X x z) -> Simplex X x y z f (liftTest X x y z f ev h) h
-    	     	   = \X. \x. \y. \z. \f. \ev. liftFiller X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
+-- let liftFillerTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> 
+--     		     (h : Arrow X x z) -> Simplex X x y z f (liftTest X x y z f ev h) h
+--     	     	   = \X. \x. \y. \z. \f. \ev. liftFiller X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
 
-let liftFillerLeftExtTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> 
-    		     	    (h : Arrow X x z) -> isLeftExt (liftFillerTest X x y z f ev h)
-			  = \X. \x. \y. \z. \f. \ev. liftFillerLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
+-- let liftFillerLeftExtTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> 
+--     		     	    (h : Arrow X x z) -> isLeftExt (liftFillerTest X x y z f ev h)
+-- 			  = \X. \x. \y. \z. \f. \ev. liftFillerLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
 
-let fillerLeftIsRightTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> 
-    			    (h : Arrow X x z) -> (alpha : Simplex X x y z f (liftTest X x y z f ev h) h) -> (uev : isLeftExt alpha) -> isRightExt alpha nil
-			  = \X. \x. \y. \z. \f. \ev. fillerLeftIsRight X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
+-- let fillerLeftIsRightTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (ev : balancedArrow X x y z f) -> 
+--     			    (h : Arrow X x z) -> (alpha : Simplex X x y z f (liftTest X x y z f ev h) h) -> (uev : isLeftExt alpha) -> isRightExt alpha nil
+-- 			  = \X. \x. \y. \z. \f. \ev. fillerLeftIsRight X [ box z (pt (box y (pt (obj x)))) ]>> { node empty (pt (node f (pt leaf))) } ev 
 
-let comp : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
-    	 = \X. \x. \y. \z. \f. \g. comp X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
+-- let comp : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
+--     	 = \X. \x. \y. \z. \f. \g. comp X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
 
-let compFill : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (comp X x y z f g)
-    	     = \X. \x. \y. \z. \f. \g. fill X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
+-- let compFill : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (comp X x y z f g)
+--     	     = \X. \x. \y. \z. \f. \g. fill X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
 
-let compLext : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> isLeftExt (compFill X x y z f g)
-    	     = \X. \x. \y. \z. \f. \g. fillerLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
+-- let compLext : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> isLeftExt (compFill X x y z f g)
+--     	     = \X. \x. \y. \z. \f. \g. fillerLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
 
-let compExt : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> 
-    	      (fl : isLeftExt f) -> (gl : isLeftExt g) -> isLeftExt (comp X x y z f g)
-	    = \X. \x. \y. \z. \f. \g. \fl. \gl. fillerCompLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node (g, gl) (pt (node (f, fl) (pt leaf))) } 
+-- let compExt : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> 
+--     	      (fl : isLeftExt f) -> (gl : isLeftExt g) -> isLeftExt (comp X x y z f g)
+-- 	    = \X. \x. \y. \z. \f. \g. \fl. \gl. fillerCompLeftExt X [ box z (pt (box y (pt (obj x)))) ]>> { node (g, gl) (pt (node (f, fl) (pt leaf))) } 
 
-let compWithIdent : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> Arrow X x y
-     		  = \X. \x. \y. \f. comp X x x y (id X x) f 
+-- let compWithIdent : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> Arrow X x y
+--      		  = \X. \x. \y. \f. comp X x x y (id X x) f 
 
-let compAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Arrow X x w
-		  = \X. \x. \y. \z. \w. \f. \g. \h. comp X x z w (comp X x y z f g) h 
+-- let compAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Arrow X x w
+-- 		  = \X. \x. \y. \z. \w. \f. \g. \h. comp X x z w (comp X x y z f g) h 
 
-let compAssocRight : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Arrow X x w
-		   = \X. \x. \y. \z. \w. \f. \g. \h. comp X x y w f (comp X y z w g h) 
+-- let compAssocRight : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Arrow X x w
+-- 		   = \X. \x. \y. \z. \w. \f. \g. \h. comp X x y w f (comp X y z w g h) 
 
-let fillAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Triplex X x y z w f g h (compAssocLeft X x y z w f g h)
-		  = \X. \x. \y. \z. \w. \f. \g. \h. 
-		    	comp X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
-		    	       [ box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (box (comp X x y z f g) (node (dot g) (pt (node (dot f) (pt (leaf)))))) (pt leaf))))  ]>> 
-			       { node (compFill X x z w (comp X x y z f g) h) (node leaf (pt (node (node (compFill X x y z f g) (node leaf (pt (node leaf (pt leaf))))) (pt leaf)))) } 
+-- let fillAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Triplex X x y z w f g h (compAssocLeft X x y z w f g h)
+-- 		  = \X. \x. \y. \z. \w. \f. \g. \h. 
+-- 		    	comp X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
+-- 		    	       [ box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (box (comp X x y z f g) (node (dot g) (pt (node (dot f) (pt (leaf)))))) (pt leaf))))  ]>> 
+-- 			       { node (compFill X x z w (comp X x y z f g) h) (node leaf (pt (node (node (compFill X x y z f g) (node leaf (pt (node leaf (pt leaf))))) (pt leaf)))) } 
 
-let fillAssocRight : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		     (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Triplex X x y z w f g h (compAssocRight X x y z w f g h)
-		   = \X. \x. \y. \z. \w. \f. \g. \h.  
-		     	 comp X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
-		    	      	[ box (compAssocRight X x y z w f g h) (node (box (comp X y z w g h) (node (dot h) (pt (node (dot g) (pt (leaf)))))) (pt (node (dot f) (pt leaf))))  ]>> 
-			       	{ node (compFill X x y w f (comp X y z w g h)) (node (node (compFill X y z w g h) (node leaf (pt (node leaf (pt leaf))))) (pt (node leaf (pt leaf)))) } 
+-- let fillAssocRight : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		     (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> Triplex X x y z w f g h (compAssocRight X x y z w f g h)
+-- 		   = \X. \x. \y. \z. \w. \f. \g. \h.  
+-- 		     	 comp X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
+-- 		    	      	[ box (compAssocRight X x y z w f g h) (node (box (comp X y z w g h) (node (dot h) (pt (node (dot g) (pt (leaf)))))) (pt (node (dot f) (pt leaf))))  ]>> 
+-- 			       	{ node (compFill X x y w f (comp X y z w g h)) (node (node (compFill X y z w g h) (node leaf (pt (node leaf (pt leaf))))) (pt (node leaf (pt leaf)))) } 
 
-let lextAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> isLeftExt (fillAssocLeft X x y z w f g h)
-		  = \X. \x. \y. \z. \w. \f. \g. \h. 
-		    	fillerCompLeftExt X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
-		    	  [ box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (box (comp X x y z f g) (node (dot g) (pt (node (dot f) (pt (leaf)))))) (pt leaf))))  ]>> 
-			  { node (compFill X x z w (comp X x y z f g) h , compLext X x z w (comp X x y z f g) h) 
-			    	 (node leaf (pt (node (node (compFill X x y z f g , compLext X x y z f g) 
-				 (node leaf (pt (node leaf (pt leaf))))) (pt leaf)))) } 
+-- let lextAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> isLeftExt (fillAssocLeft X x y z w f g h)
+-- 		  = \X. \x. \y. \z. \w. \f. \g. \h. 
+-- 		    	fillerCompLeftExt X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
+-- 		    	  [ box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (box (comp X x y z f g) (node (dot g) (pt (node (dot f) (pt (leaf)))))) (pt leaf))))  ]>> 
+-- 			  { node (compFill X x z w (comp X x y z f g) h , compLext X x z w (comp X x y z f g) h) 
+-- 			    	 (node leaf (pt (node (node (compFill X x y z f g , compLext X x y z f g) 
+-- 				 (node leaf (pt (node leaf (pt leaf))))) (pt leaf)))) } 
 
-let lextAssocRight : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		     (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> isLeftExt (fillAssocRight X x y z w f g h)
-		   = \X. \x. \y. \z. \w. \f. \g. \h.  
-		     	 fillerCompLeftExt X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
-		    	   [ box (compAssocRight X x y z w f g h) (node (box (comp X y z w g h) (node (dot h) (pt (node (dot g) (pt (leaf)))))) (pt (node (dot f) (pt leaf))))  ]>> 
-			   { node (compFill X x y w f (comp X y z w g h) , compLext X x y w f (comp X y z w g h)) 
-			          (node (node (compFill X y z w g h , compLext X y z w g h) 
-				  (node leaf (pt (node leaf (pt leaf))))) (pt (node leaf (pt leaf)))) } 
+-- let lextAssocRight : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		     (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> isLeftExt (fillAssocRight X x y z w f g h)
+-- 		   = \X. \x. \y. \z. \w. \f. \g. \h.  
+-- 		     	 fillerCompLeftExt X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
+-- 		    	   [ box (compAssocRight X x y z w f g h) (node (box (comp X y z w g h) (node (dot h) (pt (node (dot g) (pt (leaf)))))) (pt (node (dot f) (pt leaf))))  ]>> 
+-- 			   { node (compFill X x y w f (comp X y z w g h) , compLext X x y w f (comp X y z w g h)) 
+-- 			          (node (node (compFill X y z w g h , compLext X y z w g h) 
+-- 				  (node leaf (pt (node leaf (pt leaf))))) (pt (node leaf (pt leaf)))) } 
 
-let balAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    		   (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> 
-		   isBalanced X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>>
-		   	      	[ box (compAssocRight X x y z w f g h) (node (box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf))))))) (pt leaf)) ]>>
-				{ node empty (node (node (fillAssocLeft X x y z w f g h) (node leaf (pt (node leaf (pt (node leaf (pt leaf))))))) (pt leaf)) }
-		 = \X. \x. \y. \z. \w. \f. \g. \h. 
-		       (leftBalanced X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
-		       		       [ box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf)))))) ]
-				       (fillAssocLeft X x y z w f g h) (lextAssocLeft X x y z w f g h)) (compAssocRight X x y z w f g h) 
+-- let balAssocLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     		   (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> 
+-- 		   isBalanced X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>>
+-- 		   	      	[ box (compAssocRight X x y z w f g h) (node (box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf))))))) (pt leaf)) ]>>
+-- 				{ node empty (node (node (fillAssocLeft X x y z w f g h) (node leaf (pt (node leaf (pt (node leaf (pt leaf))))))) (pt leaf)) }
+-- 		 = \X. \x. \y. \z. \w. \f. \g. \h. 
+-- 		       (leftBalanced X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> 
+-- 		       		       [ box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf)))))) ]
+-- 				       (fillAssocLeft X x y z w f g h) (lextAssocLeft X x y z w f g h)) (compAssocRight X x y z w f g h) 
 
-let assoc : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
-    	    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> 
-	    Cell X [ box w (pt (obj x)) ]>> [ box (compAssocRight X x y z w f g h) (node (dot (compAssocLeft X x y z w f g h)) (pt leaf)) ]
-          = \X. \x. \y. \z. \w. \f. \g. \h. 
-	    	(lift X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>>
-		        [ box (compAssocRight X x y z w f g h) (node (box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf))))))) (pt leaf)) ]>>
-		        { node empty (node (node (fillAssocLeft X x y z w f g h) (node leaf (pt (node leaf (pt (node leaf (pt leaf))))))) (pt leaf)) } (balAssocLeft X x y z w f g h))
-			(fillAssocRight X x y z w f g h) 
+-- let assoc : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> 
+--     	    (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> 
+-- 	    Cell X [ box w (pt (obj x)) ]>> [ box (compAssocRight X x y z w f g h) (node (dot (compAssocLeft X x y z w f g h)) (pt leaf)) ]
+--           = \X. \x. \y. \z. \w. \f. \g. \h. 
+-- 	    	(lift X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>>
+-- 		        [ box (compAssocRight X x y z w f g h) (node (box (compAssocLeft X x y z w f g h) (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf))))))) (pt leaf)) ]>>
+-- 		        { node empty (node (node (fillAssocLeft X x y z w f g h) (node leaf (pt (node leaf (pt (node leaf (pt leaf))))))) (pt leaf)) } (balAssocLeft X x y z w f g h))
+-- 			(fillAssocRight X x y z w f g h) 

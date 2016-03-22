@@ -133,8 +133,8 @@ object OpetopicTypeChecker {
       case EHom(e, c) => Hom(eval(e, rho), c.map(EvalMap(rho)))
       case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      // case ELeftExt(e) => LeftExt(eval(e, rho))
-      // case ERightExt(e, a) => RightExt(eval(e, rho), a)
+      case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
+      case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
       // case EBal(e, fp, nch) => Bal(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       // case ELeftBal(ce, c, e, f) => Nt(LeftBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), eval(f, rho)))
       // case ERightBal(ce, c, e, a, f) => Nt(RightBal(eval(ce, rho), c.map(EvalMap(rho)), eval(e, rho), a, eval(f, rho)))
@@ -187,9 +187,8 @@ object OpetopicTypeChecker {
       case Cell(v, c) => ECell(rbV(i, v), c.map(RbMap(i)))
       case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
-      // case LeftExt(v) => ELeftExt(rbV(i, v))
-      // case RightExt(v, a) => ERightExt(rbV(i, v), a)
-      // case Bal(v, fp, nch) => EBal(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
+      case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
       // case FillerLeftExt(v, fp, nch) => EFillerLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       // case FillerCompLeftExt(v, fp, nch) => EFillerCompLeftExt(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
     }
@@ -553,22 +552,22 @@ object OpetopicTypeChecker {
         } yield Cell(cv, cmplx.map(EvalMap(rho)))
 
       }
-      // case ELeftExt(e) => {
-      //   for {
-      //     t <- checkI(rho, gma, e)
-      //     pr <- extCellG(t)
-      //   } yield Type
-      // }
-      // case ERightExt(e, a) => {
-      //   for {
-      //     t <- checkI(rho, gma, e)
-      //     pr <- extCellG(t)
-      //     frmCmplx = pr._2
-      //     addr <- parseAddress(frmCmplx.dim)(a)
-      //     frm <- extractFrame(frmCmplx.head)
-      //     _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
-      //   } yield Type
-      // }
+      case EIsLeftExt(e) => {
+        for {
+          t <- checkI(rho, gma, e)
+          pr <- extCellG(t)
+        } yield Type
+      }
+      case EIsRightExt(e, a) => {
+        for {
+          t <- checkI(rho, gma, e)
+          pr <- extCellG(t)
+          frmCmplx = pr._2
+          addr <- parseAddress(frmCmplx.dim)(a)
+          frm <- extractFrame(frmCmplx.head)
+          _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
+        } yield Type
+      }
       // case EBal(e, fp, nch) => {
 
       //   val cmplx : ExprComplex[Nat] = 

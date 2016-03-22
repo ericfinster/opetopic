@@ -42,10 +42,10 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "comp" ~ e ~ ne => EComp(e, ne.value._1, ne.value._2) }
     | "fill" ~ expr3 ~ nicheExpr ^^
         { case "fill" ~ e ~ ne => EFill(e, ne.value._1, ne.value._2) }
-    // | "isLeftExt" ~ expr3 ^^
-    //     { case "isLeftExt" ~ e => ELeftExt(e) }
-    // | "isRightExt" ~ expr3 ~ addrExpr ^^
-    //     { case "isRightExt" ~ e ~ ae => ERightExt(e, ae) }
+    | "isLeftExt" ~ expr3 ^^
+        { case "isLeftExt" ~ e => EIsLeftExt(e) }
+    | "isRightExt" ~ expr3 ~ addrExpr ^^
+        { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
     // | "isBalanced" ~ expr3 ~ nicheExpr ^^
     //     { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
     // | "leftBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
