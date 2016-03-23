@@ -122,6 +122,13 @@ final class ComplexSuccOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, S[N]]) {
       tr = pr._2
     } yield (tl >> Box(v, Tree.map(tr)(Nesting.external(tr.dim)(_))))
 
+  def rightExtend(addr: Address[N])(t: A[N], u: A[S[N]], v: A[S[N]]) : ShapeM[Complex[A, S[N]]] = 
+    for {
+      pr <- Complex.rightExtension(cmplx.length.pred.pred)(cmplx, addr, t, u)
+      tl = pr._1
+      tr = pr._2
+    } yield (tl >> Box(v, Tree.map(tr)(Nesting.external(tr.dim)(_))))
+
 }
 
 trait ToComplexOps {

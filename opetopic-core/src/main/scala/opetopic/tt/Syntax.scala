@@ -52,12 +52,12 @@ case class EShellIsLeft[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr // n 
 // Left and right lifting expressions
 case class ELiftLeft[N <: Nat](e: Expr, ev: Expr) extends Expr
 case class EFillLeft[N <: Nat](e: Expr, ev: Expr) extends Expr
-case class EFillLeftIsLeft[N <: Nat](ce: Expr, c: ExprComplex[N]) extends Expr
-case class EFillLeftIsRight[N <: Nat](ce: Expr, c: ExprComplex[N]) extends Expr
-case class ELiftRight[N <: Nat](ce: Expr, c: ExprComplex[N]) extends Expr
-case class EFillRight[N <: Nat](ce: Expr, c: ExprComplex[N]) extends Expr
-case class EFillRightIsLeft[N <: Nat](ce: Expr, c: ExprComplex[N]) extends Expr
-case class EFillRightIsRight[N <: Nat](ce: Expr, c: ExprComplex[N]) extends Expr
+case class EFillLeftIsLeft[N <: Nat](e: Expr, ev: Expr) extends Expr
+case class EFillLeftIsRight[N <: Nat](e: Expr, ev: Expr) extends Expr
+case class ELiftRight[N <: Nat](e: Expr, ev: Expr) extends Expr
+case class EFillRight[N <: Nat](e: Expr, ev: Expr) extends Expr
+case class EFillRightIsLeft[N <: Nat](e: Expr, ev: Expr) extends Expr
+case class EFillRightIsRight[N <: Nat](e: Expr, ev: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -97,12 +97,12 @@ case class Snd(n: Neut) extends Neut
 // Property deconstructors are neutral ...
 case class LiftLeft[N <: Nat](v: Val, vv: Val) extends Neut
 case class FillLeft[N <: Nat](v: Val, vv: Val) extends Neut
-case class FillLeftIsLeft[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
-case class FillLeftIsRight[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
-case class LiftRight[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
-case class FillRight[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
-case class FillRightIsLeft[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
-case class FillRightIsRight[N <: Nat](v: Val, c: ValComplex[N]) extends Neut
+case class FillLeftIsLeft[N <: Nat](v: Val, vv: Val) extends Neut
+case class FillLeftIsRight[N <: Nat](v: Val, vv: Val) extends Neut
+case class LiftRight[N <: Nat](v: Val, vv: Val) extends Neut
+case class FillRight[N <: Nat](v: Val, vv: Val) extends Neut
+case class FillRightIsLeft[N <: Nat](v: Val, vv: Val) extends Neut
+case class FillRightIsRight[N <: Nat](v: Val, vv: Val) extends Neut
 
 // Addresses
 sealed trait Addr

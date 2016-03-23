@@ -139,6 +139,12 @@ object OpetopicTypeChecker {
       case EFillIsLeft(e, fp, nch) => FillIsLeft(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case ELiftLeft(e, ev) => Nt(LiftLeft(eval(e, rho), eval(ev, rho)))
       case EFillLeft(e, ev) => Nt(FillLeft(eval(e, rho), eval(ev, rho)))
+      case EFillLeftIsLeft(e, ev) => Nt(FillLeftIsLeft(eval(e, rho), eval(ev, rho)))
+      case EFillLeftIsRight(e, ev) => Nt(FillLeftIsRight(eval(e, rho), eval(ev, rho)))
+      case ELiftRight(e, ev) => Nt(LiftRight(eval(e, rho), eval(ev, rho)))
+      case EFillRight(e, ev) => Nt(FillRight(eval(e, rho), eval(ev, rho)))
+      case EFillRightIsLeft(e, ev) => Nt(FillRightIsLeft(eval(e, rho), eval(ev, rho)))
+      case EFillRightIsRight(e, ev) => Nt(FillRightIsRight(eval(e, rho), eval(ev, rho)))
     }
 
   //============================================================================================
@@ -203,6 +209,12 @@ object OpetopicTypeChecker {
       case Snd(k) => ESnd(rbN(i, k))
       case LiftLeft(v, vv) => ELiftLeft(rbV(i, v), rbV(i, vv))
       case FillLeft(v, vv) => EFillLeft(rbV(i, v), rbV(i, vv))
+      case FillLeftIsLeft(v, vv) => EFillLeftIsLeft(rbV(i, v), rbV(i, vv))
+      case FillLeftIsRight(v, vv) => EFillLeftIsRight(rbV(i, v), rbV(i, vv))
+      case LiftRight(v, vv) => ELiftRight(rbV(i, v), rbV(i, vv))
+      case FillRight(v, vv) => EFillRight(rbV(i, v), rbV(i, vv))
+      case FillRightIsLeft(v, vv) => EFillRightIsLeft(rbV(i, v), rbV(i, vv))
+      case FillRightIsRight(v, vv) => EFillRightIsRight(rbV(i, v), rbV(i, vv))
     }
 
   def rbRho(i: Int, r: Rho) : List[Expr] = 
@@ -484,6 +496,12 @@ object OpetopicTypeChecker {
         case u => fail("extCellG " ++ u.toString)
       }
 
+    def extRightExt(tv: TVal) : G[(Val, Addr)] = 
+      tv match {
+        case IsRightExt(v, a) => pure((v, a))
+        case u => fail("extRightExt: " ++ u.toString)
+      }
+
     // def extLeftExt(tv: TVal) : G[Val] = 
     //   tv match {
     //     case LeftExt(v) => pure(v)
@@ -582,6 +600,7 @@ object OpetopicTypeChecker {
         for {
           t <- checkI(rho, gma, e)
           cellInfo <- extCellG(t)
+          _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
           lext <- {
 
             val frm = cellInfo._3
@@ -615,6 +634,7 @@ object OpetopicTypeChecker {
         for {
           t <- checkI(rho, gma, e)
           cellInfo <- extCellG(t)
+          _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
           lext <- {
 
             val frm = cellInfo._3
@@ -633,6 +653,46 @@ object OpetopicTypeChecker {
           liftCell <- fromShape(lext.sourceAt(Nil))
           liftTyExpr <- extractCellTypeExpr(liftCell.dim)(liftCell, cellInfo._1)
         } yield Pi(tgtTy, Cl(PVar(tgtVar), EPi(PVar(liftVar), liftTyExpr, ECell(cellInfo._1, lext)), rho))
+
+      }
+      case ELiftRight(e, ev) => {
+
+        val l = lRho(rho)
+        val extVar = "CV#" + l.toString
+        val liftVar = "CV#" + (l+1).toString
+
+        for {
+          t <- checkI(rho, gma, e)
+          cellInfo <- extCellG(t)
+          u <- checkI(rho, gma, ev)
+          pr <- extRightExt(u)
+          _ <- eqNf(l, pr._1, eval(e, rho))
+          pr2 <- {
+
+            val frm = cellInfo._3
+            val cell : ExprComplex[S[frm.N]] = 
+              frm.value >> Dot(e, S(frm.dim))
+
+            for {
+              addr <- parseAddress(frm.dim)(pr._2)
+              res <- fromShape(cell.rightExtend(addr)(EVar(extVar), EEmpty, EVar(liftVar)))
+            } yield (res, addr)
+          }
+          rext = pr2._1
+          addr = pr2._2
+          // // The are the cells whose frames we want to abstract over ...
+          extCell <- fromShape(rext.tail.sourceAt(addr :: Nil))
+          extTy <- extractCellType(extCell.dim)(extCell, cellInfo._1, cellInfo._2)
+          liftCell <- fromShape(rext.sourceAt(Nil))
+          liftTyExpr <- extractCellTypeExpr(liftCell.dim)(liftCell, cellInfo._1)
+          // ... and this is where the lift will land 
+          resCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+          resTyExpr <- extractCellTypeExpr(resCell.dim)(resCell, cellInfo._1)
+        } yield Pi(extTy, Cl(PVar(extVar), EPi(PVar(liftVar), liftTyExpr, resTyExpr), rho))
+
+        // FIXME: I'm not sure about the environment here in the closure.  Should
+        //        we use the one recorded by the Cell instance?  Somehow it seems like yes ...
+
 
       }
       // case ELift(ce, fp, nch, ev) => {
