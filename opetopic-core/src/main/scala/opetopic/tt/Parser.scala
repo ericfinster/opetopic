@@ -48,8 +48,8 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
     | "fillIsLeft" ~ expr3 ~ nicheExpr ^^
         { case "fillIsLeft" ~ e ~ ne => EFillIsLeft(e, ne.value._1, ne.value._2) }
-    | "liftLeft" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
-        { case "liftLeft" ~ ce ~ frm ~ e ~ ev => ELiftLeft(ce, frm.value, e, ev) }
+    | "liftLeft" ~ expr3 ~ expr3 ^^
+        { case "liftLeft" ~ e ~ ev => ELiftLeft(e, ev) }
     | "fillLeft" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
         { case "fillLeft" ~ ce ~ frm ~ e ~ ev => EFillLeft(ce, frm.value, e, ev) }
     | "liftRight" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ~ addrExpr ^^

@@ -32,6 +32,11 @@ object OpetopicTypeChecker {
         case Cl(p, e, rho) => eval(e, UpVar(rho, p, v))
       }
 
+    def patt: Patt = 
+      c match {
+        case Cl(p, _, _) => p 
+      }
+
   }
 
   //============================================================================================
@@ -137,7 +142,8 @@ object OpetopicTypeChecker {
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
       case EFillIsLeft(e, fp, nch) => FillIsLeft(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case ELiftLeft(ce, frm, e, ev) => Nt(LiftLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
+      // case EShellIsLeft(ce, frm, e, ev) => ShellIsLeft(eval(e, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho))
+      case ELiftLeft(e, ev) => Nt(LiftLeft(eval(e, rho), eval(ev, rho)))
       case EFillLeft(ce, frm, e, ev) => Nt(FillLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
       case EFillLeftIsLeft(ce, frm, e, ev) => Nt(FillLeftIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
       case EFillLeftIsRight(ce, frm, e, ev) => Nt(FillLeftIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
@@ -207,7 +213,8 @@ object OpetopicTypeChecker {
       case App(k, m) => EApp(rbN(i, k), rbV(i, m))
       case Fst(k) => EFst(rbN(i, k))
       case Snd(k) => ESnd(rbN(i, k))
-      case LiftLeft(cv, fv, v, ev) => ELiftLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
+      // case LiftLeft(cv, fv, v, ev) => ELiftLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
+      case LiftLeft(v, ev) => ELiftLeft(rbV(i, v), rbV(i, ev))
       case FillLeft(cv, fv, v, ev) => EFillLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
       case FillLeftIsLeft(cv, fv, v, ev) => EFillLeftIsLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
       case FillLeftIsRight(cv, fv, v, ev) => EFillLeftIsRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
@@ -233,6 +240,7 @@ object OpetopicTypeChecker {
   import scalaz.\/-
   import scalaz.Monad
   import scalaz.std.list._
+  import scalaz.std.string._
 
   type ErrorMessage = String
   type G[A] = \/[ErrorMessage, A]
@@ -402,6 +410,17 @@ object OpetopicTypeChecker {
   }
 
   @natElim
+  def getCellType[N <: Nat](n: N)(vc: ValComplex[N], cv: Val) : G[Val] = {
+    case (Z, Complex(_, Obj(v)), cv) => pure(Ob(cv))
+    case (Z, Complex(_, _), cv) => fail("Not an object")
+    case (S(p), Complex(tl, Dot(v, _)), cv) => pure(Cell(cv, tl))
+    case (S(p), Complex(tl, _), cv) => fail("Not a cell")
+  }
+
+  def getCellType[N <: Nat](vc: ValComplex[N], cv: Val) : G[Val] = 
+    getCellType(vc.dim)(vc, cv)
+
+  @natElim
   def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
     case (Z, AUnit) => pure(())
     case (Z, _) => fail("parseAdress: only unit in dim 0")
@@ -420,6 +439,26 @@ object OpetopicTypeChecker {
     case (S(p), Nil) => ANil
     case (S(p), hd :: tl) => ACons(rbAddr(p)(hd), rbAddr(S(p))(tl))
   }
+
+  // Type Extractors
+
+  def extSigG(tv: TVal) : G[(TVal, Clos)] =
+    tv match {
+      case Sig(t, g) => pure((t, g))
+      case u => fail("extSigG " ++ u.toString)
+    }
+
+  def extPiG(tv: TVal) : G[(TVal, Clos)] =
+    tv match {
+      case Pi(t, g) => pure((t, g))
+      case u => fail("extPiG " ++ u.toString)
+    }
+
+  def extCellG(tv: TVal) : G[(Val, Sigma[ValComplex])] =
+    tv match {
+      case Cell(cv, fv) => pure(cv, Sigma(fv.dim)(fv))
+      case u => fail("extCellG " ++ u.toString)
+    }
 
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
     (e0, t0) match {
@@ -467,6 +506,60 @@ object OpetopicTypeChecker {
           _ <- check(rho, gma, e, Cat)
           _ <- checkFrame(c.dim)(rho, gma, c, eval(e, rho))
         } yield ()
+      case (ELiftLeft(e, ev), Pi(t, g)) => {
+
+        val l = lRho(rho)
+
+        val cGen = Nt(Gen(l, "TC#"))
+        val tGen = Nt(Gen(l + 1, "TC#"))
+
+        for {
+          et <- checkI(rho, gma, e)
+          v = eval(e, rho)
+          (cv, vfrm) <- extCellG(et)
+          _ <- check(rho, gma, ev, IsLeftExt(v))
+          cell = vfrm.value >> Dot(v, S(vfrm.dim))
+          lext <- fromShape(cell.leftExtend(cGen, Empty, tGen))
+          cCell <- fromShape(lext.target)
+          cTy <- getCellType(cCell, cv)
+          _ <- eqNf(lRho(rho), cTy, t)
+          (t1, g1) <- extPiG(g * cGen)
+          tCell <- fromShape(lext.sourceAt(Nil))
+          tTy <- getCellType(tCell, cv)
+          _ <- eqNf(lRho(rho), tTy, t1)
+          t2 = g1 * tGen
+          lCell <- fromShape(lext.sourceAt(Nil :: Nil))
+          lTy <- getCellType(lCell, cv)
+          _ <- eqNf(lRho(rho), lTy, t2)
+        } yield ()
+
+      }
+      case (EFillLeft(e, ev), Pi(t, g)) => {
+
+        val l = lRho(rho)
+
+        val cGen = Nt(Gen(l, "TC#"))
+        val tGen = Nt(Gen(l + 1, "TC#"))
+
+        for {
+          et <- checkI(rho, gma, e)
+          v = eval(e, rho)
+          (cv, vfrm) <- extCellG(et)
+          _ <- check(rho, gma, ev, IsLeftExt(v))
+          cell = vfrm.value >> Dot(v, S(vfrm.dim))
+          lext <- fromShape(cell.leftExtend(cGen, LiftLeft(v, IsLeftExt(v)), tGen))
+          cCell <- fromShape(lext.target)
+          cTy <- getCellType(cCell, cv)
+          _ <- eqNf(lRho(rho), cTy, t)
+          (t1, g1) <- extPiG(g * cGen)
+          tCell <- fromShape(lext.sourceAt(Nil))
+          tTy <- getCellType(tCell, cv)
+          _ <- eqNf(lRho(rho), tTy, t1)
+          t2 = g1 * tGen
+          _ <- eqNf(lRho(rho), Cell(cv, lext), t2)
+        } yield ()
+
+      }
       case (e, t) => {
         for {
           t1 <- checkI(rho, gma, e)
@@ -477,44 +570,23 @@ object OpetopicTypeChecker {
 
   // Try to infer a type for the given expression
   def checkI(rho: Rho, gma: Gamma, e0: Expr) : G[TVal] = {
-
-    def extPiG(tv: TVal) : G[(TVal, Clos)] = 
-      tv match {
-        case Pi(t, g) => pure((t, g))
-        case u => fail("extPiG " ++ u.toString)
-      }
-
-    def extSigG(tv: TVal) : G[(TVal, Clos)] = 
-      tv match {
-        case Sig(t, g) => pure((t, g))
-        case u => fail("extSigG " ++ u.toString)
-      }
-
-    def extCellG(tv: TVal) : G[(Val, Sigma[ValComplex])] = 
-      tv match {
-        case Cell(cv, fv) => pure(cv, Sigma(fv.dim)(fv)) 
-        case u => fail("extCellG " ++ u.toString)
-      }
-
     e0 match {
       case EVar(x) => lookupG(x, gma)
       case EApp(e1, e2) =>
         for {
           t1 <- checkI(rho, gma, e1)
-          pr <- extPiG(t1)
-          (t, g) = pr
+          (t, g) <- extPiG(t1)
           _ <- check(rho, gma, e2, t)
         } yield (g * eval(e2, rho))
       case EFst(e) =>
         for {
           t1 <- checkI(rho, gma, e)
-          pr <- extSigG(t1)
-        } yield pr._1
+          (t, _) <- extSigG(t1)
+        } yield t
       case ESnd(e) =>
         for {
           t <- checkI(rho, gma, e)
-          pr <- extSigG(t)
-          (_, g) = pr
+          (_, g) <- extSigG(t)
         } yield g * vfst(eval(e, rho))
       case (cmp @ EComp(e, fp, nch)) => {
 
@@ -551,14 +623,13 @@ object OpetopicTypeChecker {
       case EIsLeftExt(e) => {
         for {
           t <- checkI(rho, gma, e)
-          pr <- extCellG(t)
+          _ <- extCellG(t)
         } yield Type
       }
       case EIsRightExt(e, a) => {
         for {
           t <- checkI(rho, gma, e)
-          pr <- extCellG(t)
-          fv = pr._2
+          (_, fv) <- extCellG(t)
           addr <- parseAddress(fv.dim)(a)
           frm <- extractFrame(fv.head)
           _ <- fromShape(frm._2.seekTo(addr))  // Seek to the address to make sure it's valid
@@ -580,230 +651,230 @@ object OpetopicTypeChecker {
         } yield IsLeftExt(eval(EFill(e, fp, nch), rho))
 
       }
-      case ELiftLeft(ce, frm, e, ev) => {
+      // case ELiftLeft(ce, frm, e, ev) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
-          lext <- fromShape(cell.leftExtend(EVar(cVar), EEmpty, EVar(tVar)))
-          cCell <- fromShape(lext.target)
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(lext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-          lCell <- fromShape(lext.sourceAt(Nil :: Nil))
-          lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
-        } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, lTyExpr)), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
+      //     lext <- fromShape(cell.leftExtend(EVar(cVar), EEmpty, EVar(tVar)))
+      //     cCell <- fromShape(lext.target)
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(lext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //     lCell <- fromShape(lext.sourceAt(Nil :: Nil))
+      //     lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
+      //   } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, lTyExpr)), rho)
 
-      }
-      case EFillLeft(ce, frm, e, ev) => {
+      // }
+      // case EFillLeft(ce, frm, e, ev) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
 
-        val lExpr = EApp(EApp(ELiftLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar))
+      //   val lExpr = EApp(EApp(ELiftLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar))
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
-          lext <- fromShape(cell.leftExtend(EVar(cVar), lExpr, EVar(tVar)))
-          cCell <- fromShape(lext.target)
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(lext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-        } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, ECell(ce, lext))), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
+      //     lext <- fromShape(cell.leftExtend(EVar(cVar), lExpr, EVar(tVar)))
+      //     cCell <- fromShape(lext.target)
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(lext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //   } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, ECell(ce, lext))), rho)
 
-      }
-      case EFillLeftIsLeft(ce, frm, e, ev) => {
+      // }
+      // case EFillLeftIsLeft(ce, frm, e, ev) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
 
-        val lExpr = EApp(EApp(ELiftLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar))
+      //   val lExpr = EApp(EApp(ELiftLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar))
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
-          lext <- fromShape(cell.leftExtend(EVar(cVar), lExpr, EVar(tVar)))
-          cCell <- fromShape(lext.target)
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(lext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-        } yield eval(
-          EPi(PVar(cVar), cTyExpr, 
-            EPi(PVar(tVar), tTyExpr, 
-              EIsLeftExt(EApp(EApp(EFillLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar)))
-            )), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
+      //     lext <- fromShape(cell.leftExtend(EVar(cVar), lExpr, EVar(tVar)))
+      //     cCell <- fromShape(lext.target)
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(lext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //   } yield eval(
+      //     EPi(PVar(cVar), cTyExpr, 
+      //       EPi(PVar(tVar), tTyExpr, 
+      //         EIsLeftExt(EApp(EApp(EFillLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar)))
+      //       )), rho)
 
-      }
-      case EFillLeftIsRight(ce, frm, e, ev) => {
+      // }
+      // case EFillLeftIsRight(ce, frm, e, ev) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
-        val lVar = "CV#" + (l+2).toString  // The lift
-        val fVar = "CV#" + (l+3).toString  // The fill
-        val evVar = "CV" + (l+4).toString  // The evidence
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
+      //   val lVar = "CV#" + (l+2).toString  // The lift
+      //   val fVar = "CV#" + (l+3).toString  // The fill
+      //   val evVar = "CV" + (l+4).toString  // The evidence
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
-          lext <- fromShape(cell.leftExtend(EVar(cVar), EVar(lVar), EVar(tVar)))
-          cCell <- fromShape(lext.target)
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(lext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-          lCell <- fromShape(lext.sourceAt(Nil :: Nil))
-          lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
-        } yield eval(
-          EPi(PVar(cVar), cTyExpr,
-            EPi(PVar(tVar), tTyExpr, 
-              EPi(PVar(lVar), lTyExpr, 
-                EPi(PVar(fVar), ECell(ce, lext), 
-                  EPi(PVar(evVar), EIsLeftExt(EVar(fVar)),
-                    EIsRightExt(EVar(fVar), ACons(ANil, ANil))  // CHECK: Is this address correct?
-                  ))))), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
+      //     lext <- fromShape(cell.leftExtend(EVar(cVar), EVar(lVar), EVar(tVar)))
+      //     cCell <- fromShape(lext.target)
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(lext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //     lCell <- fromShape(lext.sourceAt(Nil :: Nil))
+      //     lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
+      //   } yield eval(
+      //     EPi(PVar(cVar), cTyExpr,
+      //       EPi(PVar(tVar), tTyExpr, 
+      //         EPi(PVar(lVar), lTyExpr, 
+      //           EPi(PVar(fVar), ECell(ce, lext), 
+      //             EPi(PVar(evVar), EIsLeftExt(EVar(fVar)),
+      //               EIsRightExt(EVar(fVar), ACons(ANil, ANil))  // CHECK: Is this address correct?
+      //             ))))), rho)
 
-      }
-      case ELiftRight(ce, frm, e, ev, a) => {
+      // }
+      // case ELiftRight(ce, frm, e, ev, a) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
-          addr <- parseAddress(frm.dim)(a)
-          rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), EEmpty, EVar(tVar)))
-          cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(rext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-          lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-          lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
-        } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, lTyExpr)), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
+      //     addr <- parseAddress(frm.dim)(a)
+      //     rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), EEmpty, EVar(tVar)))
+      //     cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(rext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //     lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+      //     lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
+      //   } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, lTyExpr)), rho)
 
-      }
-      case EFillRight(ce, frm, e, ev, a) => {
+      // }
+      // case EFillRight(ce, frm, e, ev, a) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
 
-        val rExpr = EApp(EApp(ELiftRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar))
+      //   val rExpr = EApp(EApp(ELiftRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar))
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
-          addr <- parseAddress(frm.dim)(a)
-          rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), rExpr, EVar(tVar)))
-          cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(rext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-        } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, ECell(ce, rext))), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
+      //     addr <- parseAddress(frm.dim)(a)
+      //     rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), rExpr, EVar(tVar)))
+      //     cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(rext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //   } yield eval(EPi(PVar(cVar), cTyExpr, EPi(PVar(tVar), tTyExpr, ECell(ce, rext))), rho)
 
-      }
-      case EFillRightIsLeft(ce, frm, e, ev, a) => {
+      // }
+      // case EFillRightIsLeft(ce, frm, e, ev, a) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
 
-        val rExpr = EApp(EApp(ELiftRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar))
+      //   val rExpr = EApp(EApp(ELiftRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar))
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
-          addr <- parseAddress(frm.dim)(a)
-          rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), rExpr, EVar(tVar)))
-          cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(rext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-        } yield eval(
-          EPi(PVar(cVar), cTyExpr, 
-            EPi(PVar(tVar), tTyExpr, 
-              EIsLeftExt(EApp(EApp(EFillRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar)))
-            )), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
+      //     addr <- parseAddress(frm.dim)(a)
+      //     rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), rExpr, EVar(tVar)))
+      //     cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(rext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //   } yield eval(
+      //     EPi(PVar(cVar), cTyExpr, 
+      //       EPi(PVar(tVar), tTyExpr, 
+      //         EIsLeftExt(EApp(EApp(EFillRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar)))
+      //       )), rho)
 
-      }
-      case EFillRightIsRight(ce, frm, e, ev, a) => {
+      // }
+      // case EFillRightIsRight(ce, frm, e, ev, a) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cVar = "CV#" + l.toString      // The competitor
-        val tVar = "CV#" + (l+1).toString  // The target
-        val lVar = "CV#" + (l+2).toString  // The lift
-        val fVar = "CV#" + (l+3).toString  // The fill
-        val evVar = "CV" + (l+4).toString  // The evidence
+      //   val cVar = "CV#" + l.toString      // The competitor
+      //   val tVar = "CV#" + (l+1).toString  // The target
+      //   val lVar = "CV#" + (l+2).toString  // The lift
+      //   val fVar = "CV#" + (l+3).toString  // The fill
+      //   val evVar = "CV" + (l+4).toString  // The evidence
 
-        for {
-          _ <- check(rho, gma, ce, Cat)
-          cv = eval(ce, rho)
-          d = S(frm.dim)
-          cell = frm >> Dot(e, d)
-          _ <- checkCell(d)(rho, gma, cell, cv)
-          _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
-          addr <- parseAddress(frm.dim)(a)
-          rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), EVar(lVar), EVar(tVar)))
-          cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
-          cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-          tCell <- fromShape(rext.sourceAt(Nil))
-          tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-          lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-          lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
-        } yield eval(
-          EPi(PVar(cVar), cTyExpr, 
-            EPi(PVar(tVar), tTyExpr, 
-              EPi(PVar(lVar), lTyExpr,
-                EPi(PVar(fVar), ECell(ce, rext),
-                  EPi(PVar(evVar), EIsLeftExt(EVar(fVar)),
-                    EIsRightExt(EVar(fVar), rbAddr(S(frm.dim))(addr :: Nil))
-                  ))))), rho)
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     d = S(frm.dim)
+      //     cell = frm >> Dot(e, d)
+      //     _ <- checkCell(d)(rho, gma, cell, cv)
+      //     _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
+      //     addr <- parseAddress(frm.dim)(a)
+      //     rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), EVar(lVar), EVar(tVar)))
+      //     cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
+      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
+      //     tCell <- fromShape(rext.sourceAt(Nil))
+      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
+      //     lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+      //     lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
+      //   } yield eval(
+      //     EPi(PVar(cVar), cTyExpr, 
+      //       EPi(PVar(tVar), tTyExpr, 
+      //         EPi(PVar(lVar), lTyExpr,
+      //           EPi(PVar(fVar), ECell(ce, rext),
+      //             EPi(PVar(evVar), EIsLeftExt(EVar(fVar)),
+      //               EIsRightExt(EVar(fVar), rbAddr(S(frm.dim))(addr :: Nil))
+      //             ))))), rho)
 
-      }
+      // }
       case e => fail("checkI: " ++ e.toString)
     }
 

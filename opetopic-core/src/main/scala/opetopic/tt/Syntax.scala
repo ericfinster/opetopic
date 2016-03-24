@@ -47,10 +47,11 @@ case class EIsRightExt(e: Expr, a: Addr) extends Expr
 
 // Property constructors
 case class EFillIsLeft[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
-case class EShellIsLeft[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr // n for n-1
+case class EShellIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e:Expr, ev: Expr) extends Expr
 
 // Left and right lifting expressions
-case class ELiftLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
+// case class ELiftLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
+case class ELiftLeft(e: Expr, ev: Expr) extends Expr
 case class EFillLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
 case class EFillLeftIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
 case class EFillLeftIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
@@ -95,14 +96,14 @@ case class Fst(n: Neut) extends Neut
 case class Snd(n: Neut) extends Neut
 
 // Property deconstructors are neutral ...
-case class LiftLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class FillLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class FillLeftIsLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class FillLeftIsRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class LiftRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
-case class FillRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
-case class FillRightIsLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
-case class FillRightIsRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
+case class LiftLeft(v: Val, ev: Val) extends Neut
+case class FillLeft(v: Val, ev: Val) extends Neut
+case class FillLeftIsLeft(v: Val, ev: Val) extends Neut
+case class FillLeftIsRight(v: Val, ev: Val) extends Neut
+case class LiftRight(v: Val, ev: Val, a: Addr) extends Neut
+case class FillRight(v: Val, ev: Val, a: Addr) extends Neut
+case class FillRightIsLeft(v: Val, ev: Val, a: Addr) extends Neut
+case class FillRightIsRight(v: Val, ev: Val, a: Addr) extends Neut
 
 // Addresses
 sealed trait Addr
