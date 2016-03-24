@@ -32,11 +32,6 @@ object OpetopicTypeChecker {
         case Cl(p, e, rho) => eval(e, UpVar(rho, p, v))
       }
 
-    def patt: Patt = 
-      c match {
-        case Cl(p, _, _) => p 
-      }
-
   }
 
   //============================================================================================
@@ -143,14 +138,14 @@ object OpetopicTypeChecker {
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
       case EFillIsLeft(e, fp, nch) => FillIsLeft(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       // case EShellIsLeft(ce, frm, e, ev) => ShellIsLeft(eval(e, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho))
-      case ELiftLeft(e, ev) => Nt(LiftLeft(eval(e, rho), eval(ev, rho)))
-      case EFillLeft(ce, frm, e, ev) => Nt(FillLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
-      case EFillLeftIsLeft(ce, frm, e, ev) => Nt(FillLeftIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
-      case EFillLeftIsRight(ce, frm, e, ev) => Nt(FillLeftIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
-      case ELiftRight(ce, frm, e, ev, a) => Nt(LiftRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
-      case EFillRight(ce, frm, e, ev, a) => Nt(FillRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
-      case EFillRightIsLeft(ce, frm, e, ev, a) => Nt(FillRightIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
-      case EFillRightIsRight(ce, frm, e, ev, a) => Nt(FillRightIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
+      // case ELiftLeft(e, ev) => Nt(LiftLeft(eval(e, rho), eval(ev, rho)))
+      // case EFillLeft(ce, frm, e, ev) => Nt(FillLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
+      // case EFillLeftIsLeft(ce, frm, e, ev) => Nt(FillLeftIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
+      // case EFillLeftIsRight(ce, frm, e, ev) => Nt(FillLeftIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
+      // case ELiftRight(ce, frm, e, ev, a) => Nt(LiftRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
+      // case EFillRight(ce, frm, e, ev, a) => Nt(FillRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
+      // case EFillRightIsLeft(ce, frm, e, ev, a) => Nt(FillRightIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
+      // case EFillRightIsRight(ce, frm, e, ev, a) => Nt(FillRightIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
     }
 
   //============================================================================================
@@ -214,14 +209,14 @@ object OpetopicTypeChecker {
       case Fst(k) => EFst(rbN(i, k))
       case Snd(k) => ESnd(rbN(i, k))
       // case LiftLeft(cv, fv, v, ev) => ELiftLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
-      case LiftLeft(v, ev) => ELiftLeft(rbV(i, v), rbV(i, ev))
-      case FillLeft(cv, fv, v, ev) => EFillLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
-      case FillLeftIsLeft(cv, fv, v, ev) => EFillLeftIsLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
-      case FillLeftIsRight(cv, fv, v, ev) => EFillLeftIsRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
-      case LiftRight(cv, fv, v, ev, a) => ELiftRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
-      case FillRight(cv, fv, v, ev, a) => EFillRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
-      case FillRightIsLeft(cv, fv, v, ev, a) => EFillRightIsLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
-      case FillRightIsRight(cv, fv, v, ev, a) => EFillRightIsRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
+      // case LiftLeft(v, ev) => ELiftLeft(rbV(i, v), rbV(i, ev))
+      // case FillLeft(cv, fv, v, ev) => EFillLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
+      // case FillLeftIsLeft(cv, fv, v, ev) => EFillLeftIsLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
+      // case FillLeftIsRight(cv, fv, v, ev) => EFillLeftIsRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev))
+      // case LiftRight(cv, fv, v, ev, a) => ELiftRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
+      // case FillRight(cv, fv, v, ev, a) => EFillRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
+      // case FillRightIsLeft(cv, fv, v, ev, a) => EFillRightIsLeft(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
+      // case FillRightIsRight(cv, fv, v, ev, a) => EFillRightIsRight(rbV(i, cv), fv.map(RbMap(i)), rbV(i, v), rbV(i, ev), a)
     }
 
   def rbRho(i: Int, r: Rho) : List[Expr] = 
@@ -506,60 +501,60 @@ object OpetopicTypeChecker {
           _ <- check(rho, gma, e, Cat)
           _ <- checkFrame(c.dim)(rho, gma, c, eval(e, rho))
         } yield ()
-      case (ELiftLeft(e, ev), Pi(t, g)) => {
+      // case (ELiftLeft(e, ev), Pi(t, g)) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cGen = Nt(Gen(l, "TC#"))
-        val tGen = Nt(Gen(l + 1, "TC#"))
+      //   val cGen = Nt(Gen(l, "TC#"))
+      //   val tGen = Nt(Gen(l + 1, "TC#"))
 
-        for {
-          et <- checkI(rho, gma, e)
-          v = eval(e, rho)
-          (cv, vfrm) <- extCellG(et)
-          _ <- check(rho, gma, ev, IsLeftExt(v))
-          cell = vfrm.value >> Dot(v, S(vfrm.dim))
-          lext <- fromShape(cell.leftExtend(cGen, Empty, tGen))
-          cCell <- fromShape(lext.target)
-          cTy <- getCellType(cCell, cv)
-          _ <- eqNf(lRho(rho), cTy, t)
-          (t1, g1) <- extPiG(g * cGen)
-          tCell <- fromShape(lext.sourceAt(Nil))
-          tTy <- getCellType(tCell, cv)
-          _ <- eqNf(lRho(rho), tTy, t1)
-          t2 = g1 * tGen
-          lCell <- fromShape(lext.sourceAt(Nil :: Nil))
-          lTy <- getCellType(lCell, cv)
-          _ <- eqNf(lRho(rho), lTy, t2)
-        } yield ()
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     v = eval(e, rho)
+      //     (cv, vfrm) <- extCellG(et)
+      //     _ <- check(rho, gma, ev, IsLeftExt(v))
+      //     cell = vfrm.value >> Dot(v, S(vfrm.dim))
+      //     lext <- fromShape(cell.leftExtend(cGen, Empty, tGen))
+      //     cCell <- fromShape(lext.target)
+      //     cTy <- getCellType(cCell, cv)
+      //     _ <- eqNf(lRho(rho), cTy, t)
+      //     (t1, g1) <- extPiG(g * cGen)
+      //     tCell <- fromShape(lext.sourceAt(Nil))
+      //     tTy <- getCellType(tCell, cv)
+      //     _ <- eqNf(lRho(rho), tTy, t1)
+      //     t2 = g1 * tGen
+      //     lCell <- fromShape(lext.sourceAt(Nil :: Nil))
+      //     lTy <- getCellType(lCell, cv)
+      //     _ <- eqNf(lRho(rho), lTy, t2)
+      //   } yield ()
 
-      }
-      case (EFillLeft(e, ev), Pi(t, g)) => {
+      // }
+      // case (EFillLeft(e, ev), Pi(t, g)) => {
 
-        val l = lRho(rho)
+      //   val l = lRho(rho)
 
-        val cGen = Nt(Gen(l, "TC#"))
-        val tGen = Nt(Gen(l + 1, "TC#"))
+      //   val cGen = Nt(Gen(l, "TC#"))
+      //   val tGen = Nt(Gen(l + 1, "TC#"))
 
-        for {
-          et <- checkI(rho, gma, e)
-          v = eval(e, rho)
-          (cv, vfrm) <- extCellG(et)
-          _ <- check(rho, gma, ev, IsLeftExt(v))
-          cell = vfrm.value >> Dot(v, S(vfrm.dim))
-          lext <- fromShape(cell.leftExtend(cGen, LiftLeft(v, IsLeftExt(v)), tGen))
-          cCell <- fromShape(lext.target)
-          cTy <- getCellType(cCell, cv)
-          _ <- eqNf(lRho(rho), cTy, t)
-          (t1, g1) <- extPiG(g * cGen)
-          tCell <- fromShape(lext.sourceAt(Nil))
-          tTy <- getCellType(tCell, cv)
-          _ <- eqNf(lRho(rho), tTy, t1)
-          t2 = g1 * tGen
-          _ <- eqNf(lRho(rho), Cell(cv, lext), t2)
-        } yield ()
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     v = eval(e, rho)
+      //     (cv, vfrm) <- extCellG(et)
+      //     _ <- check(rho, gma, ev, IsLeftExt(v))
+      //     cell = vfrm.value >> Dot(v, S(vfrm.dim))
+      //     lext <- fromShape(cell.leftExtend(cGen, LiftLeft(v, IsLeftExt(v)), tGen))
+      //     cCell <- fromShape(lext.target)
+      //     cTy <- getCellType(cCell, cv)
+      //     _ <- eqNf(lRho(rho), cTy, t)
+      //     (t1, g1) <- extPiG(g * cGen)
+      //     tCell <- fromShape(lext.sourceAt(Nil))
+      //     tTy <- getCellType(tCell, cv)
+      //     _ <- eqNf(lRho(rho), tTy, t1)
+      //     t2 = g1 * tGen
+      //     _ <- eqNf(lRho(rho), Cell(cv, lext), t2)
+      //   } yield ()
 
-      }
+      // }
       case (e, t) => {
         for {
           t1 <- checkI(rho, gma, e)

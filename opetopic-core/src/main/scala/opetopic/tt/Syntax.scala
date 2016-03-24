@@ -37,28 +37,25 @@ case class EOb(e: Expr) extends Expr
 case class ECell[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
 case class EHom[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
 
-// Fillers and composition
+// Cell Constructors
 case class EComp[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class EFill[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
+// case class ELiftLeft(e: Expr, ev: Expr) extends Expr
+// case class EFillLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
+// case class ELiftRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+// case class EFillRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
 
-// Cell properties
+// Properties
 case class EIsLeftExt(e: Expr) extends Expr
 case class EIsRightExt(e: Expr, a: Addr) extends Expr 
 
 // Property constructors
 case class EFillIsLeft[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class EShellIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e:Expr, ev: Expr) extends Expr
-
-// Left and right lifting expressions
-// case class ELiftLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class ELiftLeft(e: Expr, ev: Expr) extends Expr
-case class EFillLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class EFillLeftIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class EFillLeftIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class ELiftRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
-case class EFillRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
-case class EFillRightIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
-case class EFillRightIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+// case class EFillLeftIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
+// case class EFillRightIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+// case class EFillLeftIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
+// case class EFillRightIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
 
 // Values
 sealed trait Val
@@ -96,14 +93,14 @@ case class Fst(n: Neut) extends Neut
 case class Snd(n: Neut) extends Neut
 
 // Property deconstructors are neutral ...
-case class LiftLeft(v: Val, ev: Val) extends Neut
-case class FillLeft(v: Val, ev: Val) extends Neut
-case class FillLeftIsLeft(v: Val, ev: Val) extends Neut
-case class FillLeftIsRight(v: Val, ev: Val) extends Neut
-case class LiftRight(v: Val, ev: Val, a: Addr) extends Neut
-case class FillRight(v: Val, ev: Val, a: Addr) extends Neut
-case class FillRightIsLeft(v: Val, ev: Val, a: Addr) extends Neut
-case class FillRightIsRight(v: Val, ev: Val, a: Addr) extends Neut
+// case class LiftLeft(v: Val, ev: Val) extends Neut
+// case class FillLeft(v: Val, ev: Val) extends Neut
+// case class FillLeftIsLeft(v: Val, ev: Val) extends Neut
+// case class FillLeftIsRight(v: Val, ev: Val) extends Neut
+// case class LiftRight(v: Val, ev: Val, a: Addr) extends Neut
+// case class FillRight(v: Val, ev: Val, a: Addr) extends Neut
+// case class FillRightIsLeft(v: Val, ev: Val, a: Addr) extends Neut
+// case class FillRightIsRight(v: Val, ev: Val, a: Addr) extends Neut
 
 // Addresses
 sealed trait Addr

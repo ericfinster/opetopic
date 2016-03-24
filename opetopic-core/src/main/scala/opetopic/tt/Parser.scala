@@ -48,28 +48,12 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
     | "fillIsLeft" ~ expr3 ~ nicheExpr ^^
         { case "fillIsLeft" ~ e ~ ne => EFillIsLeft(e, ne.value._1, ne.value._2) }
-    | "liftLeft" ~ expr3 ~ expr3 ^^
-        { case "liftLeft" ~ e ~ ev => ELiftLeft(e, ev) }
-    | "fillLeft" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
-        { case "fillLeft" ~ ce ~ frm ~ e ~ ev => EFillLeft(ce, frm.value, e, ev) }
-    | "liftRight" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ~ addrExpr ^^
-        { case "liftRight" ~ ce ~ frm ~ e ~ ev ~ a => ELiftRight(ce, frm.value, e, ev, a) }
-    // | "isBalanced" ~ expr3 ~ nicheExpr ^^
-    //     { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
-    // | "leftBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
-    //     { case "leftBalanced" ~ ce ~ frm ~ e ~ f => ELeftBal(ce, frm.value, e, f) }
-    // | "rightBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ addrExpr ~ expr3 ^^
-    //     { case "rightBalanced" ~ ce ~ frm ~ e ~ a ~ f => ERightBal(ce, frm.value, e, a, f) }
-    // | "fillerCompLeftExt" ~ expr3 ~ nicheExpr ^^
-    //     { case "fillerCompLeftExt" ~ e ~ ne => EFillerCompLeftExt(e, ne.value._1, ne.value._2) }
-    // | "lift" ~ expr3 ~ nicheExpr ~ expr3 ^^
-    //     { case "lift" ~ e ~ ne ~ ev => ELift(e, ne.value._1, ne.value._2, ev) }
-    // | "liftFiller" ~ expr3 ~ nicheExpr ~ expr3 ^^
-    //     { case "liftFiller" ~ e ~ ne ~ ev => ELiftFiller(e, ne.value._1, ne.value._2, ev) }
-    // | "liftFillerLeftExt" ~ expr3 ~ nicheExpr ~ expr3 ^^
-    //     { case "liftFillerLeftExt" ~ e ~ ne ~ ev => ELiftFillerLeftExt(e, ne.value._1, ne.value._2, ev) }
-    // | "fillerLeftIsRight" ~ expr3 ~ nicheExpr ~ expr3 ^^
-    //     { case "fillerLeftIsRight" ~ e ~ ne ~ ev => EFillerLeftIsRight(e, ne.value._1, ne.value._2, ev) }
+    // | "liftLeft" ~ expr3 ~ expr3 ^^
+    //     { case "liftLeft" ~ e ~ ev => ELiftLeft(e, ev) }
+    // | "fillLeft" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
+    //     { case "fillLeft" ~ ce ~ frm ~ e ~ ev => EFillLeft(ce, frm.value, e, ev) }
+    // | "liftRight" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ~ addrExpr ^^
+    //     { case "liftRight" ~ ce ~ frm ~ e ~ ev ~ a => ELiftRight(ce, frm.value, e, ev, a) }
     | expr2
   )
 
