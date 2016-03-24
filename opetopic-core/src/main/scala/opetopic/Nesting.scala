@@ -241,6 +241,22 @@ trait NestingFunctions {
         } yield zr
     }
 
+  def replaceNesting[A, N <: Nat](n: N)(nst: Nesting[A, N], addr: Address[S[N]], a: A) : ShapeM[Nesting[A, N]] = 
+    for {
+      z <- seekNesting(n)((nst, Nil), addr)
+    } yield {
+
+      val newNst : Nesting[A, N] = 
+        z._1 match {
+          case Obj(_) => Obj(a)
+          case Dot(_, d) => Dot(a, d)
+          case Box(_, cn) => Box(a, cn)
+        }
+
+      closeNesting(n)(z._2, newNst)
+
+    }
+
   @natElim
   def sibling[A, N <: Nat](n : N)(z: NestingZipper[A, S[N]], addr: Address[N]) : ShapeM[NestingZipper[A, S[N]]] = {
     case (Z, (nst, Nil), addr) => fail("First Sibling error")

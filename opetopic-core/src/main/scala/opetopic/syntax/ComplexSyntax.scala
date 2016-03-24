@@ -31,6 +31,9 @@ final class ComplexOps[A[_ <: Nat], N <: Nat](cmplx : Complex[A, N]) {
   def headSpine : ShapeM[Tree[A[N], N]] = 
     focusSpine(cmplx.length.pred)(complexToZipper(cmplx))
 
+  def withHead(n: Nesting[A[N], N]) : Complex[A, N] = 
+    Suite.tail[INst, N](cmplx) >> n
+
   def foreach(op: IndexedOp[A]) : Unit = {
     Suite.foreach[INst, S[N]](cmplx)(new IndexedOp[INst] {
       def apply[P <: Nat](p: P)(nst: Nesting[A[P], P]) : Unit = {

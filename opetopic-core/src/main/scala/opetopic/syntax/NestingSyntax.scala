@@ -44,6 +44,8 @@ final class NestingOps[A, N <: Nat](nst: Nesting[A, N]) {
       case (a, _, cn) => (List(a) :: cn.nodes).flatten
     })
 
+  def replaceAt(addr: Address[S[N]], a: A) : ShapeM[Nesting[A, N]] = 
+    Nesting.replaceNesting(nst.dim)(nst, addr, a)
 
 }
 
