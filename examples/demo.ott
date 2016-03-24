@@ -37,11 +37,15 @@ let compFillIsLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (
 
 let liftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> 
     	       (z : Obj X) -> (g : Arrow X x z) -> Arrow X y z
-    	     = \X. \x. \y. \f. \ev. liftLeft f ev
+    	     = \X. \x. \y. \f. \ev. liftLeft X [ box y (pt (obj x)) ] f ev
 
-let fillTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> 
-    	       (z : Obj X) -> (g : Arrow X x z) -> Simplex X x y z f ((liftLeft f ev) z g) g
-    	     = \X. \x. \y. \f. \ev. fillLeft f ev
+-- let fillTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> 
+--     	       (z : Obj X) -> (g : Arrow X x z) -> Simplex X x y z f ((liftLeft f ev) z g) g
+--     	     = \X. \x. \y. \f. \ev. fillLeft X [ box y (pt (obj x)) ] f ev
+
+-- let rightLiftTest : (X : Cat) -> (y : Obj X) -> (z : Obj X) -> (g : Arrow X y z) -> (ev : isRightExt g #) ->
+--     		    (x : Obj X) -> (h : Arrow X x z) -> Arrow X x y
+-- 		  = \X. \y. \z. \g. \ev. liftRight X [ box z (pt (obj y)) ] g ev
 
 -- let compExt : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> 
 --     	      (fl : isLeftExt f) -> (gl : isLeftExt g) -> isLeftExt (comp X x y z f g)
