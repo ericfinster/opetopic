@@ -54,10 +54,10 @@ case class ELiftLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr)
 case class EFillLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
 case class EFillLeftIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
 case class EFillLeftIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class ELiftRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class EFillRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class EFillRightIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-case class EFillRightIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
+case class ELiftRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+case class EFillRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+case class EFillRightIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+case class EFillRightIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
 
 // Values
 sealed trait Val
@@ -99,10 +99,10 @@ case class LiftLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) exten
 case class FillLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
 case class FillLeftIsLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
 case class FillLeftIsRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class LiftRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class FillRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class FillRightIsLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
-case class FillRightIsRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val) extends Neut
+case class LiftRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
+case class FillRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
+case class FillRightIsLeft[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
+case class FillRightIsRight[N <: Nat](cv: Val, fv: ValComplex[N], v: Val, ev: Val, a:Addr) extends Neut
 
 // Addresses
 sealed trait Addr

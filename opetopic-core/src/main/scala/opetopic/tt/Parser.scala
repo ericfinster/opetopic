@@ -52,8 +52,8 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "liftLeft" ~ ce ~ frm ~ e ~ ev => ELiftLeft(ce, frm.value, e, ev) }
     | "fillLeft" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
         { case "fillLeft" ~ ce ~ frm ~ e ~ ev => EFillLeft(ce, frm.value, e, ev) }
-    | "liftRight" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
-        { case "liftRight" ~ ce ~ frm ~ e ~ ev => ELiftRight(ce, frm.value, e, ev) }
+    | "liftRight" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ~ addrExpr ^^
+        { case "liftRight" ~ ce ~ frm ~ e ~ ev ~ a => ELiftRight(ce, frm.value, e, ev, a) }
     // | "isBalanced" ~ expr3 ~ nicheExpr ^^
     //     { case "isBalanced" ~ e ~ ne => EBal(e, ne.value._1, ne.value._2) }
     // | "leftBalanced" ~ expr3 ~ frameExpr ~ expr3 ~ expr3 ^^
