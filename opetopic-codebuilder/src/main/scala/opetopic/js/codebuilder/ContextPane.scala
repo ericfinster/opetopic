@@ -66,11 +66,11 @@ class ContextPane extends Pane with Registry { thisPane =>
 
   def focus: Unit = jQuery(uiElement).focus()
 
-  def pasteToCursor: Unit = 
-    for {
-      cell <- activeCell
-      i <- stack.activeInstance
-    }{ stack.run(i.doPaste(cell.n)(cell.value)) }
+  def pasteToCursor: Unit = ()
+    // for {
+    //   cell <- activeCell
+    //   i <- stack.activeInstance
+    // }{ stack.run(i.doPaste(cell.n)(cell.value)) }
 
   def addLeftExtensionGoal: Unit = 
     for {

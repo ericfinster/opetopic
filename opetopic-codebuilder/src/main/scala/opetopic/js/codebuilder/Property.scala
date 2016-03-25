@@ -25,7 +25,7 @@ case class IsLeftExtension[P <: Nat](
   val expr: Expr,
   val cell: Cell[S[P]]
 ) extends Property[S[P]] {
-  val ty = ELeftExt(cell.expr)
+  val ty = EIsLeftExt(cell.expr)
 }
 
 case class IsRightExtension[P <: Nat](
@@ -34,5 +34,5 @@ case class IsRightExtension[P <: Nat](
   val cell: Cell[S[P]],
   val addr: Address[P]
 ) extends Property[S[P]] {
-  val ty = ERightExt(cell.expr, OpetopicTypeChecker.rbAddr(dim.pred)(addr))
+  val ty = EIsRightExt(cell.expr, OpetopicTypeChecker.rbAddr(dim.pred)(addr))
 }
