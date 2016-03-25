@@ -48,6 +48,8 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
     | "fillIsLeft" ~ expr3 ~ nicheExpr ^^
         { case "fillIsLeft" ~ e ~ ne => EFillIsLeft(e, ne.value._1, ne.value._2) }
+    | "shellIsLeft" ~ expr3 ~ expr3 ~ trExpr ~ expr3 ^^
+        { case "shellIsLeft" ~ e ~ ev ~ src ~ tgt => EShellIsLeft(e, ev, src, tgt) }
     | "liftLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
         { case "liftLeft" ~ e ~ ev ~ c ~ t => ELiftLeft(e, ev, c, t) }
     | "fillLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
@@ -99,6 +101,7 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case e ~ ".1" => EFst(e) }
     | expr3 ~ ".2" ^^ 
         { case e ~ ".2" => ESnd(e) }
+    | trExpr
     | "(" ~ expr ~ ")" ^^
         { case "(" ~ e ~ ")" => e }
   )
@@ -112,6 +115,14 @@ object OpetopicParser extends RegexParsers with PackratParsers {
       nstListToFrmPref(p)(nsts) >> nst.value.asInstanceOf[NstExpr[P]]
     }
   }
+
+  lazy val trExpr: PackratParser[Expr] = (
+      "pt" ~ expr3 ^^
+        { case "pt" ~ e => EPt(e) }
+    | "lf" ^^^ ELf
+    | "nd" ~ expr3 ~ trExpr ^^
+        { case "nd" ~ e ~ sh => ENd(e, sh) }
+  )
 
   lazy val addrExpr : PackratParser[Addr] = (
       addrExpr1 ~ "::" ~ addrExpr ^^

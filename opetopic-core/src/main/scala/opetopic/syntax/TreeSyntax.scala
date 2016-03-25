@@ -56,6 +56,11 @@ final class TreeOps[A, N <: Nat](tr : Tree[A, N]) {
     Tree.map(tr)(Nesting.external(dim)(_))
   }
 
+  def matchWith[B](other: Tree[B, N]) : ShapeM[Tree[(A, B), N]] = 
+    Tree.matchWithAddress[A, B, (A, B), N](tr.dim)(tr, other)({
+      case (a, b, _) => succeed((a, b))
+    })
+
 }
 
 trait ToTreeOps {

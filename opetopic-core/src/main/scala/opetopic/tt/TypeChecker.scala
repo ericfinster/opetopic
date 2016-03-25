@@ -440,6 +440,19 @@ object OpetopicTypeChecker {
   }
 
   @natElim
+  def parseTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
+    case (Z, EPt(e)) => pure(Pt(e))
+    case (Z, _) => fail("Not a tree expression")
+    case (S(p: P), ELf) => pure(Leaf(S(p)))
+    case (S(p: P), ENd(e, sh)) => 
+      for {
+        shParse <- parseTree(p)(sh)
+        shRes <- shParse.traverse(parseTree(S(p))(_))
+      } yield Node(e, shRes)
+    case (S(p: P), _) => fail("Not a tree expression")
+  }
+
+  @natElim
   def rbAddr[N <: Nat](n: N)(a: Address[N]) : Addr = {
     case (Z, ()) => AUnit
     case (S(p), Nil) => ANil
@@ -758,6 +771,33 @@ object OpetopicTypeChecker {
               } yield ()
           })
         } yield IsLeftExt(eval(EFill(ce, fp, nch), rho))
+
+      }
+      case EShellIsLeft(e, ev, src, tgt) => {
+
+        for {
+          et <- checkI(rho, gma, e)
+          (cv, vfrm) <- extCellG(et)
+          evl = eval(e, rho)
+          _ <- check(rho, gma, ev, IsLeftExt(evl))
+          (eTgt, eSrc) <- extractFrame(vfrm.head)
+          srcTr <- parseTree(vfrm.dim)(src)
+          prTr <- fromShape(eSrc.matchWith(srcTr))
+          oTr <- prTr.traverse[G, Option[Val]]({
+            case (f, EEmpty) => pure(Some(f))
+            case (f, fev) => for { _ <- check(rho, gma, fev, IsLeftExt(f)) } yield None
+          })
+          ty <- (
+            (oTr.nodes.filter(_.isDefined), tgt) match {
+              case (Nil, EEmpty) => pure(IsLeftExt(eTgt))
+              case (Some(f) :: Nil, tev) => 
+                for {
+                  _ <- check(rho, gma, tev, IsLeftExt(eTgt))
+                } yield IsLeftExt(f)
+              case _ => fail("malformed shell evidence")
+            }
+          )
+        } yield ty
 
       }
       case EFillLeftIsLeft(e, ev, c, t) => {
