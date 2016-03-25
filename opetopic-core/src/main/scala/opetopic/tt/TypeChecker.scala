@@ -135,19 +135,23 @@ object OpetopicTypeChecker {
       case EComp(e, fp, nch) => Comp(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
       case EFill(e, fp, nch) => Fill(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
 
-      case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillLeft(e, ev, c, t) => FillLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case ELiftRight(e, ev, c, t, a) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), a)
-      case EFillRight(e, ev, c, t, a) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), a)
-
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
+
+      case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillLeft(e, ev, c, t) => FillLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+
       case EFillIsLeft(e, fp, nch) => FillIsLeft(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      // case EShellIsLeft(ce, frm, e, ev) => ShellIsLeft(eval(e, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho))
-      // case EFillLeftIsLeft(ce, frm, e, ev) => Nt(FillLeftIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
-      // case EFillLeftIsRight(ce, frm, e, ev) => Nt(FillLeftIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho)))
-      // case EFillRightIsLeft(ce, frm, e, ev, a) => Nt(FillRightIsLeft(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
-      // case EFillRightIsRight(ce, frm, e, ev, a) => Nt(FillRightIsRight(eval(ce, rho), frm.map(EvalMap(rho)), eval(e, rho), eval(ev, rho), a))
+
+      case EFillLeftIsLeft(e, ev, c, t) => FillLeftIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
+        FillLeftIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
+      case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
+        FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
+
     }
 
   //============================================================================================
@@ -198,14 +202,21 @@ object OpetopicTypeChecker {
       case Comp(v, fp, nch) => EComp(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
       case Fill(v, fp, nch) => EFill(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
 
-      case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case LiftRight(e, ev, c, t, a) => ELiftRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), a)
-      case FillRight(e, ev, c, t, a) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), a)
-
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
+
+      case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case LiftRight(e, ev, c, t) => ELiftRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+
       case FillIsLeft(v, fp, nch) => EFillIsLeft(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+
+      case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillLeftIsRight(e, ev, c, t, l, f, fev) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
+      case FillRightIsRight(e, ev, c, t, l, f, fev) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
+
     }
 
   }
@@ -461,6 +472,12 @@ object OpetopicTypeChecker {
       case u => fail("extCellG " ++ u.toString)
     }
 
+  def extRightExtAddr(tv: TVal) : G[Addr] = 
+    tv match {
+      case IsRightExt(_, a) => pure(a)
+      case u => fail("extRightExt: " ++ u.toString)
+    }
+
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] =
     (e0, t0) match {
       case (ELam(p, e), Pi(t, g)) => {
@@ -658,13 +675,14 @@ object OpetopicTypeChecker {
         } yield ty
 
       }
-      case ELiftRight(e, ev, c, t, a) => {
+      case ELiftRight(e, ev, c, t) => {
 
         for {
           et <- checkI(rho, gma, e)
           (cv, vfrm) <- extCellG(et)
           evl = eval(e, rho)
-          _ <- check(rho, gma, ev, IsRightExt(evl, a))
+          isRt <- checkI(rho, gma, ev)
+          a <- extRightExtAddr(isRt)
           ty <- {
 
             val d = vfrm.dim
@@ -688,13 +706,14 @@ object OpetopicTypeChecker {
         } yield ty
 
       }
-      case EFillRight(e, ev, c, t, a) => {
+      case EFillRight(e, ev, c, t) => {
 
         for {
           et <- checkI(rho, gma, e)
           (cv, vfrm) <- extCellG(et)
           evl = eval(e, rho)
-          _ <- check(rho, gma, ev, IsRightExt(evl, a))
+          isRt <- checkI(rho, gma, ev)
+          a <- extRightExtAddr(isRt)
           ty <- {
 
             val d = vfrm.dim
@@ -709,7 +728,7 @@ object OpetopicTypeChecker {
               tNst <- fromShape(vfrm.value.head.replaceAt(addr :: Nil, cVal))
               _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
               tVal = eval(t, rho)
-              rext <- fromShape(cell.rightExtend(addr)(cVal, LiftRight(evl, eval(ev, rho), cVal, tVal, a), tVal))
+              rext <- fromShape(cell.rightExtend(addr)(cVal, LiftRight(evl, eval(ev, rho), cVal, tVal), tVal))
             } yield Cell(cv, rext)
 
           }
@@ -741,132 +760,132 @@ object OpetopicTypeChecker {
         } yield IsLeftExt(eval(EFill(ce, fp, nch), rho))
 
       }
-      // case EFillLeftIsLeft(ce, frm, e, ev) => {
+      case EFillLeftIsLeft(e, ev, c, t) => {
 
-      //   val l = lRho(rho)
+        for {
+          et <- checkI(rho, gma, e)
+          (cv, vfrm) <- extCellG(et)
+          evl = eval(e, rho)
+          _ <- check(rho, gma, ev, IsLeftExt(evl))
+          ty <- {
 
-      //   val cVar = "CV#" + l.toString      // The competitor
-      //   val tVar = "CV#" + (l+1).toString  // The target
+            val d = vfrm.dim
+            val cell = vfrm.value >> Dot(evl, S(d))
 
-      //   val lExpr = EApp(EApp(ELiftLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar))
+            for {
+              cCell <- fromShape(cell.target)
+              cTy <- getCellType(cCell, cv)
+              _ <- check(rho, gma, c, cTy)
+              cVal = eval(c, rho)
+              tNst <- fromShape(vfrm.value.head.replaceAt(Nil, cVal))
+              _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+              tVal = eval(t, rho)
+            } yield IsLeftExt(FillLeft(evl, eval(ev, rho), cVal, tVal))
+            
+          }
+        } yield ty
 
-      //   for {
-      //     _ <- check(rho, gma, ce, Cat)
-      //     cv = eval(ce, rho)
-      //     d = S(frm.dim)
-      //     cell = frm >> Dot(e, d)
-      //     _ <- checkCell(d)(rho, gma, cell, cv)
-      //     _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
-      //     lext <- fromShape(cell.leftExtend(EVar(cVar), lExpr, EVar(tVar)))
-      //     cCell <- fromShape(lext.target)
-      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-      //     tCell <- fromShape(lext.sourceAt(Nil))
-      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-      //   } yield eval(
-      //     EPi(PVar(cVar), cTyExpr, 
-      //       EPi(PVar(tVar), tTyExpr, 
-      //         EIsLeftExt(EApp(EApp(EFillLeft(ce, frm, e, ev), EVar(cVar)), EVar(tVar)))
-      //       )), rho)
+      }
+      case EFillRightIsLeft(e, ev, c, t) => {
 
-      // }
-      // case EFillLeftIsRight(ce, frm, e, ev) => {
+        for {
+          et <- checkI(rho, gma, e)
+          (cv, vfrm) <- extCellG(et)
+          evl = eval(e, rho)
+          isRt <- checkI(rho, gma, ev)
+          a <- extRightExtAddr(isRt)
+          ty <- {
 
-      //   val l = lRho(rho)
+            val d = vfrm.dim
+            val cell = vfrm.value >> Dot(eval(e, rho), S(d))
 
-      //   val cVar = "CV#" + l.toString      // The competitor
-      //   val tVar = "CV#" + (l+1).toString  // The target
-      //   val lVar = "CV#" + (l+2).toString  // The lift
-      //   val fVar = "CV#" + (l+3).toString  // The fill
-      //   val evVar = "CV" + (l+4).toString  // The evidence
+            for {
+              addr <- parseAddress(d)(a)
+              cCell <- fromShape(vfrm.value.sourceAt(addr :: Nil))
+              cTy <- getCellType(cCell, cv)
+              _ <- check(rho, gma, c, cTy)
+              cVal = eval(c, rho)
+              tNst <- fromShape(vfrm.value.head.replaceAt(addr :: Nil, cVal))
+              _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+              tVal = eval(t, rho)
+            } yield IsLeftExt(FillRight(evl, eval(ev, rho), cVal, tVal))
 
-      //   for {
-      //     _ <- check(rho, gma, ce, Cat)
-      //     cv = eval(ce, rho)
-      //     d = S(frm.dim)
-      //     cell = frm >> Dot(e, d)
-      //     _ <- checkCell(d)(rho, gma, cell, cv)
-      //     _ <- check(rho, gma, ev, IsLeftExt(eval(e, rho)))
-      //     lext <- fromShape(cell.leftExtend(EVar(cVar), EVar(lVar), EVar(tVar)))
-      //     cCell <- fromShape(lext.target)
-      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-      //     tCell <- fromShape(lext.sourceAt(Nil))
-      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-      //     lCell <- fromShape(lext.sourceAt(Nil :: Nil))
-      //     lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
-      //   } yield eval(
-      //     EPi(PVar(cVar), cTyExpr,
-      //       EPi(PVar(tVar), tTyExpr, 
-      //         EPi(PVar(lVar), lTyExpr, 
-      //           EPi(PVar(fVar), ECell(ce, lext), 
-      //             EPi(PVar(evVar), EIsLeftExt(EVar(fVar)),
-      //               EIsRightExt(EVar(fVar), ACons(ANil, ANil))  // CHECK: Is this address correct?
-      //             ))))), rho)
+          }
+        } yield ty
 
-      // }
-      // case EFillRightIsLeft(ce, frm, e, ev, a) => {
+      }
+      case EFillLeftIsRight(e, ev, c, t, l, f, fev) => {
 
-      //   val l = lRho(rho)
+        for {
+          et <- checkI(rho, gma, e)
+          (cv, vfrm) <- extCellG(et)
+          evl = eval(e, rho)
+          _ <- check(rho, gma, ev, IsLeftExt(evl))
+          ty <- {
 
-      //   val cVar = "CV#" + l.toString      // The competitor
-      //   val tVar = "CV#" + (l+1).toString  // The target
+            val d = vfrm.dim
+            val cell = vfrm.value >> Dot(evl, S(d))
 
-      //   val rExpr = EApp(EApp(ELiftRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar))
+            for {
+              cCell <- fromShape(cell.target)
+              cTy <- getCellType(cCell, cv)
+              _ <- check(rho, gma, c, cTy)
+              cVal = eval(c, rho)
+              tNst <- fromShape(vfrm.value.head.replaceAt(Nil, cVal))
+              _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+              tVal = eval(t, rho)
+              lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))
+              lCell <- fromShape(lext.sourceAt(Nil :: Nil))
+              lTy <- getCellType(lCell, cv)
+              _ <- check(rho, gma, l, lTy)
+              lVal = eval(l, rho)
+              lNst <- fromShape(lext.head.replaceAt(Nil :: Nil, lVal))
+              _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
+              fVal = eval(f, rho)
+              _ <- check(rho, gma, fev, IsLeftExt(fVal))
+            } yield IsRightExt(fVal, ACons(ANil, ANil))
+            
+          }
+        } yield ty
 
-      //   for {
-      //     _ <- check(rho, gma, ce, Cat)
-      //     cv = eval(ce, rho)
-      //     d = S(frm.dim)
-      //     cell = frm >> Dot(e, d)
-      //     _ <- checkCell(d)(rho, gma, cell, cv)
-      //     _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
-      //     addr <- parseAddress(frm.dim)(a)
-      //     rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), rExpr, EVar(tVar)))
-      //     cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
-      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-      //     tCell <- fromShape(rext.sourceAt(Nil))
-      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-      //   } yield eval(
-      //     EPi(PVar(cVar), cTyExpr, 
-      //       EPi(PVar(tVar), tTyExpr, 
-      //         EIsLeftExt(EApp(EApp(EFillRight(ce, frm, e, ev, a), EVar(cVar)), EVar(tVar)))
-      //       )), rho)
+      }
+      case EFillRightIsRight(e, ev, c, t, l, f, fev) => {
 
-      // }
-      // case EFillRightIsRight(ce, frm, e, ev, a) => {
+        for {
+          et <- checkI(rho, gma, e)
+          (cv, vfrm) <- extCellG(et)
+          evl = eval(e, rho)
+          isRt <- checkI(rho, gma, ev)
+          a <- extRightExtAddr(isRt)
+          ty <- {
 
-      //   val l = lRho(rho)
+            val d = vfrm.dim
+            val cell = vfrm.value >> Dot(eval(e, rho), S(d))
 
-      //   val cVar = "CV#" + l.toString      // The competitor
-      //   val tVar = "CV#" + (l+1).toString  // The target
-      //   val lVar = "CV#" + (l+2).toString  // The lift
-      //   val fVar = "CV#" + (l+3).toString  // The fill
-      //   val evVar = "CV" + (l+4).toString  // The evidence
+            for {
+              addr <- parseAddress(d)(a)
+              cCell <- fromShape(vfrm.value.sourceAt(addr :: Nil))
+              cTy <- getCellType(cCell, cv)
+              _ <- check(rho, gma, c, cTy)
+              cVal = eval(c, rho)
+              tNst <- fromShape(vfrm.value.head.replaceAt(addr :: Nil, cVal))
+              _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+              tVal = eval(t, rho)
+              rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
+              lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+              lTy <- getCellType(lCell, cv)
+              _ <- check(rho, gma, l, lTy)
+              lVal = eval(l, rho)
+              lNst <- fromShape(rext.head.replaceAt((addr :: Nil) :: Nil, lVal))
+              _ <- check(rho, gma, f, Cell(cv, rext.withHead(lNst)))
+              fVal = eval(f, rho)
+              _ <- check(rho, gma, fev, IsLeftExt(fVal))
+            } yield IsRightExt(fVal, rbAddr(S(d))(addr :: Nil))
 
-      //   for {
-      //     _ <- check(rho, gma, ce, Cat)
-      //     cv = eval(ce, rho)
-      //     d = S(frm.dim)
-      //     cell = frm >> Dot(e, d)
-      //     _ <- checkCell(d)(rho, gma, cell, cv)
-      //     _ <- check(rho, gma, ev, IsRightExt(eval(e, rho), a))
-      //     addr <- parseAddress(frm.dim)(a)
-      //     rext <- fromShape(cell.rightExtend(addr)(EVar(cVar), EVar(lVar), EVar(tVar)))
-      //     cCell <- fromShape(rext.tail.sourceAt(frm.dim)(addr :: Nil))
-      //     cTyExpr <- extractCellTypeExpr(cCell.dim)(cCell, ce)
-      //     tCell <- fromShape(rext.sourceAt(Nil))
-      //     tTyExpr <- extractCellTypeExpr(tCell.dim)(tCell, ce)
-      //     lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-      //     lTyExpr <- extractCellTypeExpr(lCell.dim)(lCell, ce)
-      //   } yield eval(
-      //     EPi(PVar(cVar), cTyExpr, 
-      //       EPi(PVar(tVar), tTyExpr, 
-      //         EPi(PVar(lVar), lTyExpr,
-      //           EPi(PVar(fVar), ECell(ce, rext),
-      //             EPi(PVar(evVar), EIsLeftExt(EVar(fVar)),
-      //               EIsRightExt(EVar(fVar), rbAddr(S(frm.dim))(addr :: Nil))
-      //             ))))), rho)
+          }
+        } yield ty
 
-      // }
+      }
       case e => fail("checkI: " ++ e.toString)
     }
 

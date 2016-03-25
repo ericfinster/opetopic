@@ -45,9 +45,9 @@ let fillTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (
 
 let rightLiftTest : (X : Cat) -> (y : Obj X) -> (z : Obj X) -> (g : Arrow X y z) -> (ev : isRightExt g #) ->
     		    (x : Obj X) -> (h : Arrow X x z) -> Arrow X x y
-		  = \X. \y. \z. \g. \ev. \x. \h. liftRight g ev x h #
+		  = \X. \y. \z. \g. \ev. \x. \h. liftRight g ev x h
 
 let rightFillTest : (X : Cat) -> (y : Obj X) -> (z : Obj X) -> (g : Arrow X y z) -> (ev : isRightExt g #) ->
-    		    (x : Obj X) -> (h : Arrow X x z) -> Simplex X x y z (liftRight g ev x h #) g h
-		  = \X. \y. \z. \g. \ev. \x. \h. fillRight g ev x h #
+    		    (x : Obj X) -> (h : Arrow X x z) -> Simplex X x y z (liftRight g ev x h) g h
+		  = \X. \y. \z. \g. \ev. \x. \h. fillRight g ev x h
 

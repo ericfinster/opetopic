@@ -52,10 +52,18 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "liftLeft" ~ e ~ ev ~ c ~ t => ELiftLeft(e, ev, c, t) }
     | "fillLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
         { case "fillLeft" ~ e ~ ev ~ c ~ t => EFillLeft(e, ev, c, t) }
-    | "liftRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ addrExpr ^^
-        { case "liftRight" ~ e ~ ev ~ c ~ t ~ a => ELiftRight(e, ev, c, t, a) }
-    | "fillRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ addrExpr ^^
-        { case "fillRight" ~ e ~ ev ~ c ~ t ~ a => EFillRight(e, ev, c, t, a) }
+    | "liftRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "liftRight" ~ e ~ ev ~ c ~ t => ELiftRight(e, ev, c, t) }
+    | "fillRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillRight" ~ e ~ ev ~ c ~ t => EFillRight(e, ev, c, t) }
+    | "fillLeftIsLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillLeftIsLeft" ~ e ~ ev ~ c ~ t => EFillLeftIsLeft(e, ev, c, t) }
+    | "fillRightIsLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillRightIsLeft" ~ e ~ ev ~ c ~ t => EFillRightIsLeft(e, ev, c, t) }
+    | "fillLeftIsRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillLeftIsRight" ~ e ~ ev ~ c ~ t ~ l ~ f ~ fev => EFillLeftIsRight(e, ev, c, t, l, f, fev) }
+    | "fillRightIsRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillRightIsRight" ~ e ~ ev ~ c ~ t ~ l ~ f ~ fev => EFillRightIsRight(e, ev, c, t, l, f, fev) }
     | expr2
   )
 

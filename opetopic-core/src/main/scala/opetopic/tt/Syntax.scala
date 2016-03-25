@@ -37,25 +37,25 @@ case class EOb(e: Expr) extends Expr
 case class ECell[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
 case class EHom[N <: Nat](e: Expr, c: ExprComplex[N]) extends Expr
 
+// Properties
+case class EIsLeftExt(e: Expr) extends Expr
+case class EIsRightExt(e: Expr, a: Addr) extends Expr 
+
 // Cell Constructors
 case class EComp[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class EFill[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class ELiftLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
-case class ELiftRight(e: Expr, ev: Expr, c: Expr, t: Expr, a: Addr) extends Expr
-case class EFillRight(e: Expr, ev: Expr, c: Expr, t: Expr, a: Addr) extends Expr
-
-// Properties
-case class EIsLeftExt(e: Expr) extends Expr
-case class EIsRightExt(e: Expr, a: Addr) extends Expr 
+case class ELiftRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
+case class EFillRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Property constructors
 case class EFillIsLeft[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
 case class EShellIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e:Expr, ev: Expr) extends Expr
-// case class EFillLeftIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-// case class EFillRightIsLeft[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
-// case class EFillLeftIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr) extends Expr
-// case class EFillRightIsRight[N <: Nat](ce: Expr, frm: ExprComplex[N], e: Expr, ev: Expr, a:Addr) extends Expr
+case class EFillLeftIsLeft[N <: Nat](e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
+case class EFillRightIsLeft[N <: Nat](e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
+case class EFillLeftIsRight[N <: Nat](e: Expr, ev: Expr, c: Expr, t: Expr, l: Expr, f: Expr, fev: Expr) extends Expr
+case class EFillRightIsRight[N <: Nat](e: Expr, ev: Expr, c: Expr, t: Expr, l: Expr, f: Expr, fev: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -76,28 +76,22 @@ case class Ob(cv: Val) extends Val
 case class Cell[N <: Nat](cv: Val, fv: ValComplex[N]) extends Val
 case class Hom[N <: Nat](cv: Val, fv: ValComplex[N]) extends Val
 
-// Cell Values
-
-case class Comp[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
-case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
-
-case class LiftLeft(v: Val, ev: Val, cv: Val, tv: Val) extends Val
-case class FillLeft(v: Val, ev: Val, cv: Val, tv: Val) extends Val
-case class LiftRight(v: Val, ev: Val, cv: Val, tv: Val, a: Addr) extends Val
-case class FillRight(v: Val, ev: Val, cv: Val, tv: Val, a: Addr) extends Val
-
-// Property Type Values
-
 case class IsLeftExt(v: Val) extends Val
 case class IsRightExt(v: Val, a: Addr) extends Val
 
-// Property Values
+case class Comp[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class Fill[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
+case class LiftLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class FillLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class LiftRight(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class FillRight(e: Val, ev: Val, c: Val, t: Val) extends Val
+
 case class FillIsLeft[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
 case class ShellIsLeft[N <: Nat](v: Val) extends Val
-// case class FillLeftIsLeft(v: Val, ev: Val) extends Neut
-// case class FillLeftIsRight(v: Val, ev: Val) extends Neut
-// case class FillRightIsLeft(v: Val, ev: Val, a: Addr) extends Neut
-// case class FillRightIsRight(v: Val, ev: Val, a: Addr) extends Neut
+case class FillLeftIsLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class FillRightIsLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class FillLeftIsRight(e: Val, ev: Val, c: Val, t: Val, l: Val, f: Val, fev: Val) extends Val
+case class FillRightIsRight(e: Val, ev: Val, c: Val, t: Val, l: Val, f: Val, fev: Val) extends Val
 
 // Neutral terms
 sealed trait Neut
