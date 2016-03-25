@@ -62,3 +62,4 @@ let compLiftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) ->
 		   (a : Simplex X x y z f g h) -> 
 		   (fe : isLeftExt f) -> (he : isLeftExt h) -> (ae : isLeftExt a) -> isLeftExt g
 		 = \X. \x. \y. \z. \f. \g. \h. \a. \fe. \he. \ae. shellIsLeft a ae (nd empty (pt (nd fe (pt lf)))) he
+

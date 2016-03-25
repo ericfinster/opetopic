@@ -51,7 +51,7 @@ case class EFillRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Property constructors
 case class EFillIsLeft[N <: Nat](e: Expr, fp: Suite[NstExpr, N], nch: TrExpr[N]) extends Expr
-case class EShellIsLeft(e:Expr, ev: Expr, src: Expr, tgt: Expr) extends Expr
+case class EShellIsLeft(e:Expr, ev: Expr, src: TreeExpr, tgt: Expr) extends Expr
 case class EFillLeftIsLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillRightIsLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillLeftIsRight(e: Expr, ev: Expr, c: Expr, t: Expr, l: Expr, f: Expr, fev: Expr) extends Expr
@@ -87,7 +87,7 @@ case class LiftRight(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillRight(e: Val, ev: Val, c: Val, t: Val) extends Val
 
 case class FillIsLeft[N <: Nat](v: Val, fp: Suite[NstVal, N], nch: TrVal[N]) extends Val
-case class ShellIsLeft[N <: Nat](e: Val, ev: Val, src: TrVal[N], tgt: Val) extends Val
+case class ShellIsLeft(e: Val, ev: Val, src: TreeVal, tgt: Val) extends Val
 case class FillLeftIsLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillRightIsLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillLeftIsRight(e: Val, ev: Val, c: Val, t: Val, l: Val, f: Val, fev: Val) extends Val
@@ -108,9 +108,15 @@ case class ACons(a: Addr, b: Addr) extends Addr
 
 // Tree Expressions
 sealed trait TreeExpr extends Expr
-case class EPt(e: Expr) extends TreeExpr
 case object ELf extends TreeExpr
+case class EPt(e: Expr) extends TreeExpr
 case class ENd(e: Expr, sh: TreeExpr) extends TreeExpr
+
+// Tree Values
+sealed trait TreeVal extends Val
+case object VLf extends TreeVal
+case class VPt(v: Val) extends TreeVal
+case class VNd(v: Val, sh: TreeVal) extends TreeVal
 
 // Patterns
 sealed trait Patt

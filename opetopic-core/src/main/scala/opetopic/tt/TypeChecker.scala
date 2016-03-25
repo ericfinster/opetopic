@@ -144,6 +144,7 @@ object OpetopicTypeChecker {
       case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
       case EFillIsLeft(e, fp, nch) => FillIsLeft(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
+      case EShellIsLeft(e, ev, src, tgt) => ShellIsLeft(eval(e, rho), eval(ev, rho), evalTree(src, rho), eval(tgt, rho))
 
       case EFillLeftIsLeft(e, ev, c, t) => FillLeftIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -152,6 +153,13 @@ object OpetopicTypeChecker {
       case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
         FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
 
+    }
+
+  def evalTree(te: TreeExpr, rho: Rho) : TreeVal = 
+    te match {
+      case EPt(e) => VPt(eval(e, rho))
+      case ELf => VLf
+      case ENd(e, sh) => VNd(eval(e, rho), evalTree(sh, rho))
     }
 
   //============================================================================================
