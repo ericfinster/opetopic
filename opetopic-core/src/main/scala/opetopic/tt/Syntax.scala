@@ -110,7 +110,7 @@ case class ACons(a: Addr, b: Addr) extends Addr
 sealed trait TreeExpr extends Expr
 case class EPt(e: Expr) extends TreeExpr
 case object ELf extends TreeExpr
-case class ENd(e: Expr, sh: Expr) extends TreeExpr
+case class ENd(e: Expr, sh: TreeExpr) extends TreeExpr
 
 // Patterns
 sealed trait Patt

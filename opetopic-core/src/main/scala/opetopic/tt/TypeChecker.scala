@@ -442,14 +442,14 @@ object OpetopicTypeChecker {
   @natElim
   def parseTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
     case (Z, EPt(e)) => pure(Pt(e))
-    case (Z, _) => fail("Not a tree expression")
+    case (Z, e) => fail("Not a tree expression in dim 0: " ++ e.toString)
     case (S(p: P), ELf) => pure(Leaf(S(p)))
     case (S(p: P), ENd(e, sh)) => 
       for {
         shParse <- parseTree(p)(sh)
         shRes <- shParse.traverse(parseTree(S(p))(_))
       } yield Node(e, shRes)
-    case (S(p: P), _) => fail("Not a tree expression")
+    case (S(p: P), e) => fail("Not a tree expression: " ++ e.toString)
   }
 
   @natElim

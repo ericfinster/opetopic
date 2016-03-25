@@ -51,3 +51,14 @@ let rightFillTest : (X : Cat) -> (y : Obj X) -> (z : Obj X) -> (g : Arrow X y z)
     		    (x : Obj X) -> (h : Arrow X x z) -> Simplex X x y z (liftRight g ev x h) g h
 		  = \X. \y. \z. \g. \ev. \x. \h. fillRight g ev x h
 
+let compLeftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    		   (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> 
+		   (a : Simplex X x y z f g h) -> 
+		   (fe : isLeftExt f) -> (ge : isLeftExt g) -> (ae : isLeftExt a) -> isLeftExt h
+		 = \X. \x. \y. \z. \f. \g. \h. \a. \fe. \ge. \ae. shellIsLeft a ae (nd ge (pt (nd fe (pt lf)))) empty
+
+let compLiftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    		   (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> 
+		   (a : Simplex X x y z f g h) -> 
+		   (fe : isLeftExt f) -> (he : isLeftExt h) -> (ae : isLeftExt a) -> isLeftExt g
+		 = \X. \x. \y. \z. \f. \g. \h. \a. \fe. \he. \ae. shellIsLeft a ae (nd empty (pt (nd fe (pt lf)))) he

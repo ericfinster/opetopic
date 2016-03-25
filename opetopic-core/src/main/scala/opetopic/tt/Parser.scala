@@ -96,12 +96,12 @@ object OpetopicParser extends RegexParsers with PackratParsers {
         { case "Cell" ~ e ~ frm => ECell(e, frm.value) }
     | "Hom" ~ expr3 ~ frameExpr ^^
         { case "Hom" ~ e ~ frm => EHom(e, frm.value) }
+    | trExpr
     | ident ^^ (EVar(_))
     | expr3 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }
     | expr3 ~ ".2" ^^ 
         { case e ~ ".2" => ESnd(e) }
-    | trExpr
     | "(" ~ expr ~ ")" ^^
         { case "(" ~ e ~ ")" => e }
   )
@@ -116,12 +116,14 @@ object OpetopicParser extends RegexParsers with PackratParsers {
     }
   }
 
-  lazy val trExpr: PackratParser[Expr] = (
+  lazy val trExpr: PackratParser[TreeExpr] = (
       "pt" ~ expr3 ^^
         { case "pt" ~ e => EPt(e) }
     | "lf" ^^^ ELf
     | "nd" ~ expr3 ~ trExpr ^^
         { case "nd" ~ e ~ sh => ENd(e, sh) }
+    | "(" ~ trExpr ~ ")" ^^
+        { case "(" ~ te ~ ")" => te }
   )
 
   lazy val addrExpr : PackratParser[Addr] = (
