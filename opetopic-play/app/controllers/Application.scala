@@ -15,8 +15,8 @@ object Application extends Controller {
     Ok(views.html.sketchpad())
   }
 
-  def codeBuilder = Action {
-    Ok(views.html.codebuilder())
+  def prover = Action {
+    Ok(views.html.prover())
   }
 
   def showDoc(page: String) = Action {

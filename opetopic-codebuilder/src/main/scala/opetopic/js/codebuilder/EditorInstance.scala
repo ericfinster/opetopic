@@ -139,282 +139,284 @@ class EditorInstance(reg : Registry, env: Environment) {
       reg.registerCell(cell)
       reg.registerParameter(cell)
 
+      println("everything registered")
+
       box.optLabel = Some(cell)
       box.panel.refresh
       editor.refreshGallery
 
     }
 
-  def assumeCell[P <: Nat](p: P)(box: EditorBox[S[P]], id: String, isLex: Boolean, rexAddrOpt: Option[Address[P]]): EditorM[Unit] = ???
-    // for {
-    //   _ <- forceNone(box.optLabel, "Cell is occupied")
-    //   cellCmplx <- new SuccBoxOps(box).cellComplex
-    //   frmCmplx <- new SuccBoxOps(box).frameComplex
-    //   varType = ECell(env.catExpr, frmCmplx)
+  def assumeCell[P <: Nat](p: P)(box: EditorBox[S[P]], id: String, isLex: Boolean, rexAddrOpt: Option[Address[P]]): EditorM[Unit] = 
+    for {
+      _ <- forceNone(box.optLabel, "Cell is occupied")
+      cellCmplx <- new SuccBoxOps(box).cellComplex
+      frmCmplx <- new SuccBoxOps(box).frameComplex
+      varType = ECell(env.catExpr, frmCmplx)
 
-    //   // Make sure the type is valid
-    //   _ <- runCheck(
+      // Make sure the type is valid
+      _ <- runCheck(
 
-    //     env.checkT(varType)
+        env.checkT(varType)
 
-    //   )(msg => {
+      )(msg => {
 
-    //     editorError("Type checking error: " ++ msg)
+        editorError("Type checking error: " ++ msg)
 
-    //   })(_ => {
+      })(_ => {
 
-    //     env.extendContext(id, env.eval(varType))
-    //     env.extendEnvironment(id, env.genV)
+        env.extendContext(id, env.eval(varType))
+        env.extendEnvironment(id, env.genV)
 
-    //     val cell = HigherCell[P](id, EVar(id), cellCmplx)
-    //     reg.registerCell(cell)
-    //     reg.registerParameter(cell)
+        val cell = HigherCell[P](id, EVar(id), cellCmplx)
+        reg.registerCell(cell)
+        reg.registerParameter(cell)
 
-    //     cell.isLeftExt =
-    //       if (isLex) {
-    //         val lexId = id ++ "-is-lex"
-    //         val lexType = ELeftExt(EVar(id))
-    //         env.extendContext(lexId, env.eval(lexType))
-    //         env.extendEnvironment(lexId, env.genV)
-    //         val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
-    //         reg.registerProperty(lexProp)
-    //         reg.registerParameter(lexProp)
-    //         Some(lexProp)
-    //       } else None
+        cell.isLeftExt =
+          if (isLex) {
+            val lexId = id ++ "-is-lex"
+            val lexType = EIsLeftExt(EVar(id))
+            env.extendContext(lexId, env.eval(lexType))
+            env.extendEnvironment(lexId, env.genV)
+            val lexProp = IsLeftExtension(lexId, EVar(lexId), cell)
+            reg.registerProperty(lexProp)
+            reg.registerParameter(lexProp)
+            Some(lexProp)
+          } else None
 
-    //     cell.isRightExt = 
-    //       rexAddrOpt match {
-    //         case None => None
-    //         case Some(rexAddr) => {
-    //           val rexId = id ++ "-is-rex"
-    //           val rexType = ERightExt(EVar(id), rbAddr(p)(rexAddr))
-    //           env.extendContext(rexId, env.eval(rexType))
-    //           env.extendEnvironment(rexId, env.genV)
-    //           val rexProp = IsRightExtension(rexId, EVar(rexId), cell, rexAddr)
-    //           reg.registerProperty(rexProp)
-    //           reg.registerParameter(rexProp)
-    //           Some(rexProp)
-    //         }
-    //       }
+        cell.isRightExt = 
+          rexAddrOpt match {
+            case None => None
+            case Some(rexAddr) => {
+              val rexId = id ++ "-is-rex"
+              val rexType = EIsRightExt(EVar(id), rbAddr(p)(rexAddr))
+              env.extendContext(rexId, env.eval(rexType))
+              env.extendEnvironment(rexId, env.genV)
+              val rexProp = IsRightExtension(rexId, EVar(rexId), cell, rexAddr)
+              reg.registerProperty(rexProp)
+              reg.registerParameter(rexProp)
+              Some(rexProp)
+            }
+          }
 
-    //     box.optLabel = Some(cell)
-    //     box.panel.refresh
-    //     editor.refreshGallery
+        box.optLabel = Some(cell)
+        box.panel.refresh
+        editor.refreshGallery
 
-    //     editorSucceed(())
+        editorSucceed(())
 
-    //   })
-    // } yield ()
+      })
+    } yield ()
 
-  // //============================================================================================
-  // // COMPOSITION
-  // //
+  //============================================================================================
+  // COMPOSITION
+  //
 
-  def composeDiagram(id: String): EditorM[Unit] = editorSucceed(())
-  //   for {
-  //     boxsig <- attempt(currentBox, "Nothing selected")
-  //     fc <- fromShape(boxsig.value.faceComplex)
-  //     _ <- doCompose(boxsig.n)(fc, id) 
-  //   } yield ()
+  def composeDiagram(id: String): EditorM[Unit] = 
+    for {
+      boxsig <- attempt(currentBox, "Nothing selected")
+      fc <- fromShape(boxsig.value.faceComplex)
+      _ <- doCompose(boxsig.n)(fc, id) 
+    } yield ()
 
-  // @natElim
-  // def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : EditorM[Unit] = {
-  //   case (Z, cmplx, id) => editorError("Dimension too low to compose")
-  //   case (S(p: P), fillCmplx @ Complex(Complex(_, Box(compBox, bcn)), Dot(fillBox, _)), id) => {
+  @natElim
+  def doCompose[N <: Nat](n: N)(cmplx: Complex[EditorBox, N], id: String) : EditorM[Unit] = {
+    case (Z, cmplx, id) => editorError("Dimension too low to compose")
+    case (S(p: P), fillCmplx @ Complex(Complex(_, Box(compBox, bcn)), Dot(fillBox, _)), id) => {
 
-  //     val idDef = id ++ "-def"
+      val idDef = id ++ "-def"
 
-  //     for {
-  //       _ <- forceNone(compBox.optLabel, "Composite cell not empty")
-  //       _ <- forceNone(fillBox.optLabel, "Filling cell not empty")
-  //       compCmplx <- fromShape(fillCmplx.target)
-  //       (web, cn) <- (
-  //         fillCmplx.map(EditorBoxToExpr).tail match {
-  //           case Complex(web, Box(_, cn)) => editorSucceed((web, cn))
-  //           case _ => editorError("Malformed tail ...")
-  //         }
-  //       )
+      for {
+        _ <- forceNone(compBox.optLabel, "Composite cell not empty")
+        _ <- forceNone(fillBox.optLabel, "Filling cell not empty")
+        compCmplx <- fromShape(fillCmplx.target)
+        (web, cn) <- (
+          fillCmplx.map(EditorBoxToExpr).tail match {
+            case Complex(web, Box(_, cn)) => editorSucceed((web, cn))
+            case _ => editorError("Malformed tail ...")
+          }
+        )
 
-  //       pd = cn.map(_.baseValue)
-  //       comp = EComp(env.catExpr, web, pd)
-  //       fill = EFill(env.catExpr, web, pd)
-  //       fillLeftExt = EFillerLeftExt(env.catExpr, web, pd) // You're not typechecking this?
+        pd = cn.map(_.baseValue)
+        comp = EComp(env.catExpr, web, pd)
+        fill = EFill(env.catExpr, web, pd)
+        fillLeftExt = EFillIsLeft(env.catExpr, web, pd) // You're not typechecking this?
 
-  //       compCell <- faceToCell(p)(id, comp, compCmplx)
-  //       compType = compCell.ty
-  //       _ = compBox.optLabel = Some(compCell)
+        compCell <- faceToCell(p)(id, comp, compCmplx)
+        compType = compCell.ty
+        _ = compBox.optLabel = Some(compCell)
 
-  //       fillCell <- faceToCell(S(p))(idDef, fill, fillCmplx)
-  //       fillType = fillCell.ty
-  //       _ = fillBox.optLabel = Some(fillCell)
+        fillCell <- faceToCell(S(p))(idDef, fill, fillCmplx)
+        fillType = fillCell.ty
+        _ = fillBox.optLabel = Some(fillCell)
 
-  //       _ <- runCheck(
-  //         for {
-  //           _ <- env.checkT(compType)
-  //           compVal = env.eval(compType)
-  //           _ <- env.check(comp, compVal)
-  //           _ <- env.checkT(fillType)
-  //           fillVal = env.eval(fillType)
-  //           _ <- env.check(fill, fillVal)
-  //         } yield {
+        _ <- runCheck(
+          for {
+            _ <- env.checkT(compType)
+            compVal = env.eval(compType)
+            _ <- env.check(comp, compVal)
+            _ <- env.checkT(fillType)
+            fillVal = env.eval(fillType)
+            _ <- env.check(fill, fillVal)
+          } yield {
 
-  //           env.extendContext(id, compVal)
-  //           env.extendContext(idDef, fillVal)
-  //           env.extendEnvironment(id, env.eval(comp))
-  //           env.extendEnvironment(idDef, env.eval(fill))
+            env.extendContext(id, compVal)
+            env.extendContext(idDef, fillVal)
+            env.extendEnvironment(id, env.eval(comp))
+            env.extendEnvironment(idDef, env.eval(fill))
 
-  //         }
-  //       )(msg => {
+          }
+        )(msg => {
 
-  //         compBox.optLabel = None
-  //         fillBox.optLabel = None
+          compBox.optLabel = None
+          fillBox.optLabel = None
 
-  //         editorError("Type checking error: " ++ msg)
+          editorError("Type checking error: " ++ msg)
 
-  //       })(_ => {
+        })(_ => {
 
-  //         @natElim
-  //         def doCompLeftExt[K <: Nat](k: K)(c: Cell[K]) : Unit = {
-  //           case (Z, _) => ()
-  //           case (S(p), c) => {
-  //             c.isLeftExt =
-  //               for {
-  //                 prTr <- bcn.traverse({
-  //                   case b =>
-  //                     for {
-  //                       cell <- b.baseValue.optLabel
-  //                       lextEv <- cell.isLeftExt
-  //                     } yield EPair(cell.expr, lextEv.expr)
-  //                 })
-  //               } yield IsLeftExtension(
-  //                 id ++ "-is-lex", 
-  //                 EFillerCompLeftExt(env.catExpr, web, prTr), c
-  //               )
-  //           }
-  //         }
+          // @natElim
+          // def doCompLeftExt[K <: Nat](k: K)(c: Cell[K]) : Unit = {
+          //   case (Z, _) => ()
+          //   case (S(p), c) => {
+          //     c.isLeftExt =
+          //       for {
+          //         prTr <- bcn.traverse({
+          //           case b =>
+          //             for {
+          //               cell <- b.baseValue.optLabel
+          //               lextEv <- cell.isLeftExt
+          //             } yield EPair(cell.expr, lextEv.expr)
+          //         })
+          //       } yield IsLeftExtension(
+          //         id ++ "-is-lex", 
+          //         EFillerCompLeftExt(env.catExpr, web, prTr), c
+          //       )
+          //   }
+          // }
 
-  //         doCompLeftExt(compCell.dim)(compCell)
+          // doCompLeftExt(compCell.dim)(compCell)
 
-  //         fillCell.isLeftExt = Some(
-  //           IsLeftExtension(
-  //             idDef ++ "-is-lex",
-  //             fillLeftExt,
-  //             fillCell
-  //           )
-  //         )
+          fillCell.isLeftExt = Some(
+            IsLeftExtension(
+              idDef ++ "-is-lex",
+              fillLeftExt,
+              fillCell
+            )
+          )
 
-  //         // Not sure why I need this ...
-  //         compBox.optLabel = Some(compCell)
-  //         fillBox.optLabel = Some(fillCell)
+          // Not sure why I need this ...
+          compBox.optLabel = Some(compCell)
+          fillBox.optLabel = Some(fillCell)
 
-  //         reg.registerCell(compCell)
-  //         reg.registerCell(fillCell)
+          reg.registerCell(compCell)
+          reg.registerCell(fillCell)
 
-  //         for { p <- compCell.isLeftExt } { reg.registerProperty(p) }
-  //         for { p <- fillCell.isLeftExt } { reg.registerProperty(p) }
+          for { p <- compCell.isLeftExt } { reg.registerProperty(p) }
+          for { p <- fillCell.isLeftExt } { reg.registerProperty(p) }
 
-  //         compBox.panel.refresh
-  //         fillBox.panel.refresh
-  //         editor.refreshGallery
+          compBox.panel.refresh
+          fillBox.panel.refresh
+          editor.refreshGallery
 
-  //         editorSucceed(())
+          editorSucceed(())
 
-  //       })
-  //     } yield ()
-  //   }
-  // }
+        })
+      } yield ()
+    }
+  }
 
-  // //============================================================================================
-  // // PASTING
-  // //
+  //============================================================================================
+  // PASTING
+  //
 
-  // type BNst[N <: Nat] = Nesting[EditorBox[N], N]
-  // type CNst[N <: Nat] = Nesting[Cell[N], N]
-  // type PNst[N <: Nat] = Nesting[(EditorBox[N], Cell[N]), N]
-  // type BCPair[N <: Nat] = (BNst[N], CNst[N])
+  type BNst[N <: Nat] = Nesting[EditorBox[N], N]
+  type CNst[N <: Nat] = Nesting[Cell[N], N]
+  type PNst[N <: Nat] = Nesting[(EditorBox[N], Cell[N]), N]
+  type BCPair[N <: Nat] = (BNst[N], CNst[N])
 
-  // @natElim
-  // def doPaste[N <: Nat](n: N)(cell: Cell[N]): EditorM[Unit] = {
-  //   case (Z, cell) => {
+  @natElim
+  def doPaste[N <: Nat](n: N)(cell: Cell[N]): EditorM[Unit] = {
+    case (Z, cell) => {
 
-  //     import TypeLemmas._
+      import TypeLemmas._
 
-  //     for {
-  //       boxsig <- attempt(currentBox, "Nothing Selected")
-  //       ev <- attempt(matchNatPair(boxsig.n, Z), "Wrong dimension")
-  //       box = rewriteNatIn[EditorBox, boxsig.N, _0](ev)(boxsig.value)
-  //       _ <- forceNone(box.optLabel, "Destination box is not empty")
-  //       _ = {
-  //         box.optLabel = Some(cell)
-  //         box.panel.refresh
-  //         editor.refreshGallery
-  //       }
-  //     } yield ()
+      for {
+        boxsig <- attempt(currentBox, "Nothing Selected")
+        ev <- attempt(matchNatPair(boxsig.n, Z), "Wrong dimension")
+        box = rewriteNatIn[EditorBox, boxsig.N, _0](ev)(boxsig.value)
+        _ <- forceNone(box.optLabel, "Destination box is not empty")
+        _ = {
+          box.optLabel = Some(cell)
+          box.panel.refresh
+          editor.refreshGallery
+        }
+      } yield ()
 
-  //   }
-  //   case (S(p: P), cell) => {
+    }
+    case (S(p: P), cell) => {
 
-  //     import TypeLemmas._
+      import TypeLemmas._
 
-  //     for {
-  //       boxsig <- attempt(currentBox, "Nothing Selected")
-  //       ev <- attempt(matchNatPair(boxsig.n, S(p)), "Wrong dimension")
-  //       box = rewriteNatIn[EditorBox, boxsig.N, S[P]](ev)(boxsig.value)
-  //       fc <- fromShape(box.faceComplex)
-  //       _ <- forceNone(box.optLabel, "Destination box is not empty")
-  //       zc = Suite.zip[BNst, CNst, S[S[P]]](fc, cell.face)
-  //       pnst <- Suite.traverse[EditorM, BCPair, PNst, S[S[P]]](zc)(Matcher) 
-  //       _ = {
-  //         Suite.foreach[PNst, S[S[P]]](pnst)(Updater)
-  //         editor.refreshGallery
-  //       }
-  //     } yield ()
+      for {
+        boxsig <- attempt(currentBox, "Nothing Selected")
+        ev <- attempt(matchNatPair(boxsig.n, S(p)), "Wrong dimension")
+        box = rewriteNatIn[EditorBox, boxsig.N, S[P]](ev)(boxsig.value)
+        fc <- fromShape(box.faceComplex)
+        _ <- forceNone(box.optLabel, "Destination box is not empty")
+        zc = Suite.zip[BNst, CNst, S[S[P]]](fc, cell.face)
+        pnst <- Suite.traverse[EditorM, BCPair, PNst, S[S[P]]](zc)(Matcher) 
+        _ = {
+          Suite.foreach[PNst, S[S[P]]](pnst)(Updater)
+          editor.refreshGallery
+        }
+      } yield ()
 
-  //   }
-  // }
+    }
+  }
 
-  // object Updater extends IndexedOp[PNst] {
-  //   def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
-  //     pr.foreach({ case (b, c) => b.optLabel = Some(c) })
-  //     pr.baseValue._1.panel.refresh
-  //   }
-  // }
+  object Updater extends IndexedOp[PNst] {
+    def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
+      pr.foreach({ case (b, c) => b.optLabel = Some(c) })
+      pr.baseValue._1.panel.refresh
+    }
+  }
 
-  // object Matcher extends IndexedTraverse[EditorM, BCPair, PNst] {
-  //   def apply[N <: Nat](n: N)(pr: BCPair[N]) : EditorM[PNst[N]] = {
+  object Matcher extends IndexedTraverse[EditorM, BCPair, PNst] {
+    def apply[N <: Nat](n: N)(pr: BCPair[N]) : EditorM[PNst[N]] = {
 
-  //     val (bnst, cnst) = pr
-  //     val fillings: HashMap[EditorBox[N], Expr] = HashMap.empty
+      val (bnst, cnst) = pr
+      val fillings: HashMap[EditorBox[N], Expr] = HashMap.empty
 
-  //     fromShape(
-  //       Nesting.matchTraverse(bnst, cnst)({
-  //         case (b, c) =>
-  //           b.optLabel match {
-  //             case None => {
-  //               if (fillings.isDefinedAt(b)) {
-  //                 if (fillings(b) != c.expr) {
-  //                   opetopic.fail("Loop conflict")
-  //                 } else opetopic.succeed((b, c))
-  //               } else {
-  //                 fillings(b) = c.expr
-  //                 opetopic.succeed((b, c))
-  //               }
-  //             }
-  //             case Some(d) =>
-  //               if (d.expr == c.expr) // Or something similar ...
-  //                 succeed((b, c))
-  //               else
-  //                 opetopic.fail("Expression mismatch.")
-  //           }
-  //       })
-  //     )
+      fromShape(
+        Nesting.matchTraverse(bnst, cnst)({
+          case (b, c) =>
+            b.optLabel match {
+              case None => {
+                if (fillings.isDefinedAt(b)) {
+                  if (fillings(b) != c.expr) {
+                    opetopic.fail("Loop conflict")
+                  } else opetopic.succeed((b, c))
+                } else {
+                  fillings(b) = c.expr
+                  opetopic.succeed((b, c))
+                }
+              }
+              case Some(d) =>
+                if (d.expr == c.expr) // Or something similar ...
+                  succeed((b, c))
+                else
+                  opetopic.fail("Expression mismatch.")
+            }
+        })
+      )
 
-  //   }
-  // }
+    }
+  }
 
-  // //============================================================================================
-  // // LEFT LIFTING
-  // //
+  //============================================================================================
+  // LEFT LIFTING
+  //
 
   def leftLift(id: String) : EditorM[Unit] = editorSucceed(())
   //   for {

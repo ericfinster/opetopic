@@ -1,0 +1,162 @@
+@()
+
+@import play.api.Play
+
+@main("Prover") {
+
+  <div class="main">
+
+    <div class="article">
+      <div id="panes">
+
+	<div class="ui dividing header">
+	  <h3>Opetopic Theorem Prover</h3>
+	</div>
+
+	<div class="ui pointing menu">
+	  <a class="item" data-tab="module">Module</a>
+	  <a class="active item" data-tab="definition">Definition</a>
+	</div>
+
+	<div class="ui tab" data-tab="module">
+	  <div class="ui fluid styled accordion">
+	    <div class="title">
+	      <i class="dropdown icon"></i>
+	      isLeftExtension
+	    </div>
+	    <div class="content">
+	      <p class="transition hidden">Right, what exactly is a left extension?</p>
+	    </div>
+	    <div class="title">
+	      <i class="dropdown icon"></i>
+	      isLeftAdjoint
+	    </div>
+	    <div class="content">
+	      <p class="transition hidden">A left adjoint is a right lift preserved by all compositions.</p>
+	    </div>
+	    <div class="title">
+	      <i class="dropdown icon"></i>
+	      isRightAdjoint
+	    </div>
+	    <div class="content">
+	      <p class="transition hidden">The same for a right adjoint</p>
+	      <p class="transition hidden">Except for a right adjoint, things are different.</p>
+	    </div>
+	  </div>
+	</div>
+
+	<div class="ui active tab" data-tab="definition">
+
+	  <div class="ui grid">
+	    <div class="three wide column">
+
+	      <div class="ui dividing header">
+		<h3>Context</h3>
+	      </div>
+
+	      <div class="ui fluid styled accordion">
+		<div class="title">
+		  <i class="dropdown icon"></i>
+		  x
+		</div>
+		<div class="content">
+		  <p class="transition hidden">Some cell info...</p>
+		</div>
+		<div class="title">
+		  <i class="dropdown icon"></i>
+		  y
+		</div>
+		<div class="content">
+		  <p class="transition hidden">Some cell info...</p>
+		</div>
+		<div class="title">
+		  <i class="dropdown icon"></i>
+		  z
+		</div>
+		<div class="content">
+		  <p class="transition hidden">A left adjoint is a right lift preserved by all compositions.</p>
+		</div>
+	      </div>
+
+	    </div>
+
+	    <div class="ten wide column">
+
+	      <div class="ui dividing header">
+		<h3>Editor</h3>
+	      </div>
+
+	      <div class="ui top attached menu">
+		<a class="item">Shape</a>
+		<div class="right item">
+		  <button id="new-editor" class="ui icon button">
+		    <i class="add icon"></i>
+		  </button>
+		</div>
+	      </div>
+
+	      <div class="ui middle attached segment" id="tab-pane"></div>
+
+	      <div class="ui bottom attached center aligned segment">
+		<div class="ui pagination menu" id="tab-pager">
+		  <!-- <a class="active item">1</a> -->
+		  <!-- <a class="item">2</a> -->
+		  <!-- <a class="item">3</a> -->
+		  <!-- <a class="item">4</a> -->
+		</div>		
+	      </div>
+
+	    </div>
+
+	    <div class="three wide column">
+
+	      <div class="ui dividing header">
+		<h3>Environment</h3>
+	      </div>
+
+	      <div class="ui fluid styled accordion">
+		<div class="title">
+		  <i class="dropdown icon"></i>
+		  x
+		</div>
+		<div class="content">
+		  <p class="transition hidden">Some cell info...</p>
+		</div>
+		<div class="title">
+		  <i class="dropdown icon"></i>
+		  y
+		</div>
+		<div class="content">
+		  <p class="transition hidden">Some cell info...</p>
+		</div>
+		<div class="title">
+		  <i class="dropdown icon"></i>
+		  z
+		</div>
+		<div class="content">
+		  <p class="transition hidden">A left adjoint is a right lift preserved by all compositions.</p>
+		</div>
+	      </div>
+
+	    </div>
+	  </div>
+
+	</div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.css"))'> -->
+  <!-- <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("codemirror.js"))'></script> -->
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopicprover-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopicprover-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopicprover-launcher.js")' type="text/javascript"></script>
+
+}

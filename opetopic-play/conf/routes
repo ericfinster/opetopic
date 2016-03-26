@@ -8,8 +8,8 @@ GET     /                           controllers.Application.index
 # SketchPad
 GET	/sketchpad		    controllers.Application.sketchpad
 
-# CodeBuilder
-GET	/codebuilder		    controllers.Application.codeBuilder
+# Prover
+GET     /prover                     controllers.Application.prover
 
 # Documentation
 GET     /docs                       controllers.Application.showDoc(page = "intro")
