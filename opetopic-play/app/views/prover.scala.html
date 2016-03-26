@@ -87,23 +87,88 @@
 	      </div>
 
 	      <div class="ui top attached menu">
-		<a class="item">Shape</a>
-		<div class="right item">
-		  <button id="new-editor" class="ui icon button">
-		    <i class="add icon"></i>
-		  </button>
+		<a class="item">Shape<i class="dropdown icon"></i></a>
+	      </div>
+
+	      <div class="ui middle attached nofocus segment" id="tab-pane" tabIndex="0"></div>
+
+	      <div class="ui bottom attached segment">
+		<div class="ui grid">
+		  <div class="fourteen wide column">
+		    <div class="ui pagination menu" id="tab-pager"></div>
+		  </div>
+		  <div class="two wide right aligned column">
+		    <button id="new-editor" class="ui icon button">
+		      <i class="add icon"></i>
+		    </button>
+		  </div>
 		</div>
 	      </div>
 
-	      <div class="ui middle attached segment" id="tab-pane"></div>
+	      <div class="ui dividing header">
+		<h3>Action</h3>
+	      </div>
 
-	      <div class="ui bottom attached center aligned segment">
-		<div class="ui pagination menu" id="tab-pager">
-		  <!-- <a class="active item">1</a> -->
-		  <!-- <a class="item">2</a> -->
-		  <!-- <a class="item">3</a> -->
-		  <!-- <a class="item">4</a> -->
-		</div>		
+	      <div class="ui grid">
+		<div class="four wide column">
+		  <div class="ui vertical fluid pointing menu">
+		    <a class="active item" data-tab="assume-tab">Assume</a>
+		    <a class="item" data-tab="compose-tab">Compose</a>
+		    <a class="item" data-tab="lift-tab">Lift</a>
+		    <a class="item" data-tab="export-tab">Export</a>
+		  </div>
+		</div>
+
+		<div class="twelve wide stretched column">
+		  <div class="ui segment">
+
+		    <div class="ui active tab" data-tab="assume-tab">
+		      <form id="assume-form" class="ui form">
+			<div class="ui grid">
+
+			  <div class="eight wide column">
+			    <div class="field">
+			      <label>Assume Variable:</label>
+			      <input type="text" placeholder="Identifier"></input>
+			    </div>
+
+			    <div class="field">
+			      <div class="ui checkbox">
+				<input type="checkbox" tabIndex="0" class="hidden"></input>
+				<label>Left Extension</label>
+			      </div>
+			    </div>
+
+			    <div class="field">
+			      <div class="ui checkbox">
+				<input type="checkbox" tabIndex="0" class="hidden"></input>
+				<label>Right Extension</label>
+			      </div>
+			    </div>
+			  </div>
+
+			  <div class="eight wide column">
+			  </div>
+			  
+			</div>
+		      </form>
+		    </div>
+
+		    <div class="ui tab" data-tab="compose-tab">
+		      <p>This is the composition tab.</p>
+		    </div>
+
+		    <div class="ui tab" data-tab="lift-tab">
+		      <p>This is the lift tab.</p>
+		    </div>
+
+		    <div class="ui tab" data-tab="export-tab">
+		      <p>This is the export tab.</p>
+		    </div>
+
+		  </div>
+		</div>
+
 	      </div>
 
 	    </div>

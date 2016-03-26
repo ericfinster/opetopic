@@ -25,6 +25,23 @@ object Prover extends JSApp {
     jQuery(".menu .item").tab()
     jQuery("#new-editor").on("click", () => newEditor)
 
+    jQuery("#tab-pane").keypress((e : JQueryEventObject) => {
+      e.which match {
+        case 101 => for { editor <- activeEditor } { editor.ce.extrudeSelection }
+        case 100 => for { editor <- activeEditor } { editor.ce.extrudeDrop }
+        case 112 => for { editor <- activeEditor } { editor.ce.sprout }
+        case _ => ()
+      }
+    })
+
+    jQuery(".ui.checkbox").checkbox()
+
+    jQuery("#assume-form").on("submit",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        onAssumeSubmit
+      })
+
     newEditor
 
   }
@@ -54,6 +71,10 @@ object Prover extends JSApp {
 
     jQuery(tabItem).click()
 
+  }
+
+  def onAssumeSubmit: Unit = {
+    println("About to assume!")
   }
 
 }
