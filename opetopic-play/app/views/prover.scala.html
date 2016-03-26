@@ -54,28 +54,7 @@
 		<h3>Context</h3>
 	      </div>
 
-	      <div class="ui fluid styled accordion">
-		<div class="title">
-		  <i class="dropdown icon"></i>
-		  x
-		</div>
-		<div class="content">
-		  <p class="transition hidden">Some cell info...</p>
-		</div>
-		<div class="title">
-		  <i class="dropdown icon"></i>
-		  y
-		</div>
-		<div class="content">
-		  <p class="transition hidden">Some cell info...</p>
-		</div>
-		<div class="title">
-		  <i class="dropdown icon"></i>
-		  z
-		</div>
-		<div class="content">
-		  <p class="transition hidden">A left adjoint is a right lift preserved by all compositions.</p>
-		</div>
+	      <div class="ui fluid styled accordion" id="context-pane">
 	      </div>
 
 	    </div>
@@ -129,7 +108,7 @@
 			  <div class="eight wide column">
 			    <div class="field">
 			      <label>Assume Variable:</label>
-			      <input type="text" placeholder="Identifier"></input>
+			      <input id="assume-id-input" type="text" placeholder="Identifier"></input>
 			    </div>
 
 			    <div class="field">
