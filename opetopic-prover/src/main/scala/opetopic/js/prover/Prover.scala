@@ -136,8 +136,16 @@ object Prover extends JSApp {
 
   def contextExtend(id: String, ty: Expr) : Unit = {
 
-    val title = div(cls := "title")(i(cls := "dropdown icon"), id).render
-    val content = div(cls := "content")(p("Type: " ++ ty.toString)).render
+    val title = div(cls := "title")(i(cls := "dropdown icon"), id ++ " : " ++ PrettyPrinter.prettyPrint(ty)).render
+
+
+    val content = div(cls := "content")(
+      ty match {
+        case EOb(_) => button(cls := "ui icon button")(i(cls := "paste icon"))
+        case ECell(_, _) => button(cls := "ui icon button")(i(cls := "paste icon"))
+        case _ => p("No information")
+      }
+    ).render
 
     jQuery("#context-pane").append(title, content)
 

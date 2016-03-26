@@ -23,6 +23,12 @@ sealed trait Marker[N <: Nat] {
 
   def visualize(frmwk: UIFramework) : frmwk.Visualization[N]
 
+  def cs : ColorSpec = 
+    expr match {
+      case EVar(_) => VarColorSpec
+      case _ => DefaultColorSpec
+    }
+
 }
 
 case class ObjectMarker(
@@ -33,16 +39,8 @@ case class ObjectMarker(
 
   def dim = Z
 
-  def visualize(frmwk: UIFramework) : frmwk.Visualization[_0] = {
-
-    import frmwk._
-
-    ObjectVisualization(
-      DefaultColorSpec,
-      text(displayName)
-    )
-
-  }
+  def visualize(frmwk: UIFramework) : frmwk.Visualization[_0] =
+    frmwk.ObjectVisualization(cs, frmwk.text(displayName))
 
 }
 
@@ -54,18 +52,19 @@ case class CellMarker[P <: Nat](p: P)(
 
   def dim = S(p)
 
-  def visualize(frmwk: UIFramework) : frmwk.Visualization[S[P]] = {
-
-    import frmwk._
-
-    CellVisualization(
-      DefaultColorSpec,
-      text(displayName)
-    )
-
-  }
+  def visualize(frmwk: UIFramework) : frmwk.Visualization[S[P]] = 
+    frmwk.CellVisualization(cs, frmwk.text(displayName))
 
 }
+
+object VarColorSpec extends ColorSpec(
+  fill = "#FFE21F",
+  fillHovered = "#FDE21F",
+  fillSelected = "#FBBD08",
+  stroke = "#000000",
+  strokeHovered = "#000000",
+  strokeSelected = "#000000"
+)
 
 object Marker {
 

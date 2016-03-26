@@ -41,8 +41,8 @@ object PrettyPrinter {
       case EProj(_, _) => ""
       case ECat => "Cat"
       case EOb(e) => "Obj " ++ prettyPrint(e)
-      case EHom(e, c) => "Hom " ++ prettyPrint(e) ++ " frame"
-      case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " frame"
+      case EHom(e, c) => "Hom " ++ prettyPrint(e) ++ " {frame}"
+      case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " {frame}"
       case EComp(e, fp, nch) => "comp"
       case EFill(e, fp, nch) => "fill"
       // case ELeftExt(e) => "isLeftExt " ++ prettyPrint(e)
