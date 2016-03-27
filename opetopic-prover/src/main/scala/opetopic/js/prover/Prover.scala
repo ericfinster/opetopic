@@ -7,6 +7,7 @@
 
 package opetopic.js.prover
 
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import scala.scalajs.js
@@ -17,6 +18,7 @@ import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic._
 import opetopic.tt._
+import OpetopicTypeChecker._
 import opetopic.js.JQuerySemanticUI._
 
 object Prover extends JSApp {
@@ -43,7 +45,7 @@ object Prover extends JSApp {
     jQuery("#assume-form").on("submit",
       (e : JQueryEventObject) => {
         e.preventDefault
-        runEditorAction(onAssumeSubmit)
+        runEditorAction(onAssume)
       })
 
     contextExtend("X", ECat)
@@ -51,13 +53,25 @@ object Prover extends JSApp {
 
   }
 
+  //============================================================================================
+  // EDITOR ROUTINES
+  //
+
+  def runEditorAction(act: EditorM[Unit]) : Unit = {
+
+    import scalaz.\/
+    import scalaz.\/-
+    import scalaz.-\/
+
+    act match {
+      case -\/(msg: String) => println("Error: " ++ msg)
+      case \/-(_) => ()
+    }
+
+  }
+
   var editorCount: Int = 0
   var activeEditor: Option[Editor] = None
-
-  val catExpr: Expr = EVar("X")
-
-  val context: ListBuffer[(String, Expr)] = ListBuffer(("X", ECat))
-  val environment: ListBuffer[(String, Expr, Expr)] = ListBuffer()
 
   def newEditor: Unit = {
 
@@ -83,7 +97,66 @@ object Prover extends JSApp {
 
   }
 
-  def onAssumeSubmit: EditorM[Unit] =
+  //============================================================================================
+  // CONTEXT MANAGEMENT
+  //
+
+  // Map a normal form back to a name and an expression
+  val nfMap: HashMap[Expr, (String, Expr)] = HashMap()
+
+  val catExpr: Expr = EVar("X")
+
+  val context: ListBuffer[(String, Expr)] = ListBuffer()
+  val environment: ListBuffer[(String, Expr, Expr)] = ListBuffer()
+
+  var gma: List[(Name, TVal)] = Nil
+  var rho: Rho = RNil
+
+  def contextExtend[N <: Nat](id: String, ty: Expr) : Unit = {
+
+    // Take care of the semantic part
+    val tVal = eval(ty, rho)
+    val l = lRho(rho)
+    val gen = Nt(Gen(l, "TC#"))
+
+    gma = (id, tVal) :: gma
+    rho = UpVar(rho, PVar(id), gen)
+
+    context += ((id, ty))
+    nfMap(EVar("TC#" ++ l.toString)) = (id, EVar(id))
+
+    val title = div(cls := "title")(
+      i(cls := "dropdown icon"), id ++ " : " ++ PrettyPrinter.prettyPrint(ty)
+    ).render
+
+    def mkPasteBtn = 
+      button(
+        cls := "ui icon button",
+        onclick := { () => runEditorAction(onPaste(EVar(id), id)) }
+      )(
+        i(cls := "paste icon")
+      )
+
+    def isPasteable(ty: Expr) : Boolean = 
+      ty match {
+        case EOb(_) => true
+        case ECell(_, _) => true
+        case _ => false
+      }
+
+    val content = div(cls := "content")(
+      if (isPasteable(ty)) mkPasteBtn else p("No information")
+    ).render
+
+    jQuery("#context-pane").append(title, content)
+
+  }
+
+  //============================================================================================
+  // CELL ASSUMPTIONS
+  //
+
+  def onAssume: EditorM[Unit] =
     for {
       editor <- attempt(activeEditor, "No active editor")
       id = jQuery("#assume-id-input").value().asInstanceOf[String]
@@ -92,7 +165,7 @@ object Prover extends JSApp {
           def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = {
 
             val ty = EOb(catExpr)
-            val mk = ObjectMarker(id, EVar(id), ty)
+            val mk = ObjectMarker(id, EVar(id))
 
             contextExtend(id, ty)
 
@@ -108,7 +181,14 @@ object Prover extends JSApp {
             for {
               frm <- editor.frameComplex(box)
               ty = ECell(catExpr, frm)
-              mk = CellMarker(p)(id, EVar(id), ty)
+              mk = CellMarker(p)(id, EVar(id))
+              _ <- runCheck(
+                checkT(rho, gma, ty)
+              )(
+                msg => editorError("Typechecking error: " ++ msg)
+              )(
+                _ => editorSucceed(())
+              )
             } yield {
 
               contextExtend(id, ty)
@@ -121,34 +201,15 @@ object Prover extends JSApp {
         })
     } yield ()
 
-  def runEditorAction(act: EditorM[Unit]) : Unit = {
+  //============================================================================================
+  // PASTING
+  //
 
-    import scalaz.\/
-    import scalaz.\/-
-    import scalaz.-\/
+  def onPaste(e: Expr, id: String) : EditorM[Unit] = 
+    for {
+      editor <- attempt(activeEditor, "No editor active")
+      _ <- editor.pasteToCursor(e, eval(catExpr, rho), id)
+    } yield ()
 
-    act match {
-      case -\/(msg: String) => println("Error: " ++ msg)
-      case \/-(_) => ()
-    }
-
-  }
-
-  def contextExtend(id: String, ty: Expr) : Unit = {
-
-    val title = div(cls := "title")(i(cls := "dropdown icon"), id ++ " : " ++ PrettyPrinter.prettyPrint(ty)).render
-
-
-    val content = div(cls := "content")(
-      ty match {
-        case EOb(_) => button(cls := "ui icon button")(i(cls := "paste icon"))
-        case ECell(_, _) => button(cls := "ui icon button")(i(cls := "paste icon"))
-        case _ => p("No information")
-      }
-    ).render
-
-    jQuery("#context-pane").append(title, content)
-
-  }
 
 }

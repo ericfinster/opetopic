@@ -19,7 +19,6 @@ sealed trait Marker[N <: Nat] {
 
   def displayName: String
   def expr: Expr
-  def tyExpr: Expr
 
   def visualize(frmwk: UIFramework) : frmwk.Visualization[N]
 
@@ -33,11 +32,10 @@ sealed trait Marker[N <: Nat] {
 
 case class ObjectMarker(
   val displayName: String,
-  val expr: Expr,
-  val tyExpr: Expr
+  val expr: Expr
 ) extends Marker[_0] {
 
-  def dim = Z
+  val dim: _0 = Z
 
   def visualize(frmwk: UIFramework) : frmwk.Visualization[_0] =
     frmwk.ObjectVisualization(cs, frmwk.text(displayName))
@@ -46,11 +44,10 @@ case class ObjectMarker(
 
 case class CellMarker[P <: Nat](p: P)(
   val displayName: String,
-  val expr: Expr,
-  val tyExpr: Expr
+  val expr: Expr
 ) extends Marker[S[P]] {
 
-  def dim = S(p)
+  val dim: S[P] = S(p)
 
   def visualize(frmwk: UIFramework) : frmwk.Visualization[S[P]] = 
     frmwk.CellVisualization(cs, frmwk.text(displayName))
@@ -67,6 +64,12 @@ object VarColorSpec extends ColorSpec(
 )
 
 object Marker {
+
+  @natElim
+  def apply[N <: Nat](n: N)(id: String, expr: Expr) : Marker[N] = {
+    case (Z, id, expr) => ObjectMarker(id, expr)
+    case (S(p), id, expr) => CellMarker(p)(id, expr)
+  }
 
   object ActiveInstance {
 

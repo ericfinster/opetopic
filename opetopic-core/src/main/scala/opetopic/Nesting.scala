@@ -68,6 +68,7 @@ trait NestingFunctions {
   // MATCH TRAVERSE
   //
 
+  // This should be generalized to work with *any* error monad
   def matchTraverse[A, B, C, N <: Nat](
     nstA : Nesting[A, N], nstB : Nesting[B, N]
   )(f : (A, B) => ShapeM[C]) : ShapeM[Nesting[C, N]] = {

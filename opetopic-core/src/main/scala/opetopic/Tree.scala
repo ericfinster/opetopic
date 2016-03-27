@@ -127,6 +127,7 @@ trait TreeFunctions { tfns =>
   // MATCH TRAVERSE
   //
 
+  // This should be generalized to work with *any* error monad
   def matchTraverse[A, B, C, N <: Nat](
     trA : Tree[A, N], trB : Tree[B, N]
   )(f : (A, B) => ShapeM[C]) : ShapeM[Tree[C, N]] = {

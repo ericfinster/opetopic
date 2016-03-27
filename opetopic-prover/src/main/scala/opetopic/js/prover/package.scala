@@ -39,6 +39,12 @@ package object prover {
       case \/-(a) => \/-(a)
     }
 
+  def toShape[A](m: EditorM[A]) : ShapeM[A] = 
+    m match {
+      case -\/(msg) => -\/(ShapeError(msg))
+      case \/-(a) => \/-(a)
+    }
+
   def attempt[A](opt: Option[A], msg: String) : EditorM[A] =
     opt match {
       case Some(a) => \/-(a)
@@ -63,5 +69,10 @@ package object prover {
       case -\/(msg) => onError(msg)
       case \/-(a) => onSucceed(a)
     }
+
+  def simpleCheck[A](m: G[A]) : EditorM[A] = 
+    runCheck(m)(
+      msg => editorError("Typechecking error: " ++ msg)
+    )(a => editorSucceed(a))
 
 }

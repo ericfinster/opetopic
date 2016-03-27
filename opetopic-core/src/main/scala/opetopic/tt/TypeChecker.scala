@@ -487,6 +487,12 @@ object OpetopicTypeChecker {
       case u => fail("extPiG " ++ u.toString)
     }
 
+  def extObG(tv: TVal) : G[Val] = 
+    tv match {
+      case Ob(cv) => pure(cv)
+      case u => fail("extObG: " ++ u.toString)
+    }
+
   def extCellG(tv: TVal) : G[(Val, Sigma[ValComplex])] =
     tv match {
       case Cell(cv, fv) => pure(cv, Sigma(fv.dim)(fv))
