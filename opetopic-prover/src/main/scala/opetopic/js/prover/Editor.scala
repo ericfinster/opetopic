@@ -62,6 +62,16 @@ class Editor {
       for { mk <- ExtractMarkers(n)(box) } yield mk.expr
   }
 
+  object SuiteExtractExprs extends IndexedTraverse[EditorM, BNst, ENst] {
+    def apply[N <: Nat](n: N)(bnst: BNst[N]) : EditorM[ENst[N]] = 
+      bnst.traverse[EditorM, Expr]({
+        case b => for { 
+          mk <- attempt(b.optLabel, "Unexpected missing expression") 
+        } yield mk.expr
+      })
+  }
+
+
   def frameComplex[P <: Nat](box: EditorBox[S[P]]) : EditorM[ExprComplex[P]] = 
     for {
       fc <- fromShape(box.faceComplex)
@@ -79,6 +89,7 @@ class Editor {
   //
 
   type BNst[N <: Nat] = Nesting[EditorBox[N], N]
+  type ENst[N <: Nat] = Nesting[ConstExpr[N], N]
   type VNst[N <: Nat] = Nesting[ConstVal[N], N]
   type PNst[N <: Nat] = Nesting[(EditorBox[N], ConstVal[N]), N]
   type BVPair[N <: Nat] = (BNst[N], VNst[N])

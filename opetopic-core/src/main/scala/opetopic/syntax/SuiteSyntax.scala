@@ -10,6 +10,8 @@ package opetopic.syntax
 import opetopic._
 import TypeLemmas._
 
+import scalaz.Applicative
+
 class SuiteOps[A[_ <: Nat], N <: Nat](suite: Suite[A, N]) {
 
   def fold[B](fld: IndexedFold[A, B]) : B = 
@@ -26,6 +28,9 @@ class SuiteOps[A[_ <: Nat], N <: Nat](suite: Suite[A, N]) {
 
   def foreach(op: IndexedOp[A]) : Unit = 
     Suite.foreach[A, N](suite)(op)
+
+  def traverse[T[_], B[_ <: Nat]](t: IndexedTraverse[T, A, B])(implicit apT: Applicative[T]) : T[Suite[B, N]] = 
+    Suite.traverse[T, A, B, N](suite)(t)
 
 }
 

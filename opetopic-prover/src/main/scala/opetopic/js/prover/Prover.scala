@@ -21,6 +21,11 @@ import opetopic.tt._
 import OpetopicTypeChecker._
 import opetopic.js.JQuerySemanticUI._
 
+import syntax.complex._
+import syntax.tree._
+import syntax.nesting._
+import syntax.suite._
+
 object Prover extends JSApp {
 
   def main : Unit = {
@@ -56,7 +61,7 @@ object Prover extends JSApp {
 
     jQuery("#comp-id-input").on("input", () => {
       val compId = jQuery("#comp-id-input").value().asInstanceOf[String]
-      jQuery("#filler-id-input").value(compId ++ "-fill")
+      jQuery("#fill-id-input").value(compId ++ "-fill")
       jQuery("#prop-id-input").value(compId ++ "-fill-isLeft")
     })
 
@@ -268,7 +273,52 @@ object Prover extends JSApp {
   def onCompose: EditorM[Unit] =
     for {
       editor <- attempt(activeEditor, "No editor active")
-      _ = showInfoMessage("Composition not implemented.")
+      _ <- editor.withSelection(new editor.BoxAction[Unit] {
+
+        def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
+          editorError("Cannot fill an object!")
+
+        def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
+          for {
+            fc <- fromShape(fillBox.faceComplex)
+            (fpBoxes, compBox, nchTr) <- (
+              fc.tail match {
+                case Complex(fpBoxes, Box(compBox, nchTr)) => editorSucceed((fpBoxes, compBox, nchTr))
+                case _ => editorError("Malformed composition complex")
+              }
+            )
+            _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+            _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
+            nch <- nchTr.traverse[EditorM, Expr]({
+              case nst => 
+                for { 
+                  b <- attempt(nst.baseValue.optLabel, "Niche is not complete!") 
+                } yield b.expr
+            })
+
+            // This is pretty damn ugly ...
+            fp <- Suite.traverse[EditorM, editor.BNst, editor.ENst, P](fpBoxes)(editor.SuiteExtractExprs)
+
+          } yield {
+
+            val comp = EComp(catExpr, fp, nch)
+            val fill = EFill(catExpr, fp, nch)
+            val fillLeftExt = EFillIsLeft(catExpr, fp, nch)
+
+            val compId = jQuery("#comp-id-input").value().asInstanceOf[String]
+            val fillId = jQuery("#fill-id-input").value().asInstanceOf[String]
+            val propId = jQuery("#prop-id-input").value().asInstanceOf[String]
+
+            compBox.optLabel = Some(Marker(p)(compId, comp))
+            fillBox.optLabel = Some(Marker(S(p))(fillId, fill))
+
+            compBox.panel.refresh
+            fillBox.panel.refresh
+            editor.ce.refreshGallery
+
+          }
+
+      })
     } yield ()
 
   //============================================================================================
