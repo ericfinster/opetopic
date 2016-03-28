@@ -48,6 +48,18 @@ object Prover extends JSApp {
         runEditorAction(onAssume)
       })
 
+    jQuery("#compose-form").on("submit",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        runEditorAction(onCompose)
+      })
+
+    jQuery("#comp-id-input").on("input", () => {
+      val compId = jQuery("#comp-id-input").value().asInstanceOf[String]
+      jQuery("#filler-id-input").value(compId ++ "-fill")
+      jQuery("#prop-id-input").value(compId ++ "-fill-isLeft")
+    })
+
     contextExtend("X", ECat)
     newEditor
 
@@ -64,7 +76,7 @@ object Prover extends JSApp {
     import scalaz.-\/
 
     act match {
-      case -\/(msg: String) => println("Error: " ++ msg)
+      case -\/(msg: String) => showErrorMessage(msg)
       case \/-(_) => ()
     }
 
@@ -94,6 +106,52 @@ object Prover extends JSApp {
     ))
 
     jQuery(tabItem).click()
+
+  }
+
+  def showErrorMessage(str: String) : Unit = {
+
+    val closeIcon = i(cls := "close icon").render
+
+    val msg = div(cls := "ui negative message")(
+      closeIcon,
+      div(cls := "header")("Error:"),
+      p(str)
+    ).render
+
+    jQuery(closeIcon).on("click", () => {
+      jQuery(msg).transition(lit(
+        animation = "fade",
+        onComplete = () => {
+          jQuery(msg).remove()
+        }
+      ))
+    })
+
+    jQuery("#msg-box").append(msg)
+
+  }
+
+  def showInfoMessage(str: String) : Unit = {
+
+    val closeIcon = i(cls := "close icon").render
+
+    val msg = div(cls := "ui yellow message")(
+      closeIcon,
+      div(cls := "header")("Info:"),
+      p(str)
+    ).render
+
+    jQuery(closeIcon).on("click", () => {
+      jQuery(msg).transition(lit(
+        animation = "fade",
+        onComplete = () => {
+          jQuery(msg).remove()
+        }
+      ))
+    })
+
+    jQuery("#msg-box").append(msg)
 
   }
 
@@ -162,23 +220,25 @@ object Prover extends JSApp {
       id = jQuery("#assume-id-input").value().asInstanceOf[String]
       _ <- editor.withSelection(new editor.BoxAction[Unit] {
 
-          def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = {
+          def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = 
+            for {
+              _ <- forceNone(box.optLabel, "Selected box is already occupied!")
+            } yield {
 
-            val ty = EOb(catExpr)
-            val mk = ObjectMarker(id, EVar(id))
+              val ty = EOb(catExpr)
+              val mk = ObjectMarker(id, EVar(id))
 
-            contextExtend(id, ty)
+              contextExtend(id, ty)
 
-            box.optLabel = Some(mk)
-            box.panel.refresh
-            editor.ce.refreshGallery
+              box.optLabel = Some(mk)
+              box.panel.refresh
+              editor.ce.refreshGallery
 
-            editorSucceed(())
-
-          }
+            }
 
           def cellAction[P <: Nat](p: P)(box: editor.EditorBox[S[P]]) : EditorM[Unit] = 
             for {
+              _ <- forceNone(box.optLabel, "Selected box is already occupied!")
               frm <- editor.frameComplex(box)
               ty = ECell(catExpr, frm)
               mk = CellMarker(p)(id, EVar(id))
@@ -199,6 +259,16 @@ object Prover extends JSApp {
 
             }
         })
+    } yield ()
+
+  //============================================================================================
+  // COMPOSITION
+  //
+
+  def onCompose: EditorM[Unit] =
+    for {
+      editor <- attempt(activeEditor, "No editor active")
+      _ = showInfoMessage("Composition not implemented.")
     } yield ()
 
   //============================================================================================

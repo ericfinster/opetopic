@@ -130,7 +130,33 @@
 		    </div>
 
 		    <div class="ui tab" data-tab="compose-tab">
-		      <p>This is the composition tab.</p>
+		      <form id="compose-form" class="ui form">
+			<div class="ui grid">
+
+			  <div class="eight wide column">
+			    <div class="field">
+			      <label>Composite:</label>
+			      <input id="comp-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+
+			    <div class="field">
+			      <label>Filler:</label>
+			      <input id="filler-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+			  </div>
+
+			  <div class="eight wide column">
+			    <div class="field">
+			      <label>Property:</label>
+			      <input id="prop-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+
+			    <button type="submit" class="ui green button">Go!</button>
+
+			  </div>
+			  
+			</div>
+		      </form>
 		    </div>
 
 		    <div class="ui tab" data-tab="lift-tab">
@@ -182,6 +208,12 @@
 	  </div>
 
 	</div>
+
+	<div class="ui dividing header">
+	  <h3>Messages</h3>
+	</div>
+
+	<div id="msg-box"></div>
 
 	<div class="ui inverted bottom fixed menu">
 	  <a class="item" data-tab="module">Module</a>
