@@ -467,6 +467,13 @@ object OpetopicTypeChecker {
     case (S(p), hd :: tl) => ACons(rbAddr(p)(hd), rbAddr(S(p))(tl))
   }
 
+  def rbTree[N <: Nat](tr: Tree[Expr, N]) : TreeExpr =
+    tr match {
+      case Pt(e) => EPt(e)
+      case Leaf(_) => ELf
+      case Node(e, sh) => ENd(e, rbTree(sh map (rbTree(_))))
+    }
+
   @natElim
   def getTarget[N <: Nat](n: N)(c: ExprComplex[N]) : G[Sigma[ExprComplex]] = {
     case (Z, _) => fail("Target of zero dimensional complex")

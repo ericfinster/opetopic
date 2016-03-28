@@ -35,6 +35,7 @@ object Prover extends JSApp {
     jQuery(".ui.accordion").accordion()
     jQuery(".menu .item").tab()
     jQuery("#new-editor").on("click", () => newEditor)
+    jQuery("#shell-force-item").on("click", () => runEditorAction(onShellForce))
 
     jQuery("#tab-pane").keypress((e : JQueryEventObject) => {
       e.which match {
@@ -278,13 +279,9 @@ object Prover extends JSApp {
 
   // Right, the expression is the element of the guy.
   // We need to have type type as well.
-  def findLeftExtensionWitness(cid: String) : EditorM[Expr] = 
-    for {
-      witness <- attempt(
-        properties.filter(_.cellId == cid).filter(_.isLeft).headOption,
-        "No left lifting property found for " ++ cid
-      )
-    } yield witness.propertyExpr
+  def findLeftExtensionWitness(cid: String) : Option[Expr] = 
+    properties.filter(_.cellId == cid).filter(_.isLeft).map(_.propertyExpr).headOption
+
 
   //============================================================================================
   // CELL ASSUMPTIONS
@@ -467,7 +464,10 @@ object Prover extends JSApp {
             cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
             tMk <- attempt(targetBox.optLabel, "Target is empty!")
 
-            lextWitness <- findLeftExtensionWitness(eMk.displayName)
+            lextWitness <- attempt(
+              findLeftExtensionWitness(eMk.displayName),
+              "No left lifting property found for " ++ eMk.displayName
+            )
 
             liftExpr = ELiftLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
             fillExpr = EFillLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
@@ -496,6 +496,83 @@ object Prover extends JSApp {
             editor.ce.refreshGallery
 
           }
+
+      })
+    } yield ()
+
+  //============================================================================================
+  // SHELL FORCING
+  //
+
+  def onShellForce : EditorM[Unit] = 
+    for {
+      editor <- attempt(activeEditor, "No editor active")
+      _ <- editor.withSelection(new editor.BoxAction[Unit] {
+
+        def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
+          editorError("Cannot shell force an object!")
+
+        def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
+          for {
+            fc <- fromShape(fillBox.faceComplex)
+            fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
+            fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
+            nst = fc.tail.head
+            optNst <- nst.traverse[EditorM, (Marker[P], Option[Expr])]({
+              case b => 
+                for {
+                  mk <- attempt(b.optLabel, "Shell is incomplete!")
+                } yield (mk, findLeftExtensionWitness(mk.displayName))
+            })
+            prop <- (
+              optNst match {
+                case Box((tgtMk, None), cn) => 
+                  for {
+                    src <- cn.traverse[EditorM, Expr]({
+                      case nst => {
+                        val (mk, o) = nst.baseValue
+                        attempt(o, "Missing evidence for: " ++ mk.displayName)
+                      }
+                    })
+                  } yield LeftExtensionProperty(
+                    tgtMk.displayName ++ "-is-left",
+                    EShellIsLeft(fillMk.expr, fillEv, rbTree(src), EEmpty),
+                    EIsLeftExt(tgtMk.expr),
+                    tgtMk.displayName,
+                    tgtMk.expr
+                  )
+                case Box((tgtMk, Some(tgtLext)), cn) => {
+
+                  cn.nodes.filterNot(_.baseValue._2.isDefined) match {
+                    case mkNst :: Nil => {
+
+                      val mk = mkNst.baseValue._1
+
+                      val srcExprs =
+                        cn map (nst => {
+                          val (mk, o) = nst.baseValue
+                          o match {
+                            case None => EEmpty
+                            case Some(ev) => ev
+                          }
+                        })
+
+                      val prop = LeftExtensionProperty(
+                        mk.displayName ++ "-is-left",
+                        EShellIsLeft(fillMk.expr, fillEv, rbTree(srcExprs), tgtLext),
+                        EIsLeftExt(mk.expr),
+                        mk.displayName,
+                        mk.expr
+                      )
+
+                      editorSucceed(prop)
+                    }
+                    case _ => editorError("Malformed evidence tree")
+                  }
+                }
+              }
+            )
+          } yield registerProperty(prop)
 
       })
     } yield ()
