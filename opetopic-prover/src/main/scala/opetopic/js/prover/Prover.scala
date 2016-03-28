@@ -59,6 +59,12 @@ object Prover extends JSApp {
         runEditorAction(onCompose)
       })
 
+    jQuery("#lift-form").on("submit",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        runEditorAction(onLeftLift)
+      })
+
     jQuery("#comp-id-input").on("input", () => {
       val compId = jQuery("#comp-id-input").value().asInstanceOf[String]
       jQuery("#fill-id-input").value(compId ++ "-fill")
@@ -172,8 +178,7 @@ object Prover extends JSApp {
   val context: ListBuffer[(String, Expr)] = ListBuffer()
   val environment: ListBuffer[(String, Expr, Expr)] = ListBuffer()
   val cells: ListBuffer[(String, Expr)] = ListBuffer()
-  val properties: ListBuffer[(String, Expr)] = ListBuffer()
-  val propertyMap: HashMap[String, List[String]] = HashMap()
+  val properties: ListBuffer[Property] = ListBuffer()
 
   var gma: List[(Name, TVal)] = Nil
   var rho: Rho = RNil
@@ -255,21 +260,31 @@ object Prover extends JSApp {
 
   }
 
-  def registerProperty(id: String, expr: Expr) : Unit = {
+  def registerProperty(prop: Property) : Unit = {
 
-    properties += ((id, expr))
+    properties += prop
 
     val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id
+      i(cls := "dropdown icon"), prop.propertyId
     ).render
 
     val content = div(cls := "content")(
-      p("Some property")
+      p("Target cell: " ++ prop.cellId)
     ).render
 
     jQuery("#property-list").append(title, content)
 
   }
+
+  // Right, the expression is the element of the guy.
+  // We need to have type type as well.
+  def findLeftExtensionWitness(cid: String) : EditorM[Expr] = 
+    for {
+      witness <- attempt(
+        properties.filter(_.cellId == cid).filter(_.isLeft).headOption,
+        "No left lifting property found for " ++ cid
+      )
+    } yield witness.propertyExpr
 
   //============================================================================================
   // CELL ASSUMPTIONS
@@ -279,6 +294,7 @@ object Prover extends JSApp {
     for {
       editor <- attempt(activeEditor, "No active editor")
       id = jQuery("#assume-id-input").value().asInstanceOf[String]
+      isLext = jQuery("#assume-is-lext-checkbox").prop("checked").asInstanceOf[Boolean]
       _ <- editor.withSelection(new editor.BoxAction[Unit] {
 
           def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = 
@@ -318,11 +334,23 @@ object Prover extends JSApp {
               extendContext(id, ty)
               registerCell(id, EVar(id))
 
+              if (isLext) {
+                val pId = id ++ "-is-left"
+                val prop = EIsLeftExt(EVar(id))
+                extendContext(pId, prop)
+                registerProperty(
+                  LeftExtensionProperty(
+                    pId, EVar(pId), prop, id, EVar(id)
+                  )
+                )
+              }
+
               box.optLabel = Some(mk)
               box.panel.refresh
               editor.ce.refreshGallery
 
               jQuery("#assume-id-input").value("")
+              jQuery("#assume-is-lext-checkbox").prop("checked", false)
 
             }
         })
@@ -384,7 +412,12 @@ object Prover extends JSApp {
 
             registerCell(compId, comp)
             registerCell(fillId, fill)
-            registerProperty(propId, prop)
+            registerProperty(
+              LeftExtensionProperty(
+                propId, prop, propTy, fillId, fill
+              )
+            )
+
 
             compBox.panel.refresh
             fillBox.panel.refresh
@@ -405,5 +438,66 @@ object Prover extends JSApp {
       _ <- editor.pasteToCursor(e, eval(catExpr, rho), id)
     } yield ()
 
+  //============================================================================================
+  // LEFT LIFTING
+  //
+
+  def onLeftLift : EditorM[Unit] = 
+    for {
+      editor <- attempt(activeEditor, "No editor active")
+      _ <- editor.liftAtSelection(new editor.LiftAction[Unit] {
+
+        def apply[P <: Nat](p: P)(fillBox: editor.EditorBox[S[S[P]]]) : EditorM[Unit] = 
+          for {
+            fillCmplx <- fromShape(fillBox.faceComplex)
+            liftCmplx <- fromShape(fillCmplx.sourceAt(S(p))(Nil :: Nil))
+            evidenceCmplx <- fromShape(fillCmplx.sourceAt(S(p))((Zipper.rootAddr(p) :: Nil) :: Nil))
+            targetCmplx <- fromShape(fillCmplx.target)
+            competitorCmplx <- fromShape(targetCmplx.target)
+
+            // Extract the required boxes
+            liftBox = liftCmplx.headValue
+            evidenceBox = evidenceCmplx.headValue
+            targetBox = targetCmplx.headValue
+            competitorBox = competitorCmplx.headValue
+
+            _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+            _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
+            eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
+            cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
+            tMk <- attempt(targetBox.optLabel, "Target is empty!")
+
+            lextWitness <- findLeftExtensionWitness(eMk.displayName)
+
+            liftExpr = ELiftLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+            fillExpr = EFillLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+
+            liftId = jQuery("#lift-id-input").value().asInstanceOf[String]
+            fillId = jQuery("#lift-fill-id-input").value().asInstanceOf[String]
+            lextId = jQuery("#left-prop-id-input").value().asInstanceOf[String]
+            rextId = jQuery("#right-prop-id-input").value().asInstanceOf[String]
+
+            _ = liftBox.optLabel = Some(Marker(S(p))(liftId, liftExpr))
+            _ = fillBox.optLabel = Some(Marker(S(S(p)))(fillId, fillExpr))
+
+            liftTy <- editor.typeExpr(S(p))(liftBox)
+            fillTy <- editor.typeExpr(S(S(p)))(fillBox)
+
+          } yield {
+
+            extendEnvironment(liftId, liftExpr, liftTy)
+            extendEnvironment(fillId, fillExpr, fillTy)
+
+            registerCell(liftId, liftExpr)
+            registerCell(fillId, fillExpr)
+
+            liftBox.panel.refresh
+            fillBox.panel.refresh
+            editor.ce.refreshGallery
+
+          }
+
+      })
+    } yield ()
 
 }

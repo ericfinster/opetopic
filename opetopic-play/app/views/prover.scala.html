@@ -109,7 +109,7 @@
 
 			    <div class="field">
 			      <div class="ui checkbox">
-				<input type="checkbox" tabIndex="0" class="hidden"></input>
+				<input id="assume-is-lext-checkbox" type="checkbox" tabIndex="0" class="hidden"></input>
 				<label>Left Extension</label>
 			      </div>
 			    </div>
@@ -160,7 +160,37 @@
 		    </div>
 
 		    <div class="ui tab" data-tab="lift-tab">
-		      <p>This is the lift tab.</p>
+		      <form id="lift-form" class="ui form">
+			<div class="ui grid">
+
+			  <div class="eight wide column">
+			    <div class="field">
+			      <label>Lift:</label>
+			      <input id="lift-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+
+			    <div class="field">
+			      <label>Filler:</label>
+			      <input id="lift-fill-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+			  </div>
+
+			  <div class="eight wide column">
+			    <div class="field">
+			      <label>Left Property:</label>
+			      <input id="left-prop-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+
+			    <div class="field">
+			      <label>Right Property:</label>
+			      <input id="right-prop-id-input" type="text" placeholder="Identifier"></input>
+			    </div>
+
+			    <button type="submit" class="ui green button">Go!</button>
+			  </div>
+			  
+			</div>
+		      </form>
 		    </div>
 
 		    <div class="ui tab" data-tab="export-tab">

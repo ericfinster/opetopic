@@ -39,15 +39,24 @@ object PrettyPrinter {
       case EDec(d, e) => prettyPrint(d) ++ " ; " ++ prettyPrint(e)
       case ERec(_) => ""
       case EProj(_, _) => ""
+
       case ECat => "Cat"
       case EOb(e) => "Obj " ++ prettyPrint(e)
       case EHom(e, c) => "Hom " ++ prettyPrint(e) ++ " {...}"
       case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " {...}"
+
       case EIsLeftExt(e) => "isLeftExt " ++ prettyPrint(e)
       case EIsRightExt(e, a) => "isRightExt " ++ prettyPrint(e)
+
       case EComp(e, fp, nch) => "comp " ++ prettyPrint(e) ++ " {...}"
       case EFill(e, fp, nch) => "fill " ++ prettyPrint(e) ++ " {...}"
+      case ELiftLeft(e, ev, c, t) => "liftLeft " ++ prettyPrint(e) ++ " " ++ prettyPrint(ev) ++ " " ++ prettyPrint(c) ++ " " ++ prettyPrint(t)
+      case EFillLeft(e, ev, c, t) => "fillLeft " ++ prettyPrint(e) ++ " " ++ prettyPrint(ev) ++ " " ++ prettyPrint(c) ++ " " ++ prettyPrint(t)
+      case ELiftRight(e, ev, c, t) => "liftRight " ++ prettyPrint(e) ++ " " ++ prettyPrint(ev) ++ " " ++ prettyPrint(c) ++ " " ++ prettyPrint(t)
+      case EFillRight(e, ev, c, t) => "fillRight " ++ prettyPrint(e) ++ " " ++ prettyPrint(ev) ++ " " ++ prettyPrint(c) ++ " " ++ prettyPrint(t)
+
       case EFillIsLeft(e, fp, ch) => "fillIsLeft " ++ prettyPrint(e) ++ " {...}"
+
     }
 
 }

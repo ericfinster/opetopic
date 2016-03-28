@@ -43,17 +43,34 @@ class Editor {
     def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : EditorM[A]
   }
 
+  trait LiftAction[A] {
+    def apply[P <: Nat](p: P)(box: EditorBox[S[S[P]]]): EditorM[A]
+  }
+
   @natElim
   def dispatchAction[A, N <: Nat](n: N)(box: EditorBox[N], action: BoxAction[A]) : EditorM[A] = {
     case (Z, box, action) => action.objectAction(box)
     case (S(p), box, action) => action.cellAction(p)(box)
   }
 
+  @natElim
+  def dispatchLiftAction[A, N <: Nat](n: N)(box: EditorBox[N], action: LiftAction[A]) : EditorM[A] = {
+    case (Z, _, _) => editorError("No lift action on an object")
+    case (S(Z), _, _) => editorError("No lift action for an arrow")
+    case (S(S(p)), box, action) => action(p)(box)
+  }
+
   def withSelection[A](action: BoxAction[A]) : EditorM[A] = 
-    rootBox match {
-      case None => editorError("Nothing selected")
-      case Some(boxsig) => dispatchAction(boxsig.n)(boxsig.value, action)
-    }
+    for {
+      boxsig <- attempt(rootBox, "No box selected")
+      a <- dispatchAction(boxsig.n)(boxsig.value, action)
+    } yield a
+
+  def liftAtSelection[A](action: LiftAction[A]) : EditorM[A] = 
+    for {
+      boxsig <- attempt(rootBox, "No box selected")
+      a <- dispatchLiftAction(boxsig.n)(boxsig.value, action)
+    } yield a
 
   object ExtractMarkers extends IndexedTraverse[EditorM, EditorBox, Marker] {
     def apply[N <: Nat](n: N)(box: EditorBox[N]) : EditorM[Marker[N]] =
