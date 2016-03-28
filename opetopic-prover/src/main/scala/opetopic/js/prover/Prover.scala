@@ -65,7 +65,7 @@ object Prover extends JSApp {
       jQuery("#prop-id-input").value(compId ++ "-fill-isLeft")
     })
 
-    contextExtend("X", ECat)
+    extendContext("X", ECat)
     newEditor
 
   }
@@ -171,11 +171,14 @@ object Prover extends JSApp {
 
   val context: ListBuffer[(String, Expr)] = ListBuffer()
   val environment: ListBuffer[(String, Expr, Expr)] = ListBuffer()
+  val cells: ListBuffer[(String, Expr)] = ListBuffer()
+  val properties: ListBuffer[(String, Expr)] = ListBuffer()
+  val propertyMap: HashMap[String, List[String]] = HashMap()
 
   var gma: List[(Name, TVal)] = Nil
   var rho: Rho = RNil
 
-  def contextExtend[N <: Nat](id: String, ty: Expr) : Unit = {
+  def extendContext[N <: Nat](id: String, ty: Expr) : Unit = {
 
     // Take care of the semantic part
     val tVal = eval(ty, rho)
@@ -211,7 +214,60 @@ object Prover extends JSApp {
       if (isPasteable(ty)) mkPasteBtn else p("No information")
     ).render
 
-    jQuery("#context-pane").append(title, content)
+    jQuery("#context-list").append(title, content)
+
+  }
+
+  def extendEnvironment(id: String, expr: Expr, ty: Expr) : Unit = {
+
+    environment += ((id, expr, ty))
+
+    val title = div(cls := "title")(
+      i(cls := "dropdown icon"), id
+    ).render
+
+    val content = div(cls := "content")(
+      p(PrettyPrinter.prettyPrint(expr) ++ " : " ++ PrettyPrinter.prettyPrint(ty))
+    ).render
+
+    jQuery("#environment-list").append(title, content)
+
+  }
+
+  def registerCell(id: String, expr: Expr) : Unit = {
+
+    cells += ((id, expr))
+
+    val title = div(cls := "title")(
+      i(cls := "dropdown icon"), id
+    ).render
+
+    val content = div(cls := "content")(
+      button(
+        cls := "ui icon button",
+        onclick := { () => runEditorAction(onPaste(expr, id)) }
+      )(
+        i(cls := "paste icon")
+      )
+    ).render
+
+    jQuery("#cell-list").append(title, content)
+
+  }
+
+  def registerProperty(id: String, expr: Expr) : Unit = {
+
+    properties += ((id, expr))
+
+    val title = div(cls := "title")(
+      i(cls := "dropdown icon"), id
+    ).render
+
+    val content = div(cls := "content")(
+      p("Some property")
+    ).render
+
+    jQuery("#property-list").append(title, content)
 
   }
 
@@ -233,11 +289,14 @@ object Prover extends JSApp {
               val ty = EOb(catExpr)
               val mk = ObjectMarker(id, EVar(id))
 
-              contextExtend(id, ty)
+              extendContext(id, ty)
+              registerCell(id, EVar(id))
 
               box.optLabel = Some(mk)
               box.panel.refresh
               editor.ce.refreshGallery
+
+              jQuery("#assume-id-input").value("")
 
             }
 
@@ -256,11 +315,14 @@ object Prover extends JSApp {
               )
             } yield {
 
-              contextExtend(id, ty)
+              extendContext(id, ty)
+              registerCell(id, EVar(id))
 
               box.optLabel = Some(mk)
               box.panel.refresh
               editor.ce.refreshGallery
+
+              jQuery("#assume-id-input").value("")
 
             }
         })
@@ -299,18 +361,30 @@ object Prover extends JSApp {
             // This is pretty damn ugly ...
             fp <- Suite.traverse[EditorM, editor.BNst, editor.ENst, P](fpBoxes)(editor.SuiteExtractExprs)
 
+            comp = EComp(catExpr, fp, nch)
+            fill = EFill(catExpr, fp, nch)
+            prop = EFillIsLeft(catExpr, fp, nch)
+
+            compId = jQuery("#comp-id-input").value().asInstanceOf[String]
+            fillId = jQuery("#fill-id-input").value().asInstanceOf[String]
+            propId = jQuery("#prop-id-input").value().asInstanceOf[String]
+
+            _ = compBox.optLabel = Some(Marker(p)(compId, comp))
+            _ = fillBox.optLabel = Some(Marker(S(p))(fillId, fill))
+
+            compTy <- editor.typeExpr(p)(compBox)
+            fillTy <- editor.typeExpr(S(p))(fillBox)
+            propTy = EIsLeftExt(fill)
+
           } yield {
 
-            val comp = EComp(catExpr, fp, nch)
-            val fill = EFill(catExpr, fp, nch)
-            val fillLeftExt = EFillIsLeft(catExpr, fp, nch)
+            extendEnvironment(compId, comp, compTy)
+            extendEnvironment(fillId, fill, fillTy)
+            extendEnvironment(propId, prop, propTy)
 
-            val compId = jQuery("#comp-id-input").value().asInstanceOf[String]
-            val fillId = jQuery("#fill-id-input").value().asInstanceOf[String]
-            val propId = jQuery("#prop-id-input").value().asInstanceOf[String]
-
-            compBox.optLabel = Some(Marker(p)(compId, comp))
-            fillBox.optLabel = Some(Marker(S(p))(fillId, fill))
+            registerCell(compId, comp)
+            registerCell(fillId, fill)
+            registerProperty(propId, prop)
 
             compBox.panel.refresh
             fillBox.panel.refresh

@@ -28,6 +28,9 @@ class Editor {
 
   type EditorBox[N <: Nat] = ce.CardinalCellBox[N]
 
+  def catExpr: Expr = 
+    Prover.catExpr
+
   val ce = CardinalEditor[Marker]
   ce.onSelectAsRoot = (boxsig: Sigma[EditorBox]) => {
     rootBox = Some(boxsig)
@@ -71,6 +74,14 @@ class Editor {
       })
   }
 
+  @natElim
+  def typeExpr[N <: Nat](n: N)(box: EditorBox[N]) : EditorM[Expr] = {
+    case (Z, box) => editorSucceed(EOb(catExpr))
+    case (S(p), box) => 
+      for {
+        frm <- frameComplex(box)
+      } yield ECell(catExpr, frm)
+  }
 
   def frameComplex[P <: Nat](box: EditorBox[S[P]]) : EditorM[ExprComplex[P]] = 
     for {
@@ -83,6 +94,7 @@ class Editor {
       fc <- fromShape(box.faceComplex)
       res <- fc.tail.traverse(ExtractMarkers)
     } yield res
+
 
   //============================================================================================
   // PASTING

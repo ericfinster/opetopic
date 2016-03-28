@@ -41,21 +41,13 @@ object PrettyPrinter {
       case EProj(_, _) => ""
       case ECat => "Cat"
       case EOb(e) => "Obj " ++ prettyPrint(e)
-      case EHom(e, c) => "Hom " ++ prettyPrint(e) ++ " {frame}"
-      case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " {frame}"
-      case EComp(e, fp, nch) => "comp"
-      case EFill(e, fp, nch) => "fill"
-      // case ELeftExt(e) => "isLeftExt " ++ prettyPrint(e)
-      // case ERightExt(e, a) => "isRightExt " ++ prettyPrint(e)
-      // case EBal(e, fp, nch) => "isBalanced"
-      // case ELeftBal(_, _, e, f) => "leftBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
-      // case ERightBal(_, _, e, a, f) => "rightBalanced " ++ prettyPrint(e) ++ " " ++ prettyPrint(f)
-      // case EFillerLeftExt(_, _, _) => "fillerLeftExt"
-      // case EFillerCompLeftExt(_, _, _) => "fillerCompLeftExt"
-      // case ELift(_, _, _, _) => "lift"
-      // case ELiftFiller(_, _, _, _) => "liftFiller"
-      // case ELiftFillerLeftExt(_, _, _, _) => "liftFillerLeftExt"
-      // case EFillerLeftIsRight(_, _, _, _) => "fillerLeftIsRight"
+      case EHom(e, c) => "Hom " ++ prettyPrint(e) ++ " {...}"
+      case ECell(e, c) => "Cell " ++ prettyPrint(e) ++ " {...}"
+      case EIsLeftExt(e) => "isLeftExt " ++ prettyPrint(e)
+      case EIsRightExt(e, a) => "isRightExt " ++ prettyPrint(e)
+      case EComp(e, fp, nch) => "comp " ++ prettyPrint(e) ++ " {...}"
+      case EFill(e, fp, nch) => "fill " ++ prettyPrint(e) ++ " {...}"
+      case EFillIsLeft(e, fp, ch) => "fillIsLeft " ++ prettyPrint(e) ++ " {...}"
     }
 
 }

@@ -25,6 +25,8 @@ sealed trait Marker[N <: Nat] {
   def cs : ColorSpec = 
     expr match {
       case EVar(_) => VarColorSpec
+      case EComp(_, _, _) => CompColorSpec
+      case EFill(_, _, _) => FillColorSpec
       case _ => DefaultColorSpec
     }
 
@@ -55,9 +57,27 @@ case class CellMarker[P <: Nat](p: P)(
 }
 
 object VarColorSpec extends ColorSpec(
-  fill = "#FFE21F",
-  fillHovered = "#FDE21F",
+  fill = "#FFF8DB",
+  fillHovered = "#FFE21F",
   fillSelected = "#FBBD08",
+  stroke = "#000000",
+  strokeHovered = "#000000",
+  strokeSelected = "#000000"
+)
+
+object CompColorSpec extends ColorSpec(
+  fill = "#FFE8E6",
+  fillHovered = "#FF695E",
+  fillSelected = "#DB2828",
+  stroke = "#000000",
+  strokeHovered = "#000000",
+  strokeSelected = "#000000"
+)
+
+object FillColorSpec extends ColorSpec(
+  fill = "#DFF0FF",
+  fillHovered = "#54C8FF",
+  fillSelected = "#2185D0",
   stroke = "#000000",
   strokeHovered = "#000000",
   strokeSelected = "#000000"
