@@ -228,6 +228,10 @@ object Prover extends JSApp {
 
     environment += ((id, expr, ty))
 
+    // Update the normal form map
+    val nf = rbV(lRho(rho), eval(expr, rho))
+    nfMap(nf) = (id, expr)
+
     val title = div(cls := "title")(
       i(cls := "dropdown icon"), id
     ).render
@@ -277,11 +281,11 @@ object Prover extends JSApp {
 
   }
 
-  // Right, the expression is the element of the guy.
-  // We need to have type type as well.
   def findLeftExtensionWitness(cid: String) : Option[Expr] = 
     properties.filter(_.cellId == cid).filter(_.isLeft).map(_.propertyExpr).headOption
 
+  def hasUniversalProperty(cid: String) : Boolean = 
+    properties.filter(_.cellId == cid).length > 0 
 
   //============================================================================================
   // CELL ASSUMPTIONS
@@ -389,17 +393,25 @@ object Prover extends JSApp {
             comp = EComp(catExpr, fp, nch)
             fill = EFill(catExpr, fp, nch)
             prop = EFillIsLeft(catExpr, fp, nch)
+            propTy = EIsLeftExt(fill)
 
             compId = jQuery("#comp-id-input").value().asInstanceOf[String]
             fillId = jQuery("#fill-id-input").value().asInstanceOf[String]
             propId = jQuery("#prop-id-input").value().asInstanceOf[String]
+
+            // The property must be registered first, since assigning the
+            // label will trigger a recalculation of the cell visualization
+            _ = registerProperty(
+              LeftExtensionProperty(
+                propId, prop, propTy, fillId, fill
+              )
+            )
 
             _ = compBox.optLabel = Some(Marker(p)(compId, comp))
             _ = fillBox.optLabel = Some(Marker(S(p))(fillId, fill))
 
             compTy <- editor.typeExpr(p)(compBox)
             fillTy <- editor.typeExpr(S(p))(fillBox)
-            propTy = EIsLeftExt(fill)
 
           } yield {
 
@@ -409,12 +421,6 @@ object Prover extends JSApp {
 
             registerCell(compId, comp)
             registerCell(fillId, fill)
-            registerProperty(
-              LeftExtensionProperty(
-                propId, prop, propTy, fillId, fill
-              )
-            )
-
 
             compBox.panel.refresh
             fillBox.panel.refresh
@@ -572,7 +578,11 @@ object Prover extends JSApp {
                 }
               }
             )
-          } yield registerProperty(prop)
+          } yield {
+            registerProperty(prop)
+            nst.baseValue.panel.refresh
+            editor.ce.refreshGallery
+          }
 
       })
     } yield ()

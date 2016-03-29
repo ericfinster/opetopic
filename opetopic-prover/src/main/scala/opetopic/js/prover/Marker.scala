@@ -23,14 +23,14 @@ sealed trait Marker[N <: Nat] {
   def visualize(frmwk: UIFramework) : frmwk.Visualization[N]
 
   def cs : ColorSpec = 
-    expr match {
-      case EVar(_) => VarColorSpec
-      case EComp(_, _, _) => CompColorSpec
-      case EFill(_, _, _) => FillColorSpec
-      case ELiftLeft(_, _, _, _) => CompColorSpec
-      case EFillLeft(_, _, _, _) => FillColorSpec
-      case _ => DefaultColorSpec
-    }
+    if (Prover.hasUniversalProperty(displayName)) {
+      FillColorSpec
+    } else 
+      expr match {
+        case EVar(_) => VarColorSpec
+        case EComp(_, _, _) => CompColorSpec
+        case _ => DefaultColorSpec
+      }
 
 }
 
