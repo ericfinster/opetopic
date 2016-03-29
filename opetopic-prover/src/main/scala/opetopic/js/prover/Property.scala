@@ -39,5 +39,5 @@ case class RightExtensionProperty(
   val cellExpr: Expr
 ) extends Property {
   def isLeft: Boolean = false
-  def isRightAt(a: Addr): Boolean = false
+  def isRightAt(a: Addr): Boolean = a == addr
 }

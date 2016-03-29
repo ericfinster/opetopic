@@ -62,10 +62,16 @@ object Prover extends JSApp {
         runEditorAction(onCompose)
       })
 
-    jQuery("#lift-form").on("submit",
+    jQuery("#left-lift-btn").on("click", 
       (e : JQueryEventObject) => {
         e.preventDefault
         runEditorAction(onLeftLift)
+      })
+
+    jQuery("#right-lift-btn").on("click",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        runEditorAction(onRightLift)
       })
 
     jQuery("#comp-id-input").on("input", () => {
@@ -293,6 +299,9 @@ object Prover extends JSApp {
   def findLeftExtensionWitness(cid: String) : Option[Expr] = 
     properties.filter(_.cellId == cid).filter(_.isLeft).map(_.propertyExpr).headOption
 
+  def findRightExtensionWitness(cid: String, addr: Addr) : Option[Expr] = 
+    properties.filter(_.cellId == cid).filter(_.isRightAt(addr)).map(_.propertyExpr).headOption
+
   def hasUniversalProperty(cid: String) : Boolean = 
     properties.filter(_.cellId == cid).length > 0 
 
@@ -503,6 +512,104 @@ object Prover extends JSApp {
 
             rextAddr = rbAddr(S(p))(Nil)
             rextProp = EFillLeftIsRight(eMk.expr, lextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
+            rextTy = EIsRightExt(fillExpr, rextAddr)
+
+            _ = registerProperty(
+              RightExtensionProperty(
+                rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
+              )
+            )
+
+            _ = liftBox.optLabel = Some(Marker(S(p))(liftId, liftExpr))
+            _ = fillBox.optLabel = Some(Marker(S(S(p)))(fillId, fillExpr))
+
+            liftTy <- editor.typeExpr(S(p))(liftBox)
+            fillTy <- editor.typeExpr(S(S(p)))(fillBox)
+
+          } yield {
+
+            extendEnvironment(liftId, liftExpr, liftTy)
+            extendEnvironment(fillId, fillExpr, fillTy)
+            extendEnvironment(lextId, lextProp, lextTy)
+            extendEnvironment(rextId, rextProp, rextTy)
+
+            registerCell(liftId, liftExpr)
+            registerCell(fillId, fillExpr)
+
+            liftBox.panel.refresh
+            fillBox.panel.refresh
+            editor.ce.refreshGallery
+
+          }
+
+      })
+    } yield ()
+
+  //============================================================================================
+  // RIGHT LIFTING
+  //
+
+  def onRightLift : EditorM[Unit] = 
+    for {
+      editor <- attempt(activeEditor, "No editor active")
+      _ <- editor.liftAtSelection(new editor.LiftAction[Unit] {
+
+        // Okay, this time, we have to *find* the evidence guy and record
+        // his address so that we can search for the appropriate lifting property...
+        def apply[P <: Nat](p: P)(fillBox: editor.EditorBox[S[S[P]]]) : EditorM[Unit] = 
+          for {
+            fillCmplx <- fromShape(fillBox.faceComplex)
+            (targetBox, tgtCanopy) <- fromShape(fillCmplx.tail.head.asFrame)
+            (evidenceBox, liftBox) <- (
+              tgtCanopy.nodes match {
+                case eb :: lb :: Nil => editorSucceed((eb, lb))
+                case _ => editorError("Malformed right lifting setup")
+              }
+            )
+
+            // Calculate the appropriate address
+            addr <- attempt(liftBox.nestingAddress.headOption, "Malformed address")
+            rextEvAddr <- attempt(addr.headOption, "Malformed address")
+
+            zp <- fromShape(fillCmplx.tail.tail.head.seekTo(addr))
+            (_, cn) <- fromShape(zp._1.asFrame)
+            competitorBox <- (
+              cn.nodes match {
+                case cb :: Nil => editorSucceed(cb)
+                case _ => editorError("Malformed competitor setup")
+              }
+            )
+
+            _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+            _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
+            eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
+            cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
+            tMk <- attempt(targetBox.optLabel, "Target is empty!")
+
+            rextWitness <- attempt(
+              findRightExtensionWitness(eMk.displayName, rbAddr(p)(rextEvAddr)),
+              "No right lifting property found for " ++ eMk.displayName
+            )
+
+            liftExpr = ELiftRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+            fillExpr = EFillRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+
+            liftId = jQuery("#lift-id-input").value().asInstanceOf[String]
+            fillId = jQuery("#lift-fill-id-input").value().asInstanceOf[String]
+            lextId = jQuery("#left-prop-id-input").value().asInstanceOf[String]
+            rextId = jQuery("#right-prop-id-input").value().asInstanceOf[String]
+
+            lextProp = EFillRightIsLeft(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+            lextTy = EIsLeftExt(fillExpr)
+
+            _ = registerProperty(
+              LeftExtensionProperty(
+                lextId, lextProp, lextTy, fillId, fillExpr
+              )
+            )
+
+            rextAddr = rbAddr(S(p))(addr)
+            rextProp = EFillLeftIsRight(eMk.expr, rextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
             rextTy = EIsRightExt(fillExpr, rextAddr)
 
             _ = registerProperty(
