@@ -34,6 +34,7 @@ case class RightExtensionProperty(
   val propertyId: String,
   val propertyExpr: Expr,
   val propertyType: Expr,
+  val addr: Addr,
   val cellId: String,
   val cellExpr: Expr
 ) extends Property {

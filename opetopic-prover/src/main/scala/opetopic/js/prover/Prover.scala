@@ -72,6 +72,13 @@ object Prover extends JSApp {
       jQuery("#prop-id-input").value(compId ++ "-fill-isLeft")
     })
 
+    jQuery("#lift-id-input").on("input", () => {
+      val liftId = jQuery("#lift-id-input").value().asInstanceOf[String]
+      jQuery("#lift-fill-id-input").value(liftId ++ "-fill")
+      jQuery("#left-prop-id-input").value(liftId ++ "-fill-isLeft")
+      jQuery("#right-prop-id-input").value(liftId ++ "-fill-isRight")
+    })
+
     extendContext("X", ECat)
     newEditor
 
@@ -483,6 +490,25 @@ object Prover extends JSApp {
             lextId = jQuery("#left-prop-id-input").value().asInstanceOf[String]
             rextId = jQuery("#right-prop-id-input").value().asInstanceOf[String]
 
+            lextProp = EFillLeftIsLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+            lextTy = EIsLeftExt(fillExpr)
+
+            _ = registerProperty(
+              LeftExtensionProperty(
+                lextId, lextProp, lextTy, fillId, fillExpr
+              )
+            )
+
+            rextAddr = rbAddr(S(p))(Nil)
+            rextProp = EFillLeftIsRight(eMk.expr, lextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
+            rextTy = EIsRightExt(fillExpr, rextAddr)
+
+            _ = registerProperty(
+              RightExtensionProperty(
+                rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
+              )
+            )
+
             _ = liftBox.optLabel = Some(Marker(S(p))(liftId, liftExpr))
             _ = fillBox.optLabel = Some(Marker(S(S(p)))(fillId, fillExpr))
 
@@ -493,6 +519,8 @@ object Prover extends JSApp {
 
             extendEnvironment(liftId, liftExpr, liftTy)
             extendEnvironment(fillId, fillExpr, fillTy)
+            extendEnvironment(lextId, lextProp, lextTy)
+            extendEnvironment(rextId, rextProp, rextTy)
 
             registerCell(liftId, liftExpr)
             registerCell(fillId, fillExpr)
@@ -505,6 +533,14 @@ object Prover extends JSApp {
 
       })
     } yield ()
+
+
+    // jQuery("#lift-id-input").on("input", () => {
+    //   val liftId = jQuery("#lift-id-input").value().asInstanceOf[String]
+    //   jQuery("#lift-fill-id-input").value(liftId ++ "-fill")
+    //   jQuery("#left-prop-id-input").value(liftId ++ "-fill-isLeft")
+    //   jQuery("#right-prop-id-input").value(liftId ++ "-fill-isRight")
+    // })
 
   //============================================================================================
   // SHELL FORCING
