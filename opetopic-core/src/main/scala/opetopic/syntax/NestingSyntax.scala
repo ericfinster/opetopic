@@ -47,6 +47,12 @@ final class NestingOps[A, N <: Nat](nst: Nesting[A, N]) {
   def replaceAt(addr: Address[S[N]], a: A) : ShapeM[Nesting[A, N]] = 
     Nesting.replaceNesting(nst.dim)(nst, addr, a)
 
+  def asFrame: ShapeM[(A, Tree[A, N])] = 
+    nst match {
+      case Box(a, cn) => succeed((a, cn.map(Nesting.baseValue(_))))
+      case _ => fail("asFrame: external nesting is not a frame")
+    }
+
 }
 
 trait ToNestingOps {

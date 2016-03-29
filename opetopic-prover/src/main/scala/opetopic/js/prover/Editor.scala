@@ -13,6 +13,8 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
+import scalaz.std.string._
+
 import opetopic._
 import opetopic.js._
 import opetopic.tt._

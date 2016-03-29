@@ -144,7 +144,7 @@ object OpetopicTypeChecker {
       case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
       case EFillIsLeft(e, fp, nch) => FillIsLeft(eval(e, rho), fp.map(EvalNstMap(rho)), nch map (eval(_, rho)))
-      case EShellIsLeft(e, ev, src, tgt) => ShellIsLeft(eval(e, rho), eval(ev, rho), evalTree(src, rho), eval(tgt, rho))
+      case EShellIsLeft(e, ev, src, tgt) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(src, rho), eval(tgt, rho))
 
       case EFillLeftIsLeft(e, ev, c, t) => FillLeftIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -153,13 +153,11 @@ object OpetopicTypeChecker {
       case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
         FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
 
-    }
-
-  def evalTree(te: TreeExpr, rho: Rho) : TreeVal = 
-    te match {
+      // Tree evaluation
       case EPt(e) => VPt(eval(e, rho))
       case ELf => VLf
-      case ENd(e, sh) => VNd(eval(e, rho), evalTree(sh, rho))
+      case ENd(e, sh) => VNd(eval(e, rho), eval(sh, rho))
+
     }
 
   //============================================================================================
@@ -219,11 +217,16 @@ object OpetopicTypeChecker {
       case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case FillIsLeft(v, fp, nch) => EFillIsLeft(rbV(i, v), fp.map(RbNstMap(i)), nch map (rbV(i, _)))
+      case ShellIsLeft(v, ev, src, tgt) => EShellIsLeft(rbV(i, v), rbV(i, ev), rbV(i, src), rbV(i, tgt))
 
       case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeftIsRight(e, ev, c, t, l, f, fev) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
       case FillRightIsRight(e, ev, c, t, l, f, fev) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
+
+      case VPt(v) => EPt(rbV(i, v))
+      case VLf => ELf
+      case VNd(v, sh) => ENd(rbV(i, v), rbV(i, sh))
 
     }
 
@@ -260,6 +263,12 @@ object OpetopicTypeChecker {
 
   val M = Monad[G]
   import M._
+
+  // To supress warnings ...
+  implicit class GOps[A](m: G[A]) {
+    def withFilter(f: A => Boolean) : G[A] = 
+      m.filter(f)
+  }
 
   def fail[A](str: String) : G[A] = 
     -\/(str)

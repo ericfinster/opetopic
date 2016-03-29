@@ -16,6 +16,8 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
+import scalaz.std.string._
+
 import opetopic._
 import opetopic.tt._
 import OpetopicTypeChecker._
@@ -534,14 +536,6 @@ object Prover extends JSApp {
       })
     } yield ()
 
-
-    // jQuery("#lift-id-input").on("input", () => {
-    //   val liftId = jQuery("#lift-id-input").value().asInstanceOf[String]
-    //   jQuery("#lift-fill-id-input").value(liftId ++ "-fill")
-    //   jQuery("#left-prop-id-input").value(liftId ++ "-fill-isLeft")
-    //   jQuery("#right-prop-id-input").value(liftId ++ "-fill-isRight")
-    // })
-
   //============================================================================================
   // SHELL FORCING
   //
@@ -559,65 +553,59 @@ object Prover extends JSApp {
             fc <- fromShape(fillBox.faceComplex)
             fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
             fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
-            nst = fc.tail.head
-            optNst <- nst.traverse[EditorM, (Marker[P], Option[Expr])]({
+
+            nst <- fc.tail.head.traverse[EditorM, (editor.EditorBox[P], Marker[P], Option[Expr])]({
               case b => 
                 for {
                   mk <- attempt(b.optLabel, "Shell is incomplete!")
-                } yield (mk, findLeftExtensionWitness(mk.displayName))
+                } yield (b, mk, findLeftExtensionWitness(mk.displayName))
             })
-            prop <- (
-              optNst match {
-                case Box((tgtMk, None), cn) => 
+
+            ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
+
+            (box, mk, src, tgt) <- (
+              tgtEvOpt match {
+                case None => 
                   for {
-                    src <- cn.traverse[EditorM, Expr]({
-                      case nst => {
-                        val (mk, o) = nst.baseValue
-                        attempt(o, "Missing evidence for: " ++ mk.displayName)
-                      }
+                    src <- srcTrplTr.traverse[EditorM, Expr]({
+                      case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
                     })
-                  } yield LeftExtensionProperty(
-                    tgtMk.displayName ++ "-is-left",
-                    EShellIsLeft(fillMk.expr, fillEv, rbTree(src), EEmpty),
-                    EIsLeftExt(tgtMk.expr),
-                    tgtMk.displayName,
-                    tgtMk.expr
-                  )
-                case Box((tgtMk, Some(tgtLext)), cn) => {
+                  } yield (tgtBox, tgtMk, rbTree(src), EEmpty)
+                case Some(tgtEv) => {
+                  srcTrplTr.nodes.filterNot(_._3.isDefined) match {
+                    case (b, m, _) :: Nil => {
 
-                  cn.nodes.filterNot(_.baseValue._2.isDefined) match {
-                    case mkNst :: Nil => {
-
-                      val mk = mkNst.baseValue._1
-
-                      val srcExprs =
-                        cn map (nst => {
-                          val (mk, o) = nst.baseValue
-                          o match {
-                            case None => EEmpty
-                            case Some(ev) => ev
-                          }
-                        })
-
-                      val prop = LeftExtensionProperty(
-                        mk.displayName ++ "-is-left",
-                        EShellIsLeft(fillMk.expr, fillEv, rbTree(srcExprs), tgtLext),
-                        EIsLeftExt(mk.expr),
-                        mk.displayName,
-                        mk.expr
+                      val src = rbTree(
+                        srcTrplTr map {
+                          case (_, _, None) => EEmpty
+                          case (_, _, Some(ev)) => ev
+                        }
                       )
 
-                      editorSucceed(prop)
+                      editorSucceed((b, m, src, tgtEv))
                     }
-                    case _ => editorError("Malformed evidence tree")
+                    case _ => editorError("Malformed evidence tree.")
                   }
+
                 }
               }
             )
           } yield {
+
+            val prop = LeftExtensionProperty(
+              mk.displayName ++ "-isLeft",
+              EShellIsLeft(fillMk.expr, fillEv, src, tgt),
+              EIsLeftExt(mk.expr),
+              mk.displayName,
+              mk.expr
+            )
+
             registerProperty(prop)
-            nst.baseValue.panel.refresh
+
+            box.optLabel = Some(mk)
+            box.panel.refresh
             editor.ce.refreshGallery
+
           }
 
       })

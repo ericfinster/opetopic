@@ -61,6 +61,9 @@ object PrettyPrinter {
       case EFillRightIsLeft(e, ev, c, t) => "fillRightIsLeft"
       case EFillLeftIsRight(e, ev, c, t, l, f, fev) => "fillLeftIsRight"
       case EFillRightIsRight(e, ev, c, t, l, f, fev) => "fillRightIsRight"
+
+      case tr : TreeExpr => "tree"
+
     }
 
 }
