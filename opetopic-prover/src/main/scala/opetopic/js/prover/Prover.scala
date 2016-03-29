@@ -36,6 +36,7 @@ object Prover extends JSApp {
 
     jQuery("#new-defn-btn").on("click", () => newDefinition)
     jQuery(".menu .item").tab()
+    jQuery(".ui.accordion").accordion()
 
   }
 
@@ -53,6 +54,27 @@ object Prover extends JSApp {
     defnWksp.initUI
     defnWksp.newEditor
     defnWksp.extendContext("X", ECat)
+
+  }
+
+  def addDefinition(id: String, expr: Expr, exprTy: Expr): Unit = {
+
+    import PrettyPrinter._
+
+    val title = 
+      div(cls := "title")(
+        i(cls := "dropdown icon"),
+        id
+      ).render
+
+    val content = 
+      div(cls := "content")(
+        p(cls := "transition hidden")(
+          id ++ " : " ++ prettyPrint(exprTy) ++ " = " ++ prettyPrint(expr)
+        )
+      ).render
+
+    jQuery("#defn-list").append(title, content)
 
   }
 

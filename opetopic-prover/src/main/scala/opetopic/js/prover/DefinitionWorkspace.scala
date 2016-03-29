@@ -85,6 +85,15 @@ class DefinitionWorkspace(global: Rho) extends DefinitionWorkspaceUI { thisWksp 
   var gma: List[(Name, TVal)] = Nil
   var rho: Rho = RNil
 
+  def abstractOverContext(gma: List[(String, Expr)], expr: Expr, exprTy: Expr) : (Expr, Expr) = 
+    gma match {
+      case Nil => (expr, exprTy)
+      case (id, ty) :: gs => {
+        val (e, t) = abstractOverContext(gs, expr, exprTy)
+        (ELam(PVar(id), e), EPi(PVar(id), ty, t))
+      }
+    }
+
   def extendContext[N <: Nat](id: String, ty: Expr) : Unit = {
 
     // Take care of the semantic part
@@ -123,7 +132,10 @@ class DefinitionWorkspace(global: Rho) extends DefinitionWorkspaceUI { thisWksp 
     ).render
 
     val content = div(cls := "content")(
-      p(PrettyPrinter.prettyPrint(expr) ++ " : " ++ PrettyPrinter.prettyPrint(ty))
+      p(PrettyPrinter.prettyPrint(expr) ++ " : " ++ PrettyPrinter.prettyPrint(ty)),
+      button(cls := "ui icon button", onclick := { () => runAction(onExport(id, expr, ty)) })(
+        i(cls := "check circle icon")
+      )
     ).render
 
     jQuery(environmentList).append(title, content)
@@ -192,6 +204,26 @@ class DefinitionWorkspace(global: Rho) extends DefinitionWorkspaceUI { thisWksp 
       editor <- attempt(activeEditor, "No editor active")
       _ <- editor.pasteToCursor(e, eval(catExpr, rho), id)
     } yield ()
+
+  //============================================================================================
+  // EXPORTING
+  //
+
+  def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
+
+    val (e, t) = abstractOverContext(context.toList, expr, ty)
+    val decl = Def(PVar(id), t, e)
+
+    for {
+      _ <- simpleCheck(
+        checkD(RNil, Nil, decl)
+      )
+    } yield {
+      Prover.showInfoMessage("Checked Declaration: " ++ decl.toString)
+      Prover.addDefinition(id, e, t)
+    }
+
+  }
 
   //============================================================================================
   // CELL ASSUMPTIONS
