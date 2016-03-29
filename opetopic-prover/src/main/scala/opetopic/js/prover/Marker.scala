@@ -19,11 +19,12 @@ sealed trait Marker[N <: Nat] {
 
   def displayName: String
   def expr: Expr
+  def wksp: DefinitionWorkspace
 
   def visualize(frmwk: UIFramework) : frmwk.Visualization[N]
 
   def cs : ColorSpec = 
-    if (Prover.hasUniversalProperty(displayName)) {
+    if (wksp.hasUniversalProperty(displayName)) {
       FillColorSpec
     } else 
       expr match {
@@ -37,6 +38,7 @@ sealed trait Marker[N <: Nat] {
 }
 
 case class ObjectMarker(
+  val wksp: DefinitionWorkspace,
   val displayName: String,
   val expr: Expr
 ) extends Marker[_0] {
@@ -49,6 +51,7 @@ case class ObjectMarker(
 }
 
 case class CellMarker[P <: Nat](p: P)(
+  val wksp: DefinitionWorkspace,
   val displayName: String,
   val expr: Expr
 ) extends Marker[S[P]] {
@@ -90,9 +93,9 @@ object FillColorSpec extends ColorSpec(
 object Marker {
 
   @natElim
-  def apply[N <: Nat](n: N)(id: String, expr: Expr) : Marker[N] = {
-    case (Z, id, expr) => ObjectMarker(id, expr)
-    case (S(p), id, expr) => CellMarker(p)(id, expr)
+  def apply[N <: Nat](n: N)(wksp: DefinitionWorkspace, id: String, expr: Expr) : Marker[N] = {
+    case (Z, wksp, id, expr) => ObjectMarker(wksp, id, expr)
+    case (S(p), wksp, id, expr) => CellMarker(p)(wksp, id, expr)
   }
 
   object ActiveInstance {

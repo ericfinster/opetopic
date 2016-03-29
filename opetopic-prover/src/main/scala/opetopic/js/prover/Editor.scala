@@ -26,12 +26,11 @@ import Marker.ActiveInstance._
 import JsDomFramework._
 import OpetopicTypeChecker._
 
-class Editor {
+class Editor(wksp: DefinitionWorkspace) {
 
   type EditorBox[N <: Nat] = ce.CardinalCellBox[N]
 
-  def catExpr: Expr = 
-    Prover.catExpr
+  def catExpr: Expr = wksp.catExpr
 
   val ce = CardinalEditor[Marker]
   ce.onSelectAsRoot = (boxsig: Sigma[EditorBox]) => {
@@ -128,8 +127,8 @@ class Editor {
   def pasteToCursor(e: Expr, cat: Val, id: String) : EditorM[Unit] =
     withSelection(new BoxAction[Unit] {
 
-      val rho = Prover.rho
-      val gma = Prover.gma
+      val rho = wksp.rho
+      val gma = wksp.gma
 
       def objectAction(box: EditorBox[_0]) : EditorM[Unit] = 
         for {
@@ -139,7 +138,7 @@ class Editor {
           )
         } yield {
 
-          val mk = ObjectMarker(id, e)
+          val mk = ObjectMarker(wksp, id, e)
           box.optLabel = Some(mk)
           box.panel.refresh
           ce.refreshGallery
@@ -170,7 +169,7 @@ class Editor {
           Suite.foreach[PNst, S[P]](pnst)(Updater)
 
           // Update the main cell
-          val mk = CellMarker(p)(id, e)
+          val mk = CellMarker(p)(wksp, id, e)
           box.optLabel = Some(mk)
           box.panel.refresh
           ce.refreshGallery
@@ -183,9 +182,9 @@ class Editor {
   object Matcher extends IndexedTraverse[EditorM, BVPair, PNst] {
     def apply[N <: Nat](n: N)(pr: BVPair[N]) : EditorM[PNst[N]] = {
 
-      val rho = Prover.rho
-      val gma = Prover.gma
-      val nfMap = Prover.nfMap
+      val rho = wksp.rho
+      val gma = wksp.gma
+      val nfMap = wksp.nfMap
 
       val l = lRho(rho)
 
@@ -223,11 +222,11 @@ class Editor {
     def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
       pr.foreach({ case (b, v) => 
         if (b.optLabel == None) {
-          val nf = rbV(lRho(Prover.rho), v)
-          if (Prover.nfMap.isDefinedAt(nf)) {
-            val (id, e) = Prover.nfMap(nf)
-            b.optLabel = Some(Marker(n)(id, e))
-          } else b.optLabel = Some(Marker(n)("unknown", EEmpty))
+          val nf = rbV(lRho(wksp.rho), v)
+          if (wksp.nfMap.isDefinedAt(nf)) {
+            val (id, e) = wksp.nfMap(nf)
+            b.optLabel = Some(Marker(n)(wksp, id, e))
+          } else b.optLabel = Some(Marker(n)(wksp, "unknown", EEmpty))
         }
       })
       pr.baseValue._1.panel.refresh
