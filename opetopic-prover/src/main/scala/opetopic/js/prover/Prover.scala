@@ -289,7 +289,14 @@ object Prover extends JSApp {
     ).render
 
     val content = div(cls := "content")(
-      p("Target cell: " ++ prop.cellId)
+      prop match {
+        case l : LeftExtensionProperty => List(p("Target cell: " ++ prop.cellId))
+        case r : RightExtensionProperty => List(
+          p("Target cell: " ++ prop.cellId),
+          p("Address: " ++ r.addr.toString)
+        )
+      }
+        
     ).render
 
     jQuery("#property-list").append(title, content)
@@ -585,6 +592,8 @@ object Prover extends JSApp {
             eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
             cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
             tMk <- attempt(targetBox.optLabel, "Target is empty!")
+
+            _ = println("Searching for right extension witness at: " ++ rbAddr(p)(rextEvAddr).toString)
 
             rextWitness <- attempt(
               findRightExtensionWitness(eMk.displayName, rbAddr(p)(rextEvAddr)),

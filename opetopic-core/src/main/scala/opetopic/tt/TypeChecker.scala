@@ -913,7 +913,7 @@ object OpetopicTypeChecker {
               _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
               fVal = eval(f, rho)
               _ <- check(rho, gma, fev, IsLeftExt(fVal))
-            } yield IsRightExt(fVal, ACons(ANil, ANil))
+            } yield IsRightExt(fVal, ANil)
             
           }
         } yield ty
