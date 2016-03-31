@@ -12,20 +12,51 @@ import upickle.default._
 
 object Pickler {
 
-  def treeWriter[A, N <: Nat] : Writer[Tree[A, N]] = ???
+  //============================================================================================
+  // TREE PICKLING
+  //
 
-  class CustomThing2(val i: Int, val s: String)
-  object CustomThing2{
-    implicit val thing2Writer = Writer[CustomThing2]{
-      case t => Js.Str(t.i + " " + t.s)
+  def treeWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Tree[A, N]] = 
+    new Writer[Tree[A, N]] { 
+      def write0: Tree[A, N] => Js.Value = {
+        case Pt(a) => Js.Obj(("type", Js.Str("pt")), ("val", wrtr.write(a)))
+        case Leaf(d) => Js.Obj(("type", Js.Str("leaf")))
+        case Node(a, sh) => {
+          val shellWriter : Writer[Tree[Tree[A, S[Nat]], Nat]] =
+            treeWriter[Tree[A, S[Nat]], Nat](this)
+          Js.Obj(("type", Js.Str("node")), ("val", wrtr.write(a)), ("shell", shellWriter.write(sh)))
+        }
+      }
     }
-    implicit val thing2Reader = Reader[CustomThing2]{
-      case Js.Str(str) =>
-        val Array(i, s) = str.split(" ")
-        new CustomThing2(i.toInt, s)
+
+  @natElim
+  def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] = {
+    case Z => {
+      new Reader[Tree[A, _0]] {
+        def read0: PartialFunction[Js.Value, Tree[A, _0]] = {
+          case Js.Obj(("type", Js.Str("pt")), ("val", a)) => Pt(rdr.read(a))
+        }
+      }
+    }
+    case S(p: P) => {
+      new Reader[Tree[A, S[P]]] { thisRdr =>
+        def read0: PartialFunction[Js.Value, Tree[A, S[P]]] = {
+          case Js.Obj(("type", Js.Str("leaf"))) => Leaf(S(p))
+          case Js.Obj(("type", Js.Str("node")), ("val", a), ("shell", sh)) => {
+            val shellReader : Reader[Tree[Tree[A, S[P]], P]] =
+              treeReader[Tree[A, S[P]], P](p)(thisRdr)
+
+            Node(rdr.read(a), shellReader.read(sh))
+          }
+        }
+      }
     }
   }
 
-  def test = println("Here's a test")
+  //============================================================================================
+  // NESTING PICKLING
+  //
+
+
 
 }
