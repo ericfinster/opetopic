@@ -22,7 +22,7 @@ import opetopic.tt._
 import OpetopicTypeChecker._
 import syntax.all._
 
-class DefinitionWorkspace(global: Rho) extends DefinitionWorkspaceUI { thisWksp =>
+class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWorkspaceUI { thisWksp =>
 
   //============================================================================================
   // EDITOR MANAGEMENT
@@ -82,8 +82,8 @@ class DefinitionWorkspace(global: Rho) extends DefinitionWorkspaceUI { thisWksp 
   val cells: ListBuffer[(String, Expr)] = ListBuffer()
   val properties: ListBuffer[Property] = ListBuffer()
 
-  var gma: List[(Name, TVal)] = Nil
-  var rho: Rho = RNil
+  var gma: Gamma = globalGma
+  var rho: Rho = globalRho
 
   def abstractOverContext(gma: List[(String, Expr)], expr: Expr, exprTy: Expr) : (Expr, Expr) = 
     gma match {
@@ -212,15 +212,24 @@ class DefinitionWorkspace(global: Rho) extends DefinitionWorkspaceUI { thisWksp 
   def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
 
     val (e, t) = abstractOverContext(context.toList, expr, ty)
-    val decl = Def(PVar(id), t, e)
+    Prover.addDefinition(id, e, t)
 
-    for {
-      _ <- simpleCheck(
-        checkD(RNil, Nil, decl)
-      )
-    } yield {
-      Prover.showInfoMessage("Checked Declaration: " ++ decl.toString)
-      Prover.addDefinition(id, e, t)
+  }
+
+  //============================================================================================
+  // IMPORTING
+  //
+
+  def onImport : EditorM[Unit] = {
+
+    import OpetopicParser._
+
+    val id = jQuery(importIdInput).value().asInstanceOf[String]
+    val exprStr = jQuery(importExprInput).value().asInstanceOf[String]
+
+    parseAll(phrase(expr), exprStr) match {
+      case Success(e, _) => onPaste(e, id)
+      case err => editorError("Parse error: " ++ err.toString)
     }
 
   }

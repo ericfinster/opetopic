@@ -40,6 +40,12 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
         runAction(onCompose)
       })
 
+    jQuery(importForm).on("submit",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        runAction(onImport)
+      })
+
     jQuery(leftLiftBtn).on("click", 
       (e : JQueryEventObject) => {
         e.preventDefault
@@ -54,15 +60,15 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
 
     jQuery(composeIdInput).on("input", () => {
       val compId = jQuery(composeIdInput).value().asInstanceOf[String]
-      jQuery(composeFillInput).value(compId ++ "-fill")
-      jQuery(composePropInput).value(compId ++ "-fill-isLeft")
+      jQuery(composeFillInput).value(compId ++ "Fill")
+      jQuery(composePropInput).value(compId ++ "FillIsLeft")
     })
 
     jQuery(liftIdInput).on("input", () => {
       val liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-      jQuery(liftFillInput).value(liftId ++ "-fill")
-      jQuery(liftLextInput).value(liftId ++ "-fill-isLeft")
-      jQuery(liftRextInput).value(liftId ++ "-fill-isRight")
+      jQuery(liftFillInput).value(liftId ++ "Fill")
+      jQuery(liftLextInput).value(liftId ++ "FillIsLeft")
+      jQuery(liftRextInput).value(liftId ++ "FillIsRight")
     })
 
   }
@@ -151,6 +157,20 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
     ).render
 
   //============================================================================================
+  // IMPORT FORM
+  //
+
+  val importIdInput = input(`type` := "text", placeholder := "Identifier").render
+  val importExprInput = input(`type` := "text", placeholder := "Expression").render
+
+  val importForm = 
+    form(cls := "ui form")(
+      div(cls := "field")(label("Display Name: "), importIdInput),
+      div(cls := "field")(label("Expression: "), importExprInput),
+      button(`type` := "submit", cls := "ui green button")("Do It!")
+    ).render
+
+  //============================================================================================
   // LISTS
   //
 
@@ -196,14 +216,16 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
             div(cls := "ui vertical fluid pointing menu")(
               a(cls := "active item", "data-tab".attr := "assume-tab")("Assume"),
               a(cls := "item", "data-tab".attr := "compose-tab")("Compose"),
-              a(cls := "item", "data-tab".attr := "lift-tab")("Lift")
+              a(cls := "item", "data-tab".attr := "lift-tab")("Lift"),
+              a(cls := "item", "data-tab".attr := "import-tab")("Import")
             )
           ),
           div(cls := "twelve wide stretched column")(
             div(cls := "ui segment")(
               div(cls := "ui active tab", "data-tab".attr := "assume-tab")(assumeForm),
               div(cls := "ui tab", "data-tab".attr := "compose-tab")(composeForm),
-              div(cls := "ui tab", "data-tab".attr := "lift-tab")(liftForm)
+              div(cls := "ui tab", "data-tab".attr := "lift-tab")(liftForm),
+              div(cls := "ui tab", "data-tab".attr := "import-tab")(importForm)
             )
           )
         )

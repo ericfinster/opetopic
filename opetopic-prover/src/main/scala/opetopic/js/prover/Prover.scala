@@ -44,11 +44,12 @@ object Prover extends JSApp {
   // DEFINITION MANAGEMENT
   //
 
+  var gma: Gamma = Nil
   var rho: Rho = RNil
 
   def newDefinition: Unit = {
 
-    val defnWksp = new DefinitionWorkspace(rho)
+    val defnWksp = new DefinitionWorkspace(rho, gma)
 
     jQuery("#defn-tab").empty().append(defnWksp.mainGrid)
     defnWksp.initUI
@@ -57,24 +58,40 @@ object Prover extends JSApp {
 
   }
 
-  def addDefinition(id: String, expr: Expr, exprTy: Expr): Unit = {
+  def addDefinition(id: String, expr: Expr, exprTy: Expr): EditorM[Unit] = {
 
     import PrettyPrinter._
 
-    val title = 
-      div(cls := "title")(
-        i(cls := "dropdown icon"),
-        id
-      ).render
+    val decl = Def(PVar(id), exprTy, expr)
 
-    val content = 
-      div(cls := "content")(
-        p(cls := "transition hidden")(
-          id ++ " : " ++ prettyPrint(exprTy) ++ " = " ++ prettyPrint(expr)
-        )
-      ).render
+    for {
+      g <- simpleCheck(
+        checkD(rho, gma, decl)
+      )
+    } yield {
 
-    jQuery("#defn-list").append(title, content)
+      Prover.showInfoMessage("Checked Declaration: " ++ decl.toString)
+
+      val title =
+        div(cls := "title")(
+          i(cls := "dropdown icon"),
+          id
+        ).render
+
+      val content =
+        div(cls := "content")(
+          p(cls := "transition hidden")(
+            id ++ " : " ++ prettyPrint(exprTy) ++ " = " ++ prettyPrint(expr)
+          )
+        ).render
+
+      jQuery("#defn-list").append(title, content)
+
+      // Update the context and environment
+      rho = UpDec(rho, decl)
+      gma = g
+
+    }
 
   }
 

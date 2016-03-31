@@ -29,10 +29,7 @@ sealed trait Marker[N <: Nat] {
     } else 
       expr match {
         case EVar(_) => VarColorSpec
-        case EComp(_, _, _) => CompColorSpec
-        case ELiftLeft(_, _, _, _) => CompColorSpec
-        case ELiftRight(_, _, _, _) => CompColorSpec
-        case _ => DefaultColorSpec
+        case _ => CompColorSpec
       }
 
 }
