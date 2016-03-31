@@ -5,8 +5,11 @@
 # Home page
 GET     /                           controllers.Application.index
 
-# Database access
-GET     /db                         controllers.Application.db
+# Autowire Post 
+POST    /api/*rpc                   controllers.AutowireController.run(rpc)
+
+# User list
+GET     /userlist                   controllers.UserController.userlist
 
 # SketchPad
 GET	/sketchpad		    controllers.Application.sketchpad

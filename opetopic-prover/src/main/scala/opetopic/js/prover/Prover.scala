@@ -20,13 +20,19 @@ import scalaz.std.string._
 
 import opetopic._
 import opetopic.tt._
+import opetopic.js._
+import opetopic.net._
 import OpetopicTypeChecker._
-import opetopic.js.JQuerySemanticUI._
+import JQuerySemanticUI._
 
 import syntax.complex._
 import syntax.tree._
 import syntax.nesting._
 import syntax.suite._
+
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
+
+import autowire._
 
 object Prover extends JSApp {
 
@@ -37,6 +43,12 @@ object Prover extends JSApp {
     jQuery("#new-defn-btn").on("click", () => newDefinition)
     jQuery(".menu .item").tab()
     jQuery(".ui.accordion").accordion()
+
+    jQuery("#login-btn").on("click", () => {
+
+      val res = ClientApi[OpetopicApi].addNumbers(10, 20).call().foreach(println)
+
+    })
 
   }
 

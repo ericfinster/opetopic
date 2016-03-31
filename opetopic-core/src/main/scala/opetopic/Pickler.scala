@@ -10,6 +10,8 @@ package opetopic
 import upickle.Js
 import upickle.default._
 
+import scala.{PartialFunction => PF}
+
 object Pickler {
 
   //============================================================================================
@@ -33,14 +35,14 @@ object Pickler {
   def treeReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Tree[A, N]] = {
     case Z => {
       new Reader[Tree[A, _0]] {
-        def read0: PartialFunction[Js.Value, Tree[A, _0]] = {
+        def read0: PF[Js.Value, Tree[A, _0]] = {
           case Js.Obj(("type", Js.Str("pt")), ("val", a)) => Pt(rdr.read(a))
         }
       }
     }
     case S(p: P) => {
       new Reader[Tree[A, S[P]]] { thisRdr =>
-        def read0: PartialFunction[Js.Value, Tree[A, S[P]]] = {
+        def read0: PF[Js.Value, Tree[A, S[P]]] = {
           case Js.Obj(("type", Js.Str("leaf"))) => Leaf(S(p))
           case Js.Obj(("type", Js.Str("node")), ("val", a), ("shell", sh)) => {
             val shellReader : Reader[Tree[Tree[A, S[P]], P]] =
@@ -73,7 +75,7 @@ object Pickler {
   implicit def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = {
     case Z => {
         new Reader[Nesting[A, _0]] { thisRdr =>
-          def read0: PartialFunction[Js.Value, Nesting[A, _0]] = {
+          def read0: PF[Js.Value, Nesting[A, _0]] = {
             case Js.Obj(("type", Js.Str("obj")), ("val", a)) => Obj(rdr.read(a))
             case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
               val canopyReader : Reader[Tree[Nesting[A, _0], _0]] = treeReader(Z)(thisRdr)
@@ -84,7 +86,7 @@ object Pickler {
     }
     case S(p: P) => {
       new Reader[Nesting[A, S[P]]] { thisRdr =>
-        def read0: PartialFunction[Js.Value, Nesting[A, S[P]]] = {
+        def read0: PF[Js.Value, Nesting[A, S[P]]] = {
           case Js.Obj(("type", Js.Str("dot")), ("val", a)) => Dot(rdr.read(a), S(p))
           case Js.Obj(("type", Js.Str("box")), ("val", a), ("canopy", cn)) => {
             val canopyReader : Reader[Tree[Nesting[A, S[P]], S[P]]] = treeReader(S(p))(thisRdr)
@@ -94,6 +96,37 @@ object Pickler {
       }
     }
   }
+
+  //============================================================================================
+  // SUITE PICKLING
+  //
+
+  // implicit def suiteWriter[F[_ <: Nat], N <: Nat](implicit iwrtr: IndexedWriter[F]) : Writer[Suite[F, N]] = 
+  //   new Writer[Suite[F, N]] {
+  //     def write0: Suite[F, N] => Js.Value = {
+  //       suite => Js.Arr(writeWithCount(suite)._1: _*)
+  //     }
+
+  //     def writeWithCount[K <: Nat](s: Suite[F, K]) : (List[Js.Value], Nat) = 
+  //       s match {
+  //         case SNil() => (Nil, Z)
+  //         case (tl >> hd) => {
+  //           writeWithCount(tl) match {
+  //             case (vs, p) => {
+  //               val v : Js.Value = iwrtr.writer.write(hd)
+  //               (v :: vs, S(p))
+  //             }
+  //           }
+  //         }
+  //       }
+  //   }
+
+  // implicit def suiteReader[F[_ <: Nat], N <: Nat](implicit irdr: IndexedReader[F]) : Reader[Suite[F, N]] = 
+  //   new Reader[Suite[F, N]] {
+  //     def read0: PF[Js.Value, Suite[F, N]] = {
+  //       case Js.Arr(v) => ???
+  //     }
+  //   }
 
   //============================================================================================
   // COMPLEX PICKLING
@@ -111,7 +144,7 @@ object Pickler {
   //   type IdxdNesting[K <: Nat] = Nesting[A[K], K]
 
   //   new Reader[FiniteComplex[A]] {
-  //     def read0: PartialFunction[Js.Value, FiniteComplex[A]] = {
+  //     def read0: PF[Js.Value, FiniteComplex[A]] = {
   //       case Js.Arr(els @ _*) => {
   //         val dim = intToNat(els.length - 1)
   //         Sigma[({ type L[K <: Nat] = Complex[A, K] })#L, Nat](dim)(readComplex(dim)(els))

@@ -30,6 +30,8 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
     includeFilter in (Assets, LessKeys.less) := "opetopic.less",
     libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "autowire" % "0.2.5",
+      "com.lihaoyi" %%% "upickle" % "0.3.9",
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
       "org.webjars" % "Semantic-UI" % "2.1.6",
@@ -65,6 +67,8 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "autowire" % "0.2.5",
+      "com.lihaoyi" %%% "upickle" % "0.3.9",
       "org.denigma" %%% "codemirror-facade" % "5.4-0.5"
     )
   ).enablePlugins(ScalaJSPlugin).
@@ -93,7 +97,9 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %% "autowire" % "0.2.5",
+      "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicCoreJs)
