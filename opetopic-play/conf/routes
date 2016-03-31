@@ -5,6 +5,9 @@
 # Home page
 GET     /                           controllers.Application.index
 
+# Database access
+GET     /db                         controllers.Application.db
+
 # SketchPad
 GET	/sketchpad		    controllers.Application.sketchpad
 

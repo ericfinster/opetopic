@@ -33,7 +33,9 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
       "org.webjars" % "Semantic-UI" % "2.1.6",
-      "org.webjars" % "codemirror" % "5.8"
+      "org.webjars" % "codemirror" % "5.8",
+      "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
+      "com.typesafe.play" %% "play-slick" % "1.1.1"
     ),
     herokuAppName in Compile := "opetopic",
     herokuSkipSubProjects in Compile := false
@@ -50,20 +52,6 @@ lazy val opetopicTutorial = (project in file("opetopic-tutorial")).
       "org.scala-js" %%% "scalajs-dom" % "0.8.1",
       "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3"
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
-
-lazy val opetopicCodebuilder = (project in file("opetopic-codebuilder")).
-  settings(commonSettings: _*).
-  settings(
-    persistLauncher := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
-      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "org.denigma" %%% "codemirror-facade" % "5.4-0.5"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -114,7 +102,8 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).
   jsSettings(
