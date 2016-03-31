@@ -24,7 +24,7 @@ object AutowireController extends Controller with autowire.Server[Js.Value, Read
 
     request.body.asText map { (e: String) => 
 
-      route[OpetopicApi](MyServer)(
+      route[OpetopicApi](UserApi)(
         autowire.Core.Request(
           str.split("/"),
           upickle.json.read(e).asInstanceOf[Js.Obj].value.toMap
@@ -39,12 +39,5 @@ object AutowireController extends Controller with autowire.Server[Js.Value, Read
 
   def read[Result: Reader](p: Js.Value) = readJs[Result](p)
   def write[Result: Writer](r: Result) = writeJs(r)
-
-}
-
-object MyServer extends OpetopicApi {
-
-  def addNumbers(i: Int, j: Int) : Int = 
-    i + j
 
 }

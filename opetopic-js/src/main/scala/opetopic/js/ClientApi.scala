@@ -32,17 +32,3 @@ object ClientApi extends autowire.Client[Js.Value, Reader, Writer] {
 
 }
 
-
-// // client-side implementation, and call-site
-// object MyClient extends autowire.Client[String, upickle.Reader, upickle.Writer]{
-//   def write[Result: Writer](r: Result) = upickle.write(r)
-//   def read[Result: Reader](p: String) = upickle.read[Result](p)
-
-//   override def doCall(req: Request) = {
-//     println(req)
-//     MyServer.routes.apply(req)
-//   }
-// }
-
-// MyClient[MyApi].doThing(3, "lol").call().foreach(println)
-// // List(lol, lol, lol)

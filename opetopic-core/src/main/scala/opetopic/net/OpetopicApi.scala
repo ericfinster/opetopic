@@ -9,6 +9,7 @@ package opetopic.net
 
 trait OpetopicApi {
 
-  def addNumbers(i: Int, j: Int) : Int
+  def createUser(id: String, passwd: String) : String
+  def listUsers() : Seq[String]
 
 }
