@@ -1,5 +1,7 @@
 @(subnav: String)(content: Html)
 
+@import play.api.Play
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -18,65 +20,15 @@
 
   </head>
 
-  <body>
+  <body></body>
 
-    <div class="pusher">
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopicjs-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopicjs-fastopt.js")' type="text/javascript"></script>
+  }
 
-      <div class="ui fixed inverted menu">
-	<div class="header item">Opetopic</div>
-	<a class="item" href="/">Home</a>
-	<div class="ui dropdown item">
-	  Tools
-	  <i class="dropdown icon"></i>
-	  <div class="menu">
-	    <a class="item" href="/sketchpad">SketchPad</a>
-	    <a class="item" href="/prover">Prover</a>
-	  </div>
-	</div>
-	<a class="item" href="/docs">Documentation</a>
-	<a class="item" href="/tutorial">Tutorial</a>
-	<div class="right menu">
-	  <a class="item" id="login-btn">Log In</a>
-	</div>
-      </div>
-
-      @content
-
-      <div class="ui modal" id="login-modal">
-	<i class="close icon"></i>
-	<div class="header">
-	  Login
-	</div>
-	<div class="ui content">
-	  <form class="ui form">
-	    <div class="field">
-	      <label>Username</label>
-	      <input type="text" id="username-input">
-	    </div>
-	    <div class="field">
-	      <label>Password</label>
-	      <input type="password" id="password-input">
-	    </div>	    
-	  </form>
-	</div>
-	<div class="actions">
-	  <div class="ui red deny button">
-	    Cancel
-	  </div>
-	  <div class="ui positive right labeled icon button">
-	    Create
-	    <i class="checkmark icon"></i>
-	  </div>
-	</div>
-      </div>
-
-    </div>
-
-  </body>
-
-  <script>
-    $(".ui.menu .ui.dropdown").dropdown({on: "hover"})
-  </script>
+  <script src='@routes.Assets.at("opetopicjs-launcher.js")' type="text/javascript"></script>
 
 </html>
 

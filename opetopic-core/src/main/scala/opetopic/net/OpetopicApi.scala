@@ -13,3 +13,8 @@ trait OpetopicApi {
   def listUsers() : Seq[String]
 
 }
+
+case class CreateUserReq(
+  val username: String,
+  val password: String
+)

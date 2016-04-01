@@ -5,8 +5,9 @@
 # Home page
 GET     /                           controllers.Application.index
 
-# Autowire Post 
-POST    /api/*rpc                   controllers.AutowireController.run(rpc)
+# User operations                  
+GET     /userlist                   controllers.UserController.userList
+POST    /createuser                 controllers.UserController.createUser
 
 # SketchPad
 GET	/sketchpad		    controllers.Application.sketchpad

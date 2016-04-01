@@ -52,10 +52,7 @@ object Prover extends JSApp {
           val username = jQuery("#username-input").value().asInstanceOf[String]
           val passwd = jQuery("#password-input").value().asInstanceOf[String]
 
-          println("Creating user: " ++ username)
-
-          ClientApi[OpetopicApi].createUser(username, passwd).call().foreach(println)
-          ClientApi[OpetopicApi].listUsers().call().foreach(println)
+          UserManager.createUser(username, passwd)
 
         }
       )).modal("show")
