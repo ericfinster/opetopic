@@ -13,6 +13,8 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import JQuerySemanticUI._
 
+import opetopic.js.pages._
+
 object Opetopic extends JSApp {
 
   //============================================================================================
@@ -23,8 +25,8 @@ object Opetopic extends JSApp {
     div(cls := "ui dropdown item")("Tools",
       i(cls := "dropdown icon"),
       div(cls := "menu")(
-        a(cls := "item")("SketchPad"),
-        a(cls := "item")("Prover")
+        a(cls := "item", onclick := { () => Router.showPage(SketchpadPage) })("SketchPad"),
+        a(cls := "item", onclick := { () => Router.showPage(ProverPage) })("Prover")
       )
     ).render
 

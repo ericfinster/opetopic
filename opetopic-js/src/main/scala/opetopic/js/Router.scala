@@ -15,6 +15,8 @@ import org.scalajs.dom
 import org.scalajs.dom.Event
 import org.scalajs.dom.PopStateEvent
 
+import opetopic.js.pages._
+
 object Router {
 
   def initialize: Unit = {
@@ -30,7 +32,14 @@ object Router {
 
   def showPage(p: Page) : Unit = {
 
-    jQuery(Opetopic.contentDiv).empty().append(p.content)
+    if (! p.loaded) {
+      p.onLoad
+      p.loaded = true
+    }
+
+    jQuery(Opetopic.contentDiv).empty().append(p.render)
+    p.onShow
+
     dom.window.history.pushState(p.url, null, p.url)
 
   }
@@ -39,6 +48,8 @@ object Router {
     url match {
       case "/" => showPage(MainPage)
       case "/docs" => showPage(DocumentationPage)
+      case "/prover" => showPage(ProverPage)
+      case "/sketchpad" => showPage(SketchpadPage)
     }
 
 }

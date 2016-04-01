@@ -20,7 +20,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicProver, opetopicTutorial)
+lazy val clients = Seq(opetopicJs, opetopicTutorial)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -54,37 +54,6 @@ lazy val opetopicTutorial = (project in file("opetopic-tutorial")).
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3"
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
-
-lazy val opetopicProver = (project in file("opetopic-prover")).
-  settings(commonSettings: _*).
-  settings(
-    persistLauncher := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "autowire" % "0.2.5",
-      "com.lihaoyi" %%% "upickle" % "0.3.9",
-      "org.denigma" %%% "codemirror-facade" % "5.4-0.5"
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
-
-lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
-  settings(commonSettings: _*).
-  settings(
-    persistLauncher := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "org.denigma" %%% "codemirror-facade" % "5.4-0.5"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
