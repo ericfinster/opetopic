@@ -37,7 +37,7 @@ object Opetopic extends JSApp {
       toolsDropdown,
       a(cls := "item", onclick := { () => Router.showPage(DocumentationPage) })("Documentation"),
       div(cls := "right menu")(
-        a(cls := "item")("Log In")
+        a(cls := "item", onclick := { () => Router.showPage(LoginPage) })("Log In")
       )
     ).render
 
@@ -51,14 +51,14 @@ object Opetopic extends JSApp {
 
     println("Launched opetopic ...")
 
-    jQuery("body").
-      append(topMenu).
-      append(contentDiv)
+    // jQuery("body").
+    //   append(topMenu).
+    //   append(contentDiv)
 
-    jQuery(toolsDropdown).dropdown()
+    jQuery(".ui.dropdown").dropdown()
 
-    Router.initialize
-    Router.showPage(MainPage)
+    // Router.initialize
+    // Router.showPage(MainPage)
 
   }
 

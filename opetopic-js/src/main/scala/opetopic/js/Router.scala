@@ -50,6 +50,7 @@ object Router {
       case "/docs" => showPage(DocumentationPage)
       case "/prover" => showPage(ProverPage)
       case "/sketchpad" => showPage(SketchpadPage)
+      case "/login" => showPage(LoginPage)
     }
 
 }

@@ -28,28 +28,25 @@ object ProverPage extends Page {
     val definitionTab =
       div(cls := "ui tab", "data-tab".attr := "definition-tab", id := "defn-tab").render
 
-    val content =
-      div(
-        
-        moduleTab,
-        definitionTab,
+    div(
+      
+      moduleTab,
+      definitionTab,
 
-        h3(cls := "ui dividing header")("Messages"),
-        div(id := "msg-box"),
+      h3(cls := "ui dividing header")("Messages"),
+      div(id := "msg-box"),
 
-        div(cls := "ui inverted bottom fixed menu")(
-          a(cls := "active item", "data-tab".attr := "module-tab")("Module"),
-          a(cls := "item", "data-tab".attr := "definition-tab")("Definition"),
-          div(cls := "item")(
-            button(`type` := "button", cls := "ui button",
-              onclick := { () => Prover.newDefinition }
-            )("New Definition")
-          )
+      div(cls := "ui inverted bottom fixed menu")(
+        a(cls := "active item", "data-tab".attr := "module-tab")("Module"),
+        a(cls := "item", "data-tab".attr := "definition-tab")("Definition"),
+        div(cls := "item")(
+          button(`type` := "button", cls := "ui button",
+            onclick := { () => Prover.newDefinition }
+          )("New Definition")
         )
+      )
 
-      ).render
-
-    content
+    ).render
 
   }
 

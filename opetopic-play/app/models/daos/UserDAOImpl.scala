@@ -37,7 +37,7 @@ class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
     } yield dbUser
     db.run(userQuery.result.headOption).map { dbUserOption =>
       dbUserOption.map { user =>
-        User(UUID.fromString(user.userID), loginInfo, user.firstName, user.lastName, user.fullName, user.email, user.avatarURL)
+        User(user.userID, loginInfo, user.firstName, user.lastName, user.fullName, user.email, user.avatarURL)
       }
     }
   }
@@ -50,7 +50,7 @@ class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
    */
   def find(userID: UUID) = {
     val query = for {
-      dbUser <- slickUsers.filter(_.id === userID.toString)
+      dbUser <- slickUsers.filter(_.id === userID)
       dbUserLoginInfo <- slickUserLoginInfos.filter(_.userID === dbUser.id)
       dbLoginInfo <- slickLoginInfos.filter(_.id === dbUserLoginInfo.loginInfoId)
     } yield (dbUser, dbLoginInfo)
@@ -58,7 +58,7 @@ class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
       resultOption.map {
         case (user, loginInfo) =>
           User(
-            UUID.fromString(user.userID),
+            user.userID,
             LoginInfo(loginInfo.providerID, loginInfo.providerKey),
             user.firstName,
             user.lastName,
@@ -76,7 +76,7 @@ class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
    * @return The saved user.
    */
   def save(user: User) = {
-    val dbUser = DBUser(user.userID.toString, user.firstName, user.lastName, user.fullName, user.email, user.avatarURL)
+    val dbUser = DBUser(user.userID, user.firstName, user.lastName, user.fullName, user.email, user.avatarURL)
     val dbLoginInfo = DBLoginInfo(None, user.loginInfo.providerID, user.loginInfo.providerKey)
     // We don't have the LoginInfo id so we try to get it first.
     // If there is no LoginInfo yet for this user we retrieve the id on insertion.    
@@ -100,4 +100,5 @@ class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvid
     // run actions and return user afterwards
     db.run(actions).map(_ => user)
   }
+
 }

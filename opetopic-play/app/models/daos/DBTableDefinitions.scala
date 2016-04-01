@@ -7,6 +7,8 @@
 
 package models.daos
 
+import java.util.UUID
+
 import com.mohiva.play.silhouette.api.LoginInfo
 import slick.driver.JdbcProfile
 import slick.lifted.ProvenShape.proveShapeOf
@@ -17,7 +19,7 @@ trait DBTableDefinitions {
   import driver.api._
 
   case class DBUser (
-    userID: String,
+    userID: UUID,
     firstName: Option[String],
     lastName: Option[String],
     fullName: Option[String],
@@ -25,8 +27,8 @@ trait DBTableDefinitions {
     avatarURL: Option[String]
   )
 
-  class Users(tag: Tag) extends Table[DBUser](tag, "user") {
-    def id = column[String]("userID", O.PrimaryKey)
+  class Users(tag: Tag) extends Table[DBUser](tag, "users") {
+    def id = column[UUID]("userID", O.PrimaryKey)
     def firstName = column[Option[String]]("firstName")
     def lastName = column[Option[String]]("lastName")
     def fullName = column[Option[String]]("fullName")
@@ -49,12 +51,12 @@ trait DBTableDefinitions {
   }
 
   case class DBUserLoginInfo (
-    userID: String,
+    userID: UUID,
     loginInfoId: Long
   )
 
   class UserLoginInfos(tag: Tag) extends Table[DBUserLoginInfo](tag, "userlogininfo") {
-    def userID = column[String]("userID")
+    def userID = column[UUID]("userID")
     def loginInfoId = column[Long]("loginInfoId")
     def * = (userID, loginInfoId) <> (DBUserLoginInfo.tupled, DBUserLoginInfo.unapply)
   }
@@ -104,7 +106,7 @@ trait DBTableDefinitions {
     def tokenType = column[Option[String]]("tokentype")
     def expiresIn = column[Option[Int]]("expiresin")
     def refreshToken = column[Option[String]]("refreshtoken")
-    def loginInfoId = column[Long]("logininfoid")
+    def loginInfoId = column[Long]("loginInfoId")
     def * = (id.?, accessToken, tokenType, expiresIn, refreshToken, loginInfoId) <> (DBOAuth2Info.tupled, DBOAuth2Info.unapply)
   }
   
@@ -115,7 +117,7 @@ trait DBTableDefinitions {
   
   class OpenIDInfos(tag: Tag) extends Table[DBOpenIDInfo](tag, "openidinfo") {
     def id = column[String]("id", O.PrimaryKey)
-    def loginInfoId = column[Long]("logininfoid")
+    def loginInfoId = column[Long]("loginInfoId")
     def * = (id, loginInfoId) <> (DBOpenIDInfo.tupled, DBOpenIDInfo.unapply)
   }
   
