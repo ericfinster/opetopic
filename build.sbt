@@ -29,7 +29,11 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     pipelineStages := Seq(scalaJSProd),
     JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
     includeFilter in (Assets, LessKeys.less) := "opetopic.less",
+    resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value,
     libraryDependencies ++= Seq(
+      "com.mohiva" %% "play-silhouette" % "3.0.2",
+      "net.codingwell" %% "scala-guice" % "4.0.0",
+      "net.ceedubs" %% "ficus" % "1.1.2",
       "com.lihaoyi" %% "autowire" % "0.2.5",
       "com.lihaoyi" %%% "upickle" % "0.3.9",
       "org.webjars" %% "webjars-play" % "2.4.0-1",
@@ -37,8 +41,12 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "org.webjars" % "Semantic-UI" % "2.1.6",
       "org.webjars" % "codemirror" % "5.8",
       "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
-      "com.typesafe.play" %% "play-slick" % "1.1.1"
+      "com.typesafe.play" %% "play-slick" % "1.1.1",
+      cache,
+      // evolutions,
+      filters
     ),
+    routesGenerator := InjectedRoutesGenerator,
     herokuAppName in Compile := "opetopic",
     herokuSkipSubProjects in Compile := false
   ).enablePlugins(PlayScala).

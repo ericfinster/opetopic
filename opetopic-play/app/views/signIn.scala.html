@@ -1,0 +1,7 @@
+@(signInForm: Form[forms.SignInForm.Data], socialProviders: com.mohiva.play.silhouette.impl.providers.SocialProviderRegistry)(implicit request: RequestHeader, messages: Messages)
+
+@import com.mohiva.play.silhouette.impl.providers.oauth2.ClefProvider
+
+@main(Messages("sign.in.title")) {
+  <p>Signin</p>
+}
