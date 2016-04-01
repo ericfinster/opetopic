@@ -28,12 +28,12 @@ trait DBTableDefinitions {
   )
 
   class Users(tag: Tag) extends Table[DBUser](tag, "users") {
-    def id = column[UUID]("userID", O.PrimaryKey)
-    def firstName = column[Option[String]]("firstName")
-    def lastName = column[Option[String]]("lastName")
-    def fullName = column[Option[String]]("fullName")
+    def id = column[UUID]("userid", O.PrimaryKey)
+    def firstName = column[Option[String]]("firstname")
+    def lastName = column[Option[String]]("lastname")
+    def fullName = column[Option[String]]("fullname")
     def email = column[Option[String]]("email")
-    def avatarURL = column[Option[String]]("avatarURL")
+    def avatarURL = column[Option[String]]("avatarurl")
     def * = (id, firstName, lastName, fullName, email, avatarURL) <> (DBUser.tupled, DBUser.unapply)
   }
 
@@ -45,8 +45,8 @@ trait DBTableDefinitions {
 
   class LoginInfos(tag: Tag) extends Table[DBLoginInfo](tag, "logininfo") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def providerID = column[String]("providerID")
-    def providerKey = column[String]("providerKey")
+    def providerID = column[String]("providerid")
+    def providerKey = column[String]("providerkey")
     def * = (id.?, providerID, providerKey) <> (DBLoginInfo.tupled, DBLoginInfo.unapply)
   }
 
@@ -56,8 +56,8 @@ trait DBTableDefinitions {
   )
 
   class UserLoginInfos(tag: Tag) extends Table[DBUserLoginInfo](tag, "userlogininfo") {
-    def userID = column[UUID]("userID")
-    def loginInfoId = column[Long]("loginInfoId")
+    def userID = column[UUID]("userid")
+    def loginInfoId = column[Long]("logininfoid")
     def * = (userID, loginInfoId) <> (DBUserLoginInfo.tupled, DBUserLoginInfo.unapply)
   }
 
@@ -72,7 +72,7 @@ trait DBTableDefinitions {
     def hasher = column[String]("hasher")
     def password = column[String]("password")
     def salt = column[Option[String]]("salt")
-    def loginInfoId = column[Long]("loginInfoId")
+    def loginInfoId = column[Long]("logininfoid")
     def * = (hasher, password, salt, loginInfoId) <> (DBPasswordInfo.tupled, DBPasswordInfo.unapply)
   }
 
@@ -87,7 +87,7 @@ trait DBTableDefinitions {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def token = column[String]("token")
     def secret = column[String]("secret")
-    def loginInfoId = column[Long]("loginInfoId")
+    def loginInfoId = column[Long]("logininfoid")
     def * = (id.?, token, secret, loginInfoId) <> (DBOAuth1Info.tupled, DBOAuth1Info.unapply)
   }
 
@@ -106,7 +106,7 @@ trait DBTableDefinitions {
     def tokenType = column[Option[String]]("tokentype")
     def expiresIn = column[Option[Int]]("expiresin")
     def refreshToken = column[Option[String]]("refreshtoken")
-    def loginInfoId = column[Long]("loginInfoId")
+    def loginInfoId = column[Long]("logininfoid")
     def * = (id.?, accessToken, tokenType, expiresIn, refreshToken, loginInfoId) <> (DBOAuth2Info.tupled, DBOAuth2Info.unapply)
   }
   
@@ -117,7 +117,7 @@ trait DBTableDefinitions {
   
   class OpenIDInfos(tag: Tag) extends Table[DBOpenIDInfo](tag, "openidinfo") {
     def id = column[String]("id", O.PrimaryKey)
-    def loginInfoId = column[Long]("loginInfoId")
+    def loginInfoId = column[Long]("logininfoid")
     def * = (id, loginInfoId) <> (DBOpenIDInfo.tupled, DBOpenIDInfo.unapply)
   }
   

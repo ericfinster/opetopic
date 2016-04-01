@@ -19,7 +19,7 @@ GET         /webjars/*file                   controllers.WebJarAssets.at(file)
 #GET     /                           controllers.Application.index
 #GET     /userlist                   controllers.UserController.userList
 #POST    /createuser                 controllers.UserController.createUser
-#GET	/sketchpad		    controllers.Application.sketchpad
+#GET	 /sketchpad		     controllers.Application.sketchpad
 #GET     /prover                     controllers.Application.prover
 #GET     /docs                       controllers.Application.showDoc(page = "intro")
 #GET     /docs/:page                 controllers.Application.showDoc(page)

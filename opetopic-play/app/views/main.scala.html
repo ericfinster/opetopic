@@ -22,6 +22,27 @@
 
   <body>
 
+    <div class="ui fixed inverted menu">
+      <div class="header item">Opetopic</div>
+      <a class="item" href="/">Home</a>
+      <div class="ui dropdown item">
+	Tools
+	<i class="dropdown icon"></i>
+	<div class="menu">
+	  <a class="item" href="/sketchpad">SketchPad</a>
+	  <a class="item" href="/prover">Prover</a>
+	</div>
+      </div>
+      <a class="item" href="/docs">Documentation</a>
+      <a class="item" href="/tutorial">Tutorial</a>
+      <div class="right menu">
+	<a class="item" id="login-btn">Log In</a>
+      </div>
+    </div>
+
+    <div class="content">
+      @content
+    </div>
 
   </body>
 

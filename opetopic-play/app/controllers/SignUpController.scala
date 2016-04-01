@@ -43,6 +43,9 @@ class SignUpController @Inject() (
    * @return The result to display.
    */
   def signUp = Action.async { implicit request =>
+
+    println("Doing a signup ...")
+
     SignUpForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signUp(form))),
       data => {
