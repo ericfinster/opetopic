@@ -31,8 +31,7 @@ object Sketchpad extends JSApp {
     println("Launched Opetopic Sketchpad.")
 
     jQuery("#new-tab-btn").click((e : JQueryEventObject) => { addEditorTab })
-    jQuery("#sketch-prop-tab-menu .item").tab()
-    jQuery("#cell-props-menu .item").tab()
+    jQuery(".ui.pointing.menu .item").tab()
 
     jQuery("#fill-color-btn").popup(lit(
       popup = jQuery(".color-select.popup"),

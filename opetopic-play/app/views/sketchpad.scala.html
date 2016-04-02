@@ -23,7 +23,7 @@
 	      <a class="item">Shape<i class="dropdown icon"></i></a>
 	    </div>
 
-	    <div class="ui middle attached nofocus segment" tabIndex="0" id="sketch-tabs">
+	    <div class="ui middle attached center aligned nofocus segment" tabIndex="0" id="sketch-tabs">
 	    </div>
 
 	    <div class="ui bottom attached segment">
@@ -43,26 +43,30 @@
 
 	      <div class="four wide column">
 		<div class="ui segment">
-		  <div class="ui secondary pointing menu">
+		  <div class="ui secondary pointing menu" id="cell-props-menu">
 		    <a class="active item" data-tab="box-props">Box Properties</a>
-		    <a class="item" data-tab="box-props">Edge Properties</a>
+		    <a class="item" data-tab="edge-props">Edge Properties</a>
 		  </div>
 		  <div class="ui active tab" data-tab="box-props">
-		    <form class="ui form">
-		      <div class="field">
-			<label>Label</label>
-			<input type="text" id="label-input" placeholder="Label">
-		      </div>
-		      <div class="field">
-			<label>Colors</label>
-			<div class="ui buttons">
-			  <button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
-			  <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
+		    <div class="ui segment">
+		      <form class="ui form">
+			<div class="field">
+			  <label>Label</label>
+			  <input type="text" id="label-input" placeholder="Label">
 			</div>
-		      </div>
-		    </form>
+			<div class="field">
+			  <label>Colors</label>
+			  <div class="ui buttons">
+			    <button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
+			    <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
+			  </div>
+			</div>
+		      </form>
+		    </div>
 		  </div>
 		  <div class="ui tab" data-tab="edge-props">
+		    <div class="ui center aligned segment" id="edge-prop-tab">
+		    </div>
 		  </div>
 		</div>
 	      </div>
