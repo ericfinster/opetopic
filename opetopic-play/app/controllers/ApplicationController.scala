@@ -47,8 +47,6 @@ class ApplicationController @Inject() (
    */
   def signIn = UserAwareAction.async { implicit request =>
 
-    println("Doing signin")
-
     request.identity match {
       case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
       case None => Future.successful(Ok(views.html.signIn(SignInForm.form, socialProviderRegistry)))
@@ -62,8 +60,6 @@ class ApplicationController @Inject() (
    * @return The result to display.
    */
   def signUp = UserAwareAction.async { implicit request =>
-
-    println("Doing signup")
 
     request.identity match {
       case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
@@ -80,7 +76,7 @@ class ApplicationController @Inject() (
   def signOut = SecuredAction.async { implicit request =>
     val result = Redirect(routes.ApplicationController.index())
     env.eventBus.publish(LogoutEvent(request.identity, request, request2Messages))
-
     env.authenticatorService.discard(request.authenticator, result)
   }
+
 }

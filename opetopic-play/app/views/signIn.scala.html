@@ -1,29 +1,23 @@
 @(signInForm: Form[forms.SignInForm.Data], socialProviders: com.mohiva.play.silhouette.impl.providers.SocialProviderRegistry)(implicit request: RequestHeader, messages: Messages)
 
+@import semantic.semantic._
+
 @main(Messages("sign.in.title")) {
 
   <div class="ui container">
     <div class="ui segment">
-      <h3 class="ui dividing header">Sign Up</h3>
-      <form action="/signUp" method="post" class="ui form">
-	<div class="field">
-	  <label>First Name</label>
-	  <input type="text"></input>
-	</div>
-	<div class="field">
-	  <label>Last Name</label>
-	  <input type="text"></input>
-	</div>
-	<div class="field">
-	  <label>Email</label>
-	  <input type="text"></input>
-	</div>
-	<div class="field">
-	  <label>Passowrd</label>
-	  <input type="password"></input>
-	</div>
-	<button type="submit" class="ui green button">Sign Up!</button>
-      </form>
+      <h3 class="ui dividing header">Sign In</h3>
+
+      @helper.form(action = routes.CredentialsAuthController.authenticate(), args = 'class -> "ui form") {
+      
+        @helper.CSRF.formField
+        @helper.inputText(signInForm("email"), '_label -> "Email")
+        @helper.inputPassword(signInForm("password"), '_label -> "Password")
+
+        <button id="submit" type="submit" value="submit" class="ui green button">Sign In!</button>
+
+      }
+
     </div>
   </div>
 
