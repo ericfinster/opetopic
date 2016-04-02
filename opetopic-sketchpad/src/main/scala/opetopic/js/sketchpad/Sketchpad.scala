@@ -8,6 +8,7 @@
 package opetopic.js.sketchpad
 
 import scala.scalajs.{js => sjs}
+import sjs.Dynamic.{literal => lit}
 import scala.scalajs.js.JSApp
 import org.scalajs.dom._
 import org.scalajs.jquery._
@@ -21,41 +22,26 @@ import syntax.complex._
 import syntax.suite._
 import JsDomFramework._
 
-// import org.denigma.codemirror.extensions.EditorConfig
-// import org.denigma.codemirror.{CodeMirror, EditorConfiguration}
-// import org.scalajs.dom.raw.HTMLTextAreaElement
-
 import opetopic.js.JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
-
-  // Setup CodeMirror
-
-  // val params : EditorConfiguration = 
-  //   EditorConfig.lineNumbers(true) 
-
-  // val codeArea = 
-  //   document.getElementById("code-area").
-  //     asInstanceOf[HTMLTextAreaElement]
-
-  // val editor = CodeMirror.fromTextArea(codeArea, params)
 
   def main : Unit = {
 
     println("Launched Opetopic Sketchpad.")
 
-    jQuery("#new-tab").click((e : JQueryEventObject) => { addEditorTab })
+    jQuery("#new-tab-btn").click((e : JQueryEventObject) => { addEditorTab })
     jQuery("#sketch-prop-tab-menu .item").tab()
     jQuery("#cell-props-menu .item").tab()
 
-    jQuery("#fill-color-btn").popup(sjs.Dynamic.literal(
+    jQuery("#fill-color-btn").popup(lit(
       popup = jQuery(".color-select.popup"),
       movePopup = false,
       on = "click",
       onShow = () => { isFill = true }
     ))
 
-    jQuery("#stroke-color-btn").popup(sjs.Dynamic.literal(
+    jQuery("#stroke-color-btn").popup(lit(
       popup = jQuery(".color-select.popup"),
       movePopup = false,
       on = "click",
@@ -87,7 +73,7 @@ object Sketchpad extends JSApp {
     jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
     jQuery("#code-btn").on("click", () => { showScalaCode })
 
-    addEditorTab
+    // addEditorTab
 
   }
 
@@ -103,17 +89,17 @@ object Sketchpad extends JSApp {
 
     tabCount += 1
     val tc = tabCount.toString
-    val tabName = "tab-" ++ tc
+    val tabName = "tab-" + tc
 
     val tabItem = a(cls := "item", "data-tab".attr := tabName)(tc).render
     val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
       editorTab.uiElement
     ).render
 
-    jQuery(".right.menu").before(tabItem)
-    jQuery("#sketch-tabs").append(tab)
+    // jQuery("#tab-page-menu").append(tabItem)
+    // jQuery("#sketch-tabs").append(tab)
 
-    jQuery(tabItem).tab(sjs.Dynamic.literal(
+    jQuery(tabItem).tab(lit(
       onVisible = (s: String) => { activeTab = Some(editorTab) }
     ))
 
@@ -338,7 +324,7 @@ object Sketchpad extends JSApp {
       val exporter = new SvgExporter(lc)
 
       jQuery(".ui.modal.svgexport").find("#exportlink").
-        attr(sjs.Dynamic.literal(href = "data:text/plain;charset=utf-8," ++
+        attr(lit(href = "data:text/plain;charset=utf-8," ++
           sjs.URIUtils.encodeURIComponent(exporter.svgString)))
 
       jQuery(".ui.modal.svgexport").modal("show")
