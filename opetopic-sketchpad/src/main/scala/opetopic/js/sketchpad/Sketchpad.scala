@@ -27,7 +27,7 @@ import JsDomFramework._
 
 import opetopic.js.JQuerySemanticUI._
 
-object Sketchpad extends JSApp {
+object Sketchpad {
 
   // Setup CodeMirror
 

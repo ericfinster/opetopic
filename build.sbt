@@ -66,6 +66,35 @@ lazy val opetopicTutorial = (project in file("opetopic-tutorial")).
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
 
+lazy val opetopicProver = (project in file("opetopic-prover")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
+      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "upickle" % "0.3.9"
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
+lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
+      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "upickle" % "0.3.9"
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
 lazy val opetopicJs = (project in file("opetopic-js")).
   settings(commonSettings: _*).
   settings(

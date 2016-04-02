@@ -34,32 +34,7 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import autowire._
 
-object Prover extends JSApp {
-
-  def main : Unit = {
-
-    println("Launched Opetopic Prover.")
-
-    jQuery("#new-defn-btn").on("click", () => newDefinition)
-    jQuery(".menu .item").tab()
-    jQuery(".ui.accordion").accordion()
-
-    jQuery("#login-btn").on("click", () => {
-
-      jQuery("#login-modal").modal(lit(
-        onApprove = () => {
-
-          val username = jQuery("#username-input").value().asInstanceOf[String]
-          val passwd = jQuery("#password-input").value().asInstanceOf[String]
-
-          UserManager.createUser(username, passwd)
-
-        }
-      )).modal("show")
-
-    })
-
-  }
+object Prover {
 
   //============================================================================================
   // DEFINITION MANAGEMENT
