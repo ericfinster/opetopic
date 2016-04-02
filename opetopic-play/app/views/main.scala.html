@@ -1,4 +1,4 @@
-@(subnav: String)(content: Html)
+@(subnav: String, app: String)(content: Html)
 
 @import play.api.Play
 
@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Opetopic">
     <meta name="author" content="Eric Finster">
+    <meta name="application" content="@app">
 
     <title>Opetopic - @subnav</title>
 
@@ -34,7 +35,6 @@
 	</div>
       </div>
       <a class="item" href="/docs">Documentation</a>
-      <a class="item" href="/tutorial">Tutorial</a>
       <div class="right menu">
 	<a class="item" href="/signOut" id="logout-btn">Log Out</a>
       </div>

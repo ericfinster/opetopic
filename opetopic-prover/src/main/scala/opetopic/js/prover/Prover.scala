@@ -34,7 +34,10 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import autowire._
 
-object Prover {
+object Prover extends JSApp {
+
+
+
 
   //============================================================================================
   // DEFINITION MANAGEMENT
