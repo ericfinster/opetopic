@@ -1,0 +1,6 @@
+@(elements: views.html.helper.FieldElements)
+
+<div class="field @if(elements.hasErrors) {error}">
+  <label for="@elements.id">@elements.label</label>
+  @elements.input
+</div>

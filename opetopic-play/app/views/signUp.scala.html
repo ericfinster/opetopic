@@ -1,24 +1,22 @@
 @(signUpForm: Form[forms.SignUpForm.Data])(implicit request: RequestHeader, messages: Messages)
 
+@import semantic.semantic._
+
 @main("Signup") {
 
   <div class="ui container">
     <div class="ui segment">
       <h3 class="ui dividing header">Sign Up</h3>
 
-      @helper.form(action = routes.SignUpController.signUp()) {
+      @helper.form(action = routes.SignUpController.signUp(), args = 'class -> "ui form") {
       
         @helper.CSRF.formField
-        @helper.inputText(signUpForm("firstName"))
-        @helper.inputText(signUpForm("lastName"))
-        @helper.inputText(signUpForm("email"))
-        @helper.inputPassword(signUpForm("password"))
+        @helper.inputText(signUpForm("firstName"), '_label -> "First Name")
+        @helper.inputText(signUpForm("lastName"), '_label -> "Last Name")
+        @helper.inputText(signUpForm("email"), '_label -> "Email")
+        @helper.inputPassword(signUpForm("password"), '_label -> "Password")
 
-        <div class="form-group">
-          <div>
-	    <button id="submit" type="submit" value="submit" class="ui green button">Sign Up!</button>
-          </div>
-	</div>
+        <button id="submit" type="submit" value="submit" class="ui green button">Sign Up!</button>
 
       }
 
