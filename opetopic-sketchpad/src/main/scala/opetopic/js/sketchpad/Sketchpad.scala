@@ -73,7 +73,7 @@ object Sketchpad extends JSApp {
     jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
     jQuery("#code-btn").on("click", () => { showScalaCode })
 
-    // addEditorTab
+    addEditorTab
 
   }
 
@@ -96,8 +96,8 @@ object Sketchpad extends JSApp {
       editorTab.uiElement
     ).render
 
-    // jQuery("#tab-page-menu").append(tabItem)
-    // jQuery("#sketch-tabs").append(tab)
+    jQuery("#tab-page-menu").append(tabItem)
+    jQuery("#sketch-tabs").append(tab)
 
     jQuery(tabItem).tab(lit(
       onVisible = (s: String) => { activeTab = Some(editorTab) }
