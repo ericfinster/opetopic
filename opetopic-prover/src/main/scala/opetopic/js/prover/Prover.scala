@@ -36,8 +36,15 @@ import autowire._
 
 object Prover extends JSApp {
 
+  def main : Unit = {
 
+    println("Launched Opetopic Prover.")
 
+    jQuery("#new-defn-btn").on("click", () => newDefinition)
+    jQuery(".menu .item").tab()
+    jQuery(".ui.accordion").accordion()
+
+  }
 
   //============================================================================================
   // DEFINITION MANAGEMENT
