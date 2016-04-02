@@ -404,4 +404,15 @@ trait NestingFunctions {
 
 }
 
-object Nesting extends NestingFunctions 
+object Nesting extends NestingFunctions {
+
+  import upickle.default.Reader
+  import upickle.default.Writer
+
+  implicit def nestingWriter[A, N <: Nat](implicit w: Writer[A]) : Writer[Nesting[A, N]] =
+    Pickler.nestingWriter(w)
+
+  implicit def nestingReader[A, N <: Nat](implicit r: Reader[A], n: N) : Reader[Nesting[A, N]] = 
+    Pickler.nestingReader(n)(r)
+
+}

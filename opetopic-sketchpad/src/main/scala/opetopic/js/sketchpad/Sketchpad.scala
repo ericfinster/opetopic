@@ -71,6 +71,7 @@ object Sketchpad extends JSApp {
 
     jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
     jQuery("#code-btn").on("click", () => { showScalaCode })
+    jQuery("#json-btn").on("click", () => { showJsonCode })
 
     addEditorTab
 
@@ -350,6 +351,28 @@ object Sketchpad extends JSApp {
       // Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
       // jQuery(".ui.modal").modal("show")
       // Sketchpad.editor.refresh()
+    }
+
+  def showJsonCode: Unit = 
+    for {
+      tab <- activeTab
+      bs <- tab.activeBox
+      lc <- bs.value.labelComplex
+    } {
+
+      // import opetopic.Pickler._
+      import upickle.default._
+
+      implicit object ConstIntWriter extends Pickler.IndexedWriter[ConstInt] {
+        def apply[N <: Nat](n: N) : Writer[ConstInt[N]] = 
+          implicitly[Writer[Int]]   
+      }
+
+      val test = Complex.toJson(opetopic.Examples.fredComplex)
+
+      jQuery("#code-text").empty().text(test)
+      jQuery(".ui.modal.codeexport").modal("show")
+
     }
 
   def colorTripleGen(color: String) : (String, String, String) = 

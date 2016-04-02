@@ -134,5 +134,21 @@ object Suite {
     implicit apT: Applicative[T]
   ) : T[Suite[G, L]] = traverseWithCount[T, F, G, L](seq)(trav)._1
 
+  //============================================================================================
+  // PICKLING
+  //
+
+  import upickle.default.Reader
+  import upickle.default.Writer
+
+  import Pickler.IndexedReader
+  import Pickler.IndexedWriter
+
+  implicit def suiteWriter[F[_ <: Nat], N <: Nat](implicit w: IndexedWriter[F]) : Writer[Suite[F, N]] = 
+    Pickler.suiteWriter[F, N](w)
+
+  implicit def suiteReader[F[_ <: Nat]](implicit r: IndexedReader[F]) : Reader[FiniteSuite[F]] = 
+    Pickler.suiteReader[F](r)
+
 }
 

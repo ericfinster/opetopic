@@ -506,7 +506,18 @@ trait TreeFunctions { tfns =>
 
 }
 
-object Tree extends TreeFunctions 
+object Tree extends TreeFunctions {
+
+  import upickle.default.Reader
+  import upickle.default.Writer
+
+  implicit def treeWriter[A, N <: Nat](implicit w: Writer[A]) : Writer[Tree[A, N]] =
+    Pickler.treeWriter(w)
+
+  implicit def treeReader[A, N <: Nat](implicit r: Reader[A], n: N) : Reader[Tree[A, N]] = 
+    Pickler.treeReader(n)(r)
+
+}
 
 
 

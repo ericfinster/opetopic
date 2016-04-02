@@ -449,4 +449,22 @@ object Complex extends ComplexFunctions {
     Some((Suite.tail[IdxdNesting, N](suite), Suite.head[IdxdNesting, N](suite)))
   }
 
+  import upickle.default.Reader
+  import upickle.default.Writer
+
+  import Pickler.IndexedReader
+  import Pickler.IndexedWriter
+
+  implicit def complexWriter[A[_ <: Nat], N <: Nat](implicit w: IndexedWriter[A]) : Writer[Complex[A, N]] = 
+    Pickler.complexWriter(w)
+
+  implicit def complexReader[A[_ <: Nat]](implicit r: IndexedReader[A]) : Reader[FiniteComplex[A]] = 
+    Pickler.complexReader(r)
+
+  def toJson[A[_ <: Nat], N <: Nat](c: Complex[A, N])(implicit w: IndexedWriter[A]) : String = 
+    upickle.json.write(complexWriter(w).write(c))
+
+  def fromJson[A[_ <: Nat]](jv: upickle.Js.Value)(implicit r: IndexedReader[A]) : FiniteComplex[A] = 
+    complexReader.read(jv)
+
 }
