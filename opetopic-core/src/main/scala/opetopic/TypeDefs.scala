@@ -270,6 +270,9 @@ trait TypeDefs extends NatConstants {
 
   }
 
+  type FiniteSuite[A[_ <: Nat]] = Sigma[Lambda[`N <: Nat` => Suite[A, N]]]
+  type NonemptySuite[A[_ <: Nat]] = SuccSigma[Lambda[`N <: Nat` => Suite[A, N]]]
+
   //============================================================================================
   // CARDINAL ADDRESSES AND DERIVATIVES
   //

@@ -52,9 +52,6 @@ final class SuiteSuccOps[A[_ <: Nat], P <: Nat](suite: Suite[A, S[P]]) extends S
 
 trait LowPriorityOps0 {
 
-  type FiniteSuite[A[_ <: Nat]] = Sigma[Lambda[`N <: Nat` => Suite[A, N]]]
-  type NonemptySuite[A[_ <: Nat]] = SuccSigma[Lambda[`N <: Nat` => Suite[A, N]]]
-
   // The idea is that this will keep us from conflicting with the same name for 
   // complexes ... but maybe we should just remove these for those guys ...
 

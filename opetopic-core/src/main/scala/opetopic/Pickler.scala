@@ -9,6 +9,7 @@ package opetopic
 
 import upickle.Js
 import upickle.default._
+import upickle.Invalid.Data
 
 import scala.{PartialFunction => PF}
 
@@ -59,7 +60,7 @@ object Pickler {
   // NESTING PICKLING
   //
 
-  implicit def nestingWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Nesting[A, N]] = 
+  def nestingWriter[A, N <: Nat](implicit wrtr: Writer[A]) : Writer[Nesting[A, N]] = 
     new Writer[Nesting[A, N]] {
       def write0: Nesting[A, N] => Js.Value = {
         case Obj(a) => Js.Obj(("type", Js.Str("obj")), ("val", wrtr.write(a)))
@@ -72,7 +73,7 @@ object Pickler {
     }
 
   @natElim
-  implicit def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = {
+  def nestingReader[A, N <: Nat](n: N)(implicit rdr: Reader[A]) : Reader[Nesting[A, N]] = {
     case Z => {
         new Reader[Nesting[A, _0]] { thisRdr =>
           def read0: PF[Js.Value, Nesting[A, _0]] = {
@@ -98,75 +99,104 @@ object Pickler {
   }
 
   //============================================================================================
+  // INDEXED READING AND WRITING
+  //
+
+  trait IndexedWriter[F[_ <: Nat]] {
+    def apply[N <: Nat](n: N) : Writer[F[N]]
+  }
+
+  trait IndexedReader[F[_ <: Nat]] {
+    def apply[N <: Nat](n: N) : Reader[F[N]]
+  }
+
+  implicit def toNestingReader[A[_ <: Nat]](implicit ardr: IndexedReader[A]) 
+      : IndexedReader[Lambda[`N <: Nat` => Nesting[A[N], N]]] = 
+    new IndexedReader[Lambda[`N <: Nat` => Nesting[A[N], N]]] {
+      def apply[N <: Nat](n: N) = nestingReader[A[N], N](n)(ardr(n))
+    }
+
+  implicit def toNestingWriter[A[_ <: Nat]](implicit awrtr: IndexedWriter[A])
+      : IndexedWriter[Lambda[`N <: Nat` => Nesting[A[N], N]]] =
+    new IndexedWriter[Lambda[`N <: Nat` => Nesting[A[N], N]]] {
+      def apply[N <: Nat](n: N) = nestingWriter[A[N], N](awrtr(n))
+    }
+
+  //============================================================================================
   // SUITE PICKLING
   //
 
-  // implicit def suiteWriter[F[_ <: Nat], N <: Nat](implicit iwrtr: IndexedWriter[F]) : Writer[Suite[F, N]] = 
-  //   new Writer[Suite[F, N]] {
-  //     def write0: Suite[F, N] => Js.Value = {
-  //       suite => Js.Arr(writeWithCount(suite)._1: _*)
-  //     }
+  // We should write the length so that we can generate a Nat when reading back
+  def suiteWriter[F[_ <: Nat], N <: Nat](implicit iwrtr: IndexedWriter[F]) : Writer[Suite[F, N]] = 
+    new Writer[Suite[F, N]] {
+      def write0: Suite[F, N] => Js.Value = {
+        suite => Js.Obj(
+          ("type", Js.Str("suite")),
+          ("dim", Js.Num(natToInt(suite.length))),
+          ("data", Js.Arr(doWrite(suite): _*))
+        )
+      }
 
-  //     def writeWithCount[K <: Nat](s: Suite[F, K]) : (List[Js.Value], Nat) = 
-  //       s match {
-  //         case SNil() => (Nil, Z)
-  //         case (tl >> hd) => {
-  //           writeWithCount(tl) match {
-  //             case (vs, p) => {
-  //               val v : Js.Value = iwrtr.writer.write(hd)
-  //               (v :: vs, S(p))
-  //             }
-  //           }
-  //         }
-  //       }
-  //   }
+      def doWrite[K <: Nat](s: Suite[F, K]) : List[Js.Value] = 
+        Suite.fold[F, List[Js.Value], K](s)(
+          new IndexedFold[F, List[Js.Value]] {
+            def caseZero = Nil
+            def caseSucc[P <: Nat](p: P)(fp: F[P], l: List[Js.Value]) = 
+              iwrtr(p).write(fp) :: l
+          }
+        )
+    }
 
-  // implicit def suiteReader[F[_ <: Nat], N <: Nat](implicit irdr: IndexedReader[F]) : Reader[Suite[F, N]] = 
-  //   new Reader[Suite[F, N]] {
-  //     def read0: PF[Js.Value, Suite[F, N]] = {
-  //       case Js.Arr(v) => ???
-  //     }
-  //   }
+  def suiteReader[F[_ <: Nat]](implicit irdr: IndexedReader[F]) : Reader[FiniteSuite[F]] = 
+    new Reader[FiniteSuite[F]] {
+      def read0: PF[Js.Value, FiniteSuite[F]] = {
+        case Js.Obj(
+          ("type", Js.Str("suite")), 
+          ("dim", Js.Num(dim)), 
+          ("data", Js.Arr(s @ _*))
+        ) => {
+          val d = intToNat(dim.toInt)
+          Sigma[Lambda[`L <: Nat` => Suite[F, L]], Nat](d)(doRead(d)(s.toList))
+        }
+      }
+
+      @natElim
+      def doRead[K <: Nat](k: K)(l: List[Js.Value]) : Suite[F, K] = {
+        case (Z, _) => SNil[F]()
+        case (S(p: P), l :: ls) => doRead(p)(ls) >> irdr(p).read(l)
+        case (S(p: P), Nil) => throw new Data(Js.Null, "Suite was truncated")
+      }
+
+    }
 
   //============================================================================================
   // COMPLEX PICKLING
   //
 
-  // implicit def complexWriter[A[_ <: Nat], N <: Nat](implicit wrtr : IndexedWriter[A]) : Writer[Complex[A, N]] = {
-  //   type IdxdNesting[K <: Nat] = Nesting[A[K], K]
-  //   Suite.suiteWriter(new IndexedWriter[IdxdNesting] {
-  //     def writer[N <: Nat] : Writer[IdxdNesting[N]] = 
-  //       Nesting.nestingWriter[A[N], N](wrtr.writer[N])
-  //   })
-  // }
+  def complexWriter[A[_ <: Nat], N <: Nat](implicit wrtr : IndexedWriter[A]) : Writer[Complex[A, N]] = 
+    suiteWriter[Lambda[`K <: Nat` => Nesting[A[K], K]], S[N]]
 
-  // implicit def complexReader[A[_ <: Nat]](implicit rdr: IndexedReader[A]) : Reader[FiniteComplex[A]] = {
-  //   type IdxdNesting[K <: Nat] = Nesting[A[K], K]
+  def complexReader[A[_ <: Nat]](implicit rdr: IndexedReader[A]) : Reader[FiniteComplex[A]] = {
+    new Reader[FiniteComplex[A]] {
+      def read0: PF[Js.Value, FiniteComplex[A]] = {
+        case (v: Js.Value) => {
 
-  //   new Reader[FiniteComplex[A]] {
-  //     def read0: PF[Js.Value, FiniteComplex[A]] = {
-  //       case Js.Arr(els @ _*) => {
-  //         val dim = intToNat(els.length - 1)
-  //         Sigma[({ type L[K <: Nat] = Complex[A, K] })#L, Nat](dim)(readComplex(dim)(els))
-  //       }
-  //     }
+          type ANst[N <: Nat] = Nesting[A[N], N]
+          val s = suiteReader[ANst].read(v)
 
-  //     def readComplex[N <: Nat](n: N)(vs: Seq[Js.Value]) : Complex[A, N] = 
-  //       (new NatCaseSplit0 {
+          import opetopic.syntax.complex._
 
-  //         type Out[N <: Nat] = Seq[Js.Value] => Complex[A, N]
+          @natElim
+          def extractFiniteComplex[N <: Nat](n: N)(s: Suite[ANst, N]) : FiniteComplex[A] = {
+            case (Z, _) => throw new Data(Js.Null, "Complex cannot be the empty suite")
+            case (S(p: P), s) => s
+          }
 
-  //         def caseZero : Out[_0] = {
-  //           vs => Complex[A]() >> Nesting.nestingReader(Z)(rdr.reader[_0]).read(vs.head)
-  //         }
+          extractFiniteComplex(s.n)(s.value)
 
-  //         def caseSucc[P <: Nat](p: P) : Out[S[P]] = {
-  //           vs => this(p)(vs.tail) >> Nesting.nestingReader(S(p))(rdr.reader[S[P]]).read(vs.head)
-  //         }
-
-  //       })(n)(vs)
-
-  //   }
-  // }
+        }
+      }
+    }
+  }
 
 }
