@@ -365,16 +365,32 @@ object Sketchpad extends JSApp {
       import org.scalajs.dom
       import upickle.default._
       import SimpleMarker._
+      import opetopic.net.SaveSketchRequest
 
-      dom.ext.Ajax.post(
-        url = "/saveSketch",
-        data = Complex.toJson(lc),
-        headers = Map(
-          ("X-Requested-With" -> "*"), 
-          ("CSRF-Token" -> "nocheck")
-        ),
-        withCredentials = true
-      ).map(_.responseText).foreach(println)
+      jQuery("#save-modal").modal(lit(
+        onApprove = () => {
+
+          val req = 
+            SaveSketchRequest(
+              jQuery("#sketch-name-input").value.asInstanceOf[String],
+              jQuery("#sketch-path-input").value.asInstanceOf[String],
+              jQuery("#sketch-desc-input").value.asInstanceOf[String],
+              Complex.toJson(lc)
+            )
+
+          // We disable the CSRF on this request.  Should this be allowed?
+          dom.ext.Ajax.post(
+            url = "/saveSketch",
+            data = write(req),
+            headers = Map(
+              ("X-Requested-With" -> "*"),
+              ("CSRF-Token" -> "nocheck")
+            ),
+            withCredentials = true
+          ).map(_.responseText).foreach(println)
+
+        }
+      )).modal("show")
 
     }
 

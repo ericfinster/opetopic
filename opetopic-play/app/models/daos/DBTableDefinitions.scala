@@ -134,6 +134,29 @@ trait DBTableDefinitions {
     def * = (id, key, value) <> (DBOpenIDAttribute.tupled, DBOpenIDAttribute.unapply)
   }
 
+  //============================================================================================
+  // SKETCH TABLES
+  //
+
+  case class DBSketch(
+    sketchId: UUID,
+    authorId: UUID,
+    name: String,
+    path: Option[String],
+    description: Option[String],
+    data: String
+  )
+
+  class Sketches(tag: Tag) extends Table[DBSketch](tag, "sketches") {
+    def sketchId = column[UUID]("sketchid", O.PrimaryKey)
+    def authorId = column[UUID]("authorid")
+    def name = column[String]("name")
+    def path = column[Option[String]]("path")
+    def description = column[Option[String]]("description")
+    def data = column[String]("data")
+    def * = (sketchId, authorId, name, path, description, data) <> (DBSketch.tupled, DBSketch.unapply)
+  }
+
   // table query definitions
   val slickUsers = TableQuery[Users]
   val slickLoginInfos = TableQuery[LoginInfos]
@@ -143,7 +166,9 @@ trait DBTableDefinitions {
   val slickOAuth2Infos = TableQuery[OAuth2Infos]
   val slickOpenIDInfos = TableQuery[OpenIDInfos]
   val slickOpenIDAttributes = TableQuery[OpenIDAttributes]
-  
+
+  val slickSketches = TableQuery[Sketches]
+
   // queries used in multiple places
   def loginInfoQuery(loginInfo: LoginInfo) = 
     slickLoginInfos.filter(dbLoginInfo => dbLoginInfo.providerID === loginInfo.providerID && dbLoginInfo.providerKey === loginInfo.providerKey)

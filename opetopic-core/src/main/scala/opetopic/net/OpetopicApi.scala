@@ -7,14 +7,9 @@
 
 package opetopic.net
 
-trait OpetopicApi {
-
-  def createUser(id: String, passwd: String) : String
-  def listUsers() : Seq[String]
-
-}
-
-case class CreateUserReq(
-  val username: String,
-  val password: String
+case class SaveSketchRequest(
+  val name: String,
+  val path: String,
+  val description: String,
+  val data: String
 )

@@ -16,37 +16,47 @@ import play.api.i18n.{ MessagesApi, Messages }
 import play.api.libs.concurrent.Execution.Implicits._
 
 import models.User
+import models.sketchpad.Sketch
 import models.services.UserService
+import models.services.SketchService
 
 import scala.concurrent.Future
 
 class SketchController @Inject() (
   val messagesApi: MessagesApi,
   val env: Environment[User, CookieAuthenticator],
-  userService: UserService
+  userService: UserService,
+  sketchService: SketchService
 ) extends Silhouette[User, CookieAuthenticator] {
 
   def saveSketch = SecuredAction.async { implicit request => 
 
-    import opetopic._
-    import opetopic.ui.markers._
-    import SimpleMarker._
+    request.body.asText.map { text => 
 
-    request.body.asText.map { json => {
+      import opetopic._
+      import opetopic.net._
+      import opetopic.ui.markers._
+      import SimpleMarker._
 
-      println("Json: " ++ json)
+      import upickle.default._
 
-      val fc : FiniteComplex[OptMarker] = 
-        Complex.fromJson[OptMarker](upickle.json.read(json))
+      val req = read[SaveSketchRequest](text)
 
-      val sketch = Sketch(fc)
+      // The read here is just to check that it parses.  Probable
+      // we should catch any exception and return a bad result.
+      val fc : FiniteComplex[OptMarker] =
+        Complex.fromJson[OptMarker](upickle.json.read(req.data))
 
-      println("Result: " ++ fc.value.toString)
+      println("Read a complex: " ++ fc.value.toString)
 
-    }}
+      val sketch = 
+        Sketch(req.name, req.path, req.description, req.data)
 
+      for {
+        _ <- sketchService.save(request.identity, sketch)
+      } yield Ok("Save complete")
 
-    Future.successful(Ok("Saving a sketch ..."))
+    } getOrElse Future.successful(BadRequest("Bad save request"))
 
   }
 

@@ -4,96 +4,93 @@
 
 @main("SketchPad") {
 
-  <div class="main">
-    <div class="article">
-      <div id="panes">
-	<div class="ui grid sketch-main">
+  <div>
 
-	  <div class="two wide column">
-	    <!-- <div class="ui raised segment"> -->
-	    <!--   <p>Left side</p> -->
-	    <!-- </div> -->
+    <div class="ui grid sketch-main">
+
+      <div class="two wide column">
+	<!-- <div class="ui raised segment"> -->
+	<!--   <p>Left side</p> -->
+	<!-- </div> -->
+      </div>
+
+      <div class="twelve wide column">
+	
+	<h3 class="ui dividing header">Sketchpad</h3>
+
+	<div class="ui top attached menu">
+	  <a class="item">Shape<i class="dropdown icon"></i></a>
+	</div>
+
+	<div class="ui middle attached center aligned nofocus segment" tabIndex="0" id="sketch-tabs">
+	</div>
+
+	<div class="ui bottom attached segment">
+	  <div class="ui grid">
+	    <div class="fourteen wide column">
+	      <div class="ui pagination menu" id="tab-page-menu"></div>
+	    </div>
+	    <div class="two wide right aligned column">
+	      <button class="ui icon button" id="new-tab-btn"><i class="add icon"></i></button>
+	    </div>
+	  </div>
+	</div>
+
+	<h3 class="ui dividing header">Actions</h3>
+
+	<div class="ui grid">
+
+	  <div class="four wide column">
+	    <div class="ui segment">
+	      <div class="ui secondary pointing menu" id="cell-props-menu">
+		<a class="active item" data-tab="box-props">Box Properties</a>
+		<a class="item" data-tab="edge-props">Edge Properties</a>
+	      </div>
+	      <div class="ui active tab" data-tab="box-props">
+		<div class="ui segment">
+		  <form class="ui form">
+		    <div class="field">
+		      <label>Label</label>
+		      <input type="text" id="label-input" placeholder="Label">
+		    </div>
+		    <div class="field">
+		      <label>Colors</label>
+		      <div class="ui buttons">
+			<button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
+			<button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
+		      </div>
+		    </div>
+		  </form>
+		</div>
+	      </div>
+	      <div class="ui tab" data-tab="edge-props">
+		<div class="ui center aligned segment" id="edge-prop-tab">
+		</div>
+	      </div>
+	    </div>
 	  </div>
 
 	  <div class="twelve wide column">
-	    
-	    <h3 class="ui dividing header">Sketchpad</h3>
-
-	    <div class="ui top attached menu">
-	      <a class="item">Shape<i class="dropdown icon"></i></a>
+	    <div class="ui top attached segment">
+	      <div id="face-pane" style="min-height: 160px"></div>
 	    </div>
-
-	    <div class="ui middle attached center aligned nofocus segment" tabIndex="0" id="sketch-tabs">
+	    <div class="ui right aligned bottom attached segment">
+	      <button type="button" id="save-btn" class="ui right labeled blue icon button">Save<i class="save icon"></i></button>
+	      <button type="button" id="code-btn" class="ui right labeled blue icon button">Code<i class="file text icon"></i></button>
+	      <button type="button" id="snapshot-btn" class="ui right labeled blue icon button">Snapshot<i class="camera icon"></i></button>
 	    </div>
-
-	    <div class="ui bottom attached segment">
-	      <div class="ui grid">
-		<div class="fourteen wide column">
-		  <div class="ui pagination menu" id="tab-page-menu"></div>
-		</div>
-		<div class="two wide right aligned column">
-		  <button class="ui icon button" id="new-tab-btn"><i class="add icon"></i></button>
-		</div>
-	      </div>
-	    </div>
-
-	    <h3 class="ui dividing header">Actions</h3>
-
-	    <div class="ui grid">
-
-	      <div class="four wide column">
-		<div class="ui segment">
-		  <div class="ui secondary pointing menu" id="cell-props-menu">
-		    <a class="active item" data-tab="box-props">Box Properties</a>
-		    <a class="item" data-tab="edge-props">Edge Properties</a>
-		  </div>
-		  <div class="ui active tab" data-tab="box-props">
-		    <div class="ui segment">
-		      <form class="ui form">
-			<div class="field">
-			  <label>Label</label>
-			  <input type="text" id="label-input" placeholder="Label">
-			</div>
-			<div class="field">
-			  <label>Colors</label>
-			  <div class="ui buttons">
-			    <button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
-			    <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
-			  </div>
-			</div>
-		      </form>
-		    </div>
-		  </div>
-		  <div class="ui tab" data-tab="edge-props">
-		    <div class="ui center aligned segment" id="edge-prop-tab">
-		    </div>
-		  </div>
-		</div>
-	      </div>
-
-	      <div class="twelve wide column">
-		<div class="ui top attached segment">
-		  <div id="face-pane" style="min-height: 160px"></div>
-		</div>
-		<div class="ui right aligned bottom attached segment">
-		  <button type="button" id="save-btn" class="ui right labeled blue icon button">Save<i class="save icon"></i></button>
-		  <button type="button" id="code-btn" class="ui right labeled blue icon button">Code<i class="file text icon"></i></button>
-		  <button type="button" id="snapshot-btn" class="ui right labeled blue icon button">Snapshot<i class="camera icon"></i></button>
-		</div>
-	      </div>
-
-	    </div>
-
-	  </div>
-
-	  <div class="two wide column">
-	    <!-- <div class="ui raised segment"> -->
-	    <!--   <p>Right side</p> -->
-	    <!-- </div> -->
 	  </div>
 
 	</div>
+
       </div>
+
+      <div class="two wide column">
+	<!-- <div class="ui raised segment"> -->
+	<!--   <p>Right side</p> -->
+	<!-- </div> -->
+      </div>
+
     </div>
 
     <div class="ui color-select popup segments" style="min-width: 150px; padding: 5px 5px 5px 5px;">
@@ -144,6 +141,36 @@
 	  Great!
 	  <i class="checkmark icon"></i>
 	</div>      
+      </div>
+    </div>
+
+    <div class="ui modal small" id="save-modal">
+      <div class="header">Save</div>
+      <div class="content">
+	<form class="ui form">
+	  <div class="field">
+	    <label>Name</label>
+	    <input type="text" id="sketch-name-input"></input>
+	  </div>
+	  <div class="field">
+	    <label>Path</label>
+	    <input type="text" id="sketch-path-input"></input>
+	  </div>
+	  <div class="field">
+	    <label>Description</label>
+	    <input type="text" id="sketch-desc-input"></input>
+	  </div>
+	</form>
+      </div>
+      <div class="actions">
+	<div class="ui positive right labeled icon button">
+	  Save It!
+	  <i class="checkmark icon"></i>
+	</div>   
+	<div class="ui negative right labeled icon button">
+	  Nevermind
+	  <i class="checkmark icon"></i>
+	</div>
       </div>
     </div>
 

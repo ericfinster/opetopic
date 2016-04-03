@@ -7,18 +7,11 @@
 
 package models.sketchpad
 
-import opetopic._
-import opetopic.ui._
-import markers._
-import SimpleMarker._
+case class Sketch(
+  val name: String,
+  val description: String,
+  val path: String,
+  val data: String
+)
 
-class Sketch(
-  val fc: FiniteComplex[OptMarker]
-){
 
-  type Dim = fc.N
-
-  def complex: Complex[OptMarker, Dim] = 
-    fc.value
-
-}
