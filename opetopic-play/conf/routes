@@ -11,9 +11,12 @@ GET         /authenticate/:provider          controllers.SocialAuthController.au
 POST        /authenticate/credentials        controllers.CredentialsAuthController.authenticate
 POST        /signUp                          controllers.SignUpController.signUp
 
-# Applications
-GET         /sketchpad                       controllers.ApplicationController.sketchpad
+# Prover
 GET         /prover                          controllers.ApplicationController.prover
+
+# Sketchpad 
+GET         /sketchpad                       controllers.ApplicationController.sketchpad
+POST        /saveSketch                      controllers.SketchController.saveSketch
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                    controllers.Assets.at(path="/public", file)

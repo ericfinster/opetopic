@@ -14,6 +14,8 @@ import org.scalajs.dom._
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
 
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
+
 import opetopic._
 import opetopic.ui._
 import opetopic.js._
@@ -71,7 +73,7 @@ object Sketchpad extends JSApp {
 
     jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
     jQuery("#code-btn").on("click", () => { showScalaCode })
-    jQuery("#json-btn").on("click", () => { showJsonCode })
+    jQuery("#save-btn").on("click", () => { saveSketch })
 
     addEditorTab
 
@@ -353,20 +355,26 @@ object Sketchpad extends JSApp {
       // Sketchpad.editor.refresh()
     }
 
-  def showJsonCode: Unit = 
+  def saveSketch: Unit = 
     for {
       tab <- activeTab
       bs <- tab.activeBox
       lc <- bs.value.labelComplex
     } {
 
+      import org.scalajs.dom
       import upickle.default._
       import SimpleMarker._
 
-      val test = Complex.toJson(lc)
-
-      jQuery("#code-text").empty().text(test)
-      jQuery(".ui.modal.codeexport").modal("show")
+      dom.ext.Ajax.post(
+        url = "/saveSketch",
+        data = Complex.toJson(lc),
+        headers = Map(
+          ("X-Requested-With" -> "*"), 
+          ("CSRF-Token" -> "nocheck")
+        ),
+        withCredentials = true
+      ).map(_.responseText).foreach(println)
 
     }
 
