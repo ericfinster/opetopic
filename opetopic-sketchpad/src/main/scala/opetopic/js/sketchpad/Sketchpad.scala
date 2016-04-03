@@ -20,9 +20,9 @@ import opetopic.js._
 import syntax.tree._
 import syntax.complex._
 import syntax.suite._
+import markers._
 import JsDomFramework._
-
-import opetopic.js.JQuerySemanticUI._
+import JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
 
@@ -125,13 +125,13 @@ object Sketchpad extends JSApp {
       def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
         case (Z, box) => 
           box.optLabel match {
-            case None => box.optLabel = Some(ObjectMarker(labelVal, DefaultColorSpec))
-            case Some(ObjectMarker(l, s)) => box.optLabel = Some(ObjectMarker(labelVal, s))
+            case None => box.optLabel = Some(SimpleObjectMarker(labelVal, DefaultColorSpec))
+            case Some(SimpleObjectMarker(l, s)) => box.optLabel = Some(SimpleObjectMarker(labelVal, s))
           }
         case (S(p: P), box) => 
           box.optLabel match {
-            case None => box.optLabel = Some(CellMarker(labelVal, DefaultColorSpec))
-            case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(labelVal, s, r, e))
+            case None => box.optLabel = Some(SimpleCellMarker(labelVal, DefaultColorSpec))
+            case Some(SimpleCellMarker(l, s, r, e)) => box.optLabel = Some(SimpleCellMarker(labelVal, s, r, e))
           }
       }
 
@@ -155,13 +155,13 @@ object Sketchpad extends JSApp {
       def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
         case (Z, box) =>
           box.optLabel match {
-            case None => box.optLabel = Some(ObjectMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-            case Some(ObjectMarker(l, s)) => box.optLabel = Some(ObjectMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
+            case None => box.optLabel = Some(SimpleObjectMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+            case Some(SimpleObjectMarker(l, s)) => box.optLabel = Some(SimpleObjectMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
           }
         case (S(p: P), box) => 
           box.optLabel match {
-            case None => box.optLabel = Some(CellMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-            case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(l, s.copy(fill = f, fillHovered = fh, fillSelected = fs), r, e))
+            case None => box.optLabel = Some(SimpleCellMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+            case Some(SimpleCellMarker(l, s, r, e)) => box.optLabel = Some(SimpleCellMarker(l, s.copy(fill = f, fillHovered = fh, fillSelected = fs), r, e))
           }
       }
 
@@ -185,13 +185,13 @@ object Sketchpad extends JSApp {
       def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
         case (Z, box) =>
           box.optLabel match {
-            case None => box.optLabel = Some(ObjectMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-            case Some(ObjectMarker(l, s)) => box.optLabel = Some(ObjectMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case None => box.optLabel = Some(SimpleObjectMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case Some(SimpleObjectMarker(l, s)) => box.optLabel = Some(SimpleObjectMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
           }
         case (S(p: P), box) => 
           box.optLabel match {
-            case None => box.optLabel = Some(CellMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-            case Some(CellMarker(l, s, r, e)) => box.optLabel = Some(CellMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), r, e))
+            case None => box.optLabel = Some(SimpleCellMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case Some(SimpleCellMarker(l, s, r, e)) => box.optLabel = Some(SimpleCellMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), r, e))
           }
       }
 
@@ -267,11 +267,11 @@ object Sketchpad extends JSApp {
 
             panel.onBoxClicked = { (b: SimpleActiveCellBox[editor.OptA[P], P]) => {
 
-              val curMk : CellMarker[P] = 
+              val curMk : SimpleCellMarker[P] = 
                 box.optLabel match {
-                  case None => CellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
-                  case Some(CellMarker(l, s, r, None)) => CellMarker(l, s, r, Some(defaultLeafDecs))
-                  case Some(mk @ CellMarker(l, s, r, Some(_))) => mk
+                  case None => SimpleCellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
+                  case Some(SimpleCellMarker(l, s, r, None)) => SimpleCellMarker(l, s, r, Some(defaultLeafDecs))
+                  case Some(mk @ SimpleCellMarker(l, s, r, Some(_))) => mk
                 }
 
               if (b.isExternal) {
@@ -360,15 +360,10 @@ object Sketchpad extends JSApp {
       lc <- bs.value.labelComplex
     } {
 
-      // import opetopic.Pickler._
       import upickle.default._
+      import SimpleMarker._
 
-      implicit object ConstIntWriter extends Pickler.IndexedWriter[ConstInt] {
-        def apply[N <: Nat](n: N) : Writer[ConstInt[N]] = 
-          implicitly[Writer[Int]]   
-      }
-
-      val test = Complex.toJson(opetopic.Examples.fredComplex)
+      val test = Complex.toJson(lc)
 
       jQuery("#code-text").empty().text(test)
       jQuery(".ui.modal.codeexport").modal("show")

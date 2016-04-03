@@ -14,6 +14,7 @@ import opetopic.ui._
 import opetopic.js._
 import syntax.complex._
 import syntax.cardinal._
+import markers._
 import JsDomFramework._
 import JQuerySemanticUI._
 
@@ -31,9 +32,10 @@ class EditorTab {
     )
 
 
-  import Marker.ActiveInstance._
+  implicit val vf : VisualizableFamily[SimpleMarker] = 
+    SimpleMarker.frameworkFamily(JsDomFramework)
 
-  val editor : CardinalEditor[Marker] = CardinalEditor[Marker]
+  val editor : CardinalEditor[SimpleMarker] = CardinalEditor[SimpleMarker]
   editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.displayCell }
   editor.onDeselectAll = () => { activeBox = None }
 
@@ -74,5 +76,10 @@ class EditorTab {
           case Some(mk) => Iter("Some(\"" ++ mk.label ++ "\")")
         }
     }
+
+  import opetopic.Pickler._
+
+  implicit val writer : IndexedWriter[editor.OptA] = 
+    toOptionWriter(SimpleMarker.simpleMarkerWriter)
 
 }

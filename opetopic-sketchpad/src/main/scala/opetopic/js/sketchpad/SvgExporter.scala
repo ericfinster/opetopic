@@ -11,9 +11,9 @@ import opetopic._
 import opetopic.ui._
 import opetopic.tt._
 import syntax.complex._
+import markers._
 
-import Marker._
-import StaticInstance._
+import SimpleMarker._
 import ScalatagsTextFramework._
 
 class SvgExporter[N <: Nat](cmplx: Complex[OptMarker, N]) {
@@ -40,6 +40,9 @@ class SvgExporter[N <: Nat](cmplx: Complex[OptMarker, N]) {
     )
 
   implicit val spacerBounds = Bounds(0, 0, 600, 600)
+
+  implicit val vf : VisualizableFamily[SimpleMarker] = 
+    SimpleMarker.frameworkFamily(ScalatagsTextFramework)
 
   val staticGallery = SimpleStaticGallery(cmplx)
 

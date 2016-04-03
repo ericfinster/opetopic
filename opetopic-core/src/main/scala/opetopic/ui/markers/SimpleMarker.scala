@@ -87,6 +87,12 @@ object SimpleMarker {
     case (S(p), lbl, spec) => SimpleCellMarker(lbl, spec)
   }
 
+  def frameworkFamily(frmwk: UIFramework) : frmwk.VisualizableFamily[SimpleMarker] = 
+    new frmwk.VisualizableFamily[SimpleMarker] {
+      def visualize[N <: Nat](n: N)(m: SimpleMarker[N]) = 
+        m.visualize(frmwk)
+    }
+
   //============================================================================================
   // PICKLING
   //

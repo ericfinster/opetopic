@@ -122,6 +122,24 @@ object Pickler {
       def apply[N <: Nat](n: N) = nestingWriter[A[N], N](awrtr(n))
     }
 
+  implicit def toOptionReader[A[_ <: Nat]](implicit r: IndexedReader[A]) 
+      : IndexedReader[Lambda[`N <: Nat` => Option[A[N]]]] =
+    new IndexedReader[Lambda[`N <: Nat` => Option[A[N]]]] {
+      def apply[N <: Nat](n: N) = {
+        implicit val rn : Reader[A[N]] = r(n)
+        implicitly[Reader[Option[A[N]]]]
+      }
+    }
+
+  implicit def toOptionWriter[A[_ <: Nat]](implicit w: IndexedWriter[A]) 
+      : IndexedWriter[Lambda[`N <: Nat` => Option[A[N]]]] =
+    new IndexedWriter[Lambda[`N <: Nat` => Option[A[N]]]] {
+      def apply[N <: Nat](n: N) = {
+        implicit val wn : Writer[A[N]] = w(n)
+        implicitly[Writer[Option[A[N]]]]
+      }
+    }
+
   //============================================================================================
   // SUITE PICKLING
   //
