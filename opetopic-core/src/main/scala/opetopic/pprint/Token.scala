@@ -1,5 +1,5 @@
 /**
-  * Token.scala - Routines for Tokens
+  * Token.scala - Pretty Printing Tokens
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -8,70 +8,75 @@
 package opetopic.pprint
 
 sealed trait Token
-case class Literal(s: String) extends Token
-case class TokenString(ts: List[Token]) extends Token
+case class Phrase(seq: Token*) extends Token
+case class Literal(str: String) extends Token 
+case class Delim(ld: String, t: Token, rd: String) extends Token
 
 object Token {
 
-  def simpleprint[A](a: A)(implicit t: Tokenizer[A]) : String = 
-    t.tokenize(a).map(printToken(_)).mkString(" ")
-
-  def insertLeftParen(tl: List[Token]) : List[Token] = 
-    tl match {
-      case Nil => Nil
-      case Literal(s) :: ts => Literal("(" ++ s) :: ts
-      case TokenString(s) :: ts => TokenString(insertLeftParen(s)) :: ts
-    }
-
-  def insertRightParen(tl: List[Token]) : List[Token] = 
-    tl match {
-      case Nil => Nil
-      case Literal(s) :: Nil => Literal(s ++ ")") :: Nil
-      case TokenString(s) :: Nil => TokenString(insertRightParen(s)) :: Nil
-      case t :: ts => t :: insertRightParen(ts)
-    }
-
-  def parenthesize(tl: List[Token]) : List[Token] = 
-    insertLeftParen(insertRightParen(tl))
-
-  def printToken(t: Token) : String = 
+  def printToken(t : Token) : String = 
     t match {
-      case Literal(s) => s
-      case TokenString(ts) => printTokens(ts)
+      case Literal(str) => str
+      case Phrase(seq @ _*) => seq.map(printToken(_)).mkString(" ")
+      case Delim(ld, t, rd) => ld + printToken(t) + rd
     }
 
-  def printTokens(tl: List[Token]) : String = 
-    tl match {
-      case Nil => ""
-      case t :: Nil => printToken(t)
-      case _ => tl.map(printToken(_)).mkString("(", " ", ")")
-    }
+  // def leftPrefix(t: Token, p: String) : Token = 
+  //   t match {
+  //     case Literal(str) => Literal(p + str)
+  //     case Phrase(ts @ _*) => 
+  //       if (ts.length > 0)
+  //         Phrase((leftPrefix(ts.head, p) +: ts.tail) : _*)
+  //       else t
+  //   }
 
-  def printLines(lines: List[(Int, String)]) : String = 
-    (lines map {
-      case (i, s) => (" " * i) ++ s
-    }).mkString("\n")
+  // def rightPostfix(t: Token, p: String) : Token = 
+  //   t match {
+  //     case Literal(str) => Literal(str + p)
+  //     case Phrase(ts @ _*) => 
+  //       if (ts.length > 0)
+  //         Phrase((ts.tail :+ rightPostfix(ts.head, p)) : _*)
+  //       else t
+  //   }
 
-  def pprint[A](a: A, w: Int = 120, o: Int = 0)(implicit t: Tokenizer[A]) : String = 
-    printLines(stringify(w, o, t.tokenize(a)))
+  // def parenthesize(t: Token) : Token = 
+  //   rightPostfix(leftPrefix(t, "("), ")")
 
-  def stringify(w: Int, k: Int, tl: List[Token]) : List[(Int, String)] = 
-    tl match {
-      case Nil => List()
-      case Literal(s) :: ts => {
-        val remChars = w - k
-        val thisString = printTokens(ts)
+  // def printLines(w: Int, k: Int, t: Token) : List[(Int, String)] = 
+  //   t match {
+  //     case Literal(str) => List((k, str))
+  //     case Phrase(l : Literal, ts @ _*) => {
+  //       val remChars = w - k
+  //       val tsStr = (ts map printToken).mkString(" ")
 
-        if (s.length + 1 + thisString.length > remChars) {
-          (k, s) :: stringify(w, k + 2, ts)
-        } else {
-          List((k, s ++ " " ++ thisString))
-        }
-      }
-      case TokenString(s) :: ts => {
-        val ps = if (s.length > 1) parenthesize(s) else s
-        stringify(w, k, ps) ++ stringify(w, k, ts)
-      }
-    }
+  //       List()
+
+  //     }
+  //     case Phrase(p: Phrase, ts @ _*) => {
+  //       val pp = parenthesize(p)
+
+  //       List()
+  //     }
+  //   }
+
+
+  // def stringify(w: Int, k: Int, tl: List[Token]) : List[(Int, String)] = 
+  //   tl match {
+  //     case Nil => List()
+  //     case Literal(s) :: ts => {
+  //       val remChars = w - k
+  //       val thisString = printTokens(ts)
+
+  //       if (s.length + 1 + thisString.length > remChars) {
+  //         (k, s) :: stringify(w, k + 2, ts)
+  //       } else {
+  //         List((k, s ++ " " ++ thisString))
+  //       }
+  //     }
+  //     case TokenString(s) :: ts => {
+  //       val ps = if (s.length > 1) parenthesize(s) else s
+  //       stringify(w, k, ps) ++ stringify(w, k, ts)
+  //     }
+  //   }
 
 }

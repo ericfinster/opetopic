@@ -1,5 +1,5 @@
 /**
-  * Tokenizer.scala - A Trait for types which can be tokenized
+  * Tokenizer.scala - Tokenizer Type Class
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -8,36 +8,52 @@
 package opetopic.pprint
 
 import opetopic._
-import syntax.tree._
-import syntax.nesting._
 
 trait Tokenizer[A] {
-  def tokenize(a: A) : List[Token]
+  def tokenize(a: A) : Token
 }
 
 object Tokenizer {
 
+  //============================================================================================
+  // INSTANCES
+  //
+
   implicit object StringTokenizer extends Tokenizer[String] {
-    def tokenize(s: String) = List(Literal(s))
+    def tokenize(s: String) = Literal(s)
   }
 
   implicit object IntTokenizer extends Tokenizer[Int] {
-    def tokenize(i: Int) = List(Literal(i.toString))
+    def tokenize(i: Int) = Literal(i.toString)
   }
 
-  implicit def optTokenizer[A](implicit t: Tokenizer[A]) : Tokenizer[Option[A]] = 
-    new Tokenizer[Option[A]] {
-      def tokenize(o: Option[A]) =
-        o match {
-          case None => List(Literal("empty"))
-          case Some(a) => t.tokenize(a)
-        }
-    }
+  //============================================================================================
+  // TREES INSTANCE
+  //
+
+  @natElim
+  def tokenizeTree[A, N <: Nat](n: N)(tr: Tree[A, N])(implicit t: Tokenizer[A]) : Token = {
+    case (Z, Pt(a)) => Delim("(", Phrase(Literal("pt"), a.tokenize), ")")
+    case (S(p: P), Leaf(_)) => Literal("leaf")
+    case (S(p: P), Node(a, sh)) => Delim("(", Phrase(Literal("node"), a.tokenize, tokenizeTree(p)(sh)), ")")
+  }
+
 
   implicit def treeTokenizer[A, N <: Nat](implicit t: Tokenizer[A]) : Tokenizer[Tree[A, N]] = 
     new Tokenizer[Tree[A, N]] {
       def tokenize(tr: Tree[A, N]) = 
         tokenizeTree(tr.dim)(tr)
+    }
+
+  //============================================================================================
+  // NESTING INSTANCE
+  //
+
+  def tokenizeNesting[A, N <: Nat](nst: Nesting[A, N])(implicit t: Tokenizer[A]) : Token = 
+    nst match {
+      case Obj(a) => Delim("(", Phrase(Literal("obj"), a.tokenize), ")")
+      case Dot(a, _) => Delim("(", Phrase(Literal("dot"), a.tokenize), ")")
+      case Box(a, cn) => Delim("(", Phrase(Literal("box"), a.tokenize, cn.tokenize), ")")
     }
 
   implicit def nestingTokenizer[A, N <: Nat](implicit t: Tokenizer[A]) : Tokenizer[Nesting[A, N]] = 
@@ -46,47 +62,23 @@ object Tokenizer {
         tokenizeNesting(nst)
     }
 
+  //============================================================================================
+  // SUITE TOKENIZER
+  //
+
   @natElim
-  def tokenizeTree[A, N <: Nat](n: N)(tr: Tree[A, N])(implicit t: Tokenizer[A]) : List[Token] = {
-    case (Z, Pt(a)) => 
-      List(Literal("pt"), TokenString(t.tokenize(a)))
-    case (S(p: P), Leaf(_)) => 
-      List(Literal("leaf"))
-    case (S(p: P), Node(a, sh)) => 
-      List(Literal("node"), TokenString(t.tokenize(a)), TokenString(tokenizeTree(p)(sh)))
-
+  def tokenizeSuite[A[_ <: Nat], N <: Nat](n: N)(s: Suite[A, N], dl: String, dr: String)(implicit t: IndexedTokenizer[A]) : Token = {
+    case (Z, SNil(), dl, dr) => Phrase()
+    case (S(p), tl >> hd, dl, dr) => Phrase(tokenizeSuite(p)(tl))
   }
 
-  def tokenizeNesting[A, N <: Nat](nst: Nesting[A, N])(implicit t: Tokenizer[A]) : List[Token] = 
-    nst match {
-      case Obj(a) => 
-        List(Literal("obj"), TokenString(t.tokenize(a)))
-      case Dot(a, _) =>
-        List(Literal("dot"), TokenString(t.tokenize(a)))
-      case Box(a, cn) =>
-        List(Literal("box"), TokenString(tokenizeTree(cn.dim)(cn)))
-    }
+  //============================================================================================
+  // OPS
+  //
 
-
-}
-
-trait IndexedTokenizer[A[_ <: Nat]] {
-  def apply[N <: Nat](n: N) : Tokenizer[A[N]]
-}
-
-object IndexedTokenizer {
-
-  implicit object ConstIntTokenizer extends IndexedTokenizer[ConstInt] {
-    def apply[N <: Nat](n: N) = Tokenizer.IntTokenizer
+  implicit class TokenizerOps[A](a: A)(implicit t: Tokenizer[A]) {
+    def tokenize : Token = t.tokenize(a)
+    def pprint : String = Token.printToken(tokenize)
   }
 
-  implicit object ConstStringTokenizer extends IndexedTokenizer[ConstString] {
-    def apply[N <: Nat](n: N) = Tokenizer.StringTokenizer
-  }
-
-  implicit def optIdxedTokenizer[A[_ <: Nat]](implicit t: IndexedTokenizer[A]) 
-      : IndexedTokenizer[Lambda[`N <: Nat` => Option[A[N]]]] =
-    new IndexedTokenizer[Lambda[`N <: Nat` => Option[A[N]]]] {
-      def apply[N <: Nat](n: N) = Tokenizer.optTokenizer(t(n))
-    }
 }
