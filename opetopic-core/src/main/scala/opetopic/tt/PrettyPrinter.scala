@@ -8,7 +8,9 @@
 package opetopic.tt
 
 import opetopic._
+import syntax.suite._
 import opetopic.pprint._
+import IndexedTokenizer._
 import Tokenizer._
 import Token._
 
@@ -24,7 +26,12 @@ object PrettyPrinter {
   }
 
   implicit object AddressTokenizer extends Tokenizer[Addr] {
-    def tokenize(a: Addr) : Token = ???
+    def tokenize(a: Addr) : Token = 
+      a match {
+        case AUnit => Literal("#")
+        case ANil => Literal("nil")
+        case ACons(a, b) => Phrase(a.tokenize, Literal("::"), b.tokenize)
+      }
   }
 
   implicit object DeclarationTokenizer extends Tokenizer[Decl] {
@@ -37,6 +44,15 @@ object PrettyPrinter {
 
   implicit object ExprTokenizer extends Tokenizer[Expr] {
 
+    def tokenizeFrame[N <: Nat](c: ExprComplex[N]) : Token = {
+      val tl = Suite.tail[NstExpr, N](c)
+      val hd = Suite.head[NstExpr, N](c)
+      Phrase(tokenizeSuite(tl.length)(tl, "[ ", " ]>>"), Delim("[ ", hd.tokenize, " ]"))
+    }
+
+    def tokenizeNchFrame[N <: Nat](s: Suite[NstExpr, N]) : Token = 
+      tokenizeSuite(s.length)(s, "[ ", " ]>>")
+
     def tokenize(e: Expr) : Token =
       e match {
         case EType => Literal("Type")
@@ -44,87 +60,52 @@ object PrettyPrinter {
         case EUnit => Literal("Unit")
         case ETt => Literal("tt")
         case EVar(id) => Literal(id)
-        case ELam(p, e) => Phrase(Literal("\\"), p.tokenize, Literal("."), e.tokenize)
+        case ELam(p, e) => Phrase(Delim("\\", p.tokenize, "."), e.tokenize)
         case EPi(p, e, t) => Phrase(Delim("(", Phrase(p.tokenize, Literal(":"), e.tokenize), ")"), Literal("->"), t.tokenize)
         case ESig(p, e, t) => Phrase(Delim("(", Phrase(p.tokenize, Literal(":"), e.tokenize), ")"), Literal("*"), t.tokenize)
         case EPair(e, f) => Phrase(e.tokenize, Literal(","), f.tokenize)
         case EFst(e) => Phrase(e.tokenize, Literal(".1"))
         case ESnd(e) => Phrase(e.tokenize, Literal(".2"))
-        case EApp(e, f) => Phrase(e.tokenize, f.tokenize)
+        case EApp(e, f) => Phrase(e.tokenize, f.parenthesize)
         case EDec(d, e) => Phrase(d.tokenize, Literal(";"), e.tokenize)
         case ERec(_) => Literal("record")
         case EProj(_, _) => Literal("projection")
 
         case ECat => Literal("Cat")
-        case EOb(e) => ??? // "Obj " + prettyPrint(e)
-        case EHom(e, c) => ??? // "Hom " + prettyPrint(e) + " {...}"
-        case ECell(e, c) => ??? // "Cell " + prettyPrint(e) + " {...}"
+        case EOb(e) => Phrase(Literal("Obj"), e.parenthesize)
+        case EHom(e, c) => Phrase(Literal("Hom"), e.parenthesize, tokenizeFrame(c))
+        case ECell(e, c) => Phrase(Literal("Cell"), e.parenthesize, tokenizeFrame(c))
 
+        case EIsLeftExt(e) => Phrase(Literal("isLeftExt"), e.parenthesize)
+        case EIsRightExt(e, a) => Phrase(Literal("isRightExt"), e.parenthesize, a.parenthesize)
 
-        case _ => Literal("unknown")
+        case EComp(e, fp, nch) => Phrase(Literal("comp"), e.parenthesize, tokenizeNchFrame(fp), Delim("{", nch.tokenize, "}"))
+        case EFill(e, fp, nch) => Phrase(Literal("fill"), e.parenthesize, tokenizeNchFrame(fp), Delim("{", nch.tokenize, "}"))
+        case ELiftLeft(e, ev, c, t) => Phrase(Literal("liftLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
+        case EFillLeft(e, ev, c, t) => Phrase(Literal("fillLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
+        case ELiftRight(e, ev, c, t) => Phrase(Literal("liftRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
+        case EFillRight(e, ev, c, t) => Phrase(Literal("fillRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
+
+        case EFillIsLeft(e, fp, nch) => Phrase(Literal("fillIsLeft"), e.parenthesize, tokenizeNchFrame(fp), Delim("{", nch.tokenize, "}"))
+        case EShellIsLeft(e, ev, src, tgt) => Phrase(Literal("shellIsLeft"), e.parenthesize, ev.parenthesize, src.parenthesize, tgt.parenthesize)
+        case EFillLeftIsLeft(e, ev, c, t) => Phrase(Literal("fillLeftIsLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
+        case EFillRightIsLeft(e, ev, c, t) => Phrase(Literal("fillRightIsLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
+        case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
+          Phrase(Literal("fillLeftIsRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize, l.parenthesize, f.parenthesize, fev.parenthesize)
+        case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
+          Phrase(Literal("fillRightIsRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize, l.parenthesize, f.parenthesize, fev.parenthesize)
+
+        case EPt(e) => Phrase(Literal("pt"), e.parenthesize)
+        case ELf => Literal("lf")
+        case ENd(e, t) => Phrase(Literal("nd"), e.parenthesize, t.parenthesize)
+
       }
 
   }
 
-  //============================================================================================
-  // OLD TEXT BASED PRETTY PRINTER
-  //
-
-  def prettyPrint(p: Patt) : String = 
-    p match {
-      case Punit => "_"
-      case PVar(id) => id
-      case PPair(p, q) => prettyPrint(p) + ", " + prettyPrint(q)
-    }
-
-  def prettyPrint(d: Decl) : String = 
-    d match {
-      case Def(p, e, f) => "let " + prettyPrint(p) + " : " + prettyPrint(e) + " = " + prettyPrint(f)
-      case Drec(p, e, f) => "letrec " + prettyPrint(p) + " : " + prettyPrint(e) + " = " + prettyPrint(f)
-    }
-
-  def prettyPrint(e: Expr) : String =
-    e match {
-      case EType => "Type"
-      case EEmpty => "empty"
-      case EUnit => "Unit"
-      case ETt => "tt"
-      case EVar(id) => id
-      case ELam(p, e) => "\\ " + prettyPrint(p) + " . " + prettyPrint(e)
-      case EPi(p, e, t) => "(" + prettyPrint(p) + " : " + prettyPrint(e) + ") -> " + prettyPrint(t)
-      case ESig(p, e, t) => "Sig " + prettyPrint(p) + " : " + prettyPrint(e) + " . " + prettyPrint(t)
-      case EPair(e, f) => "(" + prettyPrint(e) + " , " + prettyPrint(f) + ")"
-      case EFst(e) => prettyPrint(e) + ".1"
-      case ESnd(e) => prettyPrint(e) + ".2"
-      case EApp(e, f) => prettyPrint(e) + " " + prettyPrint(f)
-      case EDec(d, e) => prettyPrint(d) + " ; " + prettyPrint(e)
-      case ERec(_) => ""
-      case EProj(_, _) => ""
-
-      case ECat => "Cat"
-      case EOb(e) => "Obj " + prettyPrint(e)
-      case EHom(e, c) => "Hom " + prettyPrint(e) + " {...}"
-      case ECell(e, c) => "Cell " + prettyPrint(e) + " {...}"
-
-      case EIsLeftExt(e) => "isLeftExt " + prettyPrint(e)
-      case EIsRightExt(e, a) => "isRightExt " + prettyPrint(e)
-
-      case EComp(e, fp, nch) => "comp " + prettyPrint(e) + " {...}"
-      case EFill(e, fp, nch) => "fill " + prettyPrint(e) + " {...}"
-      case ELiftLeft(e, ev, c, t) => "liftLeft " + prettyPrint(e) + " " + prettyPrint(ev) + " " + prettyPrint(c) + " " + prettyPrint(t)
-      case EFillLeft(e, ev, c, t) => "fillLeft " + prettyPrint(e) + " " + prettyPrint(ev) + " " + prettyPrint(c) + " " + prettyPrint(t)
-      case ELiftRight(e, ev, c, t) => "liftRight " + prettyPrint(e) + " " + prettyPrint(ev) + " " + prettyPrint(c) + " " + prettyPrint(t)
-      case EFillRight(e, ev, c, t) => "fillRight " + prettyPrint(e) + " " + prettyPrint(ev) + " " + prettyPrint(c) + " " + prettyPrint(t)
-
-      case EFillIsLeft(e, fp, ch) => "fillIsLeft " + prettyPrint(e) + " {...}"
-      case EShellIsLeft(e, ev, src, tgt) => "shellIsLeft"
-      case EFillLeftIsLeft(e, ev, c, t) => "fillLeftIsLeft"
-      case EFillRightIsLeft(e, ev, c, t) => "fillRightIsLeft"
-      case EFillLeftIsRight(e, ev, c, t, l, f, fev) => "fillLeftIsRight"
-      case EFillRightIsRight(e, ev, c, t, l, f, fev) => "fillRightIsRight"
-
-      case tr : TreeExpr => "tree"
-
-    }
+  implicit val exprNstTokenizer : IndexedTokenizer[NstExpr] =
+    toNestingTokenizer(new IndexedTokenizer[ConstExpr] {
+      def apply[N <: Nat](n: N) = ExprTokenizer
+    })
 
 }

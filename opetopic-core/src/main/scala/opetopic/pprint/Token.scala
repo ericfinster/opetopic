@@ -7,7 +7,16 @@
 
 package opetopic.pprint
 
-sealed trait Token
+sealed trait Token {
+
+  def parenthesize : Token = 
+    this match {
+      case p: Phrase => Delim("(", p, ")")
+      case t => t
+    }
+
+}
+
 case class Phrase(seq: Token*) extends Token
 case class Literal(str: String) extends Token 
 case class Delim(ld: String, t: Token, rd: String) extends Token
@@ -21,44 +30,7 @@ object Token {
       case Delim(ld, t, rd) => ld + printToken(t) + rd
     }
 
-  // def leftPrefix(t: Token, p: String) : Token = 
-  //   t match {
-  //     case Literal(str) => Literal(p + str)
-  //     case Phrase(ts @ _*) => 
-  //       if (ts.length > 0)
-  //         Phrase((leftPrefix(ts.head, p) +: ts.tail) : _*)
-  //       else t
-  //   }
-
-  // def rightPostfix(t: Token, p: String) : Token = 
-  //   t match {
-  //     case Literal(str) => Literal(str + p)
-  //     case Phrase(ts @ _*) => 
-  //       if (ts.length > 0)
-  //         Phrase((ts.tail :+ rightPostfix(ts.head, p)) : _*)
-  //       else t
-  //   }
-
-  // def parenthesize(t: Token) : Token = 
-  //   rightPostfix(leftPrefix(t, "("), ")")
-
-  // def printLines(w: Int, k: Int, t: Token) : List[(Int, String)] = 
-  //   t match {
-  //     case Literal(str) => List((k, str))
-  //     case Phrase(l : Literal, ts @ _*) => {
-  //       val remChars = w - k
-  //       val tsStr = (ts map printToken).mkString(" ")
-
-  //       List()
-
-  //     }
-  //     case Phrase(p: Phrase, ts @ _*) => {
-  //       val pp = parenthesize(p)
-
-  //       List()
-  //     }
-  //   }
-
+  // Old stuff for doing line truncation ...
 
   // def stringify(w: Int, k: Int, tl: List[Token]) : List[(Int, String)] = 
   //   tl match {
