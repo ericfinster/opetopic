@@ -15,8 +15,9 @@ POST        /signUp                          controllers.SignUpController.signUp
 GET         /prover                          controllers.ApplicationController.prover
 
 # Sketchpad 
-GET         /sketchpad                       controllers.ApplicationController.sketchpad
+GET         /sketchpad                       controllers.SketchController.sketchpad
 POST        /saveSketch                      controllers.SketchController.saveSketch
+POST        /getSketch                       controllers.SketchController.getSketch
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                    controllers.Assets.at(path="/public", file)

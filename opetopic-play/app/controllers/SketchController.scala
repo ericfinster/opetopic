@@ -9,6 +9,7 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
+import scala.concurrent.Future
 
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
@@ -18,27 +19,53 @@ import play.api.libs.concurrent.Execution.Implicits._
 import models.User
 import models.sketchpad.Sketch
 import models.services.UserService
-import models.services.SketchService
+import models.daos.SketchDAO
 
-import scala.concurrent.Future
+import upickle.default._
+
+import opetopic._
+import opetopic.net._
 
 class SketchController @Inject() (
   val messagesApi: MessagesApi,
   val env: Environment[User, CookieAuthenticator],
   userService: UserService,
-  sketchService: SketchService
+  sketchDAO: SketchDAO
 ) extends Silhouette[User, CookieAuthenticator] {
+
+  def sketchpad = SecuredAction.async { implicit request => 
+
+    sketchDAO.userSketches(request.identity).map { sketches =>
+      Ok(views.html.sketchpad(sketches))
+    }
+
+  }
+
+  def getSketch = SecuredAction.async { implicit request => 
+
+    request.body.asText.map { text =>
+
+      val req = read[LoadSketchRequest](text)
+
+      sketchDAO.getSketch(UUID.fromString(req.id)).map { 
+        case None => Ok("Not found")
+        case Some(sketch) => {
+          // Right, you should do better, no?
+          Ok(sketch.data)
+        }
+      }
+
+    } getOrElse Future.successful(BadRequest("Bad sketch request"))
+
+  }
+
 
   def saveSketch = SecuredAction.async { implicit request => 
 
     request.body.asText.map { text => 
 
-      import opetopic._
-      import opetopic.net._
       import opetopic.ui.markers._
       import SimpleMarker._
-
-      import upickle.default._
 
       val req = read[SaveSketchRequest](text)
 
@@ -49,11 +76,17 @@ class SketchController @Inject() (
 
       println("Read a complex: " ++ fc.value.toString)
 
-      val sketch = 
-        Sketch(req.name, req.path, req.description, req.data)
+      val sketch = Sketch(
+        UUID.randomUUID(),
+        request.identity.userID,
+        req.name,
+        req.path,
+        req.description,
+        req.data
+      )
 
       for {
-        _ <- sketchService.save(request.identity, sketch)
+        _ <- sketchDAO.save(request.identity, sketch)
       } yield Ok("Save complete")
 
     } getOrElse Future.successful(BadRequest("Bad save request"))

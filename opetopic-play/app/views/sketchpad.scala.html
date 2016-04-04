@@ -1,6 +1,7 @@
-@()
+@(sketches: Seq[models.sketchpad.Sketch])
 
 @import play.api.Play
+@import models.sketchpad.Sketch
 
 @main("SketchPad") {
 
@@ -16,24 +17,43 @@
 
       <div class="twelve wide column">
 	
-	<h3 class="ui dividing header">Sketchpad</h3>
+	<div class="ui grid">
 
-	<div class="ui top attached menu">
-	  <a class="item">Shape<i class="dropdown icon"></i></a>
-	</div>
+	  <div class="twelve wide column">
+	    <h3 class="ui dividing header">Editor</h3>
 
-	<div class="ui middle attached center aligned nofocus segment" tabIndex="0" id="sketch-tabs">
-	</div>
-
-	<div class="ui bottom attached segment">
-	  <div class="ui grid">
-	    <div class="fourteen wide column">
-	      <div class="ui pagination menu" id="tab-page-menu"></div>
+	    <div class="ui top attached menu">
+	      <a class="item">Shape<i class="dropdown icon"></i></a>
 	    </div>
-	    <div class="two wide right aligned column">
-	      <button class="ui icon button" id="new-tab-btn"><i class="add icon"></i></button>
+
+	    <div class="ui middle attached center aligned nofocus segment" tabIndex="0" id="sketch-tabs">
+	    </div>
+
+	    <div class="ui bottom attached segment">
+	      <div class="ui grid">
+		<div class="fourteen wide column">
+		  <div class="ui pagination menu" id="tab-page-menu"></div>
+		</div>
+		<div class="two wide right aligned column">
+		  <button class="ui icon button" id="new-tab-btn"><i class="add icon"></i></button>
+		</div>
+	      </div>
 	    </div>
 	  </div>
+
+	  <div class="four wide column">
+	    <h3 class="ui dividing header">Sketches</h3>
+	    <div class="ui segment">
+	      <div class="ui selection list" id="sketch-list">
+		@for(s <- sketches) {
+		  <div class="item" data-name="@s.name" data-id="@s.sketchId.toString">
+		    @s.name
+		  </div>
+		}
+	      </div>
+	    </div>
+	  </div>
+
 	</div>
 
 	<h3 class="ui dividing header">Actions</h3>

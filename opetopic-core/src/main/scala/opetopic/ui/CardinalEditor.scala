@@ -602,6 +602,13 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       new CardinalEditor[A](toFiniteCardinal[OptA, _0](Cardinal[OptA] >> Pt(Obj(None))))
     }
 
+    def apply[A[_ <: Nat], N <: Nat](
+      c: Complex[Lambda[`K <: Nat` => Option[A[K]]], N]
+    )(implicit config: GalleryConfig, v: VisualizableFamily[A]) : CardinalEditor[A] = {
+      type OptA[K <: Nat] = Option[A[K]]
+      new CardinalEditor[A](toFiniteCardinal[OptA, N](Cardinal.complexToCardinal[OptA, N](c.length.pred)(c)._1))
+    }
+
   }
 
 }

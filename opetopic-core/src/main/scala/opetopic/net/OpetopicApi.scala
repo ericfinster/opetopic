@@ -13,3 +13,7 @@ case class SaveSketchRequest(
   val description: String,
   val data: String
 )
+
+case class LoadSketchRequest(
+  val id: String
+)

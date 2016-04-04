@@ -7,7 +7,11 @@
 
 package models.sketchpad
 
+import java.util.UUID
+
 case class Sketch(
+  val sketchId: UUID,
+  val authorId: UUID,
   val name: String,
   val description: String,
   val path: String,

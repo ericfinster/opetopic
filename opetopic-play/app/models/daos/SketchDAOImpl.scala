@@ -23,8 +23,8 @@ class SketchDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProv
   def save(user: User, sketch: Sketch) : Future[Sketch] = {
 
     val dbSketch = DBSketch(
-      UUID.randomUUID(),
-      user.userID,
+      sketch.sketchId,
+      sketch.authorId,
       sketch.name,
       if (sketch.path != "") Some(sketch.path) else None,
       if (sketch.description != "") Some(sketch.description) else None,
@@ -36,6 +36,31 @@ class SketchDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     } yield ()).transactionally
 
     db.run(actions).map(_ => sketch)
+
+  }
+
+  def userSketches(user: User) : Future[Seq[Sketch]] = {
+
+    val action = 
+      slickSketches.filter(_.authorId === user.userID).result
+
+    db.run(action).map { dbSketches =>
+      for { s <- dbSketches } yield
+        Sketch(s.sketchId, s.authorId, s.name, s.description getOrElse "", s.path getOrElse "/", s.data)
+    }
+
+  }
+
+  def getSketch(sketchId: UUID) : Future[Option[Sketch]] = {
+
+    val action =
+      slickSketches.filter(_.sketchId === sketchId) 
+
+    db.run(action.result.headOption).map { dbSketchOpt =>
+      dbSketchOpt map { s =>
+        Sketch(s.sketchId, s.authorId, s.name, s.description getOrElse "", s.path getOrElse "/", s.data)
+      }
+    }
 
   }
 

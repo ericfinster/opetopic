@@ -10,6 +10,7 @@ package opetopic.js.sketchpad
 import scala.scalajs.{js => sjs}
 import sjs.Dynamic.{literal => lit}
 import scala.scalajs.js.JSApp
+import org.scalajs.dom
 import org.scalajs.dom._
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
@@ -25,6 +26,7 @@ import syntax.suite._
 import markers._
 import JsDomFramework._
 import JQuerySemanticUI._
+import SimpleMarker._
 
 object Sketchpad extends JSApp {
 
@@ -75,6 +77,15 @@ object Sketchpad extends JSApp {
     jQuery("#code-btn").on("click", () => { showScalaCode })
     jQuery("#save-btn").on("click", () => { saveSketch })
 
+    jQuery("#sketch-list").find(".item").each({ (d: dom.Element) => 
+      val idOpt = jQuery(d).attr("data-id").toOption
+
+      jQuery(d).on("click", () => {
+        for { id <- idOpt } { loadSketch(id) }
+      })
+
+    })
+
     addEditorTab
 
   }
@@ -85,9 +96,12 @@ object Sketchpad extends JSApp {
   var fillColor: String = "white"
   var strokeColor: String = "black"
 
-  def addEditorTab: Unit = {
+  def addEditorTab: Unit = 
+    addEditorTab(None)
 
-    val editorTab = new EditorTab
+  def addEditorTab(c: Option[FiniteComplex[OptMarker]]): Unit = {
+
+    val editorTab = new EditorTab(c)
 
     tabCount += 1
     val tc = tabCount.toString
@@ -353,6 +367,36 @@ object Sketchpad extends JSApp {
       // Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
       // jQuery(".ui.modal").modal("show")
       // Sketchpad.editor.refresh()
+
+    }
+
+  def loadSketch(id: String): Unit = 
+    for {
+      tab <- activeTab
+    } {
+
+      import upickle.default._
+      import opetopic.net.LoadSketchRequest
+
+      val req = LoadSketchRequest(id)
+
+      dom.ext.Ajax.post(
+        url = "/getSketch",
+        data = write(req),
+        headers = Map(
+          ("X-Requested-With" -> "*"),
+          ("CSRF-Token" -> "nocheck")
+        ),
+        withCredentials = true
+      ).map(_.responseText).foreach(json => {
+
+        val fc : FiniteComplex[OptMarker] =
+          Complex.fromJson[OptMarker](upickle.json.read(json))
+
+        addEditorTab(Some(fc))
+
+      })
+
     }
 
   def saveSketch: Unit = 
@@ -364,7 +408,6 @@ object Sketchpad extends JSApp {
 
       import org.scalajs.dom
       import upickle.default._
-      import SimpleMarker._
       import opetopic.net.SaveSketchRequest
 
       jQuery("#save-modal").modal(lit(
@@ -378,7 +421,6 @@ object Sketchpad extends JSApp {
               Complex.toJson(lc)
             )
 
-          // We disable the CSRF on this request.  Should this be allowed?
           dom.ext.Ajax.post(
             url = "/saveSketch",
             data = write(req),

@@ -17,8 +17,9 @@ import syntax.cardinal._
 import markers._
 import JsDomFramework._
 import JQuerySemanticUI._
+import SimpleMarker._
 
-class EditorTab {
+class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
 
   val baseConfig: GalleryConfig =
     GalleryConfig(
@@ -31,11 +32,15 @@ class EditorTab {
       spacerBounds = Bounds(0, 0, 600, 600)
     )
 
-
   implicit val vf : VisualizableFamily[SimpleMarker] = 
-    SimpleMarker.frameworkFamily(JsDomFramework)
+    frameworkFamily(JsDomFramework)
 
-  val editor : CardinalEditor[SimpleMarker] = CardinalEditor[SimpleMarker]
+  val editor : CardinalEditor[SimpleMarker] = 
+    cOpt match {
+      case None => CardinalEditor[SimpleMarker]
+      case Some(cSig) => CardinalEditor[SimpleMarker, cSig.N](cSig.value)
+    }
+
   editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.displayCell }
   editor.onDeselectAll = () => { activeBox = None }
 
