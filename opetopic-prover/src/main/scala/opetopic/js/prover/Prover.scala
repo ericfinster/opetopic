@@ -66,9 +66,11 @@ object Prover extends JSApp {
 
   def addDefinition(id: String, expr: Expr, exprTy: Expr): EditorM[Unit] = {
 
+    import opetopic.pprint.Tokenizer._
     import PrettyPrinter._
 
-    val decl = Def(PVar(id), exprTy, expr)
+    val decl : Decl = 
+      Def(PVar(id), exprTy, expr)
 
     for {
       g <- simpleCheck(
@@ -76,7 +78,7 @@ object Prover extends JSApp {
       )
     } yield {
 
-      Prover.showInfoMessage("Checked Declaration: " ++ decl.toString)
+      Prover.showInfoMessage("Checked Declaration: " ++ decl.pprint)
 
       val title =
         div(cls := "title")(
@@ -86,9 +88,7 @@ object Prover extends JSApp {
 
       val content =
         div(cls := "content")(
-          p(cls := "transition hidden")(
-            id ++ " : " ++ prettyPrint(exprTy) ++ " = " ++ prettyPrint(expr)
-          )
+          p(cls := "transition hidden")(decl.pprint)
         ).render
 
       jQuery("#defn-list").append(title, content)

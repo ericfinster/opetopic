@@ -79,8 +79,8 @@ object PrettyPrinter {
         case EIsLeftExt(e) => Phrase(Literal("isLeftExt"), e.parenthesize)
         case EIsRightExt(e, a) => Phrase(Literal("isRightExt"), e.parenthesize, a.parenthesize)
 
-        case EComp(e, fp, nch) => Phrase(Literal("comp"), e.parenthesize, tokenizeNchFrame(fp), Delim("{", nch.tokenize, "}"))
-        case EFill(e, fp, nch) => Phrase(Literal("fill"), e.parenthesize, tokenizeNchFrame(fp), Delim("{", nch.tokenize, "}"))
+        case EComp(e, fp, nch) => Phrase(Literal("comp"), e.parenthesize, tokenizeNchFrame(fp), Delim("{ ", nch.tokenize, " }"))
+        case EFill(e, fp, nch) => Phrase(Literal("fill"), e.parenthesize, tokenizeNchFrame(fp), Delim("{ ", nch.tokenize, " }"))
         case ELiftLeft(e, ev, c, t) => Phrase(Literal("liftLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillLeft(e, ev, c, t) => Phrase(Literal("fillLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case ELiftRight(e, ev, c, t) => Phrase(Literal("liftRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)

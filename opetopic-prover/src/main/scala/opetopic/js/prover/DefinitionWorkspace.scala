@@ -21,6 +21,8 @@ import opetopic._
 import opetopic.tt._
 import OpetopicTypeChecker._
 import syntax.all._
+import opetopic.pprint.Tokenizer._
+import PrettyPrinter._
 
 class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWorkspaceUI { thisWksp =>
 
@@ -108,7 +110,7 @@ class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWo
     nfMap(EVar("TC#" ++ l.toString)) = (id, EVar(id))
 
     val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id ++ " : " ++ PrettyPrinter.prettyPrint(ty)
+      i(cls := "dropdown icon"), id + " : " + ty.pprint
     ).render
 
     val content = div(cls := "content")(
@@ -132,7 +134,7 @@ class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWo
     ).render
 
     val content = div(cls := "content")(
-      p(PrettyPrinter.prettyPrint(expr) ++ " : " ++ PrettyPrinter.prettyPrint(ty)),
+      p(expr.pprint ++ " : " + ty.pprint),
       button(cls := "ui icon button", onclick := { () => runAction(onExport(id, expr, ty)) })(
         i(cls := "check circle icon")
       )

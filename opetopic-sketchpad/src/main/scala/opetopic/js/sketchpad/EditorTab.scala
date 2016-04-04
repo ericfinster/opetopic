@@ -70,17 +70,17 @@ class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
         optAFamily.visualize(n)(o)
     }
 
-  import opetopic.pprint._
-  import scala.{Iterator => Iter}
+  // import opetopic.pprint._
+  // import scala.{Iterator => Iter}
 
-  implicit val optAPPrint : IndexedPPrint[editor.OptA] = 
-    new IndexedPPrint[editor.OptA] {
-      def render[N <: Nat](n: N)(o: editor.OptA[N], c: Config): Iter[String] = 
-        o match {
-          case None => Iter("None")
-          case Some(mk) => Iter("Some(\"" ++ mk.label ++ "\")")
-        }
-    }
+  // implicit val optAPPrint : IndexedPPrint[editor.OptA] = 
+  //   new IndexedPPrint[editor.OptA] {
+  //     def render[N <: Nat](n: N)(o: editor.OptA[N], c: Config): Iter[String] = 
+  //       o match {
+  //         case None => Iter("None")
+  //         case Some(mk) => Iter("Some(\"" ++ mk.label ++ "\")")
+  //       }
+  //   }
 
   import opetopic.Pickler._
 

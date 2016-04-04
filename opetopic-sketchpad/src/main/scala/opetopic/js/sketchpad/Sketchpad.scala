@@ -354,15 +354,15 @@ object Sketchpad extends JSApp {
       lc <- bs.value.labelComplex
     } {
 
-      import opetopic.pprint._
+      // import opetopic.pprint._
 
-      implicit val c : Config = Config()
-      import tab._
+      // implicit val c : Config = Config()
+      // import tab._
 
-      val test = ScalaPPrint.pprintComplex(lc).mkString
+      // val test = ScalaPPrint.pprintComplex(lc).mkString
 
-      jQuery("#code-text").empty().text(test)
-      jQuery(".ui.modal.codeexport").modal("show")
+      // jQuery("#code-text").empty().text(test)
+      // jQuery(".ui.modal.codeexport").modal("show")
 
       // Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
       // jQuery(".ui.modal").modal("show")
