@@ -9,7 +9,7 @@ package models.daos
 
 import java.util.UUID
 import models.User
-import models.sketchpad.Sketch
+import models.Sketch
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.dbio.DBIOAction
 import javax.inject.Inject

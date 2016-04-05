@@ -79,17 +79,4 @@ class ApplicationController @Inject() (
     env.authenticatorService.discard(request.authenticator, result)
   }
 
-
-  /**
-   * Handles the Opetopic Prover
-   *
-   * @return The result to display.
-   */
-  def prover = SecuredAction.async { implicit request => 
-
-    //Future.successful(Ok(views.html.index(request.identity)))
-    Future.successful(Ok(views.html.prover()))
-
-  }
-
 }

@@ -9,7 +9,7 @@ package models.daos
 
 import java.util.UUID
 import models.User
-import models.sketchpad.Sketch
+import models.Sketch
 import scala.concurrent.Future
 
 trait SketchDAO {

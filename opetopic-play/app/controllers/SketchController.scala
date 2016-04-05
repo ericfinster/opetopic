@@ -17,7 +17,7 @@ import play.api.i18n.{ MessagesApi, Messages }
 import play.api.libs.concurrent.Execution.Implicits._
 
 import models.User
-import models.sketchpad.Sketch
+import models.Sketch
 import models.services.UserService
 import models.daos.SketchDAO
 

@@ -1,4 +1,4 @@
-@()
+@(modules : Seq[models.Module])
 
 @import play.api.Play
 
@@ -6,31 +6,77 @@
 
   <div class="main">
 
-    <div class="article">
-      <div id="panes">
+    <div class="ui active tab" data-tab="module-tab">
+      <div class="ui grid">
 
-	<div class="ui active tab" data-tab="module-tab">
-
-	  <h3 class="ui dividing header">Global Environment</h3>
-
-	  <div class="ui fluid styled accordion" id="defn-list"></div>
-
-	</div>
-
-	<div class="ui tab" data-tab="definition-tab" id="defn-tab"></div>
-
-	<h3 class="ui dividing header">Messages</h3>
-
-	<div id="msg-box"></div>
-
-	<div class="ui inverted bottom fixed menu">
-	  <a class="active item" data-tab="module-tab">Module</a>
-	  <a class="item" data-tab="definition-tab">Definition</a>
-	  <div class="item">
-	    <button type="button" class="ui button" id="new-defn-btn">New Definition</button>
+	<div class="three wide column">
+	  <h3 class="ui dividing header">Modules</h3>
+	  <div class="ui large vertical fluid menu" id="module-list">
+	    @for(m <- modules) {
+	      <div class="ui dropdown item" data-name="@m.name" data-id="@m.moduleId.toString">
+		<i class="dropdown icon"></i>
+		@m.name
+		<div class="menu">
+		  <a class="item">Edit</a>
+		  <a class="item">Delete</a>
+		</div>
+	      </div>
+	    }
 	  </div>
 	</div>
+	
+	<div class="thirteen wide column">
+	  <h3 class="ui dividing header" id="defns-hdr">Definitions</h3>
+	  <div class="ui fluid styled accordion" id="defn-list"></div>
+	</div>
 
+      </div>
+    </div>
+
+    <div class="ui tab" data-tab="definition-tab" id="defn-tab"></div>
+
+    <h3 class="ui dividing header">Messages</h3>
+
+    <div id="msg-box"></div>
+
+    <div class="ui inverted bottom fixed menu">
+      <a class="active item" data-tab="module-tab">Module</a>
+      <a class="item" data-tab="definition-tab" id="defn-tab-btn">Definition</a>
+      <div class="item">
+	<button type="button" class="ui button" id="new-module-btn">New Module</button>
+      </div>
+      <div class="item">
+	<button type="button" class="ui button" id="new-defn-btn">New Definition</button>
+      </div>
+    </div>
+
+    <div class="ui modal small" id="new-module-modal">
+      <div class="header">New Module</div>
+      <div class="content">
+	<form class="ui form">
+	  <div class="field">
+	    <label>Name</label>
+	    <input type="text" id="module-name-input"></input>
+	  </div>
+	  <div class="field">
+	    <label>Imports</label>
+	    <input type="text" id="module-imports-input"></input>
+	  </div>
+	  <div class="field">
+	    <label>Description</label>
+	    <input type="text" id="module-desc-input"></input>
+	  </div>
+	</form>
+      </div>
+      <div class="actions">
+	<div class="ui positive right labeled icon button">
+	  Create It!
+	  <i class="checkmark icon"></i>
+	</div>   
+	<div class="ui negative right labeled icon button">
+	  Nevermind
+	  <i class="checkmark icon"></i>
+	</div>
       </div>
     </div>
 

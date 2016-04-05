@@ -12,12 +12,16 @@ POST        /authenticate/credentials        controllers.CredentialsAuthControll
 POST        /signUp                          controllers.SignUpController.signUp
 
 # Prover
-GET         /prover                          controllers.ApplicationController.prover
+GET         /prover                          controllers.ProverController.prover
 
 # Sketchpad 
 GET         /sketchpad                       controllers.SketchController.sketchpad
 POST        /saveSketch                      controllers.SketchController.saveSketch
 POST        /getSketch                       controllers.SketchController.getSketch
+
+# Documentation
+GET         /docs                            controllers.DocsController.showDoc(page = "intro")
+GET         /docs/:page                      controllers.DocsController.showDoc(page)
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                    controllers.Assets.at(path="/public", file)

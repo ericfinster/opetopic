@@ -20,7 +20,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicProver, opetopicTutorial)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicProver, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -34,7 +34,6 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "com.mohiva" %% "play-silhouette" % "3.0.2",
       "net.codingwell" %% "scala-guice" % "4.0.0",
       "net.ceedubs" %% "ficus" % "1.1.2",
-      "com.lihaoyi" %% "autowire" % "0.2.5",
       "com.lihaoyi" %%% "upickle" % "0.3.9",
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
@@ -53,7 +52,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
 
-lazy val opetopicTutorial = (project in file("opetopic-tutorial")).
+lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
   settings(
     persistLauncher := true,
@@ -72,8 +71,8 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
-      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
@@ -87,8 +86,8 @@ lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.8.1",
-      "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
@@ -104,7 +103,6 @@ lazy val opetopicJs = (project in file("opetopic-js")).
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %% "autowire" % "0.2.5",
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).

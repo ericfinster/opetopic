@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package models.sketchpad
+package models
 
 import java.util.UUID
 

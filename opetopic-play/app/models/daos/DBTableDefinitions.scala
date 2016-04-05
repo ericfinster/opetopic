@@ -157,6 +157,27 @@ trait DBTableDefinitions {
     def * = (sketchId, authorId, name, path, description, data) <> (DBSketch.tupled, DBSketch.unapply)
   }
 
+  //============================================================================================
+  // PROVER TABLES
+  //
+
+  case class DBModule(
+    moduleId: UUID,
+    authorId: UUID,
+    name: String,
+    description: Option[String],
+    data: String
+  )
+
+  class Modules(tag: Tag) extends Table[DBModule](tag, "modules") {
+    def moduleId = column[UUID]("moduleid", O.PrimaryKey)
+    def authorId = column[UUID]("authorid")
+    def name = column[String]("name")
+    def description = column[Option[String]]("description")
+    def data = column[String]("data")
+    def * = (moduleId, authorId, name, description, data) <> (DBModule.tupled, DBModule.unapply)
+  }
+
   // table query definitions
   val slickUsers = TableQuery[Users]
   val slickLoginInfos = TableQuery[LoginInfos]
@@ -168,6 +189,7 @@ trait DBTableDefinitions {
   val slickOpenIDAttributes = TableQuery[OpenIDAttributes]
 
   val slickSketches = TableQuery[Sketches]
+  val slickModules = TableQuery[Modules]
 
   // queries used in multiple places
   def loginInfoQuery(loginInfo: LoginInfo) = 

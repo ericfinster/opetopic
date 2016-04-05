@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.js.tutorial
+package opetopic.js.docs
 
 import opetopic._
 

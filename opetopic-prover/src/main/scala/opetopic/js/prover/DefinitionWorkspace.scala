@@ -24,7 +24,7 @@ import syntax.all._
 import opetopic.pprint.Tokenizer._
 import PrettyPrinter._
 
-class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWorkspaceUI { thisWksp =>
+class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { thisWksp =>
 
   //============================================================================================
   // EDITOR MANAGEMENT
@@ -84,8 +84,8 @@ class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWo
   val cells: ListBuffer[(String, Expr)] = ListBuffer()
   val properties: ListBuffer[Property] = ListBuffer()
 
-  var gma: Gamma = globalGma
-  var rho: Rho = globalRho
+  var gma: Gamma = module.gma
+  var rho: Rho = module.rho
 
   def abstractOverContext(gma: List[(String, Expr)], expr: Expr, exprTy: Expr) : (Expr, Expr) = 
     gma match {
@@ -214,7 +214,7 @@ class DefinitionWorkspace(globalRho: Rho, globalGma: Gamma) extends DefinitionWo
   def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
 
     val (e, t) = abstractOverContext(context.toList, expr, ty)
-    Prover.addDefinition(id, e, t)
+    module.addDefinition(id, e, t)
 
   }
 

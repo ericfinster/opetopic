@@ -1,8 +1,11 @@
-@(content: Html)
+@(pageName: String)(content: Html)
+
+@import play.api.Play
 
 @main("Documentation") {
 
   <link rel='stylesheet' href='@routes.Assets.at("stylesheets/syntax.css")'>
+  <meta name="page" content="@pageName">
 
   <style>
     p {
@@ -15,27 +18,64 @@
     }
   </style>
 
-  <div class="main">
-    <div class="ui container" style="margin-top: 10px;">
+  <div class="ui container">
+    <div class="ui grid">
 
-      <div class="ui grid">
+      <div class="twelve wide column">
+	@content
+      </div>
 
-	<div class="twelve wide column">
-	  @content
+      <div class="four wide column">
+	<div class="ui vertical fluid accordion menu" id="nav-accordion">
+      	  <a class="item" href="/docs/intro">Introduction</a>
+	  <div class="item">
+	    <a class="title"><i class="dropdown icon"></i>Opetopes</a>
+	    <div class="content">
+	      <a class="item" href="/docs/opetopes">Opetopic Diagrams</a>
+	      <a class="item">Opetopic Cardinals</a>
+	      <a class="item">Opetopes and Higher Dimensional Trees</a>
+	    </div>
+	  </div>
+	  <div class="item">
+	    <a class="title"><i class="dropdown icon"></i>Opetopic Categories</a>
+	    <div class="content">
+	      <a class="item">Universal Properties</a>
+	      <a class="item">The Definition</a>
+	    </div>
+	  </div>
+	  <div class="item">
+	    <a class="title"><i class="dropdown icon"></i>Opetopes and Type Theory</a>
+	    <div class="content">
+	      <a class="item" href="/docs/typetheory">Type Theory</a>
+      	      <a class="item" href="/docs/hdts">Higher Dimensional Trees</a>
+	    </div>
+	  </div>
+	  <div class="item">
+	    <a class="title"><i class="dropdown icon"></i>The Sketchpad</a>
+	    <div class="content">
+	      <a class="item">Basic Concepts</a>
+	      <a class="item">Tutorial</a>
+	    </div>
+	  </div>
+	  <div class="item">
+	    <a class="title"><i class="dropdown icon"></i>The Prover</a>
+	    <div class="content">
+	      <a class="item">Basic Concepts</a>
+	      <a class="item">Tutorial</a>
+	    </div>
+	  </div>
 	</div>
-
-	<div class="four wide column">
-      	  <div class="ui vertical fluid menu">
-      	    <a class="item" href="/docs/intro">Introduction</a>
-	    <a class="item" href="/docs/typetheory">Type Theory</a>
-      	    <a class="item" href="/docs/hdts">Higher Dimensional Trees</a>
-      	    <a class="item" href="/docs/opetopes">Opetopes</a>
-      	  </div>
-	</div>
-
       </div>
 
     </div>
   </div>
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopicdocs-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopicdocs-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopicdocs-launcher.js")' type="text/javascript"></script>
 
 }

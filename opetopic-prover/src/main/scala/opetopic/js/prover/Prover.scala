@@ -7,6 +7,8 @@
 
 package opetopic.js.prover
 
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
+
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -22,17 +24,12 @@ import opetopic._
 import opetopic.tt._
 import opetopic.js._
 import opetopic.net._
-import OpetopicTypeChecker._
 import JQuerySemanticUI._
 
 import syntax.complex._
 import syntax.tree._
 import syntax.nesting._
 import syntax.suite._
-
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-
-import autowire._
 
 object Prover extends JSApp {
 
@@ -41,65 +38,71 @@ object Prover extends JSApp {
     println("Launched Opetopic Prover.")
 
     jQuery("#new-defn-btn").on("click", () => newDefinition)
+    jQuery("#new-module-btn").on("click", () => newModule)
     jQuery(".menu .item").tab()
     jQuery(".ui.accordion").accordion()
 
   }
 
   //============================================================================================
-  // DEFINITION MANAGEMENT
+  // MODULE MANAGEMENT
   //
 
-  var gma: Gamma = Nil
-  var rho: Rho = RNil
+  var activeModule : Option[Module] = None
 
-  def newDefinition: Unit = {
+  def newModule: Unit = {
 
-    val defnWksp = new DefinitionWorkspace(rho, gma)
+      jQuery("#new-module-modal").modal(lit(
+        onApprove = () => {
 
-    jQuery("#defn-tab").empty().append(defnWksp.mainGrid)
-    defnWksp.initUI
-    defnWksp.newEditor
-    defnWksp.extendContext("X", ECat)
+          val name = jQuery("#module-name-input").value.asInstanceOf[String]
+          val imports = jQuery("#module-imports-input").value.asInstanceOf[String]
+          val description = jQuery("#module-desc-input").value.asInstanceOf[String]
+
+          // Have to parse the imports ...
+          val m = new Module(name, imports.split(" ").toList, description)
+          val mItem = m.uiElement
+
+          jQuery("#module-list").append(mItem)
+          jQuery(mItem).dropdown()
+          
+          editModule(m)
+
+        }
+      )).modal("show")
 
   }
 
-  def addDefinition(id: String, expr: Expr, exprTy: Expr): EditorM[Unit] = {
+  def editModule(m: Module): Unit = {
 
-    import opetopic.pprint.Tokenizer._
-    import PrettyPrinter._
+    val mItem = m.uiElement
 
-    val decl : Decl = 
-      Def(PVar(id), exprTy, expr)
+    jQuery("#defns-hdr").text("Definitions - " + m.name)
+    m.showEntries
+    activeModule = Some(m)
 
+  }
+
+  def saveModule(m: Module): Unit = {
+
+  }
+
+  def newDefinition: Unit = 
     for {
-      g <- simpleCheck(
-        checkD(rho, gma, decl)
-      )
-    } yield {
+      m <- activeModule
+    } {
 
-      Prover.showInfoMessage("Checked Declaration: " ++ decl.pprint)
+      val defnWksp = new DefinitionWorkspace(m)
 
-      val title =
-        div(cls := "title")(
-          i(cls := "dropdown icon"),
-          id
-        ).render
+      jQuery("#defn-tab").empty().append(defnWksp.mainGrid)
+      defnWksp.initUI
+      defnWksp.newEditor
+      defnWksp.extendContext("X", ECat)
 
-      val content =
-        div(cls := "content")(
-          p(cls := "transition hidden")(decl.pprint)
-        ).render
-
-      jQuery("#defn-list").append(title, content)
-
-      // Update the context and environment
-      rho = UpDec(rho, decl)
-      gma = g
+      jQuery("#defn-tab-btn").click()
 
     }
 
-  }
 
   //============================================================================================
   // USER FEEDBACK ROUTINES

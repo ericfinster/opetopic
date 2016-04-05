@@ -194,7 +194,7 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
         div(cls := "ui tab", "data-tab".attr := "environment-tab")(environmentList)
       ),
       div(cls := "ten wide column")(
-        h3(cls := "ui dividing header")("Editor"),
+        h3(cls := "ui dividing header")("Editor - " + module.name),
         div(cls := "ui top attached menu")(
           a(cls := "item")("Shape", i(cls := "dropdown icon")),
           a(cls := "item")("Shell Force")
