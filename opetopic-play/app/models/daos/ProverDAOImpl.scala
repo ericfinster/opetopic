@@ -32,6 +32,19 @@ class ProverDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
   }
 
+  def getModule(uuid: UUID) : Future[Option[Module]] = {
+
+    val action =
+      slickModules.filter(_.moduleId === uuid) 
+
+    db.run(action.result.headOption).map { dbModuleOpt =>
+      dbModuleOpt map { m =>
+        Module(m.moduleId, m.authorId, m.name, m.description getOrElse "", m.data)
+      }
+    }
+
+  }
+
   def saveModule(module: Module) : Future[Module] = {
 
     val dbModule = DBModule(

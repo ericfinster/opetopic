@@ -19,11 +19,7 @@ import opetopic.pprint.Tokenizer._
 import OpetopicTypeChecker._
 import PrettyPrinter._
 
-class Module(
-  val name: String,
-  val imports: List[String],
-  val description: String
-) { thisModule =>
+class Module(val name: String) { thisModule =>
 
   sealed trait ModuleEntry { 
 
@@ -53,6 +49,7 @@ class Module(
 
   var isLoaded: Boolean = false
   var moduleId: Option[String] = None
+  var description: String = ""
 
   val entries: ListBuffer[ModuleEntry] = ListBuffer()
 
@@ -98,19 +95,50 @@ class Module(
   def toCode: String = 
     (entries map (_.code)).mkString("\n\n")
 
-  //============================================================================================
-  // MODULE UI ELEMENTS
-  //
+  def loadData(data: String): Unit = {
 
-  val uiElement =
-    div(cls := "ui dropdown item", "data-name".attr := name, "data-id".attr := "")(
-      i(cls := "dropdown icon"),
-      name,
-      div(cls := "menu")(
-        a(cls := "item", onclick := { () => Prover.editModule(thisModule) })("Edit"),
-        a(cls := "item", onclick := { () => Prover.saveModule(thisModule) })("Save"),
-        a(cls := "item")("Delete")
-      )
-    ).render
+    import OpetopicParser._
+
+    val lines : List[String] = data.split("\n\n").toList
+
+    def getId(d: Decl) : String =
+      d match {
+        case Def(PVar(id), _, _) => id
+        case Drec(PVar(id), _, _) => id
+        case _ => "unknown id"
+      }
+
+    for {
+      l <- lines
+    } {
+
+      parseAll(phrase(decl), l) match {
+        case Success(d, _) => {
+
+          val tc : EditorM[Unit] = 
+            for {
+              g <- simpleCheck(checkD(rho, gma, d))
+            } yield {
+
+              val id = getId(d)
+              val entry = Declaration(id, d)
+              entries += entry
+
+              rho = UpDec(rho, d)
+              gma = g
+
+            }
+
+          Prover.runAction(tc)
+
+        }
+        case err => Prover.showErrorMessage("Parse error: " + err.toString)
+      }
+
+    }
+
+    isLoaded = true
+
+  }
 
 }

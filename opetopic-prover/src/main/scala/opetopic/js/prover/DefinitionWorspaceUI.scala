@@ -10,6 +10,7 @@ package opetopic.js.prover
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import opetopic.js.JQuerySemanticUI._
+import Prover.runAction
 
 trait DefinitionWorkspaceUI { self : DefinitionWorkspace => 
 

@@ -23,6 +23,7 @@ import OpetopicTypeChecker._
 import syntax.all._
 import opetopic.pprint.Tokenizer._
 import PrettyPrinter._
+import Prover.runAction
 
 class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { thisWksp =>
 
@@ -54,19 +55,6 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     ))
 
     jQuery(tabItem).click()
-
-  }
-
-  def runAction(act: EditorM[Unit]) : Unit = {
-
-    import scalaz.\/
-    import scalaz.\/-
-    import scalaz.-\/
-
-    act match {
-      case -\/(msg: String) => Prover.showErrorMessage(msg)
-      case \/-(_) => ()
-    }
 
   }
 

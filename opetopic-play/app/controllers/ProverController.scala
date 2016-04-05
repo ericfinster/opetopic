@@ -41,6 +41,21 @@ class ProverController @Inject() (
 
   }
 
+  def getModule = SecuredAction.async { implicit request => 
+
+    request.body.asText.map { text =>
+
+      val req = read[LoadModuleRequest](text)
+
+      proverDAO.getModule(UUID.fromString(req.uuid)).map { 
+        case None => BadRequest("Not found")
+        case Some(module) => Ok(module.data)
+      }
+
+    } getOrElse Future.successful(BadRequest("Bad module request"))
+
+  }
+
   def saveModule = SecuredAction.async { implicit request =>
 
     request.body.asText.map { text => 

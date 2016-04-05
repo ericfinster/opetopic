@@ -24,3 +24,8 @@ case class SaveModuleRequest(
   val description: String,
   val data: String
 )
+
+case class LoadModuleRequest(
+  val name: String,
+  val uuid: String
+)
