@@ -148,9 +148,10 @@ object Prover extends JSApp {
         ("CSRF-Token" -> "nocheck")
       ),
       withCredentials = true
-    ).map(_.responseText).foreach(s =>
+    ).map(_.responseText).foreach(s => {
+      println("Response: " + s)
       m.moduleId = Some(s)  // Record the returned UUID
-    )
+    })
 
 
   }
@@ -186,7 +187,7 @@ object Prover extends JSApp {
 
         jQuery(e).dropdown()
         jQuery(e).find(".edit-item").on("click", () => editModule(m))
-        jQuery(e).find(".save-tiem").on("click", () => saveModule(m))
+        jQuery(e).find(".save-item").on("click", () => saveModule(m))
 
       }
     )
