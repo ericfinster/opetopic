@@ -14,6 +14,7 @@ import scala.collection.mutable.ListBuffer
 
 import scala.scalajs.js
 import scala.scalajs.js.JSApp
+import org.scalajs.dom
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
@@ -30,6 +31,8 @@ import syntax.complex._
 import syntax.tree._
 import syntax.nesting._
 import syntax.suite._
+
+import upickle.default._
 
 object Prover extends JSApp {
 
@@ -61,6 +64,7 @@ object Prover extends JSApp {
 
           // Have to parse the imports ...
           val m = new Module(name, imports.split(" ").toList, description)
+          m.isLoaded = true
           val mItem = m.uiElement
 
           jQuery("#module-list").append(mItem)
@@ -84,6 +88,26 @@ object Prover extends JSApp {
   }
 
   def saveModule(m: Module): Unit = {
+
+    val req = SaveModuleRequest(
+      m.moduleId,
+      m.name,
+      m.description,
+      m.toCode
+    )
+
+    dom.ext.Ajax.post(
+      url = "/saveModule",
+      data = write(req),
+      headers = Map(
+        ("X-Requested-With" -> "*"),
+        ("CSRF-Token" -> "nocheck")
+      ),
+      withCredentials = true
+    ).map(_.responseText).foreach(s =>
+      m.moduleId = Some(s)  // Record the returned UUID
+    )
+
 
   }
 

@@ -30,6 +30,8 @@ class Module(
     def title: Element
     def content: Element
 
+    def code: String
+
   }
 
   case class Declaration(val id: String, val d: Decl) extends ModuleEntry {
@@ -45,7 +47,12 @@ class Module(
         p(cls := "transition hidden")(d.pprint)
       ).render
 
+    def code = d.pprint
+
   }
+
+  var isLoaded: Boolean = false
+  var moduleId: Option[String] = None
 
   val entries: ListBuffer[ModuleEntry] = ListBuffer()
 
@@ -87,6 +94,9 @@ class Module(
       (entries map (e => List(e.title, e.content))).flatten : _*
     )
   }
+
+  def toCode: String = 
+    (entries map (_.code)).mkString("\n\n")
 
   //============================================================================================
   // MODULE UI ELEMENTS

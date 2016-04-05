@@ -17,6 +17,7 @@ import play.api.i18n.{ MessagesApi, Messages }
 import play.api.libs.concurrent.Execution.Implicits._
 
 import models.User
+import models.Module
 import models.services.UserService
 import models.daos.ProverDAO
 
@@ -37,6 +38,37 @@ class ProverController @Inject() (
     proverDAO.userModules(request.identity).map { modules =>
       Ok(views.html.prover(modules))
     }
+
+  }
+
+  def saveModule = SecuredAction.async { implicit request =>
+
+    request.body.asText.map { text => 
+
+      val req = read[SaveModuleRequest](text)
+
+      println("Saving module: " + req.name)
+      println(req.data)
+
+      val moduleId = 
+        req.moduleId match {
+          case None => UUID.randomUUID()
+          case Some(uuid) => UUID.fromString(uuid)
+        }
+
+      val module = Module(
+        moduleId,
+        request.identity.userID,
+        req.name,
+        req.description,
+        req.data
+      )
+
+      for {
+        m <- proverDAO.saveModule(module)
+      } yield Ok(m.moduleId.toString)
+
+    } getOrElse Future.successful(BadRequest("Bad save module request"))
 
   }
 

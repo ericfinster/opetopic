@@ -13,6 +13,7 @@ POST        /signUp                          controllers.SignUpController.signUp
 
 # Prover
 GET         /prover                          controllers.ProverController.prover
+POST        /saveModule                      controllers.ProverController.saveModule
 
 # Sketchpad 
 GET         /sketchpad                       controllers.SketchController.sketchpad

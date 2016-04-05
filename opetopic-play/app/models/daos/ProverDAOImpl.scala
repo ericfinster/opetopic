@@ -32,5 +32,22 @@ class ProverDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
   }
 
+  def saveModule(module: Module) : Future[Module] = {
+
+    val dbModule = DBModule(
+      module.moduleId,
+      module.authorId,
+      module.name,
+      if (module.description == "") None else Some(module.description),
+      module.data
+    )
+
+    val action = (for {
+      _ <- slickModules.insertOrUpdate(dbModule)
+    } yield ()).transactionally
+
+    db.run(action).map(_ => module)
+    
+  }
 
 }

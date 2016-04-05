@@ -17,3 +17,10 @@ case class SaveSketchRequest(
 case class LoadSketchRequest(
   val id: String
 )
+
+case class SaveModuleRequest(
+  val moduleId: Option[String],
+  val name: String,
+  val description: String,
+  val data: String
+)

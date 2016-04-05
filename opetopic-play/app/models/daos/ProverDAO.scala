@@ -15,5 +15,6 @@ import scala.concurrent.Future
 trait ProverDAO {
 
   def userModules(user: User) : Future[Seq[Module]]
+  def saveModule(module: Module) : Future[Module]
 
 }
