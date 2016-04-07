@@ -1,5 +1,14 @@
 @()(implicit userOpt: Option[User])
 
+@greeting(uo: Option[User]) = @{
+  (for {
+    user <- uo
+    fn <- user.firstName
+  } yield { "Welcome to Opetopic, " + fn + "!" }).getOrElse({
+    "Welcome to Opetopic!"
+  })
+}
+
 @main("Home") {
 
   <style>
@@ -14,12 +23,7 @@
 
       <div class="ui segment raised">
 
-	<h2 class="ui dividing header">
-	  @userOpt match {
-	    case Some(user) => { Welcome to Opetopic, @user.firstName.toString! }
-	    case None => { Welcome to Opetopic! }
-	  }
-	</h2>
+	<h2 class="ui dividing header">@greeting(userOpt)</h2>
 
 	<p>
 	  Opetopic is an experimental graphical proof assistant for 
