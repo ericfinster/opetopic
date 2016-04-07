@@ -255,8 +255,6 @@ object Sketchpad extends JSApp {
       bs <- tab.activeBox
     } {
 
-      // Okay, I think I see the problem.
-
       import tab._
       implicit val bsDim = bs.n
 
@@ -276,6 +274,7 @@ object Sketchpad extends JSApp {
 
             val frameNesting = lc.tail.head
             val panel = ActivePanel(frameNesting)
+            panel.refresh
 
             def defaultLeafDecs : Tree[TriangleDec, P] = 
               frameNesting match {
