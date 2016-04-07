@@ -25,7 +25,10 @@ class DocsController @Inject() (
   userService: UserService
 ) extends Silhouette[User, CookieAuthenticator] {
 
-  def showDoc(page: String) = SecuredAction.async {
+  def showDoc(page: String) = UserAwareAction.async { implicit request => 
+
+    implicit val userOpt = request.identity
+
     page match {
       case "intro" => Future.successful(Ok(views.html.docs.intro()))
       case "typetheory" => Future.successful(Ok(views.html.docs.typetheory()))

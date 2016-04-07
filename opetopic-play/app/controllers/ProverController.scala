@@ -33,10 +33,16 @@ class ProverController @Inject() (
   proverDAO: ProverDAO
 ) extends Silhouette[User, CookieAuthenticator] {
 
-  def prover = SecuredAction.async { implicit request => 
+  def prover = UserAwareAction.async { implicit request => 
 
-    proverDAO.userModules(request.identity).map { modules =>
-      Ok(views.html.prover(modules))
+    request.identity match {
+      case Some(user) => 
+        proverDAO.userModules(user).map { modules =>
+          Ok(views.html.prover(modules)(Some(user)))
+        }
+      case None => Future.successful {
+        Ok(views.html.prover(Seq())(None))
+      }
     }
 
   }

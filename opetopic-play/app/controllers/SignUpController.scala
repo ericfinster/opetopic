@@ -44,7 +44,7 @@ class SignUpController @Inject() (
    */
   def signUp = Action.async { implicit request =>
 
-    println("Doing a signup ...")
+    implicit val userOpt : Option[User] = None
 
     SignUpForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest(views.html.signUp(form))),

@@ -1,4 +1,4 @@
-@(signUpForm: Form[forms.SignUpForm.Data])(implicit request: RequestHeader, messages: Messages)
+@(signUpForm: Form[forms.SignUpForm.Data])(implicit request: RequestHeader, messages: Messages, userOpt: Option[User])
 
 @import semantic.semantic._
 

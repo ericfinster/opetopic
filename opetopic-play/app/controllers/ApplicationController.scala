@@ -36,8 +36,8 @@ class ApplicationController @Inject() (
    *
    * @return The result to display.
    */
-  def index = SecuredAction.async { implicit request =>
-    Future.successful(Ok(views.html.index(request.identity)))
+  def index = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.index()(request.identity)))
   }
 
   /**
@@ -49,7 +49,10 @@ class ApplicationController @Inject() (
 
     request.identity match {
       case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
-      case None => Future.successful(Ok(views.html.signIn(SignInForm.form, socialProviderRegistry)))
+      case None => {
+        implicit val userOpt: Option[User] = None
+        Future.successful(Ok(views.html.signIn(SignInForm.form, socialProviderRegistry)))
+      }
     }
 
   }
@@ -63,7 +66,10 @@ class ApplicationController @Inject() (
 
     request.identity match {
       case Some(user) => Future.successful(Redirect(routes.ApplicationController.index()))
-      case None => Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+      case None => {
+        implicit val userOpt: Option[User] = None
+        Future.successful(Ok(views.html.signUp(SignUpForm.form)))
+      }
     }
 
   }

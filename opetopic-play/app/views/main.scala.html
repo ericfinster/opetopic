@@ -1,4 +1,4 @@
-@(subnav: String)(content: Html)
+@(subnav: String)(content: Html)(implicit userOpt: Option[User])
 
 @import play.api.Play
 
@@ -45,6 +45,7 @@
       </div>
       <a class="item" href="/docs">Documentation</a>
       <div class="right menu">
+	<a class="item" href="/signIn" id="login-btn">Log In</a>
 	<a class="item" href="/signOut" id="logout-btn">Log Out</a>
       </div>
     </div>

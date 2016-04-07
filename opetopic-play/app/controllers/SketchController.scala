@@ -33,10 +33,16 @@ class SketchController @Inject() (
   sketchDAO: SketchDAO
 ) extends Silhouette[User, CookieAuthenticator] {
 
-  def sketchpad = SecuredAction.async { implicit request => 
+  def sketchpad = UserAwareAction.async { implicit request => 
 
-    sketchDAO.userSketches(request.identity).map { sketches =>
-      Ok(views.html.sketchpad(sketches))
+    request.identity match {
+      case Some(user) => 
+        sketchDAO.userSketches(user).map { sketches =>
+          Ok(views.html.sketchpad(sketches)(Some(user)))
+        }
+      case None => Future.successful {
+        Ok(views.html.sketchpad(Seq())(None))
+      }
     }
 
   }

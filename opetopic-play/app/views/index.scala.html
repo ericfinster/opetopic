@@ -1,4 +1,4 @@
-@(user: models.User)(implicit messages: Messages)
+@()(implicit userOpt: Option[User])
 
 @main("Home") {
 
@@ -14,7 +14,12 @@
 
       <div class="ui segment raised">
 
-	<h2 class="ui dividing header">Welcome to Opetopic, @user.firstName.getOrElse("Mystery Person")!</h2>
+	<h2 class="ui dividing header">
+	  @userOpt match {
+	    case Some(user) => { Welcome to Opetopic, @user.firstName.toString! }
+	    case None => { Welcome to Opetopic! }
+	  }
+	</h2>
 
 	<p>
 	  Opetopic is an experimental graphical proof assistant for 
