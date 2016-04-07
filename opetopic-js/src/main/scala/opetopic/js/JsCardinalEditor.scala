@@ -43,18 +43,18 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
     }
 
-    ce.onRefresh = () => {
-
-      ce.galleryViewport.width = tabWidth
-      ce.galleryViewport.height = tabHeight
-      ce.galleryViewport.setBounds(ce.bounds)
-
-    }
+    ce.onRefresh = () => { ce.galleryViewport.setBounds(ce.bounds) }
 
     ce.refreshAll
+    refreshDimensions
 
     type EditorBox[N <: Nat] = ce.CardinalCellBox[N]
     var rootBox : Option[Sigma[EditorBox]] = None
+
+    def refreshDimensions: Unit = {
+      ce.galleryViewport.width = tabWidth
+      ce.galleryViewport.height = tabHeight
+    }
 
     // trait BoxAction[A] {
     //   def objectAction(box : EditorBox[_0]) : EditorM[A]
@@ -99,6 +99,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   def newEditor: Unit = {
 
     val editor = new EditorInstance
+    instances += editor
     editorCount += 1
 
     val cntStr = editorCount.toString
@@ -131,7 +132,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   // UI ELEMENTS
   //
 
-  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "padding: 0px; min-height: 300px").render
+  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 300px").render
   val paginationMenu = div(cls := "ui pagination menu").render
   
   val topMenu = 
@@ -179,8 +180,19 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
       }
     })
 
+    jQuery(dom.window).on("resize", () => { resizeInstances })
 
     newEditor
+
+  }
+
+  def resizeInstances: Unit = {
+
+    tabWidth = jQuery(tabPane).width.toInt
+
+    for {
+      instance <- instances
+    } { instance.refreshDimensions }
 
   }
 
