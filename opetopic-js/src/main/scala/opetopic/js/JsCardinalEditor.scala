@@ -14,6 +14,12 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
+import scalaz.\/
+import scalaz.\/-
+import scalaz.-\/
+
+import scalaz.std.string._
+
 import opetopic._
 import JsDomFramework._
 import JQuerySemanticUI._
@@ -30,10 +36,10 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
     val ce = CardinalEditor[A]
 
-    ce.onSelectAsRoot = (boxsig: Sigma[EditorBox]) => {
+    ce.onSelectAsRoot = (boxsig: Sigma[InstanceBox]) => {
 
       @natElim
-      def runSelectEvent[N <: Nat](n: N)(box: EditorBox[N]) : Unit = {
+      def runSelectEvent[N <: Nat](n: N)(box: InstanceBox[N]) : Unit = {
         case (Z, box) => onObjectSelect(ce)(box)
         case (S(p: P), box) => onCellSelect[P](ce)(box)
       }
@@ -48,30 +54,13 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     ce.refreshAll
     refreshDimensions
 
-    type EditorBox[N <: Nat] = ce.CardinalCellBox[N]
-    var rootBox : Option[Sigma[EditorBox]] = None
+    type InstanceBox[N <: Nat] = ce.CardinalCellBox[N]
+    var rootBox : Option[Sigma[InstanceBox]] = None
 
     def refreshDimensions: Unit = {
       ce.galleryViewport.width = tabWidth
       ce.galleryViewport.height = tabHeight
     }
-
-    // trait BoxAction[A] {
-    //   def objectAction(box : EditorBox[_0]) : EditorM[A]
-    //   def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : EditorM[A]
-    // }
-    
-    // @natElim
-    // def dispatchAction[A, N <: Nat](n: N)(box: EditorBox[N], action: BoxAction[A]) : EditorM[A] = {
-    //   case (Z, box, action) => action.objectAction(box)
-    //   case (S(p), box, action) => action.cellAction(p)(box)
-    // }
-
-    // def withSelection[A](action: BoxAction[A]) : EditorM[A] =
-    //   for {
-    //     boxsig <- attempt(rootBox, "No box selected")
-    //     a <- dispatchAction(boxsig.n)(boxsig.value, action)
-    //   } yield a
 
   }
 
@@ -79,6 +68,24 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   // ACTION CLASS
   //
 
+  type EditorBox[N <: Nat] = CardinalEditor[A]#CardinalCellBox[N]
+
+  trait BoxAction[T] {
+    def objectAction(box : EditorBox[_0]) : T
+    def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : T
+  }
+    
+  @natElim
+  def dispatchAction[T, N <: Nat](n: N)(box: EditorBox[N], action: BoxAction[T]) : T = {
+    case (Z, box, action) => action.objectAction(box)
+    case (S(p), box, action) => action.cellAction(p)(box)
+  }
+
+  def withSelection[T](action: BoxAction[T]) : Option[T] =
+    for {
+      instance <- activeEditor
+      boxsig <- instance.rootBox
+    } yield dispatchAction(boxsig.n)(boxsig.value, action)
 
   //============================================================================================
   // SELECTION HANDLERS

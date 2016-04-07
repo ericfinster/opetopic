@@ -39,6 +39,9 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
       galleryViewport.children = panelEls
       bounds = bnds
+
+      onRefresh()
+
     }
 
     def refreshAll : Unit = {
@@ -49,6 +52,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
     var onHover : Sigma[GalleryBoxType] => Unit = { _ => () }
     var onUnhover : Sigma[GalleryBoxType] => Unit = { _ => () }
+    var onRefresh : () => Unit = { () => () }
 
     trait ActiveGalleryPanel[N <: Nat] extends ActivePanel[A[N], N] with ComplexPanel[N] {
 

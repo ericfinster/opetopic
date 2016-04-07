@@ -30,17 +30,21 @@ import SimpleMarker._
 
 object Sketchpad extends JSApp {
 
+  val editor = new SketchpadEditor
+  val viewer = new SketchpadViewer
+
   def main : Unit = {
 
     println("Launched Opetopic Sketchpad.")
 
-    val editor = new SketchpadEditor
     jQuery("#editor-div").append(editor.uiElement)
     editor.initialize
 
+    jQuery("#viewer-div").append(viewer.uiElement)
+    viewer.initialize
+
   }
 
-  //   jQuery("#new-tab-btn").click((e : JQueryEventObject) => { addEditorTab })
   //   jQuery(".ui.pointing.menu .item").tab()
 
   //   jQuery("#fill-color-btn").popup(lit(
@@ -92,42 +96,12 @@ object Sketchpad extends JSApp {
 
   //   })
 
-  //   addEditorTab
 
   // }
-
-  // var tabCount: Int = 0
 
   // var isFill: Boolean = true
   // var fillColor: String = "white"
   // var strokeColor: String = "black"
-
-  // def addEditorTab: Unit = 
-  //   addEditorTab(None)
-
-  // def addEditorTab(c: Option[FiniteComplex[OptMarker]]): Unit = {
-
-  //   val editorTab = new EditorTab(c)
-
-  //   tabCount += 1
-  //   val tc = tabCount.toString
-  //   val tabName = "tab-" + tc
-
-  //   val tabItem = a(cls := "item", "data-tab".attr := tabName)(tc).render
-  //   val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
-  //     editorTab.uiElement
-  //   ).render
-
-  //   jQuery("#tab-page-menu").append(tabItem)
-  //   jQuery("#sketch-tabs").append(tab)
-
-  //   jQuery(tabItem).tab(lit(
-  //     onVisible = (s: String) => { activeTab = Some(editorTab) }
-  //   ))
-
-  //   jQuery(tabItem).click()
-
-  // }
 
   // def unescapeUnicode(str: String): String =
   //   """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
@@ -234,8 +208,6 @@ object Sketchpad extends JSApp {
   //   minViewY = Some(6000),
   //   spacerBounds = Bounds(0, 0, 600, 600)
   // )
-
-  // var activeTab: Option[EditorTab] = None
 
   // def refreshFaceGallery: Unit = 
   //   for {
