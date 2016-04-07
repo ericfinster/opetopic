@@ -28,6 +28,8 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
   implicit val vf: VisualizableFamily[A]
 
+  val minY : Int = 10000
+
   //============================================================================================
   // INSTANCE CLASS
   //
@@ -49,7 +51,21 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
     }
 
-    ce.onRefresh = () => { ce.galleryViewport.setBounds(ce.bounds) }
+    ce.onRefresh = () => { 
+
+      val bnds = ce.bounds
+
+      val newBnds = 
+        if (minY < bnds.height)
+          bnds
+        else {
+          val offset = minY - bnds.height
+          bnds.copy(y = bnds.y - (offset / 2), height = minY)
+        }
+
+      ce.galleryViewport.setBounds(newBnds) 
+
+    }
 
     ce.refreshAll
     refreshDimensions
@@ -58,8 +74,10 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     var rootBox : Option[Sigma[InstanceBox]] = None
 
     def refreshDimensions: Unit = {
+
       ce.galleryViewport.width = tabWidth
       ce.galleryViewport.height = tabHeight
+
     }
 
   }

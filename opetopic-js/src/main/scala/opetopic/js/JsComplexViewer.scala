@@ -20,6 +20,8 @@ abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
 
   implicit val vf: VisualizableFamily[A]
 
+  val minY : Int = 5000
+
   private var activeComplex : Option[FiniteComplex[A]] = None
   private var activeGallery : Option[ActiveGallery[A]] = None
 
@@ -32,7 +34,21 @@ abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
 
         val gallery = ActiveGallery(c)
 
-        gallery.onRefresh = () => { gallery.galleryViewport.setBounds(gallery.bounds) }
+        gallery.onRefresh = () => { 
+
+          val bnds = gallery.bounds
+
+          val newBnds =
+            if (minY < bnds.height)
+              bnds
+            else {
+              val offset = minY - bnds.height
+              bnds.copy(y = bnds.y - (offset / 2), height = minY)
+            }
+
+          gallery.galleryViewport.setBounds(newBnds) 
+
+        }
 
         gallery.galleryViewport.width = viewerWidth
         gallery.galleryViewport.height = viewerHeight
@@ -49,7 +65,7 @@ abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
   var viewerHeight : Int = 0
 
   val uiElement = 
-    div(cls := "ui segment", style := "min-height: 150px").render
+    div(cls := "ui segment", style := "min-height: 200px").render
 
   def initialize: Unit = {
     viewerHeight = jQuery(uiElement).height.toInt
