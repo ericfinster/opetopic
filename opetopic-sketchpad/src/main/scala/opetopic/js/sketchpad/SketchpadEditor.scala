@@ -25,24 +25,14 @@ class SketchpadEditor extends JsCardinalEditor[SimpleMarker] {
   // SELECTION HANDLERS
   //
 
-  override def onObjectSelect(editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[_0]) : Unit =
+  override def onObjectSelect(editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[_0]) : Unit = showFace
+  override def onCellSelect[P <: Nat](editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[S[P]]) : Unit = showFace
+
+  def showFace: Unit = 
     for {
-      lc <- box.labelComplex
-    } {
-
-      println("Displaying object ...")
-      Sketchpad.viewer.complex = Some(lc)
-
-    }
-
-  override def onCellSelect[P <: Nat](editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[S[P]]) : Unit =
-    for {
-      lc <- box.labelComplex
-    } {
-
-      println("Displaying cell ...")
-      Sketchpad.viewer.complex = Some(lc)
-
-    }
+      instance <- activeEditor
+      boxsig <- instance.rootBox
+      lc <- boxsig.value.labelComplex
+    } { Sketchpad.viewer.complex = Some(lc) }
 
 }

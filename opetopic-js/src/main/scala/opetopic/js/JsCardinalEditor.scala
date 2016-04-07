@@ -146,6 +146,11 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
   }
 
+  def refreshEditor: Unit = 
+    for {
+      instance <- activeEditor
+    } { instance.ce.refreshGallery }
+
   //============================================================================================
   // UI STATE
   //

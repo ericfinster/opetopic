@@ -65,10 +65,10 @@ abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
   var viewerHeight : Int = 0
 
   val uiElement = 
-    div(cls := "ui segment", style := "min-height: 200px").render
+    div(cls := "ui segment").render
 
   def initialize: Unit = {
-    viewerHeight = jQuery(uiElement).height.toInt
+    viewerHeight = jQuery(uiElement).height.toInt - 10
     jQuery(dom.window).on("resize", () => { resizeViewer })
     resizeViewer
   }

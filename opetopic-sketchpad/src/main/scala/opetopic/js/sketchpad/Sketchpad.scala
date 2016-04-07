@@ -33,6 +33,8 @@ object Sketchpad extends JSApp {
   val editor = new SketchpadEditor
   val viewer = new SketchpadViewer
 
+  import editor._
+
   def main : Unit = {
 
     println("Launched Opetopic Sketchpad.")
@@ -43,27 +45,25 @@ object Sketchpad extends JSApp {
     jQuery("#viewer-div").append(viewer.uiElement)
     viewer.initialize
 
+    jQuery(".ui.pointing.menu .item").tab()
+
+    jQuery("#fill-color-btn").popup(lit(
+      popup = jQuery(".color-select.popup"),
+      movePopup = false,
+      on = "click",
+      onShow = () => { isFill = true }
+    ))
+
+    jQuery("#stroke-color-btn").popup(lit(
+      popup = jQuery(".color-select.popup"),
+      movePopup = false,
+      on = "click",
+      onShow = () => { isFill = false }
+    ))
+
+    jQuery("#label-input").on("input", () => { updateLabel })
+
   }
-
-  //   jQuery(".ui.pointing.menu .item").tab()
-
-  //   jQuery("#fill-color-btn").popup(lit(
-  //     popup = jQuery(".color-select.popup"),
-  //     movePopup = false,
-  //     on = "click",
-  //     onShow = () => { isFill = true }
-  //   ))
-
-  //   jQuery("#stroke-color-btn").popup(lit(
-  //     popup = jQuery(".color-select.popup"),
-  //     movePopup = false,
-  //     on = "click",
-  //     onShow = () => { isFill = false }
-  //   ))
-
-  //   jQuery("#label-input").on("input", () => {
-  //     updateLabel
-  //   })
 
   //   jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
 
@@ -103,41 +103,53 @@ object Sketchpad extends JSApp {
   // var fillColor: String = "white"
   // var strokeColor: String = "black"
 
-  // def unescapeUnicode(str: String): String =
-  //   """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
-  //     m => Integer.parseInt(m.group(1), 16).toChar.toString)
+  def unescapeUnicode(str: String): String =
+    """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
+      m => Integer.parseInt(m.group(1), 16).toChar.toString)
 
-  // def updateLabel: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //   } {
+  def updateLabel: Unit = {
 
-  //     val labelVal = unescapeUnicode(
-  //       jQuery("#label-input").value().toString
-  //     )
+    val labelVal = unescapeUnicode(
+      jQuery("#label-input").value().toString
+    )
 
-  //     @natElim
-  //     def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
-  //       case (Z, box) => 
-  //         box.optLabel match {
-  //           case None => box.optLabel = Some(SimpleObjectMarker(labelVal, DefaultColorSpec))
-  //           case Some(SimpleObjectMarker(l, s)) => box.optLabel = Some(SimpleObjectMarker(labelVal, s))
-  //         }
-  //       case (S(p: P), box) => 
-  //         box.optLabel match {
-  //           case None => box.optLabel = Some(SimpleCellMarker(labelVal, DefaultColorSpec))
-  //           case Some(SimpleCellMarker(l, s, r, e)) => box.optLabel = Some(SimpleCellMarker(labelVal, s, r, e))
-  //         }
-  //     }
+    for {
+      _ <- withSelection(new BoxAction[Unit] {
 
-  //     doUpdate(bs.n)(bs.value)
+        def objectAction(box : EditorBox[_0]) : Unit = {
 
-  //     bs.value.panel.refresh
-  //     tab.editor.refreshGallery
-  //     refreshFaceGallery
+          box.optLabel match {
+            case None => 
+              box.optLabel = Some(SimpleObjectMarker(labelVal, DefaultColorSpec))
+            case Some(SimpleObjectMarker(l, s)) => 
+              box.optLabel = Some(SimpleObjectMarker(labelVal, s))
+          }
 
-  //   }
+          box.panel.refresh
+
+        }
+
+        def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : Unit = {
+
+          box.optLabel match {
+            case None => 
+              box.optLabel = Some(SimpleCellMarker(labelVal, DefaultColorSpec))
+            case Some(SimpleCellMarker(l, s, r, e)) => 
+              box.optLabel = Some(SimpleCellMarker(labelVal, s, r, e))
+          }
+
+          box.panel.refresh
+        }
+
+      })
+    } { 
+
+      refreshEditor 
+      editor.showFace
+
+    }
+
+  }
 
   // def updateFillColor: Unit = 
   //   for {
@@ -196,34 +208,6 @@ object Sketchpad extends JSApp {
   //     bs.value.panel.refresh
   //     tab.editor.refreshGallery
   //     refreshFaceGallery
-
-  //   }
-
-  // object FaceGalleryConfig extends GalleryConfig(
-  //   panelConfig = DefaultPanelConfig,
-  //   width = 900,
-  //   height = 150,
-  //   spacing = 1500,
-  //   minViewX = Some(60000),
-  //   minViewY = Some(6000),
-  //   spacerBounds = Bounds(0, 0, 600, 600)
-  // )
-
-  // def refreshFaceGallery: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //     lc <- bs.value.labelComplex
-  //   } {
-
-  //     import tab._
-  //     implicit val bsDim = bs.n
-
-  //     val gallery = ActiveGallery(lc)
-  //     gallery.config = FaceGalleryConfig
-  //     gallery.refreshAll
-
-  //     jQuery("#face-pane").empty().append(gallery.element.uiElement)
 
   //   }
 

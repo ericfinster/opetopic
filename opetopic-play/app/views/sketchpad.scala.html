@@ -17,12 +17,20 @@
 
       <div class="twelve wide column">
 	
-	<div class="ui stackable grid">
+	<div class="ui equal height grid">
+
+	  <div class="row">
+	    <div class="four wide column">
+	      <h3 class="ui dividing header">Sketches</h3>
+	    </div>
+	    <div class="twelve wide column">
+	      <h3 class="ui dividing header">Editor</h3>
+	    </div>
+	  </div>
 
 	  <div class="row">
 
-	    <div class="four wide column">
-	      <h3 class="ui dividing header">Sketches</h3>
+	    <div class="four wide stretched column">
 	      @if(userOpt.isDefined) {
 		<div class="ui segment">
 		  <div class="ui selection list" id="sketch-list">
@@ -39,16 +47,24 @@
 	    </div>
 
 	    <div class="twelve wide column">
-	      <h3 class="ui dividing header">Editor</h3>
 	      <div id="editor-div"></div>
 	    </div>
 
 	  </div>
 
 	  <div class="row">
-
 	    <div class="four wide column">
 	      <h3 class="ui dividing header">Properties</h3>
+	    </div>
+	    <div class="twelve wide column">
+	      <h3 class="ui dividing header">Face Viewer</h3>
+	    </div>
+	  </div>
+
+
+	  <div class="row">
+
+	    <div class="four wide column">
 	      <div class="ui segment" style="min-width: 300px">
 		<div class="ui secondary pointing menu" id="cell-props-menu">
 		  <a class="active item" data-tab="box-props">Box Properties</a>
@@ -78,9 +94,7 @@
 	      </div>
 	    </div>
 
-	    <div class="twelve wide column">
-	      <h3 class="ui dividing header">Face Viewer</h3>
-	      <div id="viewer-div" style="height: 100%"></div>
+	    <div class="twelve wide stretched column" id="viewer-div">
 	    </div>
 	  </div>
 	</div>
