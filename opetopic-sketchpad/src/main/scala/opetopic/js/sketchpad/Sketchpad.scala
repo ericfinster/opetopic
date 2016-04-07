@@ -242,6 +242,9 @@ object Sketchpad extends JSApp {
       implicit val bsDim = bs.n
 
       val gallery = ActiveGallery(lc)
+      gallery.config = FaceGalleryConfig
+      gallery.refreshAll
+
       jQuery("#face-pane").empty().append(gallery.element.uiElement)
 
     }

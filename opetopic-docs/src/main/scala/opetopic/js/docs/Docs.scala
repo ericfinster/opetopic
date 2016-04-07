@@ -74,8 +74,8 @@ object Docs extends JSApp {
 
     println("Starting the opetopes page ...")
 
-    val gallery = ActiveGallery(threecell)
-    jQuery("#gallery-pane").append(gallery.element.uiElement)
+    // val gallery = ActiveGallery(threecell)(DocsGalleryConfig)
+    // jQuery("#gallery-pane").append(gallery.element.uiElement)
 
   }
     

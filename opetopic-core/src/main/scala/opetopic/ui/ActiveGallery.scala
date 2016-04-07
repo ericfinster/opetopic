@@ -127,7 +127,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     type GalleryBoxType[N <: Nat] = SimpleActiveGalleryCellBox[N]
     type GalleryEdgeType[N <: Nat] = SimpleActiveGalleryCellEdge[N]
 
-    var config = DefaultGalleryConfig
+    var config : GalleryConfig = DefaultGalleryConfig
     var selection : Option[Selection] = None
 
     val panels : NonemptySuite[GalleryPanelType] =
@@ -221,8 +221,12 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
       new SimpleActiveGallery(cmplx)
 
-    // def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
-    //   new SimpleActiveGallery(cmplx)
+    // def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(cfg: GalleryConfig)(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = {
+    //   val gallery = new SimpleActiveGallery(cmplx)
+    //   gallery.config = cfg
+    //   gallery.refreshAll
+    //   gallery
+    // }
 
   }
 

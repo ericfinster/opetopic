@@ -54,7 +54,10 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       bounds = bnds
     }
 
-    refreshGallery
+    def refreshAll: Unit = {
+      panels.foreach(p => p.refresh)
+      refreshGallery
+    }
 
     @natElim
     def createPanels[N <: Nat](n: N)(cardinal: Cardinal[OptA, N]) : Suite[CardinalPanel, S[N]] = {
@@ -383,7 +386,13 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
       var visualization = panel.visualize(label)
       makeMouseInvisible(labelElement)
 
-      boxRect.onClick = (e: UIMouseEvent) => { thisEditor.select(thisBox) }
+      boxRect.onClick = (e: UIMouseEvent) => { 
+        if (e.ctrlKey) 
+          thisEditor.select(thisBox)
+        else 
+          thisEditor.selectAsRoot(thisBox)
+      }
+
       boxRect.onMouseOver = { (e : UIMouseEvent) => hoverFaces }
       boxRect.onMouseOut = { (e : UIMouseEvent) => unhoverFaces }
 
@@ -559,8 +568,6 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
           case (opt, addr, cn) => Box(neutralCellBox(opt, pref >> addr, false), cn)
         })
 
-      refresh
-
     }
 
     class CardinalNestingPanel[P <: Nat](p: P)(
@@ -590,8 +597,6 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
         edgeNesting = connectEdges(prevPanel.boxNesting map (_ => cellEdge), boxNesting)
         super.refresh
       }
-
-      refresh
 
     }
 

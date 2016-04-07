@@ -40,6 +40,8 @@ class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
       case Some(cSig) => CardinalEditor[SimpleMarker, cSig.N](cSig.value)
     }
 
+  editor.refreshAll
+
   editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.displayCell }
   editor.onDeselectAll = () => { activeBox = None }
 
