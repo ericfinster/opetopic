@@ -213,7 +213,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
       panelViewport.width = panelWidth
       panelViewport.height = panelHeight
       panelViewport.setBounds(viewportBounds)
-      panelViewport.children = Seq(panelGroup)
 
     }
 
@@ -246,14 +245,15 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
   class SimpleActiveObjectPanel[A](val nesting: Nesting[A, _0])(implicit v: Visualizable[A, _0])
       extends SimpleActivePanel[A, _0] with ActiveObjectPanel[A] { 
 
-    var config = DefaultPanelConfig
+    var config = PanelConfig()
 
     val panelDim = Z
     val boxNesting = generateBoxes(nesting.dim)(nesting)
 
     override def refresh: Unit = {
       super.refresh
-      setupViewport
+      panelViewport.children = Seq(panelGroup)
+      if (config.manageViewport) setupViewport
     }
 
   }
@@ -263,7 +263,7 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
     edgeOpt : Option[Nesting[B, P]]
   )(implicit v: Visualizable[A, S[P]]) extends SimpleActivePanel[A, S[P]] with ActiveNestingPanel[A, P] {
 
-    var config = DefaultPanelConfig
+    var config = PanelConfig()
 
     val panelDim = S(p)
     val boxNesting = generateBoxes(nesting.dim)(nesting)
@@ -276,7 +276,8 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
     override def refresh: Unit = {
       super.refresh
-      setupViewport
+      panelViewport.children = Seq(panelGroup)
+      if (config.manageViewport) setupViewport
     }
 
   }

@@ -18,21 +18,13 @@ trait HasPanels { self : UIFramework =>
   import isNumeric._
 
   case class PanelConfig(
-    val internalPadding : Size,
-    val externalPadding : Size,
-    val decorationPadding : Size,
-    val leafWidth : Size,
-    val strokeWidth : Size,
-    val cornerRadius : Size
-  )
-
-  object DefaultPanelConfig extends PanelConfig(
-    internalPadding = fromInt(400),
-    externalPadding = fromInt(600),
-    decorationPadding = fromInt(400),
-    leafWidth = fromInt(200),
-    strokeWidth = fromInt(100),
-    cornerRadius = fromInt(200)
+    val internalPadding : Size = fromInt(400),
+    val externalPadding : Size = fromInt(600),
+    val decorationPadding : Size = fromInt(400),
+    val leafWidth : Size = fromInt(200),
+    val strokeWidth : Size = fromInt(100),
+    val cornerRadius : Size = fromInt(200),
+    val manageViewport : Boolean = false
   )
 
   trait Panel[A, N <: Nat] extends BoundedElement {

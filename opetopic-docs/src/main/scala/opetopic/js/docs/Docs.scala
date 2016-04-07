@@ -25,7 +25,7 @@ object Docs extends JSApp {
   import Examples._
 
   object DocsGalleryConfig extends GalleryConfig (
-    panelConfig = DefaultPanelConfig,
+    panelConfig = PanelConfig(),
     width = 600,
     height = 350,
     spacing = 1500,

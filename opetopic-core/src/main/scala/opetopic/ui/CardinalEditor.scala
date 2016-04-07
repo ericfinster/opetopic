@@ -34,7 +34,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     type GalleryAddressType[N <: Nat] = CardinalAddress[S[N]]
     type GalleryLabelType = Element
 
-    var config = DefaultGalleryConfig
+    var config = GalleryConfig()
 
     var panels: NonemptySuite[CardinalPanel] = 
       createPanels(c.n)(c.value)
@@ -45,13 +45,23 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     def element: Element = galleryViewport
     var bounds = Bounds(zero, zero, zero, zero)
 
+    var onRefresh : () => Unit = { () => () }
+
     def refreshGallery : Unit = {
+
       val (panelEls, bnds) = elementsAndBounds
-      galleryViewport.width = config.width
-      galleryViewport.height = config.height
-      galleryViewport.setBounds(bnds)
+
+      if (config.manageViewport) {
+        galleryViewport.width = config.width
+        galleryViewport.height = config.height
+        galleryViewport.setBounds(bnds)
+      }
+
       galleryViewport.children = panelEls
       bounds = bnds
+
+      onRefresh()
+
     }
 
     def refreshAll: Unit = {

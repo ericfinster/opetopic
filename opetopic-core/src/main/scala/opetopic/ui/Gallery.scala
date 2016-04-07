@@ -16,23 +16,14 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
   import isNumeric._
 
   case class GalleryConfig(
-    val panelConfig: PanelConfig,
-    val width: Size,
-    val height: Size,
-    val spacing: Size,
-    val minViewX: Option[Size],
-    val minViewY: Option[Size],
-    val spacerBounds: Bounds
-  )
-
-  object DefaultGalleryConfig extends GalleryConfig(
-    panelConfig = DefaultPanelConfig,
-    width = fromInt(1000),
-    height = fromInt(300),
-    spacing = fromInt(2000),
-    minViewX = Some(fromInt(80000)),
-    minViewY = Some(fromInt(15000)),
-    spacerBounds = Bounds(fromInt(0), fromInt(0), fromInt(600), fromInt(600))
+    val panelConfig: PanelConfig = PanelConfig(),
+    val width: Size = fromInt(900),
+    val height: Size = fromInt(300),
+    val spacing: Size = fromInt(2000),
+    val minViewX: Option[Size] = None,
+    val minViewY: Option[Size] = None,
+    val spacerBounds: Bounds = Bounds(zero, zero, fromInt(600), fromInt(600)),
+    val manageViewport: Boolean = false
   )
   
   trait Gallery[A[_ <: Nat]] {

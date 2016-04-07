@@ -6,6 +6,7 @@
   */
 
 package opetopic.js.sketchpad
+
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
 
@@ -21,15 +22,15 @@ import SimpleMarker._
 
 class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
 
-  object SketchpadGalleryConfig extends GalleryConfig(
-    panelConfig = DefaultPanelConfig,
-    width = 1000,
-    height = 85,
-    spacing = 1500,
-    minViewX = Some(60000),
-    minViewY = Some(6000),
-    spacerBounds = Bounds(0, 0, 600, 600)
-  )
+  // object SketchpadGalleryConfig extends GalleryConfig(
+  //   panelConfig = DefaultPanelConfig,
+  //   width = 1000,
+  //   height = 85,
+  //   spacing = 1500,
+  //   minViewX = Some(60000),
+  //   minViewY = Some(6000),
+  //   spacerBounds = Bounds(0, 0, 600, 600)
+  // )
 
   implicit val vf : VisualizableFamily[SimpleMarker] = 
     frameworkFamily(JsDomFramework)
@@ -42,8 +43,8 @@ class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
 
   editor.refreshAll
 
-  editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.displayCell }
-  editor.onDeselectAll = () => { activeBox = None }
+  // editor.onSelectAsRoot = (bs: Sigma[editor.CardinalCellBox]) => { activeBox = Some(bs) ; Sketchpad.displayCell }
+  // editor.onDeselectAll = () => { activeBox = None }
 
   val uiElement = 
     div(cls := "nofocus", tabindex := 0)(
@@ -62,14 +63,14 @@ class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
 
   var activeBox: Option[Sigma[editor.CardinalCellBox]] = None
 
-  implicit val optAFamily : VisualizableFamily[editor.OptA] = 
-    VisualizableFamily.optionVisualizableFamily(DefaultGalleryConfig.spacerBounds, editor.v)
+  // implicit val optAFamily : VisualizableFamily[editor.OptA] = 
+  //   VisualizableFamily.optionVisualizableFamily(DefaultGalleryConfig.spacerBounds, editor.v)
 
-  implicit def optAVisualizable[N <: Nat](implicit n: N) : Visualizable[editor.OptA[N], N] = 
-    new Visualizable[editor.OptA[N], N] {
-      def visualize(o: editor.OptA[N]) : Visualization[N] = 
-        optAFamily.visualize(n)(o)
-    }
+  // implicit def optAVisualizable[N <: Nat](implicit n: N) : Visualizable[editor.OptA[N], N] = 
+  //   new Visualizable[editor.OptA[N], N] {
+  //     def visualize(o: editor.OptA[N]) : Visualization[N] = 
+  //       optAFamily.visualize(n)(o)
+  //   }
 
   // import opetopic.pprint._
   // import scala.{Iterator => Iter}

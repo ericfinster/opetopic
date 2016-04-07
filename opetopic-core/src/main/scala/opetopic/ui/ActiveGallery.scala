@@ -30,9 +30,13 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
     def refreshGallery : Unit = {
       val (panelEls, bnds) = elementsAndBounds
-      galleryViewport.width = config.width
-      galleryViewport.height = config.height
-      galleryViewport.setBounds(bnds)
+
+      if (config.manageViewport) {
+        galleryViewport.width = config.width
+        galleryViewport.height = config.height
+        galleryViewport.setBounds(bnds)
+      }
+
       galleryViewport.children = panelEls
       bounds = bnds
     }
@@ -127,7 +131,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     type GalleryBoxType[N <: Nat] = SimpleActiveGalleryCellBox[N]
     type GalleryEdgeType[N <: Nat] = SimpleActiveGalleryCellEdge[N]
 
-    var config : GalleryConfig = DefaultGalleryConfig
+    var config : GalleryConfig = GalleryConfig()
     var selection : Option[Selection] = None
 
     val panels : NonemptySuite[GalleryPanelType] =
