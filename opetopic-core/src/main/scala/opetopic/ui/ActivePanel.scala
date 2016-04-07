@@ -16,8 +16,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
   trait ActivePanel[A, N <: Nat] extends Panel[A, N] with SelectablePanel[A, N] {
 
-    import config._
-
     val panelGroup = group
     def element : Element = panelGroup
       
@@ -29,8 +27,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
   }
 
   trait ActiveCellBox[A, N <: Nat] extends SelectableBox[A, N] {
-
-    import panel.config._
 
     var label : A
 
@@ -78,8 +74,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
 
   trait ActiveCellEdge[A, N <: Nat] extends CellEdge[A, N] {
 
-    import panel.config._
-
     val edgePath = {
       val p = path
       p.stroke = "black"
@@ -123,8 +117,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
   }
 
   trait ActiveNestingPanel[A, P <: Nat] extends ActivePanel[A, S[P]] with NestingPanel[A, P] {
-
-    import config._
 
     def bounds: Bounds = {
       val baseBox = boxNesting.baseValue
@@ -251,8 +243,10 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
       extends ActiveCellEdge[A, N]
 
 
-  class SimpleActiveObjectPanel[A](val config: PanelConfig, val nesting: Nesting[A, _0])(implicit v: Visualizable[A, _0])
+  class SimpleActiveObjectPanel[A](val nesting: Nesting[A, _0])(implicit v: Visualizable[A, _0])
       extends SimpleActivePanel[A, _0] with ActiveObjectPanel[A] { 
+
+    var config = DefaultPanelConfig
 
     val panelDim = Z
     val boxNesting = generateBoxes(nesting.dim)(nesting)
@@ -267,10 +261,11 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
   }
 
   class SimpleActiveNestingPanel[A, B, P <: Nat](p: P)(
-    val config: PanelConfig,
     val nesting: Nesting[A, S[P]], 
     edgeOpt : Option[Nesting[B, P]]
   )(implicit v: Visualizable[A, S[P]]) extends SimpleActivePanel[A, S[P]] with ActiveNestingPanel[A, P] {
+
+    var config = DefaultPanelConfig
 
     val panelDim = S(p)
     val boxNesting = generateBoxes(nesting.dim)(nesting)
@@ -297,16 +292,16 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
   object ActivePanel {
 
     @natElim
-    def apply[A, N <: Nat](n: N)(nst: Nesting[A, N], v: Visualizable[A, N])(implicit cfg: PanelConfig) : SimpleActivePanel[A, N] = {
-      case (Z, nst, v) => new SimpleActiveObjectPanel(cfg, nst)(v)
-      case (S(p), nst, v) => new SimpleActiveNestingPanel(p)(cfg, nst, None)(v)
+    def apply[A, N <: Nat](n: N)(nst: Nesting[A, N], v: Visualizable[A, N]) : SimpleActivePanel[A, N] = {
+      case (Z, nst, v) => new SimpleActiveObjectPanel(nst)(v)
+      case (S(p), nst, v) => new SimpleActiveNestingPanel(p)(nst, None)(v)
     }
 
-    def apply[A, N <: Nat](nst: Nesting[A, N])(implicit cfg: PanelConfig, v: Visualizable[A, N]) : SimpleActivePanel[A, N] = 
+    def apply[A, N <: Nat](nst: Nesting[A, N])(implicit v: Visualizable[A, N]) : SimpleActivePanel[A, N] = 
       ActivePanel(nst.dim)(nst, v)
 
-    def apply[A, P <: Nat](nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit cfg: PanelConfig, v: Visualizable[A, S[P]]) : SimpleActivePanel[A, S[P]] = 
-      new SimpleActiveNestingPanel(et.dim)(cfg, nst, Some(et))
+    def apply[A, P <: Nat](nst: Nesting[A, S[P]], et: Nesting[A, P])(implicit v: Visualizable[A, S[P]]) : SimpleActivePanel[A, S[P]] = 
+      new SimpleActiveNestingPanel(et.dim)(nst, Some(et))
 
   }
 

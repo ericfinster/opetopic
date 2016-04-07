@@ -17,8 +17,6 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
   trait StaticPanel[A, N <: Nat] extends Panel[A, N] {
 
-    import config._
-
     type BoxType <: StaticCellBox[A, N] { type BoxAddressType = PanelAddressType }
     type EdgeType <: StaticCellEdge[A, N]
 
@@ -34,8 +32,6 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
   }
 
   trait StaticCellBox[A, N <: Nat] extends CellBox[A, N] {
-
-    import panel.config._
 
     def element: Element = {
 
@@ -54,8 +50,6 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
   trait StaticCellEdge[A, N <: Nat] extends CellEdge[A, N] {
 
-    import panel.config._
-
     def element: Element = {
 
       val transDecs = edgeDecorations map ((mk : DecorationMarker) => {
@@ -73,8 +67,6 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
 
   trait StaticObjectPanel[A] extends StaticPanel[A, _0] with ObjectPanel[A] {
 
-    import config._
-
     def element: Element = {
       group (boxNesting.nodes map (_.element) : _*)
     }
@@ -87,8 +79,6 @@ trait HasStaticPanels extends HasPanels { self: UIFramework =>
   }
 
   trait StaticNestingPanel[A, P <: Nat] extends StaticPanel[A, S[P]] with NestingPanel[A, P] {
-
-    import config._
 
     def element: Element = {
 

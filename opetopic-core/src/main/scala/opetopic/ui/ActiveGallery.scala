@@ -113,7 +113,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   }
 
-  class SimpleActiveGallery[A[_ <: Nat]](val config: GalleryConfig, val complex: FiniteComplex[A])(
+  class SimpleActiveGallery[A[_ <: Nat]](val complex: FiniteComplex[A])(
     implicit v: VisualizableFamily[A]
   ) extends ActiveGallery[A] { thisGallery =>
 
@@ -121,6 +121,7 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     type GalleryBoxType[N <: Nat] = SimpleActiveGalleryCellBox[N]
     type GalleryEdgeType[N <: Nat] = SimpleActiveGalleryCellEdge[N]
 
+    var config = DefaultGalleryConfig
     var selection : Option[Selection] = None
 
     val panels : NonemptySuite[GalleryPanelType] =
@@ -218,11 +219,11 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
 
   object ActiveGallery {
 
-    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit cfg: GalleryConfig, v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
-      new SimpleActiveGallery(cfg, cmplx)
+    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
+      new SimpleActiveGallery(cmplx)
 
-    def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
-      new SimpleActiveGallery(cfg, cmplx)
+    // def apply[A[_ <: Nat]](cfg: GalleryConfig, cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
+    //   new SimpleActiveGallery(cmplx)
 
   }
 

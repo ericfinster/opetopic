@@ -21,7 +21,7 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
   import isNumeric._
 
   class CardinalEditor[A[_ <: Nat]](c: FiniteCardinal[Lambda[`N <: Nat` => Option[A[N]]]])(
-    implicit val config: GalleryConfig, val v: VisualizableFamily[A]
+    implicit val v: VisualizableFamily[A]
   ) extends SelectableGallery[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] { thisEditor =>
 
     type OptA[N <: Nat] = Option[A[N]]
@@ -33,6 +33,8 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
     type GalleryEdgeType[N <: Nat] = CardinalCellEdge[N]
     type GalleryAddressType[N <: Nat] = CardinalAddress[S[N]]
     type GalleryLabelType = Element
+
+    var config = DefaultGalleryConfig
 
     var panels: NonemptySuite[CardinalPanel] = 
       createPanels(c.n)(c.value)
@@ -597,14 +599,14 @@ trait HasEditor extends { self: ActiveFramework with HasActivePanels with HasSel
 
   object CardinalEditor {
 
-    def apply[A[_ <: Nat]](implicit config: GalleryConfig, v: VisualizableFamily[A]) : CardinalEditor[A] = {
+    def apply[A[_ <: Nat]](implicit v: VisualizableFamily[A]) : CardinalEditor[A] = {
       type OptA[K <: Nat] = Option[A[K]]
       new CardinalEditor[A](toFiniteCardinal[OptA, _0](Cardinal[OptA] >> Pt(Obj(None))))
     }
 
     def apply[A[_ <: Nat], N <: Nat](
       c: Complex[Lambda[`K <: Nat` => Option[A[K]]], N]
-    )(implicit config: GalleryConfig, v: VisualizableFamily[A]) : CardinalEditor[A] = {
+    )(implicit v: VisualizableFamily[A]) : CardinalEditor[A] = {
       type OptA[K <: Nat] = Option[A[K]]
       new CardinalEditor[A](toFiniteCardinal[OptA, N](Cardinal.complexToCardinal[OptA, N](c.length.pred)(c)._1))
     }

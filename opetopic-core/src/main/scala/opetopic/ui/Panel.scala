@@ -26,15 +26,30 @@ trait HasPanels { self : UIFramework =>
     val cornerRadius : Size
   )
 
+  object DefaultPanelConfig extends PanelConfig(
+    internalPadding = fromInt(400),
+    externalPadding = fromInt(600),
+    decorationPadding = fromInt(400),
+    leafWidth = fromInt(200),
+    strokeWidth = fromInt(100),
+    cornerRadius = fromInt(200)
+  )
+
   trait Panel[A, N <: Nat] extends BoundedElement {
 
-    val config : PanelConfig
-    import config._
+    def config : PanelConfig
 
     implicit def panelDim: N
 
-    def halfLeafWidth : Size = half(leafWidth)
-    def halfStrokeWidth : Size = half(strokeWidth)
+    def internalPadding = config.internalPadding
+    def externalPadding = config.externalPadding
+    def decorationPadding = config.decorationPadding
+    def leafWidth = config.leafWidth
+    def strokeWidth = config.strokeWidth
+    def cornerRadius = config.cornerRadius
+
+    def halfLeafWidth : Size = half(config.leafWidth)
+    def halfStrokeWidth : Size = half(config.strokeWidth)
 
     def nesting: Nesting[A, N]
     def boxNesting: Nesting[BoxType, N]
@@ -180,7 +195,6 @@ trait HasPanels { self : UIFramework =>
     type BoxAddressType
 
     val panel: PanelType
-    import panel.config._
 
     def label: A
     def boxDim: N = panel.panelDim
@@ -194,6 +208,13 @@ trait HasPanels { self : UIFramework =>
     def colorSpec : ColorSpec = visualization.colorSpec
 
     def bounds: Bounds = Bounds(x, y, width, height)
+
+    def internalPadding = panel.config.internalPadding
+    def externalPadding = panel.config.externalPadding
+    def decorationPadding = panel.config.decorationPadding
+    def leafWidth = panel.config.leafWidth
+    def strokeWidth = panel.config.strokeWidth
+    def cornerRadius = panel.config.cornerRadius
 
     //
     // Mutable Values
@@ -280,7 +301,13 @@ trait HasPanels { self : UIFramework =>
   trait CellEdge[A, N <: Nat] extends BoundedElement {
 
     val panel: Panel[A, N]
-    import panel.config._
+
+    def internalPadding = panel.config.internalPadding
+    def externalPadding = panel.config.externalPadding
+    def decorationPadding = panel.config.decorationPadding
+    def leafWidth = panel.config.leafWidth
+    def strokeWidth = panel.config.strokeWidth
+    def cornerRadius = panel.config.cornerRadius
 
     var edgeStartX : Size = zero
     var edgeStartY : Size = zero
@@ -342,8 +369,6 @@ trait HasPanels { self : UIFramework =>
 
   trait ObjectPanel[A] extends Panel[A, _0] {
 
-    import config._
-
     def layoutObjects(nst : Nesting[BoxType, _0]) : BoxType =
       nst match {
         case Obj(b) => { b.clear ; b }
@@ -374,8 +399,6 @@ trait HasPanels { self : UIFramework =>
   //
 
   trait NestingPanel[A, P <: Nat] extends Panel[A, S[P]] {
-
-    import config._
 
     def edgeNesting: Nesting[EdgeType, P]
 

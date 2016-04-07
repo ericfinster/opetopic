@@ -25,10 +25,19 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
     val spacerBounds: Bounds
   )
 
+  object DefaultGalleryConfig extends GalleryConfig(
+    panelConfig = DefaultPanelConfig,
+    width = fromInt(1000),
+    height = fromInt(300),
+    spacing = fromInt(2000),
+    minViewX = Some(fromInt(80000)),
+    minViewY = Some(fromInt(15000)),
+    spacerBounds = Bounds(fromInt(0), fromInt(0), fromInt(600), fromInt(600))
+  )
+  
   trait Gallery[A[_ <: Nat]] {
 
-    val config: GalleryConfig
-    import config._
+    def config: GalleryConfig
 
     type GalleryPanelType[N <: Nat] <: GalleryPanel[N]
     type GalleryBoxType[N <: Nat] <: CellBox[A[N], N] { type BoxAddressType = GalleryAddressType[N] }
@@ -68,7 +77,7 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
 
       val maxHeight : Size = (panelData map (_._2.height)).max
 
-      var xPos : Size = spacing
+      var xPos : Size = config.spacing
 
       // Now you should translate them into place
       val locatedElements : List[Element] = 
@@ -82,14 +91,14 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
           val locatedElement = 
             translate(el, xTrans, yTrans)
 
-          xPos = xPos + bnds.width + spacing
+          xPos = xPos + bnds.width + config.spacing
 
           locatedElement
 
         }
 
       val (viewY, viewHeight) = 
-        minViewY match {
+        config.minViewY match {
           case None => (-maxHeight, maxHeight)
           case Some(mvh) => 
             if (mvh < maxHeight) {
@@ -101,7 +110,7 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
         }
 
       val (viewX, viewWidth) =
-        minViewX match {
+        config.minViewX match {
           case None => (zero, xPos)
           case Some(mvw) =>
             if (mvw < xPos) {
