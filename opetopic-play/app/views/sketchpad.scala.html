@@ -7,105 +7,59 @@
 
   <div>
 
-    <div class="ui grid sketch-main">
+    <div class="ui centered grid">
 
-      <div class="two wide column">
-	<!-- <div class="ui raised segment"> -->
-	<!--   <p>Left side</p> -->
-	<!-- </div> -->
-      </div>
+      <div class="three wide column" style="min-width: 300px">
 
-      <div class="twelve wide column">
-	
-	<div class="ui equal height grid">
-
-	  <div class="row">
-	    <div class="four wide column">
-	      <h3 class="ui dividing header">Sketches</h3>
+	<h3 class="ui dividing header">Box Properties</h3>
+	<div class="ui segment">
+	  <form class="ui form">
+	    <div class="field">
+	      <label>Label</label>
+	      <input type="text" id="label-input" placeholder="Label">
 	    </div>
-	    <div class="twelve wide column">
-	      <h3 class="ui dividing header">Editor</h3>
+	    <div class="field">
+	      <label>Colors</label>
+	      <div class="ui buttons">
+		<button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
+		<button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
+	      </div>
 	    </div>
-	  </div>
+	  </form>
+	</div>
 
-	  <div class="row">
+	<h3 class="ui dividing header">Edge Properties</h3>
+	<div class="ui segment">
+	  <p>Edge Properties</p>
+	</div>
 
-	    <div class="four wide stretched column">
-	      @if(userOpt.isDefined) {
-		<div class="ui segment">
-		  <div class="ui selection list" id="sketch-list">
-		    @for(s <- sketches) {
+	<h3 class="ui dividing header">Sketches</h3>
+
+	@if(userOpt.isDefined) {
+	<div class="ui segment">
+	  <div class="ui selection list" id="sketch-list">
+	    @for(s <- sketches) {
 		      <div class="item" data-name="@s.name" data-id="@s.sketchId.toString">
 			@s.name
 		      </div>
-		    }
-		  </div>
-		</div>
-	      } else {
-	        <p>Please <a href="/signIn">log in</a> to save sketches.</p>
-	      }
-	    </div>
-
-	    <div class="twelve wide column">
-	      <div id="editor-div"></div>
-	    </div>
-
-	  </div>
-
-	  <div class="row">
-	    <div class="four wide column">
-	      <h3 class="ui dividing header">Properties</h3>
-	    </div>
-	    <div class="twelve wide column">
-	      <h3 class="ui dividing header">Face Viewer</h3>
-	    </div>
-	  </div>
-
-
-	  <div class="row">
-
-	    <div class="four wide column">
-	      <div class="ui segment" style="min-width: 300px">
-		<div class="ui secondary pointing menu" id="cell-props-menu">
-		  <a class="active item" data-tab="box-props">Box Properties</a>
-		  <a class="item" data-tab="edge-props">Edge Properties</a>
-		</div>
-		<div class="ui active tab" data-tab="box-props">
-		  <div class="ui segment">
-		    <form class="ui form">
-		      <div class="field">
-			<label>Label</label>
-			<input type="text" id="label-input" placeholder="Label">
-		      </div>
-		      <div class="field">
-			<label>Colors</label>
-			<div class="ui buttons">
-			  <button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
-			  <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
-			</div>
-		      </div>
-		    </form>
-		  </div>
-		</div>
-		<div class="ui tab" data-tab="edge-props">
-		  <div class="ui center aligned segment" id="edge-prop-tab">
-		  </div>
-		</div>
-	      </div>
-	    </div>
-
-	    <div class="twelve wide stretched column" id="viewer-div">
-	    </div>
+		      }
 	  </div>
 	</div>
+	} else {
+	<p>Please <a href="/signIn">log in</a> to save sketches.</p>
+	}
+
       </div>
 
-      <div class="two wide column">
-	<!-- <div class="ui raised segment"> -->
-	<!--   <p>Right side</p> -->
-	<!-- </div> -->
-      </div>
+      <div class="eight wide column" style="min-width: 300px">
+	
+	<h3 class="ui dividing header">Editor</h3>
+	<div id="editor-div"></div>
 
+	<h3 class="ui dividing header">Face Viewer</h3>
+	<div id="viewer-div"></div>
+
+      </div>
     </div>
 
     <div class="ui color-select popup segments" style="min-width: 150px; padding: 5px 5px 5px 5px;">

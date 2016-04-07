@@ -162,6 +162,13 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   // UI ELEMENTS
   //
 
+  val sidebarMenu = 
+    div(cls := "ui left vertical visible sidebar menu")(
+      a(cls := "item")("Fred"),
+      a(cls := "item")("Wilma"),
+      a(cls := "item")("Barney")
+    ).render
+
   val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 300px").render
   val paginationMenu = div(cls := "ui pagination menu").render
   
@@ -169,7 +176,6 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     div(cls := "ui top attached menu")(
       a(cls := "item")("Shape", i(cls := "dropdown icon"))
     ).render
-
 
   val bottomMenu = 
     div(cls := "ui bottom attached segment")(

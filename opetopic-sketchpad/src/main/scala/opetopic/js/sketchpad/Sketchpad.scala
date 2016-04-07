@@ -45,23 +45,23 @@ object Sketchpad extends JSApp {
     jQuery("#viewer-div").append(viewer.uiElement)
     viewer.initialize
 
-    jQuery(".ui.pointing.menu .item").tab()
+    // jQuery(".ui.pointing.menu .item").tab()
 
-    jQuery("#fill-color-btn").popup(lit(
-      popup = jQuery(".color-select.popup"),
-      movePopup = false,
-      on = "click",
-      onShow = () => { isFill = true }
-    ))
+    // jQuery("#fill-color-btn").popup(lit(
+    //   popup = jQuery(".color-select.popup"),
+    //   movePopup = false,
+    //   on = "click",
+    //   onShow = () => { isFill = true }
+    // ))
 
-    jQuery("#stroke-color-btn").popup(lit(
-      popup = jQuery(".color-select.popup"),
-      movePopup = false,
-      on = "click",
-      onShow = () => { isFill = false }
-    ))
+    // jQuery("#stroke-color-btn").popup(lit(
+    //   popup = jQuery(".color-select.popup"),
+    //   movePopup = false,
+    //   on = "click",
+    //   onShow = () => { isFill = false }
+    // ))
 
-    jQuery("#label-input").on("input", () => { updateLabel })
+    // jQuery("#label-input").on("input", () => { updateLabel })
 
   }
 
@@ -99,9 +99,9 @@ object Sketchpad extends JSApp {
 
   // }
 
-  // var isFill: Boolean = true
-  // var fillColor: String = "white"
-  // var strokeColor: String = "black"
+  var isFill: Boolean = true
+  var fillColor: String = "white"
+  var strokeColor: String = "black"
 
   def unescapeUnicode(str: String): String =
     """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
