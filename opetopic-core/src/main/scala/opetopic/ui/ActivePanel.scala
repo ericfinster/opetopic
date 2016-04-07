@@ -256,8 +256,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
       setupViewport
     }
 
-    refresh 
-
   }
 
   class SimpleActiveNestingPanel[A, B, P <: Nat](p: P)(
@@ -280,8 +278,6 @@ trait HasActivePanels extends HasSelectablePanels { self : ActiveFramework =>
       super.refresh
       setupViewport
     }
-
-    refresh
 
   }
 

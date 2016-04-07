@@ -21,16 +21,15 @@ import SimpleMarker._
 
 class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
 
-  val baseConfig: GalleryConfig =
-    GalleryConfig(
-      panelConfig = defaultPanelConfig,
-      width = 1000,
-      height = 85,
-      spacing = 1500,
-      minViewX = Some(60000),
-      minViewY = Some(6000),
-      spacerBounds = Bounds(0, 0, 600, 600)
-    )
+  object SketchpadGalleryConfig extends GalleryConfig(
+    panelConfig = DefaultPanelConfig,
+    width = 1000,
+    height = 85,
+    spacing = 1500,
+    minViewX = Some(60000),
+    minViewY = Some(6000),
+    spacerBounds = Bounds(0, 0, 600, 600)
+  )
 
   implicit val vf : VisualizableFamily[SimpleMarker] = 
     frameworkFamily(JsDomFramework)
@@ -62,7 +61,7 @@ class EditorTab(cOpt: Option[FiniteComplex[OptMarker]] = None) {
   var activeBox: Option[Sigma[editor.CardinalCellBox]] = None
 
   implicit val optAFamily : VisualizableFamily[editor.OptA] = 
-    VisualizableFamily.optionVisualizableFamily(baseConfig.spacerBounds, editor.v)
+    VisualizableFamily.optionVisualizableFamily(DefaultGalleryConfig.spacerBounds, editor.v)
 
   implicit def optAVisualizable[N <: Nat](implicit n: N) : Visualizable[editor.OptA[N], N] = 
     new Visualizable[editor.OptA[N], N] {

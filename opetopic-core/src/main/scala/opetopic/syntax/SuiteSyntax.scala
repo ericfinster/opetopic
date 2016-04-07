@@ -29,6 +29,9 @@ class SuiteOps[A[_ <: Nat], N <: Nat](suite: Suite[A, N]) {
   def foreach(op: IndexedOp[A]) : Unit = 
     Suite.foreach[A, N](suite)(op)
 
+  def foreach(op: A[_] => Unit) : Unit = 
+    Suite.foreach[A, N](suite)(new IndexedOp[A] { def apply[N <: Nat](n: N)(an: A[N]) = op(an) })
+
   def traverse[T[_], B[_ <: Nat]](t: IndexedTraverse[T, A, B])(implicit apT: Applicative[T]) : T[Suite[B, N]] = 
     Suite.traverse[T, A, B, N](suite)(t)
 

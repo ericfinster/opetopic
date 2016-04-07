@@ -27,27 +27,6 @@ object JsDomFramework extends ActiveFramework
 
   val svgns = "http://www.w3.org/2000/svg"
 
-  implicit val defaultPanelConfig =
-    PanelConfig(
-      internalPadding = 400,
-      externalPadding = 600,
-      decorationPadding = 400,
-      leafWidth = 200,
-      strokeWidth = 100,
-      cornerRadius = 200
-    )
-
-  implicit val defaultGalleryConfig =
-    GalleryConfig(
-      panelConfig = defaultPanelConfig,
-      width = 1000,
-      height = 300,
-      spacing = 2000,
-      minViewX = Some(80000),
-      minViewY = Some(15000),
-      spacerBounds = Bounds(0, 0, 600, 600)
-    )
-
   val isNumeric: Numeric[Int] = implicitly[Numeric[Int]]
   val isOrdered: Ordering[Int] = implicitly[Ordering[Int]]
 

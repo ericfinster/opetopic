@@ -898,18 +898,4 @@ trait HasPanels { self : UIFramework =>
 
   }
 
-  //============================================================================================
-  // EDGE HELPERS
-  //
-
-  // trait EdgeLike {
-
-  //   var edgeStartX : Size = zero
-  //   var edgeStartY : Size = zero
-
-  //   var edgeEndX : Size = zero
-  //   var edgeEndY : Size = zero
-
-  // }
-
 }

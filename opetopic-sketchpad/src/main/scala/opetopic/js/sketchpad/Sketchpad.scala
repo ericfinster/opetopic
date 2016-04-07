@@ -219,16 +219,15 @@ object Sketchpad extends JSApp {
 
     }
 
-  val propConfig: GalleryConfig =
-    GalleryConfig(
-      panelConfig = defaultPanelConfig,
-      width = 900,
-      height = 150,
-      spacing = 1500,
-      minViewX = Some(60000),
-      minViewY = Some(6000),
-      spacerBounds = Bounds(0, 0, 600, 600)
-    )
+  object FaceGalleryConfig extends GalleryConfig(
+    panelConfig = DefaultPanelConfig,
+    width = 900,
+    height = 150,
+    spacing = 1500,
+    minViewX = Some(60000),
+    minViewY = Some(6000),
+    spacerBounds = Bounds(0, 0, 600, 600)
+  )
 
   var activeTab: Option[EditorTab] = None
 
@@ -242,7 +241,7 @@ object Sketchpad extends JSApp {
       import tab._
       implicit val bsDim = bs.n
 
-      val gallery = ActiveGallery(propConfig, lc)
+      val gallery = ActiveGallery(lc)
       jQuery("#face-pane").empty().append(gallery.element.uiElement)
 
     }

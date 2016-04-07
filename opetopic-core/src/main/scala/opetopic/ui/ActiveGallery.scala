@@ -37,6 +37,12 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       bounds = bnds
     }
 
+    def refreshAll : Unit = {
+      panels.foreach(p => p.refresh)
+      refreshGallery
+      refreshFaceComplexes
+    }
+
     var onHover : Sigma[GalleryBoxType] => Unit = { _ => () }
     var onUnhover : Sigma[GalleryBoxType] => Unit = { _ => () }
 
@@ -127,9 +133,6 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     val panels : NonemptySuite[GalleryPanelType] =
       createPanels(complex.n)(complex.value)
 
-    refreshGallery
-    refreshFaceComplexes
-
     def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0] =
       new SimpleActiveGalleryObjectPanel(nst)
 
@@ -189,8 +192,6 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
       val config = thisGallery.config.panelConfig
       val boxNesting = generateBoxes(nesting.dim)(nesting)
 
-      refresh
-
     }
 
     class SimpleActiveGalleryNestingPanel[P <: Nat](p: P)(
@@ -206,8 +207,6 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
           case None => reconstructEdges(boxNesting.dim.pred)(boxNesting)
           case Some(et) => connectEdges(et map (_ => cellEdge), boxNesting)
         }
-
-      refresh
 
     }
 

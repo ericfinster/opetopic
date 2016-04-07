@@ -17,24 +17,22 @@ import opetopic._
 import opetopic.ui._
 import opetopic.js._
 import JQuerySemanticUI._
-import JsDomFramework.{defaultGalleryConfig => _, _}
+import JsDomFramework._
 import syntax.complex._
 
 object Docs extends JSApp {
 
   import Examples._
 
-  implicit val galleryConfig : GalleryConfig =
-    GalleryConfig(
-      panelConfig = defaultPanelConfig,
-      width = 600,
-      height = 350,
-      spacing = 1500,
-      minViewX = Some(60000),
-      minViewY = Some(6000),
-      spacerBounds = Bounds(0, 0, 600, 600)
-    )
-
+  object DocsGalleryConfig extends GalleryConfig (
+    panelConfig = DefaultPanelConfig,
+    width = 600,
+    height = 350,
+    spacing = 1500,
+    minViewX = Some(60000),
+    minViewY = Some(6000),
+    spacerBounds = Bounds(0, 0, 600, 600)
+  )
 
   object TutorialColorSpec extends ColorSpec(
     fill = "#f5f5f5",
@@ -50,7 +48,7 @@ object Docs extends JSApp {
     new VisualizableFamily[OptStr] {
       def visualize[N <: Nat](n: N)(o: OptStr[N]) =
         o match {
-          case None => Visualization(n)(TutorialColorSpec, spacer(galleryConfig.spacerBounds))
+          case None => Visualization(n)(TutorialColorSpec, spacer(DocsGalleryConfig.spacerBounds))
           case Some(s) => Visualization(n)(TutorialColorSpec, text(s))
         }
     }
