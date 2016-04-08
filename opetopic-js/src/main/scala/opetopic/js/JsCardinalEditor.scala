@@ -186,11 +186,13 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   val bottomMenu = 
     div(cls := "ui bottom attached segment")(
       div(cls := "ui grid")(
-        div(cls := "fourteen wide column")(
-          paginationMenu
-        ),
-        div(cls := "two wide right aligned column")(
-          button(cls := "ui icon button", onclick := { () => newEditor() })(i(cls := "add icon"))
+        div(cls := "four column row")(
+          div(cls := "left floated column")(
+            paginationMenu
+          ),
+          div(cls := "right floated right aligned column")(
+            button(cls := "ui icon button", onclick := { () => newEditor() })(i(cls := "add icon"))
+          )
         )
       )
     ).render
