@@ -20,6 +20,7 @@ import models.User
 import models.Sketch
 import models.services.UserService
 import models.daos.SketchDAO
+import forms.RenderSketchForm
 
 import upickle.default._
 
@@ -38,10 +39,10 @@ class SketchController @Inject() (
     request.identity match {
       case Some(user) => 
         sketchDAO.userSketches(user).map { sketches =>
-          Ok(views.html.sketchpad(sketches)(Some(user)))
+          Ok(views.html.sketchpad(RenderSketchForm.form, sketches)(request, Some(user)))
         }
       case None => Future.successful {
-        Ok(views.html.sketchpad(Seq())(None))
+        Ok(views.html.sketchpad(RenderSketchForm.form, Seq())(request, None))
       }
     }
 
@@ -96,6 +97,57 @@ class SketchController @Inject() (
       } yield Ok("Save complete")
 
     } getOrElse Future.successful(BadRequest("Bad save request"))
+
+  }
+
+  def renderSketch = UserAwareAction.async { implicit request => 
+
+    RenderSketchForm.form.bindFromRequest.fold(
+      form => Future.successful(BadRequest("Bad render reqeust")),
+      data => {
+
+        import opetopic.ui._
+        import opetopic.ui.markers._
+        import ScalatagsTextFramework._
+        import SimpleMarker._
+
+        implicit val staticPanelConfig =
+          PanelConfig(
+            internalPadding = 400,
+            externalPadding = 600,
+            decorationPadding = 400,
+            leafWidth = 200,
+            strokeWidth = 100,
+            cornerRadius = 200
+          )
+
+        implicit val staticGalleryConfig =
+          GalleryConfig(
+            panelConfig = staticPanelConfig,
+            width = 1000,
+            height = 300,
+            spacing = 2000,
+            minViewX = Some(80000),
+            minViewY = Some(15000),
+            spacerBounds = Bounds(0, 0, 600, 600)
+          )
+
+        implicit val spacerBounds = Bounds(0, 0, 600, 600)
+
+        implicit val vf: VisualizableFamily[SimpleMarker] =
+          frameworkFamily(ScalatagsTextFramework)
+
+        val fc : FiniteComplex[OptMarker] =
+          Complex.fromJson[OptMarker](upickle.json.read(data.renderData))
+
+        println("Rendering complex: " ++ fc.value.toString)
+
+        val staticGallery = SimpleStaticGallery(fc)
+        val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+        Future.successful(Ok(xmlHeader + "\n" + staticGallery.element.toString).as("image/svg+xml"))
+
+      }
+    )
 
   }
 

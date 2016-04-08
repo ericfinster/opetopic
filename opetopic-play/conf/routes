@@ -20,6 +20,7 @@ POST        /getModule                       controllers.ProverController.getMod
 GET         /sketchpad                       controllers.SketchController.sketchpad
 POST        /saveSketch                      controllers.SketchController.saveSketch
 POST        /getSketch                       controllers.SketchController.getSketch
+POST        /renderSketch                    controllers.SketchController.renderSketch
 
 # Documentation
 GET         /docs                            controllers.DocsController.showDoc(page = "intro")

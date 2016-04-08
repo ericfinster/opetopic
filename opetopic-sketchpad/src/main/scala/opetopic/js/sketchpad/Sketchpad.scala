@@ -98,6 +98,7 @@ object Sketchpad extends JSApp {
 
     jQuery("#view-btn").on("click", () => { loadSelectedSketch })
     jQuery("#save-btn").on("click", () => { saveSketch })
+    jQuery("#svg-btn").on("click", () => { renderSketch })
 
   }
 
@@ -282,6 +283,17 @@ object Sketchpad extends JSApp {
 
   //   }
 
+  def renderSketch: Unit = 
+    for {
+      c <- viewer.complex
+    } {
+
+      val renderData : String = Complex.toJson(c.value)
+      jQuery("#render-data").value(renderData)
+      jQuery("#render-request-form").submit()
+
+    }
+
   def loadSelectedSketch: Unit = 
     for { (id, _) <- selectedSketch } {
 
@@ -376,23 +388,23 @@ object Sketchpad extends JSApp {
       case "#A5673F" => "brown"
       case "lightgrey" => "grey"
       case "#1B1C1D" => "black"
+      case "#000000" => "black"
       case _ => "white"
     }
 
   def showProps[N <: Nat](m: Option[SimpleMarker[N]]): Unit = 
     m match {
       case None => {
-        Sketchpad.showFill("white")
-        Sketchpad.showStroke("black")
+        showFill("white")
+        showStroke("black")
         jQuery("#label-input").value("")
       }
       case Some(mk) => {
-        Sketchpad.showFill(Sketchpad.colorReverseLookup(mk.colorSpec.fill))
-        Sketchpad.showStroke(Sketchpad.colorReverseLookup(mk.colorSpec.stroke))
+        showFill(colorReverseLookup(mk.colorSpec.fill))
+        showStroke(colorReverseLookup(mk.colorSpec.stroke))
         jQuery("#label-input").value(mk.label)
       }
     }
-
   def showFill(str: String): Unit = {
     jQuery("#fill-color-btn").removeClass(fillColor).addClass(str).popup("hide")
     fillColor = str

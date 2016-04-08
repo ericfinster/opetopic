@@ -1,4 +1,4 @@
-@(sketches: Seq[models.Sketch])(implicit userOpt: Option[User])
+@(renderForm: Form[forms.RenderSketchForm.Data], sketches: Seq[models.Sketch])(implicit request: RequestHeader, userOpt: Option[User])
 
 @import play.api.Play
 @import models.Sketch
@@ -75,6 +75,7 @@
 	<div class="ui attached segment" id="viewer-div"></div>
 	<div class="ui bottom right aligned attached segment">
 	  <button type="button" class="ui button">Export</button>
+	  <button type="button" class="ui button" id="svg-btn">Get SVG</button>
 	  <button type="button" class="ui button" id="save-btn">Save</button>
 	</div>
       </div>
@@ -105,18 +106,10 @@
       <!-- </div> -->
     </div>
 
-    <div class="ui modal small svgexport">
-      <div class="header">Export SVG</div>
-      <div class="ui basic segment center aligned">
-	<a href="" id="exportlink" download="output.svg">Download the file</a>
-      </div>
-      <div class="actions">
-	<div class="ui positive right labeled icon button">
-	  Great!
-	  <i class="checkmark icon"></i>
-	</div>      
-      </div>
-    </div>
+    <form id="render-request-form" action="/renderSketch" method="post" target="_blank">
+      @helper.CSRF.formField
+      <input id="render-data" type="hidden" name="renderData" value="default">
+    </form>
 
     <div class="ui modal small codeexport">
       <div class="header">Export Code</div>
