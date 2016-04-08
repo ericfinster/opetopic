@@ -11,7 +11,7 @@
 
       <div class="three wide column" style="min-width: 300px">
 
-	<h3 class="ui dividing header">Box Properties</h3>
+	<h3 class="ui dividing header">Properties</h3>
 	<div class="ui segment">
 	  <form class="ui form">
 	    <div class="field">
@@ -25,27 +25,35 @@
 		<button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
 	      </div>
 	    </div>
+	    <div class="ui accordion field" id="edge-accordion">
+	      <div class="title">
+		<i class="dropdown icon"></i>
+		Edge Decorations
+	      </div>
+	      <div class="content field">
+		<div id="edge-props"></div>
+	      </div>
+	    </div>
 	  </form>
-	</div>
-
-	<h3 class="ui dividing header">Edge Properties</h3>
-	<div class="ui segment" id="edge-props">
 	</div>
 
 	<h3 class="ui dividing header">Sketches</h3>
 
 	@if(userOpt.isDefined) {
-	<div class="ui segment">
-	  <div class="ui selection list" id="sketch-list">
+	  <div class="ui large vertical fluid menu" id="saved-sketches">
 	    @for(s <- sketches) {
-		      <div class="item" data-name="@s.name" data-id="@s.sketchId.toString">
-			@s.name
-		      </div>
-		      }
+	      <div class="ui dropdown item" data-name="@s.name" data-id="@s.sketchId.toString">
+		<i class="dropdown icon"></i>
+		@s.name
+		<div class="menu">
+		  <a class="view-item item">View</a>
+		  <a class="delete-item item">Delete</a>
+		</div>
+	      </div>
+	    }
 	  </div>
-	</div>
 	} else {
-	<p>Please <a href="/signIn">log in</a> to save sketches.</p>
+	  <p>Please <a href="/signIn">log in</a> to save sketches.</p>
 	}
 
       </div>

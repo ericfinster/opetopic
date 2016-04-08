@@ -79,23 +79,26 @@ object Sketchpad extends JSApp {
 
     })
 
+    jQuery("#edge-accordion").accordion()
+
+    jQuery("#saved-sketches .item").each((e: dom.Element) => {
+      for {
+        sname <- jQuery(e).attr("data-name").toOption 
+        suuid <- jQuery(e).attr("data-id").toOption
+      } {
+
+        jQuery(e).dropdown()
+        jQuery(e).find(".view-item").on("click", () => loadSketch(suuid))
+        // jQuery(e).find(".delete-item").on("click", () => saveModule(m))
+        
+      }
+    })
+
   }
 
   //   jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
   //   jQuery("#code-btn").on("click", () => { showScalaCode })
   //   jQuery("#save-btn").on("click", () => { saveSketch })
-
-  //   jQuery("#sketch-list").find(".item").each({ (d: dom.Element) => 
-  //     val idOpt = jQuery(d).attr("data-id").toOption
-
-  //     jQuery(d).on("click", () => {
-  //       for { id <- idOpt } { loadSketch(id) }
-  //     })
-
-  //   })
-
-
-  // }
 
   var isFill: Boolean = true
   var fillColor: String = "white"
@@ -274,34 +277,31 @@ object Sketchpad extends JSApp {
 
   //   }
 
-  // def loadSketch(id: String): Unit = 
-  //   for {
-  //     tab <- activeTab
-  //   } {
+  def loadSketch(id: String): Unit = {
 
-  //     import upickle.default._
-  //     import opetopic.net.LoadSketchRequest
+    import upickle.default._
+    import opetopic.net.LoadSketchRequest
 
-  //     val req = LoadSketchRequest(id)
+    val req = LoadSketchRequest(id)
 
-  //     dom.ext.Ajax.post(
-  //       url = "/getSketch",
-  //       data = write(req),
-  //       headers = Map(
-  //         ("X-Requested-With" -> "*"),
-  //         ("CSRF-Token" -> "nocheck")
-  //       ),
-  //       withCredentials = true
-  //     ).map(_.responseText).foreach(json => {
+    dom.ext.Ajax.post(
+      url = "/getSketch",
+      data = write(req),
+      headers = Map(
+        ("X-Requested-With" -> "*"),
+        ("CSRF-Token" -> "nocheck")
+      ),
+      withCredentials = true
+    ).map(_.responseText).foreach(json => {
 
-  //       val fc : FiniteComplex[OptMarker] =
-  //         Complex.fromJson[OptMarker](upickle.json.read(json))
+      val fc : FiniteComplex[OptMarker] =
+        Complex.fromJson[OptMarker](upickle.json.read(json))
 
-  //       addEditorTab(Some(fc))
+      editor.newEditor(Some(fc))
 
-  //     })
+    })
 
-  //   }
+  }
 
   // def saveSketch: Unit = 
   //   for {

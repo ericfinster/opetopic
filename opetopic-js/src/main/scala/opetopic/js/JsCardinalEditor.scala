@@ -26,6 +26,8 @@ import JQuerySemanticUI._
 
 abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
+  type OptA[N <: Nat] = Option[A[N]]
+
   implicit val vf: VisualizableFamily[A]
 
   val minY : Int = 10000
@@ -34,9 +36,13 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   // INSTANCE CLASS
   //
 
-  class EditorInstance {
+  class EditorInstance(co: Option[FiniteComplex[OptA]]) {
 
-    val ce = CardinalEditor[A]
+    val ce = 
+      co match {
+        case None => CardinalEditor[A]
+        case Some(c) => CardinalEditor[A, c.N](c.value)
+      }
 
     ce.onSelectAsRoot = (boxsig: Sigma[InstanceBox]) => {
 
@@ -121,9 +127,9 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   var editorCount: Int = 0
   var activeEditor: Option[EditorInstance] = None
 
-  def newEditor: Unit = {
+  def newEditor(co: Option[FiniteComplex[OptA]] = None) : Unit = {
 
-    val editor = new EditorInstance
+    val editor = new EditorInstance(co)
     instances += editor
     editorCount += 1
 
@@ -184,7 +190,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
           paginationMenu
         ),
         div(cls := "two wide right aligned column")(
-          button(cls := "ui icon button", onclick := { () => newEditor })(i(cls := "add icon"))
+          button(cls := "ui icon button", onclick := { () => newEditor() })(i(cls := "add icon"))
         )
       )
     ).render
@@ -218,7 +224,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
     jQuery(dom.window).on("resize", () => { resizeInstances })
 
-    newEditor
+    newEditor()
 
   }
 
