@@ -14,8 +14,11 @@ import opetopic._
 import opetopic.js._
 import opetopic.ui._
 import syntax.complex._
+import syntax.nesting._
+import syntax.tree._
 import markers._
 import JsDomFramework._
+import SimpleMarker._
 
 class SketchpadEditor extends JsCardinalEditor[SimpleMarker] {
 
@@ -35,63 +38,62 @@ class SketchpadEditor extends JsCardinalEditor[SimpleMarker] {
 
   }
 
-
-
-  override def onCellSelect[P <: Nat](editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[S[P]]) : Unit = {
+  override def onCellSelect[P <: Nat](p: P)(editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[S[P]]) : Unit = {
     for { 
       lc <- box.labelComplex
     } {
 
+      implicit val v : Visualizable[OptMarker[P], P] = 
+        new Visualizable[OptMarker[P], P] {
+          def visualize(m: OptMarker[P]) : Visualization[P] = 
+            Sketchpad.viewer.vf.visualize(p)(m)
+        }
+
       val frameNesting = lc.tail.head
 
-      // val panel = ActivePanel(frameNesting)
-      // panel.refresh
+      val panel = ActivePanel(frameNesting)
+      panel.refresh
+      panel.setupViewport
+      // panel.viewport.width = 200
+      // panel.viewport.height = 200
+      // panel.viewport.setBounds(panel.bounds)
 
-      // def defaultLeafDecs : Tree[TriangleDec, P] =
-      //   frameNesting match {
-      //     case Box(bv, cn) => cn map (_ => Nonexistant)
-      //     case _ => throw new IllegalArgumentException("Malformed complex")
-      //   }
+      def defaultLeafDecs : Tree[TriangleDec, P] =
+        frameNesting match {
+          case Box(bv, cn) => cn map (_ => Nonexistant)
+          case _ => throw new IllegalArgumentException("Malformed complex")
+        }
 
-      // panel.onBoxClicked = { (b: SimpleActiveCellBox[editor.OptA[P], P]) => {
+      panel.onBoxClicked = { (b: SimpleActiveCellBox[OptMarker[P], P]) => {
 
-      //   val curMk : SimpleCellMarker[P] =
-      //     box.optLabel match {
-      //       case None => SimpleCellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
-      //       case Some(SimpleCellMarker(l, s, r, None)) => SimpleCellMarker(l, s, r, Some(defaultLeafDecs))
-      //       case Some(mk @ SimpleCellMarker(l, s, r, Some(_))) => mk
-      //     }
+        val curMk : SimpleCellMarker[P] =
+          box.optLabel match {
+            case None => SimpleCellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
+            case Some(SimpleCellMarker(l, s, r, None)) => SimpleCellMarker(l, s, r, Some(defaultLeafDecs))
+            case Some(mk @ SimpleCellMarker(l, s, r, Some(_))) => mk
+          }
 
-      //   if (b.isExternal) {
+        if (b.isExternal) {
 
-      //     for {
-      //       lds <- fromOpt(curMk.leafEdgeDecorations)
-      //       zp <- lds.seekTo(b.address.head)
-      //       d <- zp._1.rootValue
-      //     } {
+          for {
+            lds <- fromOpt(curMk.leafEdgeDecorations)
+            zp <- lds.seekTo(b.address.head)
+            d <- zp._1.rootValue
+          } {
 
-      //       val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(d.next))
-      //       box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
+            val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(d.next))
+            box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
+          }
 
-      //       box.panel.refresh
-      //       tab.editor.refreshGallery
-      //       refreshFaceGallery
+        } else { box.optLabel = Some(curMk.copy(rootEdgeDecoration = curMk.rootEdgeDecoration.next)) }
 
-      //     }
+          box.panel.refresh
+          Sketchpad.editor.refreshEditor
+          showFace
 
-      //   } else {
+      }}
 
-      //     box.optLabel = Some(curMk.copy(rootEdgeDecoration = curMk.rootEdgeDecoration.next))
-
-      //     box.panel.refresh
-      //     tab.editor.refreshGallery
-      //     refreshFaceGallery
-
-      //   }
-
-      // }}
-
-      // jQuery("#edge-prop-tab").empty().append(panel.element.uiElement)
+      jQuery("#edge-props").empty().append(panel.element.uiElement)
 
       showFace
 

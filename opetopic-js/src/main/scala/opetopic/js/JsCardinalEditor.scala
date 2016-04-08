@@ -43,7 +43,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
       @natElim
       def runSelectEvent[N <: Nat](n: N)(box: InstanceBox[N]) : Unit = {
         case (Z, box) => onObjectSelect(ce)(box)
-        case (S(p: P), box) => onCellSelect[P](ce)(box)
+        case (S(p: P), box) => onCellSelect[P](p)(ce)(box)
       }
 
       rootBox = Some(boxsig)
@@ -110,7 +110,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   //
 
   def onObjectSelect(editor: CardinalEditor[A])(box: editor.CardinalCellBox[_0]) : Unit = ()
-  def onCellSelect[P <: Nat](editor: CardinalEditor[A])(box: editor.CardinalCellBox[S[P]]) : Unit = ()
+  def onCellSelect[P <: Nat](p: P)(editor: CardinalEditor[A])(box: editor.CardinalCellBox[S[P]]) : Unit = ()
 
   //============================================================================================
   // EDITOR MANAGEMENT
