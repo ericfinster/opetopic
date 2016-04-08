@@ -112,6 +112,25 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     } yield dispatchAction(boxsig.n)(boxsig.value, action)
 
   //============================================================================================
+  // SHAPE ACTIONS
+  //
+
+  def doExtrude: Unit = 
+    for { editor<- activeEditor } {
+      editor.ce.extrudeSelection
+    }
+
+  def doDrop: Unit = 
+    for { editor<- activeEditor } {
+      editor.ce.extrudeDrop
+    }
+
+  def doPrepend: Unit = 
+    for { editor<- activeEditor } {
+      editor.ce.sprout
+    }
+
+  //============================================================================================
   // SELECTION HANDLERS
   //
 
@@ -168,19 +187,19 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   // UI ELEMENTS
   //
 
-  val sidebarMenu = 
-    div(cls := "ui left vertical visible sidebar menu")(
-      a(cls := "item")("Fred"),
-      a(cls := "item")("Wilma"),
-      a(cls := "item")("Barney")
-    ).render
-
   val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 300px").render
   val paginationMenu = div(cls := "ui pagination menu").render
   
   val topMenu = 
     div(cls := "ui top attached menu")(
-      a(cls := "item")("Shape", i(cls := "dropdown icon"))
+      div(cls := "ui dropdown item")(
+        "Shape", i(cls := "dropdown icon"),
+        div(cls := "menu")(
+          a(cls := "item", onclick := { () => doExtrude })("Extrude"),
+          a(cls := "item", onclick := { () => doDrop })("Extrude Drop"),
+          a(cls := "item", onclick := { () => doPrepend })("Prepend Glob")
+        )
+      )
     ).render
 
   val bottomMenu = 
@@ -217,12 +236,16 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     // Install the key handler
     jQuery(uiElement).keypress((e : JQueryEventObject) => {
       e.which match {
-        case 101 => for { editor <- activeEditor } { editor.ce.extrudeSelection }
-        case 100 => for { editor <- activeEditor } { editor.ce.extrudeDrop }
-        case 112 => for { editor <- activeEditor } { editor.ce.sprout }
+        case 101 => doExtrude
+        case 100 => doDrop
+        case 112 => doPrepend
         case _ => ()
       }
     })
+
+    jQuery(topMenu).
+      find(".dropdown.item").
+      dropdown(lit(action = "hide"))
 
     jQuery(dom.window).on("resize", () => { resizeInstances })
 
