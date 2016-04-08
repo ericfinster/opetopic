@@ -40,17 +40,21 @@
 	<h3 class="ui dividing header">Sketches</h3>
 
 	@if(userOpt.isDefined) {
-	  <div class="ui large vertical fluid menu" id="saved-sketches">
-	    @for(s <- sketches) {
-	      <div class="ui dropdown item" data-name="@s.name" data-id="@s.sketchId.toString">
-		<i class="dropdown icon"></i>
-		@s.name
-		<div class="menu">
-		  <a class="view-item item">View</a>
-		  <a class="delete-item item">Delete</a>
+	  <div class="ui attached segment">
+	    <div class="ui large selection list" id="saved-sketches">
+	      @for(s <- sketches) {
+		<div class="item" data-name="@s.name" data-id="@s.sketchId.toString">
+		  @s.name
 		</div>
-	      </div>
-	    }
+	      }
+	    </div>
+	  </div>
+	  <div class="ui bottom attached segment">
+	    <div class="ui fluid buttons">
+	      <button type="button" class="ui button" id="view-btn">View</button>
+	      <div class="or"></div>
+	      <button type="button" class="ui button">Delete</button>
+	    </div>
 	  </div>
 	} else {
 	  <p>Please <a href="/signIn">log in</a> to save sketches.</p>
