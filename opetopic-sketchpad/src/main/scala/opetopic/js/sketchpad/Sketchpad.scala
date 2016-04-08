@@ -45,43 +45,41 @@ object Sketchpad extends JSApp {
     jQuery("#viewer-div").append(viewer.uiElement)
     viewer.initialize
 
-    // jQuery(".ui.pointing.menu .item").tab()
+    jQuery("#fill-color-btn").popup(lit(
+      popup = jQuery(".color-select.popup"),
+      movePopup = false,
+      on = "click",
+      onShow = () => { isFill = true }
+    ))
 
-    // jQuery("#fill-color-btn").popup(lit(
-    //   popup = jQuery(".color-select.popup"),
-    //   movePopup = false,
-    //   on = "click",
-    //   onShow = () => { isFill = true }
-    // ))
+    jQuery("#stroke-color-btn").popup(lit(
+      popup = jQuery(".color-select.popup"),
+      movePopup = false,
+      on = "click",
+      onShow = () => { isFill = false }
+    ))
 
-    // jQuery("#stroke-color-btn").popup(lit(
-    //   popup = jQuery(".color-select.popup"),
-    //   movePopup = false,
-    //   on = "click",
-    //   onShow = () => { isFill = false }
-    // ))
+    jQuery("#label-input").on("input", () => { updateLabel })
 
-    // jQuery("#label-input").on("input", () => { updateLabel })
+    jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
+
+      val color= jQuery(e.target).attr("data-color").toString
+
+      if (isFill) {
+
+        jQuery("#fill-color-btn").removeClass(fillColor).addClass(color).popup("hide")
+        fillColor = color
+        updateFillColor
+
+      } else {
+        jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(color).popup("hide")
+        strokeColor = color
+        updateStrokeColor
+      }
+
+    })
 
   }
-
-  //   jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
-
-  //     val color= jQuery(e.target).attr("data-color").toString
-
-  //     if (isFill) {
-
-  //       jQuery("#fill-color-btn").removeClass(fillColor).addClass(color).popup("hide")
-  //       fillColor = color
-  //       updateFillColor
-
-  //     } else {
-  //       jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(color).popup("hide")
-  //       strokeColor = color
-  //       updateStrokeColor
-  //     }
-
-  //   })
 
   //   jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
   //   jQuery("#code-btn").on("click", () => { showScalaCode })
@@ -151,148 +149,90 @@ object Sketchpad extends JSApp {
 
   }
 
-  // def updateFillColor: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //   } {
+  def updateFillColor: Unit = {
 
-  //     val (f, fh, fs) = colorTripleGen(fillColor)
+    val (f, fh, fs) = colorTripleGen(fillColor)
 
-  //     @natElim
-  //     def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
-  //       case (Z, box) =>
-  //         box.optLabel match {
-  //           case None => box.optLabel = Some(SimpleObjectMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-  //           case Some(SimpleObjectMarker(l, s)) => box.optLabel = Some(SimpleObjectMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
-  //         }
-  //       case (S(p: P), box) => 
-  //         box.optLabel match {
-  //           case None => box.optLabel = Some(SimpleCellMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-  //           case Some(SimpleCellMarker(l, s, r, e)) => box.optLabel = Some(SimpleCellMarker(l, s.copy(fill = f, fillHovered = fh, fillSelected = fs), r, e))
-  //         }
-  //     }
+    for {
+      _ <- withSelection(new BoxAction[Unit] {
 
-  //     doUpdate(bs.n)(bs.value)
+        def objectAction(box : EditorBox[_0]) : Unit = {
 
-  //     bs.value.panel.refresh
-  //     tab.editor.refreshGallery
-  //     refreshFaceGallery
+          box.optLabel match {
+            case None => 
+              box.optLabel = Some(SimpleObjectMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+            case Some(SimpleObjectMarker(l, s)) => 
+              box.optLabel = Some(SimpleObjectMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
+          }
 
-  //   }
+          box.panel.refresh
 
-  // def updateStrokeColor: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //   } {
+        }
 
-  //     val (st, sh, ss) = colorTripleGen(strokeColor)
+        def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : Unit = {
 
-  //     @natElim
-  //     def doUpdate[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
-  //       case (Z, box) =>
-  //         box.optLabel match {
-  //           case None => box.optLabel = Some(SimpleObjectMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-  //           case Some(SimpleObjectMarker(l, s)) => box.optLabel = Some(SimpleObjectMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-  //         }
-  //       case (S(p: P), box) => 
-  //         box.optLabel match {
-  //           case None => box.optLabel = Some(SimpleCellMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-  //           case Some(SimpleCellMarker(l, s, r, e)) => box.optLabel = Some(SimpleCellMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), r, e))
-  //         }
-  //     }
+          box.optLabel match {
+            case None => box.optLabel = 
+              Some(SimpleCellMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+            case Some(SimpleCellMarker(l, s, r, e)) => 
+              box.optLabel = Some(SimpleCellMarker(l, s.copy(fill = f, fillHovered = fh, fillSelected = fs), r, e))
+          }
 
-  //     doUpdate(bs.n)(bs.value)
+          box.panel.refresh
 
-  //     bs.value.panel.refresh
-  //     tab.editor.refreshGallery
-  //     refreshFaceGallery
+        }
+      })
+    } {
 
-  //   }
+      refreshEditor
+      editor.showFace
 
-  // def displayCell: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //   } {
+    }
 
-  //     import tab._
-  //     implicit val bsDim = bs.n
+  }
 
-  //     val lblStr = (bs.value.optLabel map (_.label)) getOrElse ""
-  //     jQuery("#label-input").value(lblStr)
 
-  //     @natElim
-  //     def doRefresh[N <: Nat](n: N)(box: tab.editor.CardinalCellBox[N]) : Unit = {
-  //       case (Z, box) => {
-  //         jQuery("#edge-prop-tab").empty().text("Cell is an object")
-  //         refreshFaceGallery
-  //       }
-  //       case (S(p: P), box) => {
-  //         for {
-  //           lc <- box.labelComplex
-  //         } {
+  def updateStrokeColor: Unit = {
 
-  //           val frameNesting = lc.tail.head
+    val (st, sh, ss) = colorTripleGen(strokeColor)
 
-  //           val panel = ActivePanel(frameNesting)
-  //           panel.refresh
+    for {
+      _ <- withSelection(new BoxAction[Unit] {
 
-  //           def defaultLeafDecs : Tree[TriangleDec, P] = 
-  //             frameNesting match {
-  //               case Box(bv, cn) => cn map (_ => Nonexistant)
-  //               case _ => throw new IllegalArgumentException("Malformed complex")
-  //             }
+        def objectAction(box : EditorBox[_0]) : Unit = {
 
-  //           panel.onBoxClicked = { (b: SimpleActiveCellBox[editor.OptA[P], P]) => {
+          box.optLabel match {
+            case None => 
+              box.optLabel = Some(SimpleObjectMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case Some(SimpleObjectMarker(l, s)) => 
+              box.optLabel = Some(SimpleObjectMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+          }
 
-  //             val curMk : SimpleCellMarker[P] = 
-  //               box.optLabel match {
-  //                 case None => SimpleCellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
-  //                 case Some(SimpleCellMarker(l, s, r, None)) => SimpleCellMarker(l, s, r, Some(defaultLeafDecs))
-  //                 case Some(mk @ SimpleCellMarker(l, s, r, Some(_))) => mk
-  //               }
+          box.panel.refresh
 
-  //             if (b.isExternal) {
+        }
 
-  //               for {
-  //                 lds <- fromOpt(curMk.leafEdgeDecorations)
-  //                 zp <- lds.seekTo(b.address.head)
-  //                 d <- zp._1.rootValue
-  //               } {
+        def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : Unit = {
 
-  //                 val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(d.next))
-  //                 box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
+          box.optLabel match {
+            case None => 
+              box.optLabel = Some(SimpleCellMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+            case Some(SimpleCellMarker(l, s, r, e)) => 
+              box.optLabel = Some(SimpleCellMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), r, e))
+          }
 
-  //                 box.panel.refresh
-  //                 tab.editor.refreshGallery
-  //                 refreshFaceGallery
+          box.panel.refresh
 
-  //               }
+        }
+      })
+    } {
 
-  //             } else {
+      refreshEditor
+      editor.showFace
 
-  //               box.optLabel = Some(curMk.copy(rootEdgeDecoration = curMk.rootEdgeDecoration.next))
+    }
 
-  //               box.panel.refresh
-  //               tab.editor.refreshGallery
-  //               refreshFaceGallery
-
-  //             }
-
-  //           }}
-
-  //           jQuery("#edge-prop-tab").empty().append(panel.element.uiElement)
-  //           refreshFaceGallery
-
-  //         }
-  //       }
-  //     }
-
-  //     doRefresh(bs.n)(bs.value)
-
-  //   }
+  }
 
   // def takeSnapshot: Unit = 
   //   for {
@@ -400,23 +340,23 @@ object Sketchpad extends JSApp {
 
   //   }
 
-  // def colorTripleGen(color: String) : (String, String, String) = 
-  //   color match {
-  //     case "red"    => ("#DB2828", "#DB2828", "#DB2828")
-  //     case "orange" => ("#F2711C", "#F2711C", "#F2711C")
-  //     case "yellow" => ("#FBBD08", "#FBBD08", "#FBBD08")
-  //     case "olive"  => ("#B5CC18", "#B5CC18", "#B5CC18")
-  //     case "green"  => ("#21BA45", "#21BA45", "#21BA45")
-  //     case "teal"   => ("#00B5AD", "#00B5AD", "#00B5AD")
-  //     case "blue"   => ("#2185D0", "#2185D0", "#2185D0")
-  //     case "violet" => ("#6435C9", "#6435C9", "#6435C9")
-  //     case "purple" => ("#A333C8", "#A333C8", "#A333C8")
-  //     case "pink"   => ("#E03997", "#E03997", "#E03997")
-  //     case "brown"  => ("#A5673F", "#A5673F", "#A5673F")
-  //     case "grey"   => ("lightgrey", "darkgrey", "grey")
-  //     case "black"  => ("#1B1C1D", "#1B1C1D", "#1B1C1D")
-  //     case _ => ("#FFFFFF", "#F3F4F5", "#DCDDDE")
-  //   }
+  def colorTripleGen(color: String) : (String, String, String) = 
+    color match {
+      case "red"    => ("#DB2828", "#DB2828", "#DB2828")
+      case "orange" => ("#F2711C", "#F2711C", "#F2711C")
+      case "yellow" => ("#FBBD08", "#FBBD08", "#FBBD08")
+      case "olive"  => ("#B5CC18", "#B5CC18", "#B5CC18")
+      case "green"  => ("#21BA45", "#21BA45", "#21BA45")
+      case "teal"   => ("#00B5AD", "#00B5AD", "#00B5AD")
+      case "blue"   => ("#2185D0", "#2185D0", "#2185D0")
+      case "violet" => ("#6435C9", "#6435C9", "#6435C9")
+      case "purple" => ("#A333C8", "#A333C8", "#A333C8")
+      case "pink"   => ("#E03997", "#E03997", "#E03997")
+      case "brown"  => ("#A5673F", "#A5673F", "#A5673F")
+      case "grey"   => ("lightgrey", "darkgrey", "grey")
+      case "black"  => ("#1B1C1D", "#1B1C1D", "#1B1C1D")
+      case _ => ("#FFFFFF", "#F3F4F5", "#DCDDDE")
+    }
 
 }
 
