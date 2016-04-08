@@ -194,10 +194,10 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     div(cls := "ui top attached menu")(
       div(cls := "ui dropdown item")(
         "Shape", i(cls := "dropdown icon"),
-        div(cls := "menu")(
-          a(cls := "item", onclick := { () => doExtrude })("Extrude"),
-          a(cls := "item", onclick := { () => doDrop })("Extrude Drop"),
-          a(cls := "item", onclick := { () => doPrepend })("Prepend Glob")
+        div(cls := "vertical fluid menu")(
+          div(cls := "item", style := "min-width: 150px", onclick := { () => doExtrude })(span(cls := "description")("e"), "Extrude"),
+          div(cls := "item", onclick := { () => doDrop })(span(cls := "description")("d"), "Extrude Drop"),
+          div(cls := "item", onclick := { () => doPrepend })(span(cls := "description")("p"), "Prepend Glob")
         )
       )
     ).render
