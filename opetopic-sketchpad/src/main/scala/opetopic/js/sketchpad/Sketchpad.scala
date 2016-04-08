@@ -66,14 +66,10 @@ object Sketchpad extends JSApp {
       val color= jQuery(e.target).attr("data-color").toString
 
       if (isFill) {
-
-        jQuery("#fill-color-btn").removeClass(fillColor).addClass(color).popup("hide")
-        fillColor = color
+        showFill(color)
         updateFillColor
-
       } else {
-        jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(color).popup("hide")
-        strokeColor = color
+        showStroke(color)
         updateStrokeColor
       }
 
@@ -101,12 +97,12 @@ object Sketchpad extends JSApp {
     })
 
     jQuery("#view-btn").on("click", () => { loadSelectedSketch })
+    jQuery("#save-btn").on("click", () => { saveSketch })
 
   }
 
   //   jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
   //   jQuery("#code-btn").on("click", () => { showScalaCode })
-  //   jQuery("#save-btn").on("click", () => { saveSketch })
 
   var isFill: Boolean = true
   var fillColor: String = "white"
@@ -312,42 +308,40 @@ object Sketchpad extends JSApp {
       })
     }
 
-  // def saveSketch: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //     lc <- bs.value.labelComplex
-  //   } {
+  def saveSketch: Unit = 
+    for {
+      c <- viewer.complex
+    } {
 
-  //     import org.scalajs.dom
-  //     import upickle.default._
-  //     import opetopic.net.SaveSketchRequest
+      import org.scalajs.dom
+      import upickle.default._
+      import opetopic.net.SaveSketchRequest
 
-  //     jQuery("#save-modal").modal(lit(
-  //       onApprove = () => {
+      jQuery("#save-modal").modal(lit(
+        onApprove = () => {
 
-  //         val req = 
-  //           SaveSketchRequest(
-  //             jQuery("#sketch-name-input").value.asInstanceOf[String],
-  //             jQuery("#sketch-path-input").value.asInstanceOf[String],
-  //             jQuery("#sketch-desc-input").value.asInstanceOf[String],
-  //             Complex.toJson(lc)
-  //           )
+          val req =
+            SaveSketchRequest(
+              jQuery("#sketch-name-input").value.asInstanceOf[String],
+              jQuery("#sketch-path-input").value.asInstanceOf[String],
+              jQuery("#sketch-desc-input").value.asInstanceOf[String],
+              Complex.toJson(c.value)
+            )
 
-  //         dom.ext.Ajax.post(
-  //           url = "/saveSketch",
-  //           data = write(req),
-  //           headers = Map(
-  //             ("X-Requested-With" -> "*"),
-  //             ("CSRF-Token" -> "nocheck")
-  //           ),
-  //           withCredentials = true
-  //         ).map(_.responseText).foreach(println)
+          dom.ext.Ajax.post(
+            url = "/saveSketch",
+            data = write(req),
+            headers = Map(
+              ("X-Requested-With" -> "*"),
+              ("CSRF-Token" -> "nocheck")
+            ),
+            withCredentials = true
+          ).map(_.responseText).foreach(println)
 
-  //       }
-  //     )).modal("show")
+        }
+      )).modal("show")
 
-  //   }
+    }
 
   def colorTripleGen(color: String) : (String, String, String) = 
     color match {
@@ -366,6 +360,48 @@ object Sketchpad extends JSApp {
       case "black"  => ("#1B1C1D", "#1B1C1D", "#1B1C1D")
       case _ => ("#FFFFFF", "#F3F4F5", "#DCDDDE")
     }
+
+  def colorReverseLookup(str: String) : String = 
+    str match {
+      case "#DB2828" => "red"
+      case "#F2711C" => "orange"
+      case "#FBBD08" => "yellow"
+      case "#B5CC18" => "olive"
+      case "#21BA45" => "green"
+      case "#00B5AD" => "teal"
+      case "#2185D0" => "blue"
+      case "#6435C9" => "violet"
+      case "#A333C8" => "purple"
+      case "#E03997" => "pink"
+      case "#A5673F" => "brown"
+      case "lightgrey" => "grey"
+      case "#1B1C1D" => "black"
+      case _ => "white"
+    }
+
+  def showProps[N <: Nat](m: Option[SimpleMarker[N]]): Unit = 
+    m match {
+      case None => {
+        Sketchpad.showFill("white")
+        Sketchpad.showStroke("black")
+        jQuery("#label-input").value("")
+      }
+      case Some(mk) => {
+        Sketchpad.showFill(Sketchpad.colorReverseLookup(mk.colorSpec.fill))
+        Sketchpad.showStroke(Sketchpad.colorReverseLookup(mk.colorSpec.stroke))
+        jQuery("#label-input").value(mk.label)
+      }
+    }
+
+  def showFill(str: String): Unit = {
+    jQuery("#fill-color-btn").removeClass(fillColor).addClass(str).popup("hide")
+    fillColor = str
+  }
+
+  def showStroke(str: String): Unit = {
+    jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(str).popup("hide")
+    strokeColor = str
+  }
 
 }
 
