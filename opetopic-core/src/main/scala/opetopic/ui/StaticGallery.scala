@@ -51,7 +51,11 @@ trait HasStaticGalleries extends HasStaticPanels with HasComplexGalleries {
 
     val (galleryElement, galleryBounds) : (Element, Bounds) = {
       val (panelEls, bnds) = elementsAndBounds
-      (viewport(config.width, config.height, bnds, panelEls: _*), bnds)
+
+      val (w, h) = 
+        config.sizingFunction(bnds)
+
+      (viewport(w, h, bnds, panelEls: _*), bnds)
     }
 
     def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0] =

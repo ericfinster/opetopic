@@ -10,84 +10,139 @@
       Over the years, is has become an indispensible tool in algebra,
       topology, computer science, logic and even physics.  Moreover,
       it has been recognized for some time that the theory of
-      <em>higher categories</em> is intimately connected to some of
-      the most promising lines of modern mathematical research:
+      <a href="http://arxiv.org/abs/q-alg/9705009">
+	higher categories</a> is intimately connected to some of the
+      most promising lines of modern mathematical research:
       topological quantum field theory, derived algebraic geometry,
       stable homotopy theory, quantum groups and more.  And with the
-      introduction of Univalent Type Theory by Voevodsky in 2006(?),
-      we can add logic, computer science and constructive mathematics
-      to the list as well.
+      introduction of Univalent Type Theory by Voevodsky in 2009, we
+      can add logic, computer science and constructive mathematics to
+      that list as well<sup><a href="#note-1">1</a></sup>.
     </p>
 
     <p>
       This site is dedicated to a certain approach to the theory of
       higher categories based on a collection of shapes called the
-      <em>opetopes</em>.  Among the known approaches to higher
-      category theory, the opetopic approach is perhaps the least well
-      known and least well studied.  This is not completely without reason:
-      in contrast to theories based on simplices, spheres or cubes, 
-      theories in which one has a single, intuitive cell shape in each
-      dimension, one already encounters infinitely many opetopes in
-      dimension two, leading to a wild zoo of higher dimensional shapes.
+      <em>opetopes</em>.  It is probably fair to say that among the
+      currently available approaches to higher category theory, the
+      opeoptic one is the among least well known.  This is not without
+      some justification: indeed, finding a sufficiently rigorous
+      definition of the opetopes has occupied a number of different
+      authors, and the subtleties involved might leave one with the
+      impression that the approach is more trouble than it is worth.
+    </p>
+
+    <p>
+      Perhaps another reason for the perceived difficulty of the
+      opetopes can be seen in the table below:
+    </p>
+
+    <table class="ui celled large table">
+      <thead>
+	<tr>
+	  <th>Cell Type</th>
+	  <th>In Dimension 2</th>
+	  <th>In Higher Dimensions</th>
+	</tr>
+      </thead>
+      <tbody>
+	<tr>
+	  <td>Globular</td>
+	  <td>Circle</td>
+	  <td>Spheres</td>
+	</tr>
+	<tr>
+	  <td>Simplicial</td>
+	  <td>Triangle</td>
+	  <td>Simplices</td>
+	</tr>
+	<tr>
+	  <td>Cubical</td>
+	  <td>Square</td>
+	  <td>Cubes</td>
+	</tr>
+	<tr>
+	  <td>Opetopic</td>
+	  <td>(Planar) Tree</td>
+	  <td>N-Trees</td>
+	</tr>
+      </tbody>
+    </table>
+
+    <p>
+      While the more direct approaches to higher category theory
+      employ cells based on shapes which are exceedingly familiar even
+      in higher dimensions, the higher dimensional analogs of trees
+      are perhaps less so.  Moreover, there is some flexibility in
+      what exactly we mean by higher dimensional tree, and the
+      opetopes can be seen as a class of particularly well behaved
+      ones.  All the subtleties in the definition of these objects are
+      involved in making precise what one means by "well-behaved".
     </p>
 
     <h3 class="ui dividing header">Why Opetopes?</h3>
 
     <p>
-      There are many other approaches to higher category theory, what
-      makes the opetopes a good choice for this kind of project?
+      So, then, what makes the opetopes worth the effort?
     </p>
 
     <p>
-      From a constructive, logical point of view, the opetopes are unique
-      in that they can be viewed as a natural diagrammatic way of reasoning
-      which works in all dimensions.
+      To begin to answer that question, let me first observe that one
+      of the hallmarks of category theory is the use
+      of <em>diagrammatic reasoning</em>, namely, the use of
+      commutative diagrams to express equations.  Whatever ontological
+      status we grant to these diagrams, it is difficult to deny their
+      pragmatic value: it is often times simply more efficient to draw
+      a well conceived commutative diagram than to explicitly list a
+      collection of equations among maps.
     </p>
 
     <p>
-      One of the main difficulties facing the theory of higher categories
-      is the fact that setting up the theory with existing foundational
-      systems is an emmense task.  Quite a bit of technical machinery is
-      needed in order to prove even the most elementary assertions. The
-      goal of this project is to explore the idea that having a direct
-      syntax for manipulating higher dimensional pasting diagrams could
-      make for a more natural and elementary approach.
-    </p>
-	 
-    <p>
-      One of the attractive features of ordinary category theory is
-      the theory of commutative diagrams.  Category theorists learn
-      early on how to express their ideas using commutative diagrams,
-      and most modern mathematics papers in algebra, topology, category
-      theory, logic and more feature these diagrams.  It is probably fair
-      to say that a great deal of modern mathematics is written in 
-      a combination of English prose and commutative diagrams.
+      As we pass to higher categories, finding reasonable diagrammatic
+      representations becomes more challenging.  Certainly the
+      literature on 2-categories has a well developed system of
+      notation for two cells, but what about beyond that?  Are we stuck?
     </p>
 
     <p>
-      There have been a number of efforts to set various types of
-      formal systems based on commutative diagrams. (Ref ..)  I'll
-      mention just three of them here:
+      On this site, we will be developing a systematic way of representing
+      an manipulating "opetopic diagrams", and the central thesis can be
+      summarized as follows:
+    </p>
+    
+    <div class="ui huge message">
+      Opetopic diagrams provide an elementary formal account of diagrammatic
+      reasoning which remains valid in all dimensions.
+    </div>
+
+    <p>
+      So whereas other approaches benefit from their simplicity on the
+      semantic side, the opetopic approach benefits from its diversity
+      on the <em>syntactic</em> side.
     </p>
 
-      <div class="ui large ordered list">
-	<div class="item">Q-systems</div>
-	<div class="item">Sketches</div>
-	<div class="item">Graph based logic</div>
+    <div class="ui basic segment">
+      <div class="ui two wide grid">
+	<div class="right aligned column">
+	  <a href="/docs/opetopes/basics" class="ui right labeled icon button">
+	    <i class="right arrow icon"></i>
+	    Next: Opetopic Diagrams I
+	  </a>
+	</div>
       </div>
+    </div>
 
-    <p>
-      All of these systems build on the idea that commutative diagrams
-      are certain kinds of graphs, and propose various rules for manipulating
-      and making deductions using these graphs.
-    </p>
-
-    <p>
-      By contrast, the opetopic approach considers the basic formulas
-      to be constructed from <em>trees</em>.  This author feels that
-      this is much more inline with out natural idea about sytax as 
-      constructed from tree like objects by certain grammar. 
-    </p>
+    <h4 class="ui dividing header">Notes</h4>
+    <div class="ui ordered list">
+      <div class="item" id="note-1">
+	Of course, the relationship between higher categorical
+	thinking and constructive mathematics was well known, or at
+	least implicit, long before the recent advancements in type
+	theory.  But certainly the introduction of univalent ideas
+	have contributed to a deepening of our understanding of the
+	connection.
+      </div>
+    </div>
   </div>
 
 }

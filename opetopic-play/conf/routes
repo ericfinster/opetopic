@@ -24,7 +24,7 @@ POST        /renderSketch                    controllers.SketchController.render
 
 # Documentation
 GET         /docs                            controllers.DocsController.showDoc(page = "intro")
-GET         /docs/:page                      controllers.DocsController.showDoc(page)
+GET         /docs/*page                      controllers.DocsController.showDoc(page)
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                    controllers.Assets.at(path="/public", file)

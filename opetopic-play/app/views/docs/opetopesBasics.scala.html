@@ -1,0 +1,87 @@
+@()(implicit userOpt: Option[User])
+
+@doc("opetopes/basics") {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Opetopic Diagrams I</h2>
+
+    <p>
+      As mentioned in the introduction, opetopes can be seen as
+      certain well-formed higher dimensional trees.  It may not be
+      surprising, therefore, that we begin by fixing some notation for
+      trees.  In particular, opetopic diagrams arise from the
+      interaction of two methods for depicting a tree.  An example of
+      each of these methods is shown in the following diagram:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/boxtree.svg"></object>
+    </div>
+
+    <p>
+      As will become clear upon inspection, both diagrams represent
+      the same rooted tree.  The picture on the right is probably the
+      more familiar: the tree is depicted as a <em>graph</em> with
+      nodes and edges.  The digarm on the left, by contrast, depicts
+      the tree structure using a collection of boxes, with the
+      containment of the boxes specifying the descendent ordering. The
+      correspondence between the two can be summarized by noticing
+      that we have a bijection between the <em>boxes</em> on the left,
+      and the <em>edges</em> on the right.
+    </p>
+
+    <p>
+      Now consider the following diagram which, unlike the previous, is
+      not a picture of the same tree in two ways, but rather a picture
+      of <em>two different</em> trees combined into a single diagram.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/nesting.svg"></object>
+    </div>
+
+    <p>
+      On the one hand, we have the tree defined by the containment of
+      the boxes, and on the other, the tree determined by the edges.
+      Observe that the boxes marked a, b, and c play a dual role: they
+      are both the "leaves" of the tree formed by the boxes (since
+      they contain no boxes themselves), while at the same time
+      we are using them to serve as the "nodes" for the tree determined
+      by the edges.
+    </p>
+
+    <p>
+      Finally, consider the following:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/newzoom.svg"></object>
+    </div>
+
+    <p>
+      It may seem intuitively that, since each diagram depicts two trees
+      simulataneously, that the above diagram depicts four.  But in fact,
+      there are only three trees here: the reason is that the edge tree
+      in the right diagram is isomorphic to the box tree in the left
+      diagram.
+    </p>
+
+    <div class="ui secondary menu">
+      <div class="item">
+	<a href="/docs/intro" class="ui left labeled icon button">
+    	  <i class="left arrow icon"></i>
+    	  Prev: Introduction
+	</a>
+      </div>
+      <div class="right menu">
+	<div class="item">
+	  <a href="/docs/opetopes/diagrams" class="ui right labeled icon button">
+    	    <i class="right arrow icon"></i>
+    	    Next: Opetopic Diagrams II
+	  </a>
+	</div>
+      </div>
+    </div>
+  </div>
+
+}

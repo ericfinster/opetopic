@@ -31,7 +31,8 @@ object Docs extends JSApp {
     spacing = 1500,
     minViewX = Some(60000),
     minViewY = Some(6000),
-    spacerBounds = Bounds(0, 0, 600, 600)
+    spacerBounds = Bounds(0, 0, 600, 600),
+    manageViewport = true
   )
 
   object TutorialColorSpec extends ColorSpec(
@@ -42,7 +43,6 @@ object Docs extends JSApp {
     strokeHovered = "#000000",
     strokeSelected = "#000000"
   )
-
 
   implicit def optStrFamily : VisualizableFamily[OptStr] =
     new VisualizableFamily[OptStr] {
@@ -63,7 +63,7 @@ object Docs extends JSApp {
       pageName <- jQuery("meta[name=page]").attr("content").toOption
     } {
       pageName match {
-        case "opetopes" => runOpetopesPage
+        case "basicediting" => runBasicEditingPage
         case _ => ()
       }
     }
@@ -74,11 +74,20 @@ object Docs extends JSApp {
 
     println("Starting the opetopes page ...")
 
-    // val gallery = ActiveGallery(threecell)(DocsGalleryConfig)
-    // jQuery("#gallery-pane").append(gallery.element.uiElement)
+    val gallery = ActiveGallery(threecell, DocsGalleryConfig)
+    gallery.refreshAll
+
+    jQuery("#gallery-pane").append(gallery.element.uiElement)
 
   }
     
+  def runBasicEditingPage: Unit = {
+
+    val editor = new DocsEditor
+    jQuery("#editor-div").append(editor.uiElement)
+    editor.initialize
+
+  }
 
   //   val hoveredStroke = "#ff2a2a"
   //   val hoveredFill = "#ff2a2a"

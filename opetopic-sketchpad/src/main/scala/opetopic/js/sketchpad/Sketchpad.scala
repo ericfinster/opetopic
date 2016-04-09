@@ -288,8 +288,14 @@ object Sketchpad extends JSApp {
       c <- viewer.complex
     } {
 
+      import upickle.default._
+      import opetopic.net._
+
       val renderData : String = Complex.toJson(c.value)
+      val sizingMethod : String = write(FixedWidth(600))
+
       jQuery("#render-data").value(renderData)
+      jQuery("#sizing-mthd").value(sizingMethod)
       jQuery("#render-request-form").submit()
 
     }

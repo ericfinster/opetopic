@@ -29,3 +29,10 @@ case class LoadModuleRequest(
   val name: String,
   val uuid: String
 )
+
+// Not sure where this belongs ....
+sealed trait SizingMethod
+case class Sized(val width: Int, val height: Int) extends SizingMethod
+case class FixedWidth(val width: Int) extends SizingMethod
+case class FixedHeight(val height: Int) extends SizingMethod
+case class Percentage(val pct: Double) extends SizingMethod

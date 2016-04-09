@@ -229,12 +229,12 @@ trait HasActiveGalleries extends HasActivePanels with HasComplexGalleries {
     def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = 
       new SimpleActiveGallery(cmplx)
 
-    // def apply[A[_ <: Nat]](cmplx: FiniteComplex[A])(cfg: GalleryConfig)(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = {
-    //   val gallery = new SimpleActiveGallery(cmplx)
-    //   gallery.config = cfg
+    def apply[A[_ <: Nat]](cmplx: FiniteComplex[A], cfg: GalleryConfig)(implicit v: VisualizableFamily[A]) : SimpleActiveGallery[A] = {
+      val gallery = new SimpleActiveGallery(cmplx)
+      gallery.config = cfg
     //   gallery.refreshAll
-    //   gallery
-    // }
+      gallery
+    }
 
   }
 

@@ -108,8 +108,29 @@ class SketchController @Inject() (
 
         import opetopic.ui._
         import opetopic.ui.markers._
+        import opetopic.net._
         import ScalatagsTextFramework._
         import SimpleMarker._
+
+        import upickle.default._
+
+        val sm : SizingMethod = read[SizingMethod](data.sizingMethod)
+
+        val sf : Bounds => (Int, Int) = 
+          sm match {
+            case Sized(w, h) => (b: Bounds) => (w, h)
+            case FixedWidth(w) => (b: Bounds) => {
+              val fct : Double = (w.toDouble) / b.width
+              (w, (b.height * fct).toInt)
+            }
+            case FixedHeight(h) => (b: Bounds) => {
+              val fct : Double = (h.toDouble) / b.height
+              ((b.width * fct).toInt, h)
+            }
+            case Percentage(pct) => (b: Bounds) => {
+              ((b.width * pct).toInt, (b.height * pct).toInt)
+            }
+          }
 
         implicit val staticPanelConfig =
           PanelConfig(
@@ -127,8 +148,9 @@ class SketchController @Inject() (
             width = 1000,
             height = 300,
             spacing = 2000,
-            minViewX = Some(80000),
-            minViewY = Some(15000),
+            minViewX = None, // Some(80000),
+            minViewY = None, // Some(15000),
+            sizingFunction = sf,
             spacerBounds = Bounds(0, 0, 600, 600)
           )
 

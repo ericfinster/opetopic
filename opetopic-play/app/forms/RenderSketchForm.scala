@@ -14,12 +14,14 @@ object RenderSketchForm {
 
   val form = Form(
     mapping(
-      "renderData" -> nonEmptyText
+      "renderData" -> nonEmptyText,
+      "sizingMethod" -> nonEmptyText
     )(Data.apply)(Data.unapply)
   )
 
   case class Data(
-    renderData: String
+    renderData: String,
+    sizingMethod: String
   )
 
 }

@@ -109,6 +109,7 @@
     <form id="render-request-form" action="/renderSketch" method="post" target="_blank">
       @helper.CSRF.formField
       <input id="render-data" type="hidden" name="renderData" value="default">
+      <input id="sizing-mthd" type="hidden" name="sizingMethod" value="default">
     </form>
 
     <div class="ui modal small codeexport">

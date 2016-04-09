@@ -23,6 +23,7 @@ trait HasGalleries extends HasPanels { self: UIFramework =>
     val minViewX: Option[Size] = None,
     val minViewY: Option[Size] = None,
     val spacerBounds: Bounds = Bounds(zero, zero, fromInt(600), fromInt(600)),
+    val sizingFunction: Bounds => (Size, Size) = (b => (b.width, b.height)),
     val manageViewport: Boolean = false
   )
   
