@@ -25,6 +25,7 @@ class DocsController @Inject() (
   userService: UserService
 ) extends Silhouette[User, CookieAuthenticator] {
 
+
   def showDoc(page: String) = UserAwareAction.async { implicit request => 
 
     implicit val userOpt = request.identity
@@ -35,6 +36,7 @@ class DocsController @Inject() (
       case "hdts" => Future.successful(Ok(views.html.docs.hdts()))
       case "diagrams/complexes" => Future.successful(Ok(views.html.docs.complexes()))
       case "diagrams/opetopes" => Future.successful(Ok(views.html.docs.opetopes()))
+      case "diagrams/geometry" => Future.successful(Ok(views.html.docs.geometry()))
       case "basicediting" => Future.successful(Ok(views.html.docs.basicediting()))
       case _ => Future.successful(Ok("No doc found"))
     }

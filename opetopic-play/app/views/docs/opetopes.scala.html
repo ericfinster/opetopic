@@ -59,28 +59,39 @@
     <p>
       In an opetope, each atomic diagram can be assigned a dimension,
       starting on the left and beginning with zero.  Consequently, the
-      above opetope is 5-dimensional.  The boxes of each dimension
-      will be called the n-dimensional <em>faces</em> of the opetope,
-      and we will justify this terminology shortly.  In view of our
-      definition, each face appears <em>exactly twice</em> in the
-      diagram: once in it's proper dimension, and once in the following
-      dimension as the edge which corresponds to it with respect to 
-      the bond.
+      above opetope is 5-dimensional.  As we will see below, each box
+      in the diagram itself corresponds to an opetope, and so we will
+      often refer to the boxes generically as <em>cells</em>.  When a
+      particular opetope is under discussion, we will occasionaly refer
+      to the cells which comprise it as its <em>faces</em>
     </p>
     
     <p>
-      This makes good geometric sense: we expect an (n+1)-dimensional
-      object to have n-dimensional faces, or boundary, and in an
-      opetopic diagram, the n-dimensional boundary of any
-      (n+1)-dimensional cell can be described as exactly the
-      collection of edges which intersect the box representing it.
+      Notice that, in view of our definition, each face
+      appears <em>exactly twice</em> in the diagram: once in it's
+      proper dimension, and once in the following dimension as the
+      edge which it corresponds to under the bond. This makes good
+      geometric sense.  Indeed, we expect an (n+1)-dimensional object
+      to have a boundary which is n-dimensional and as we will see,
+      the boundary of any one of our cells is easy to describe: 
+      for an (n+1)-dimensional cell, its boundary consists of exactly
+      the n-cells corresponding to the edges which intersect the 
+      boundary of the box which represents it.
     </p>
 
     <p>
-      Just as any face of a higher dimensional simplex is a simplex,
-      or of a cube is a cube, every face of an opetope is also an opetope.
-      The following interactive demonstration will serve to illustrate
-      this point:
+      This observation provides us with a nice interpretation of what
+      our atomic diagrams in fact depict: the boxes of an (positive dimensional)
+      atomic diagram depect a collection of cells, while the edges
+      are a picture of how these cells are glued together along cells
+      of codimension 1.
+    </p>
+
+    <p>
+      Just as any face of a higher dimensional simplex is itself a
+      simplex, and that of a higher dimensional cube a cube, every
+      face of an opetope is also an opetope.  The following
+      interactive demonstration will serve to illustrate this point:
     </p>
     
     <div class="ui top attached segment">
@@ -106,6 +117,16 @@
       is an opetope in the sense defined above.
     </p>
 
+    <h3 class="ui dividing header">Constructing Opetopes Inductively</h3>
+
+    <p>
+      Our description of the opetopes provides a straightforward
+      recipe for constructing them.  Start with a finite, linear
+      nesting of boxes.  Draw the edge tree which corresponds to that
+      nesting.  Add boxes to taste, ensuring that there is a largest
+      box enclosing all the others.  Repeat.
+    </p>
+    
     <div class="ui secondary menu">
       <div class="item">
 	<a href="/docs/diagrams/complexes" class="ui left labeled icon button">
@@ -115,9 +136,9 @@
       </div>
       <div class="right menu">
 	<div class="item">
-	  <a href="/docs/diagrams/opetopes" class="ui right labeled icon button">
+	  <a href="/docs/diagrams/geometry" class="ui right labeled icon button">
     	    <i class="right arrow icon"></i>
-    	    Next: Opetopes
+    	    Next: Geometry
 	  </a>
 	</div>
       </div>

@@ -65,8 +65,9 @@ object Docs extends JSApp {
     } {
       pageName match {
         case "basicediting" => runBasicEditingPage
-        case "zoom" => zoomPage
+        case "diagrams/complexes" => doComplexes
         case "diagrams/opetopes" => doOpetopes
+        case "diagrams/geometry" => doGeometry
         case _ => ()
       }
     }
@@ -104,7 +105,7 @@ object Docs extends JSApp {
 
   }
 
-  def zoomPage: Unit = {
+  def doComplexes: Unit = {
 
     jQuery(".ui.checkbox").checkbox(lit(
 
@@ -151,56 +152,73 @@ object Docs extends JSApp {
 
   }
 
-  //   val hoveredStroke = "#ff2a2a"
-  //   val hoveredFill = "#ff2a2a"
+  def doGeometry: Unit = {
 
-  //   val unhoveredStroke = "#000000"
-  //   val unhoveredFill = "#000000"
+    val viewer = new DocsViewer(350)
+    jQuery("#gallery-pane").append(viewer.uiElement)
+    viewer.initialize
 
-  //   val hoveredAuxFill = TutorialColorSpec.fillHovered
-  //   val unhoveredAuxFill = "#000000"
+    viewer.complex = Some(threecell)
 
-  //   def lblToClass(str: String) : String = 
-  //     str match {
-  //       case "\u03b1" => "alpha"
-  //       case "\u03b2" => "beta"
-  //       case "\u03b3" => "gamma"
-  //       case "\u03b4" => "delta"
-  //       case "\u03b5" => "epsilon"
-  //       case "\u03b6" => "zeta"
-  //       case "\u03a6" => "phi"
-  //       case _ => str
-  //     }
+    val hoveredStroke = "#ff2a2a"
+    val hoveredFill = "#ff2a2a"
 
-  //   gallery.onSelectAsRoot = (bs: Sigma[gallery.GalleryBoxType]) => { 
-  //     for {
-  //       lc <- bs.value.labelComplex
-  //     } {
-  //       val faceGallery = ActiveGallery(lc)
-  //       jQuery("#face-pane").empty().append(faceGallery.element.uiElement)
-  //     }
-  //   }
+    val unhoveredStroke = "#000000"
+    val unhoveredFill = "#000000"
 
-  //   gallery.onHover = (bs : Sigma[gallery.GalleryBoxType]) => {
-  //     for {
-  //       lbl <- bs.value.label
-  //     } {
-  //       jQuery(".stroke-" ++ lblToClass(lbl)).css("stroke", hoveredStroke)
-  //       jQuery(".fill-" ++ lblToClass(lbl)).css("fill", hoveredFill)
-  //     }
-  //   }
+    val hoveredAuxFill = TutorialColorSpec.fillHovered
+    val unhoveredAuxFill = "#000000"
 
-  //   gallery.onUnhover = (bs : Sigma[gallery.GalleryBoxType]) => {
-  //     for {
-  //       lbl <- bs.value.label
-  //     } {
-  //       jQuery(".stroke-" ++ lblToClass(lbl)).css("stroke", unhoveredStroke)
-  //       jQuery(".fill-" ++ lblToClass(lbl)).css("fill", unhoveredFill)
-  //     }
-  //   }
+    def lblToClass(str: String) : String =
+      str match {
+        case "\u03b1" => "alpha"
+        case "\u03b2" => "beta"
+        case "\u03b3" => "gamma"
+        case "\u03b4" => "delta"
+        case "\u03b5" => "epsilon"
+        case "\u03b6" => "zeta"
+        case "\u03a6" => "phi"
+        case _ => str
+      }
 
+    // // gallery.onSelectAsRoot = (bs: Sigma[gallery.GalleryBoxType]) => {
+    // //   for {
+    // //     lc <- bs.value.labelComplex
+    // //   } {
+    // //     val faceGallery = ActiveGallery(lc)
+    // //     jQuery("#face-pane").empty().append(faceGallery.element.uiElement)
+    // //   }
+    // // }
 
-  // }
+    val el = Snap("#svg")
+
+    for {
+      gallery <- viewer.activeGallery
+    } {
+      gallery.onHover = (bs : Sigma[gallery.GalleryBoxType]) => {
+        for {
+          lbl <- bs.value.label
+        } {
+          el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = hoveredStroke))
+          el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = hoveredFill))
+        }
+      }
+
+      gallery.onUnhover = (bs : Sigma[gallery.GalleryBoxType]) => {
+        for {
+          lbl <- bs.value.label
+        } {
+          el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = unhoveredStroke))
+          el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = unhoveredFill))
+        }
+      }
+    }
+
+    Snap.load("/assets/svgs/threecell.svg", (f: Fragment) => {
+      el.append(f)
+    })
+
+  }
 
 }
 
