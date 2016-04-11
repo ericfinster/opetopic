@@ -16,14 +16,15 @@ import opetopic._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
+abstract class JsComplexViewer[A[_ <: Nat]](divHeight: Int = 200) { thisJsViewer =>
 
   implicit val vf: VisualizableFamily[A]
+  def config: GalleryConfig = GalleryConfig()
 
-  val minY : Int = 5000
+  var minY : Int = 5000
 
   private var activeComplex : Option[FiniteComplex[A]] = None
-  private var activeGallery : Option[ActiveGallery[A]] = None
+  var activeGallery : Option[ActiveGallery[A]] = None
 
   def complex: Option[FiniteComplex[A]] = activeComplex
   def complex_=(copt: Option[FiniteComplex[A]]): Unit = {
@@ -32,7 +33,7 @@ abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
       case None => jQuery(uiElement).empty()
       case Some(c) => {
 
-        val gallery = ActiveGallery(c)
+        val gallery = ActiveGallery(c, config)
 
         gallery.onRefresh = () => { 
 
@@ -65,7 +66,7 @@ abstract class JsComplexViewer[A[_ <: Nat]] { thisJsViewer =>
   var viewerHeight : Int = 0
 
   val uiElement = 
-    div(style := "min-height: 200px").render
+    div(style := "min-height: " + divHeight.toString + "px").render
 
   def initialize: Unit = {
     viewerHeight = jQuery(uiElement).height.toInt - 10

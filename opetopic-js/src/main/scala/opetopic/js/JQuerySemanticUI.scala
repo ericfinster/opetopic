@@ -34,6 +34,7 @@ trait JQuerySemanticUI extends JQuery {
   def tab(str: String*) : this.type = js.native
 
   def checkbox() : this.type = js.native
+  def checkbox(opts: js.Object) : this.type = js.native
 
   def transition(str: String) : this.type = js.native
   def transition(opts: js.Object) : this.type = js.native

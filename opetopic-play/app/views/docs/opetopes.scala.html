@@ -1,0 +1,128 @@
+@()(implicit userOpt: Option[User])
+
+@doc("diagrams/opetopes") {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Opetopes</h2>
+    
+    <p>
+      Here, again, is the complex we were looking at at the end
+      of the last section:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/bigcomplex.svg"></object>
+    </div>
+
+    <p>
+      Notice that there are two trees here which are, in a sense,
+      unconstrained: the edge tree of the left-hand diagram, and the
+      box tree of the right.  On the left, this is simply because
+      there is no diagram which "comes before" whose boxes would fix
+      the structure of the edge tree.  Similarly, on the right, there
+      is no diagram which "comes after" whose edges would fix the
+      structure of the boxes. We could have equally well drawn a
+      different collection of edges on the left, and a different
+      collection of boxes on the right without affecting the bonding
+      relationship between the adjacent pairs.
+    </p>
+
+    <p>
+      In order to single out the opetopes among all possible
+      complexes, we are going to fix these two ambiguities by
+      specifying an initial and final condition.  Hence we will say
+      that an unlabeled opetopic complex is an <em>opetope</em> if
+    </p>
+
+    <div class="ui message">
+      <div class="ui big ordered list">
+	<div class="item">The initial box tree is <em>linear</em></div>
+	<div class="item">The final box tree is <em>trivial</em>, that is, consists of only the root</div>
+      </div>
+    </div>
+
+    <p>
+      For example, the following complex is an opetope:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/opetope.svg"></object>
+    </div>
+
+    <p>
+      In fact, by demanding that the initial box tree be linear, we remove
+      the need for the edges entirely, and hence, as shown above, we will
+      simply leave them off since they do not correspond to any previous
+      boxes.  
+    </p>
+
+    <p>
+      In an opetope, each atomic diagram can be assigned a dimension,
+      starting on the left and beginning with zero.  Consequently, the
+      above opetope is 5-dimensional.  The boxes of each dimension
+      will be called the n-dimensional <em>faces</em> of the opetope,
+      and we will justify this terminology shortly.  In view of our
+      definition, each face appears <em>exactly twice</em> in the
+      diagram: once in it's proper dimension, and once in the following
+      dimension as the edge which corresponds to it with respect to 
+      the bond.
+    </p>
+    
+    <p>
+      This makes good geometric sense: we expect an (n+1)-dimensional
+      object to have n-dimensional faces, or boundary, and in an
+      opetopic diagram, the n-dimensional boundary of any
+      (n+1)-dimensional cell can be described as exactly the
+      collection of edges which intersect the box representing it.
+    </p>
+
+    <p>
+      Just as any face of a higher dimensional simplex is a simplex,
+      or of a cube is a cube, every face of an opetope is also an opetope.
+      The following interactive demonstration will serve to illustrate
+      this point:
+    </p>
+    
+    <div class="ui top attached segment">
+      <h3 class="ui header">Opetope</h3>
+    </div>
+    <div class="ui attached center aligned segment">
+      <div id="gallery-pane"></div>
+    </div>
+
+    <div class="ui top attached segment">
+      <h3 class="ui header">Face</h3>
+    </div>
+    <div class="ui attached center aligned segment">
+      <div id="face-pane"></div>
+    </div>
+
+    <p>
+      First of all, as you pass your mouse cursor over one of the cells,
+      you will notice that a number of lower dimensional cells are highlighted.
+      These are exactly the faces of the face you are pointing at.  Futhermore
+      if you click on one of the faces, its opetopic structure will be 
+      "extracted" into the bottom region, where you can verify that it also
+      is an opetope in the sense defined above.
+    </p>
+
+    <div class="ui secondary menu">
+      <div class="item">
+	<a href="/docs/diagrams/complexes" class="ui left labeled icon button">
+    	  <i class="left arrow icon"></i>
+    	  Prev: Opetopic Complexes
+	</a>
+      </div>
+      <div class="right menu">
+	<div class="item">
+	  <a href="/docs/diagrams/opetopes" class="ui right labeled icon button">
+    	    <i class="right arrow icon"></i>
+    	    Next: Opetopes
+	  </a>
+	</div>
+      </div>
+    </div>
+
+  </div>
+
+}

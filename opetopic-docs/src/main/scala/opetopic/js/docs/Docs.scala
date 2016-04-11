@@ -8,6 +8,7 @@
 package opetopic.js.docs
 
 import scala.scalajs.{js => sjs}
+import sjs.Dynamic.{literal => lit}
 import scala.scalajs.js.JSApp
 import org.scalajs.dom._
 import org.scalajs.jquery._
@@ -64,28 +65,89 @@ object Docs extends JSApp {
     } {
       pageName match {
         case "basicediting" => runBasicEditingPage
+        case "zoom" => zoomPage
+        case "diagrams/opetopes" => doOpetopes
         case _ => ()
       }
     }
 
   }
 
-  def runOpetopesPage: Unit = {
+  def doOpetopes: Unit = {
 
     println("Starting the opetopes page ...")
 
-    val gallery = ActiveGallery(threecell, DocsGalleryConfig)
-    gallery.refreshAll
+    val viewer = new DocsViewer(350)
+    jQuery("#gallery-pane").append(viewer.uiElement)
+    viewer.initialize
 
-    jQuery("#gallery-pane").append(gallery.element.uiElement)
+    viewer.complex = Some(threecell)
+
+    val faceViewer = new DocsViewer
+    jQuery("#face-pane").append(faceViewer.uiElement)
+    faceViewer.initialize
+
+    viewer.activeGallery map (g => {
+      g.onSelectAsRoot = (bs: Sigma[g.GalleryBoxType]) => {
+        for { lc <- bs.value.labelComplex } { faceViewer.complex = Some(lc) }
+      }
+    })
 
   }
     
   def runBasicEditingPage: Unit = {
 
     val editor = new DocsEditor
+
     jQuery("#editor-div").append(editor.uiElement)
     editor.initialize
+
+  }
+
+  def zoomPage: Unit = {
+
+    jQuery(".ui.checkbox").checkbox(lit(
+
+      onChecked = () => {
+        println("checked")
+        jQuery("#atoms").fadeTo("slow", 0.0)
+        jQuery("#bond").fadeTo("slow", 1.0)
+      },
+
+      onUnchecked = () => {
+        println("unchecked")
+        jQuery("#atoms").fadeTo("slow", 1.0)
+        jQuery("#bond").fadeTo("slow", 0.0)
+      }
+
+    ))
+
+    jQuery("#cbtn").on("click", () => {
+      jQuery("#cbtn").addClass("active")
+      jQuery("#fbtn").removeClass("active")
+      jQuery("#sbtn").removeClass("active")
+      jQuery("#csvg").fadeTo("slow", 1.0)
+      jQuery("#fsvg").fadeTo("slow", 0.0)
+      jQuery("#ssvg").fadeTo("slow", 0.0)
+    })
+
+    jQuery("#fbtn").on("click", () => {
+      jQuery("#cbtn").removeClass("active")
+      jQuery("#fbtn").addClass("active")
+      jQuery("#sbtn").removeClass("active")
+      jQuery("#csvg").fadeTo("slow", 0.0)
+      jQuery("#fsvg").fadeTo("slow", 1.0)
+      jQuery("#ssvg").fadeTo("slow", 0.0)
+    })
+
+    jQuery("#sbtn").on("click", () => {
+      jQuery("#cbtn").removeClass("active")
+      jQuery("#fbtn").removeClass("active")
+      jQuery("#sbtn").addClass("active")
+      jQuery("#csvg").fadeTo("slow", 0.0)
+      jQuery("#fsvg").fadeTo("slow", 0.0)
+      jQuery("#ssvg").fadeTo("slow", 1.0)
+    })
 
   }
 

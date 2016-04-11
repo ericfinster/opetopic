@@ -33,8 +33,8 @@ class DocsController @Inject() (
       case "intro" => Future.successful(Ok(views.html.docs.intro()))
       case "typetheory" => Future.successful(Ok(views.html.docs.typetheory()))
       case "hdts" => Future.successful(Ok(views.html.docs.hdts()))
-      case "opetopes/basics" => Future.successful(Ok(views.html.docs.opetopesBasics()))
-      case "opetopes/diagrams" => Future.successful(Ok(views.html.docs.opetopesDiagrams()))
+      case "diagrams/complexes" => Future.successful(Ok(views.html.docs.complexes()))
+      case "diagrams/opetopes" => Future.successful(Ok(views.html.docs.opetopes()))
       case "basicediting" => Future.successful(Ok(views.html.docs.basicediting()))
       case _ => Future.successful(Ok("No doc found"))
     }

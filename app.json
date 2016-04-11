@@ -1,0 +1,23 @@
+{
+  "name": "opetopic",
+  "description": "Opetopic application",
+  "keywords": [
+    "Opetopes",
+    "Theorem Prover",
+    "Sketchpad"
+  ],
+  "website": "https://github.com/ericfinster/opetopic",
+  "repository": "https://github.com/ericfinster/opetopic",
+  "success_url": "/",
+  "env": {
+    "BUILDPACK_URL": "https://github.com/heroku/heroku-buildpack-scala.git",
+    "PLAY_CONF_FILE": "application.prod.conf",
+    "PLAY_APP_SECRET": "U3spB5^7L;EK_:<=OKxwpOJGM:0JsAyTu2pWhKsqbiGMO@tT_8voDNs:x7q=x?e<",
+    "FACEBOOK_CLIENT_ID": "",
+    "FACEBOOK_CLIENT_SECRET": "",
+    "GOOGLE_CLIENT_ID": "",
+    "GOOGLE_CLIENT_SECRET": "",
+    "TWITTER_CONSUMER_KEY": "",
+    "TWITTER_CONSUMER_SECRET": ""
+  }
+}

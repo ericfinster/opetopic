@@ -1,0 +1,243 @@
+@()(implicit userOpt: Option[User])
+
+@doc("zoom") {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Opetopic Complexes</h2>
+
+    <p>
+      In their
+      original <a href="http://arxiv.org/abs/q-alg/9702014">paper</a>
+      introducing the opetopes, Baez and Dolan described a notation
+      which they called <em>metatree</em> notation for working with
+      them.  This notation was then refined and improved in
+      an <a href="http://arxiv.org/abs/0706.1033">article</a> of
+      Joyal, Kock, Batanin and Mascari.  The notation developed here
+      is essentially that of the latter paper, with some minor
+      modifications which we will point out along the way.
+    </p>
+
+    <p>
+      As mentioned in the introduction, opetopes can be seen as
+      certain well-formed higher dimensional trees.  It may not be
+      surprising, therefore, that we begin by fixing some notation for
+      trees.  Opetopic diagrams will rely on the combination of two
+      methods of depicting a rooted tree.  An example of each of these
+      methods is shown in the following diagram.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/boxtree.svg"></object>
+    </div>
+
+    <p>
+      As the reader can easily verify, both diagrams represent the
+      same rooted tree.  Of the two, the picture on the right is
+      likely the more familiar: the tree is depicted as
+      a <em>(partial) graph</em> consisting of nodes and edges.  The
+      diagram on the left, by contrast, employs a collection of boxes,
+      with their containment representing the tree structure.  The
+      correspondence between the two can be summarized by observing
+      that our labelling specifies a bijection between
+      the <em>boxes</em> on the left, and the <em>edges</em> on the
+      right.
+    </p>
+    
+    <p>
+      There is a certain geometric intuition which accompanies these
+      two representations of our tree.  Specifically, each can be
+      regarded as a kind of projection, with the collection of boxes
+      representing our view "from above" and the edges "from the side".
+      From a slightly different perspective, as in the digram below,
+      the bijection between our boxes and edges is rendered as their
+      <em>intersection</em> in a higher dimensional space.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/3dboxtree.svg"></object>
+    </div>
+
+    <p>
+      It is worth remarking that the view of our tree as a collection
+      of boxes makes no mention of the tree's "nodes", which are 
+      central to its representation as a graph.  The diagram above 
+      makes clear that we can regard these nodes as a representation
+      of the space, which is implicit, in between different levels
+      of boxes.  We will return to this theme later in our discussion.
+    </p>
+
+    <h3 class="ui dividing header">Atomic Diagrams</h3>
+
+    <p>
+      Next, consider the following diagram which, in contrast to the
+      situation above, is not a representation of a single tree in two
+      different ways, but rather a representation of <em>two
+      different</em> trees which share some structure.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/nesting.svg"></object>
+    </div>
+
+    <p>
+      Observe that the boxes shaded grey play a dual role: they are
+      simultaneously acting as the "leaves" of the tree formed by the
+      boxes (since they contain no boxes themselves), while at the
+      same time serving as the "nodes" for the tree determined by the
+      edges.  (Here our presenation differs slightly from that of 
+      KJBM.  The signifigance of this modification will become more
+      clear in our section about geometry).
+    </p>
+
+    <p>
+      We refer to diagrams such as the one above as <em>atomic diagrams</em>.
+    </p>
+
+    <p>
+      Returning to the perspective view from above, we see that
+      one way to understand an atomic diagram is as two trees drawn
+      at right angles to one another in the sense that one
+      tree is depicted "vertically" using the axis perpendicular
+      to your screen, while the other is depicted "horizontally" lying
+      in the plane of your screen.  
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/3dnesting.svg"></object>
+    </div>
+
+    <p>
+      When we need to distinguish between these two trees, will will
+      refer to them as the <em>box tree</em> and the <em>edge tree</em>.
+    </p>
+
+    <p>
+      Atomic diagrams are subject to two rules in order to be considered well
+      formed:
+    </p>
+    
+    <div class="ui message">
+      <div class="ui big ordered list">
+	<div class="item">
+	  The interior of every box is <em>non-empty connected subtree</em> of the
+	  edge tree.
+	</div>
+	<div class="item">
+	  The box and edge trees are each <em>rooted</em>
+	</div>
+      </div>
+    </div>
+
+    <p>
+      The first condition prevents the following two situations, which from
+      now on we regard as pathological:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/badnesting.svg"></object>
+    </div>
+
+    <p>
+      On the left, the box in red encloses a subtree of the edge tree which
+      is disconnected, whereas on the right, the red box is "floating" and
+      not connected to any part of the edge tree.
+    </p>
+
+    <p>
+      The meaning of the second condition applied to the edge tree
+      should be clear enough.  For the box tree, it simply asserts
+      that there is a largest box containing all the others.  We will
+      see later on that this condition may be relaxed in a certain
+      sense, but for now, all trees under consideration will be
+      rooted.
+    </p>
+
+    <h3 class="ui dividing header">Bonds</h3>
+
+    <p>
+      As we have seen, each atomic diagram is a representation of two
+      trees simultaneously.  It stands to reason, therefore, that
+      the following diagram represents <em>four</em> trees.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <div id="atoms" style="opacity:1.0">
+	<object type="image/svg+xml" id="atoms" data="/assets/svgs/newzoom.svg"></object>
+      </div>
+      <div id="bond" style="opacity:0.0; position: relative; top:-317px; margin-bottom:-317px;">
+	<object type="image/svg+xml" id="bond" data="/assets/svgs/newzoomreveal.svg"></object>
+      </div>
+    </div>
+    <div class="ui basic center aligned segment">
+      <div class="ui toggle checkbox">
+	<input type="checkbox" name="public">
+	<label>Show bond</label>
+      </div>
+    </div>
+
+    <p>
+      Of course, this is in fact the case.  But it is not the whole story.  
+      Indeed, by toggling the switch above (which removes the edge
+      tree from the left diagram and the box tree from the right)
+      we see that the two remaining trees are in fact isomorphic.
+    </p>
+
+    <p>
+      We will say that two adjacent atomic diagrams with such a specified
+      isomorphism are <em>bonded</em>
+    </p>
+
+    <h3 class="ui dividing header">Complexes</h3>
+    
+    <p>
+      A <em>opetopic complex</em> is simply a squence of atomic
+      diagrams in which adjacent diagrams are bonded in the sense of
+      the last section.  For example, with the aid of the buttons 
+      below, the reader can vertify that each of the two adjacent
+      pairs in the following sequence is bonded.
+    </p> 
+
+    <div class="ui basic center aligned segment">
+      <div id="csvg" style="opacity:1.0">
+	<object type="image/svg+xml" data="/assets/svgs/bigcomplex.svg"></object>
+      </div>
+      <div id="fsvg" style="opacity:0.0; position: relative; top:-245px; margin-bottom:-245px;">
+	<object type="image/svg+xml" data="/assets/svgs/bigcomplex-first.svg"></object>
+      </div>
+      <div id="ssvg" style="opacity:0.0; position: relative; top:-245px; margin-bottom:-245px;">
+	<object type="image/svg+xml" data="/assets/svgs/bigcomplex-second.svg"></object>
+      </div>
+    </div>
+    <div class="ui basic center aligned segment">
+      <div class="ui buttons">
+	<button id="cbtn" class="ui button active">Complex</button>
+	<button id="fbtn" class="ui button">First Bond</button>
+	<button id="sbtn" class="ui button">Second Bond</button>
+      </div>
+    </div>
+
+    <p>
+      Briefly, then, an opetopic complex is a sequence of atomic diagrams
+      in which the boxes of one diagram are in bijection with the edges of
+      the next.
+    </p>
+
+    <div class="ui secondary menu">
+      <div class="item">
+	<a href="/docs/intro" class="ui left labeled icon button">
+    	  <i class="left arrow icon"></i>
+    	  Prev: Introduction
+	</a>
+      </div>
+      <div class="right menu">
+	<div class="item">
+	  <a href="/docs/diagrams/opetopes" class="ui right labeled icon button">
+    	    <i class="right arrow icon"></i>
+    	    Next: Opetopes
+	  </a>
+	</div>
+      </div>
+    </div>
+  </div>
+
+}
