@@ -154,11 +154,9 @@ object Docs extends JSApp {
 
   def doGeometry: Unit = {
 
-    val viewer = new DocsViewer(350)
-    jQuery("#gallery-pane").append(viewer.uiElement)
-    viewer.initialize
-
-    viewer.complex = Some(threecell)
+    //============================================================================================
+    // HELPERS
+    //
 
     val hoveredStroke = "#ff2a2a"
     val hoveredFill = "#ff2a2a"
@@ -181,42 +179,141 @@ object Docs extends JSApp {
         case _ => str
       }
 
-    // // gallery.onSelectAsRoot = (bs: Sigma[gallery.GalleryBoxType]) => {
-    // //   for {
-    // //     lc <- bs.value.labelComplex
-    // //   } {
-    // //     val faceGallery = ActiveGallery(lc)
-    // //     jQuery("#face-pane").empty().append(faceGallery.element.uiElement)
-    // //   }
-    // // }
+    def installHandlers(viewer: DocsViewer, el: SnapElement) : Unit = 
+      for {
+        gallery <- viewer.activeGallery
+      } {
+        gallery.onHover = (bs : Sigma[gallery.GalleryBoxType]) => {
+          for {
+            lbl <- bs.value.label
+          } {
+            el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = hoveredStroke))
+            el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = hoveredFill))
+          }
+        }
 
-    val el = Snap("#svg")
-
-    for {
-      gallery <- viewer.activeGallery
-    } {
-      gallery.onHover = (bs : Sigma[gallery.GalleryBoxType]) => {
-        for {
-          lbl <- bs.value.label
-        } {
-          el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = hoveredStroke))
-          el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = hoveredFill))
+        gallery.onUnhover = (bs : Sigma[gallery.GalleryBoxType]) => {
+          for {
+            lbl <- bs.value.label
+          } {
+            el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = unhoveredStroke))
+            el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = unhoveredFill))
+          }
         }
       }
 
-      gallery.onUnhover = (bs : Sigma[gallery.GalleryBoxType]) => {
-        for {
-          lbl <- bs.value.label
-        } {
-          el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = unhoveredStroke))
-          el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = unhoveredFill))
-        }
-      }
-    }
+    //============================================================================================
+    // THE OBJECT
+    //
 
-    Snap.load("/assets/svgs/threecell.svg", (f: Fragment) => {
-      el.append(f)
+    val objectViewer = new DocsViewer(150)
+    jQuery("#object-pane").append(objectViewer.uiElement)
+    objectViewer.initialize
+    objectViewer.complex = Some(obj)
+
+    val objectEl = Snap("#object-svg")
+    Snap.load("/assets/svgs/object.svg", (f: Fragment) => {
+      objectEl.append(f)
     })
+
+    installHandlers(objectViewer, objectEl)
+
+    //============================================================================================
+    // THE ARROW
+    //
+
+    val arrowViewer = new DocsViewer(150)
+    jQuery("#arrow-pane").append(arrowViewer.uiElement)
+    arrowViewer.initialize
+    arrowViewer.complex = Some(arrow)
+
+    val arrowEl = Snap("#arrow-svg")
+    Snap.load("/assets/svgs/arrow.svg", (f: Fragment) => {
+      arrowEl.append(f)
+    })
+
+    installHandlers(arrowViewer, arrowEl)
+
+    //============================================================================================
+    // THE DROP
+    //
+
+    val dropViewer = new DocsViewer(150)
+    jQuery("#drop-pane").append(dropViewer.uiElement)
+    dropViewer.initialize
+    dropViewer.complex = Some(drop)
+
+    val dropEl = Snap("#drop-svg")
+    Snap.load("/assets/svgs/drop.svg", (f: Fragment) => {
+      dropEl.append(f)
+    })
+
+    installHandlers(dropViewer, dropEl)
+
+    //============================================================================================
+    // THE TWOGLOB
+    //
+
+    val twoglobViewer = new DocsViewer(150)
+    jQuery("#twoglob-pane").append(twoglobViewer.uiElement)
+    twoglobViewer.initialize
+    twoglobViewer.complex = Some(twoglob)
+
+    val twoglobEl = Snap("#twoglob-svg")
+    Snap.load("/assets/svgs/twoglob.svg", (f: Fragment) => {
+      twoglobEl.append(f)
+    })
+
+    installHandlers(twoglobViewer, twoglobEl)
+
+    //============================================================================================
+    // THE SIMPLEX
+    //
+
+    val simplexViewer = new DocsViewer(150)
+    jQuery("#simplex-pane").append(simplexViewer.uiElement)
+    simplexViewer.initialize
+    simplexViewer.complex = Some(simplex)
+
+    val simplexEl = Snap("#simplex-svg")
+    Snap.load("/assets/svgs/simplex.svg", (f: Fragment) => {
+      simplexEl.append(f)
+    })
+
+    installHandlers(simplexViewer, simplexEl)
+
+    //============================================================================================
+    // THE QUAD
+    //
+
+    val quadViewer = new DocsViewer(150)
+    jQuery("#quad-pane").append(quadViewer.uiElement)
+    quadViewer.initialize
+    quadViewer.complex = Some(quad)
+
+    val quadEl = Snap("#quad-svg")
+    Snap.load("/assets/svgs/quad.svg", (f: Fragment) => {
+      quadEl.append(f)
+    })
+
+    installHandlers(quadViewer, quadEl)
+
+    //============================================================================================
+    // THE THREECELL
+    //
+
+    val threecellViewer = new DocsViewer(350)
+    jQuery("#threecell-pane").append(threecellViewer.uiElement)
+    threecellViewer.initialize
+    threecellViewer.complex = Some(threecell)
+
+    val threecellEl = Snap("#threecell-svg")
+    Snap.load("/assets/svgs/threecell.svg", (f: Fragment) => {
+      threecellEl.append(f)
+    })
+
+    installHandlers(threecellViewer, threecellEl)
+
 
   }
 

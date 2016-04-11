@@ -8,18 +8,114 @@
     <p>
       In this section, we explore the connection between our opetopic
       diagrams and the more traditional geometry of pasting diagrams
-      in low dimensions.
+      in low dimensions.  In each example, hover over the cells of
+      the opetopic diagram to highlight the part of the pasting
+      diagram it corresponds to.
     </p>
+
+    <h3 class="ui dividing header">Dimenion 0</h3>
+
+    <div class="ui top attached segment">
+      <div class="ui header">An Object</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <div id="object-pane"></div>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <svg width="75" height="75" id="object-svg"></svg>
+    </div>
+
+    <h3 class="ui dividing header">Dimenion 1</h3>
+
+    <div class="ui top attached segment">
+      <div class="ui header">An Arrow</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <div id="arrow-pane"></div>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <svg width="150" height="75" id="arrow-svg">
+    </div>
+
+    <h3 class="ui dividing header">Dimenion 2</h3>
+
+    <p>
+      Dimension 2 becomes more intersting: we already have 
+      infinitely many opetopes of dimension two indexed by
+      the natural numbers, namely, the number of input
+      arrows, starting at zero.
+    </p>
+
+    <div class="ui top attached segment">
+      <div class="ui header">A Drop</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <div id="drop-pane"></div>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <svg width="150" height="150" id="drop-svg"></svg>
+    </div>
+
+    <div class="ui top attached segment">
+      <div class="ui header">A Two-Glob</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <div id="twoglob-pane"></div>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <svg width="150" height="150" id="twoglob-svg"></svg>
+    </div>
+
+    <div class="ui top attached segment">
+      <div class="ui header">A Simplex</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <div id="simplex-pane"></div>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <svg width="175" height="175" id="simplex-svg"></svg>
+    </div>
+
+    <div class="ui top attached segment">
+      <div class="ui header">A Quadrilateral</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <div id="quad-pane"></div>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <svg width="175" height="175" id="quad-svg"></svg>
+    </div>
+
+    <p>
+      This pattern continues on from here.
+    </p>
+
+    <h3 class="ui dividing header">Dimenion 3</h3>
 
     <div class="ui top attached segment">
       <div class="ui header">A Three Cell</div>
     </div>
     <div class="ui middle attached center aligned segment">
-      <div id="gallery-pane"></div>
+      <div id="threecell-pane"></div>
     </div>
     <div class="ui bottom attached center aligned segment">
-      <svg width="725" height="250" id="svg"></svg>
+      <svg width="725" height="250" id="threecell-svg"></svg>
     </div>
+
+    <p>
+      As you can see, already in dimension 3, the naive geometric
+      picture begins to fail us: the boundary arrows and objects must
+      be duplicated in order to make room for the target cell.  You
+      are supposed to imagine that the pasting diagram on the right is
+      slid on top of its target two cell, with the edges identified,
+      and that the top cell Phi represents the space in between when
+      the pasting diagram is bent out of the page.
+    </p>
+    
+    <p>
+      The opetopic diagram, however, presents no such ambiguity.  Each
+      cell occurs exactly once in the dimension where it lives.
+    </p>
 
   </div>
 
