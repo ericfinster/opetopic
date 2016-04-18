@@ -10,7 +10,7 @@ package opetopic.newtt
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
-object MiniTTParser extends RegexParsers with PackratParsers {
+object OTTParser extends RegexParsers with PackratParsers {
 
   lazy val ident: Parser[String] = 
     """[a-zA-Z]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
@@ -48,6 +48,13 @@ object MiniTTParser extends RegexParsers with PackratParsers {
     | "Type" ^^^ EType
     | "empty" ^^^ EEmpty
     | "tt" ^^^ ETt
+    | "Cat" ^^^ ECat
+    | "Ob" ~ expr3 ^^ 
+        { case "Ob" ~ c => EOb(c) }
+    | "Cell" ~ expr3 ~ trExpr ~ expr3 ^^ 
+        { case "Cell" ~ c ~ s ~ t => ECell(c, s, t) }
+    | "Hom" ~ expr3 ~ trExpr ~ expr3 ^^
+        { case "Hom" ~ c ~ s ~ t => EHom(c, s, t) }
     | expr3 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }
     | expr3 ~ ".2" ^^ 
@@ -55,6 +62,16 @@ object MiniTTParser extends RegexParsers with PackratParsers {
     | ident ^^ { EVar(_) }
     | "(" ~ expr ~ ")" ^^
         { case "(" ~ e ~ ")" => e }
+  )
+
+  lazy val trExpr: PackratParser[Expr] = (
+      "pt" ~ expr3 ^^
+        { case "pt" ~ e => EPt(e) }
+    | "lf" ^^^ ELf
+    | "nd" ~ expr3 ~ trExpr ^^
+        { case "nd" ~ e ~ sh => ENd(e, sh) }
+    | "(" ~ trExpr ~ ")" ^^
+        { case "(" ~ te ~ ")" => te }
   )
 
   lazy val pattern: PackratParser[Patt] = (

@@ -7,7 +7,7 @@
 
 package opetopic.newtt
 
-object TypeChecker {
+object OTTTypeChecker {
 
   def error(msg: String) : Null = 
     throw new IllegalArgumentException(msg)
@@ -105,7 +105,13 @@ object TypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
-      case _ => error("eval: should have been desugared\n e = " ++ e0.toString)
+      case ELf => VLf
+      case EPt(e) => VPt(eval(e, rho))
+      case ENd(e, s) => VNd(eval(e, rho), eval(s, rho))
+      case ECat => Cat
+      case EOb(c) => Ob(eval(c, rho))
+      case ECell(c, s, t) => Cell(eval(c, rho), eval(s, rho), eval(t, rho))
+      case EHom(c, s, t) => Hom(eval(c, rho), eval(s, rho), eval(t, rho))
     }
 
   //============================================================================================
@@ -129,6 +135,13 @@ object TypeChecker {
       case Pair(u, v) => EPair(rbV(i, u), rbV(i, v))
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
+      case VLf => ELf
+      case VPt(v) => EPt(rbV(i, v))
+      case VNd(v, s) => ENd(rbV(i, v), rbV(i, s))
+      case Cat => ECat
+      case Ob(v) => EOb(rbV(i, v))
+      case Cell(c, s, t) => ECell(rbV(i, c), rbV(i, s), rbV(i, t))
+      case Hom(c, s, t) => EHom(rbV(i, c), rbV(i, s), rbV(i, t))
       case Nt(k) => rbN(i, k)
     }
   }
@@ -175,7 +188,7 @@ object TypeChecker {
 
   def lookupG[A, B](a0: A, prs: List[(A, B)]) : G[B] = 
     prs.find({ case (a, b) => a == a0 }) match {
-      case None => fail("lookupG: " ++ a0.toString)
+      case None => fail("Variable not in scope: " + a0.toString)
       case Some((a, b)) => pure(b)
     }
 
@@ -275,6 +288,11 @@ object TypeChecker {
         for {
           gma1 <- checkD(rho, gma, d)
           _ <- check(UpDec(rho, d), gma1, e, t)
+        } yield ()
+      case (ECat, Type) => pure(())
+      case (EOb(c), Type) =>
+        for {
+          _ <- check(rho, gma, c, Cat)
         } yield ()
       case (e, t) => 
         for {

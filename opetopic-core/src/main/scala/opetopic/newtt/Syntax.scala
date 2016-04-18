@@ -24,6 +24,17 @@ case class EApp(e: Expr, f: Expr) extends Expr
 case class EVar(id: Ident) extends Expr
 case class EDec(d: Decl, e: Expr) extends Expr
 
+// Tree Expressions
+case class EPt(e: Expr) extends Expr
+case object ELf extends Expr
+case class ENd(e: Expr, sh: Expr) extends Expr
+
+// Categories and Cells
+case object ECat extends Expr
+case class EOb(c: Expr) extends Expr
+case class ECell(c: Expr, s: Expr, t: Expr) extends Expr
+case class EHom(c: Expr, s: Expr, t: Expr) extends Expr
+
 // Patterns
 sealed trait Patt
 case object Punit extends Patt
@@ -47,6 +58,17 @@ case class Pair(v: Val, w: Val) extends Val
 case class Pi(v: Val, c: Clos) extends Val
 case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
+
+// Tree Values
+case object VLf extends Val
+case class VPt(v: Val) extends Val
+case class VNd(v: Val, sh: Val) extends Val
+
+// Category and Cell Values
+case object Cat extends Val
+case class Ob(cv: Val) extends Val
+case class Cell(c: Val, s: Val, t: Val) extends Val
+case class Hom(c: Val, s: Val, t: Val) extends Val
 
 // Neutral terms
 sealed trait Neut

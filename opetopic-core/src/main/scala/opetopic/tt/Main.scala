@@ -12,68 +12,68 @@ import scala.io.Source._
 import scalaz.-\/
 import scalaz.\/-
 
-object Main {
+// object Main {
 
-  def main(args: Array[String]) = {
+//   def main(args: Array[String]) = {
 
-    import OpetopicParser._
-    import OpetopicTypeChecker._
-    import opetopic.pprint.Tokenizer._
-    import PrettyPrinter._
+//     import OpetopicParser._
+//     import OpetopicTypeChecker._
+//     import opetopic.pprint.Tokenizer._
+//     import PrettyPrinter._
 
-    if (args.length != 1) {
+//     if (args.length != 1) {
 
-      println("Usage: opetopictt <filename>")
+//       println("Usage: opetopictt <filename>")
 
-    } else {
+//     } else {
 
-      val rawLines : String = 
-        fromFile(args(0)).getLines.mkString("\n")
+//       val rawLines : String = 
+//         fromFile(args(0)).getLines.mkString("\n")
 
-      val lines: List[String] = 
-        LineParser.parseAll(LineParser.unit, rawLines) match {
-          case LineParser.Success(lines, _) => lines
-          case err => { println("Failed to join lines: " + err.toString) ; Nil }
-        }
+//       val lines: List[String] = 
+//         LineParser.parseAll(LineParser.unit, rawLines) match {
+//           case LineParser.Success(lines, _) => lines
+//           case err => { println("Failed to join lines: " + err.toString) ; Nil }
+//         }
 
-      def getPat(d: Decl) : Patt =
-        d match {
-          case Def(p, _, _) => p
-          case Drec(p, _, _) => p
-        }
+//       def getPat(d: Decl) : Patt =
+//         d match {
+//           case Def(p, _, _) => p
+//           case Drec(p, _, _) => p
+//         }
 
-      def checkLines(rho: Rho, gma: Gamma, lns: List[String]) : Gamma = 
-        lns match {
-          case Nil => gma
-          case l :: ls => {
+//       def checkLines(rho: Rho, gma: Gamma, lns: List[String]) : Gamma = 
+//         lns match {
+//           case Nil => gma
+//           case l :: ls => {
 
-            parseAll(phrase(decl), l) match {
-              case Success(d, _) => {
-                checkD(rho, gma, d) match {
-                  case \/-(g) => {
-                    println(d.pprint)
-                    checkLines(UpDec(rho, d), g, ls)
-                  }
-                  case -\/(str) => {
-                    println("Type check error: " + str)
-                    Nil
-                  }
-                }
+//             parseAll(phrase(decl), l) match {
+//               case Success(d, _) => {
+//                 checkD(rho, gma, d) match {
+//                   case \/-(g) => {
+//                     println(d.pprint)
+//                     checkLines(UpDec(rho, d), g, ls)
+//                   }
+//                   case -\/(str) => {
+//                     println("Type check error: " + str)
+//                     Nil
+//                   }
+//                 }
 
-              }
-              case err => {
-                println("Parse error: " + err.toString)
-                Nil
-              }
-            }
+//               }
+//               case err => {
+//                 println("Parse error: " + err.toString)
+//                 Nil
+//               }
+//             }
 
-          }
-        }
+//           }
+//         }
 
-      val result = checkLines(RNil, Nil, lines)
+//       val result = checkLines(RNil, Nil, lines)
 
-    }
+//     }
 
-  }
+//   }
 
-}
+// }

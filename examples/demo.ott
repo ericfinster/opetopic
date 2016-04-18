@@ -2,64 +2,13 @@
 -- demo.ott - playing with opetopic type theory
 --
 
-let Arrow : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> Type
-    	  = \X. \x. \y. Cell X [ box y (pt (obj x)) ] 
+let identity : (X : Type) -> X -> X
+             = \X. \x. x ; 
 
-let Loop : (X : Cat) -> (x : Obj X) -> (f : Arrow X x x) -> Type
-    	 = \X. \x. \f. Cell X [ obj x ]>> [ box f leaf ] 
+let catTest : Type
+            = Cat ;
 
-let TwoGlob : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (g : Arrow X x y) -> Type
-    	    = \X. \x. \y. \f. \g. Cell X [ box y (pt (obj x)) ]>> [ box g (node (dot f) (pt leaf)) ] 
+let obTest : (X : Cat) -> Type
+           = \X. Ob X ;
 
-let Simplex : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> Type
-    	    = \X. \x. \y. \z. \f. \g. \h. Cell X [ box z (pt (box y (pt (obj x)))) ]>> [ box h (node (dot g) (pt (node (dot f) (pt leaf)))) ]  
-
-let Triplex : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (w : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X z w) -> (k : Arrow X x w) -> Type
-    	    = \X. \x. \y. \z. \w. \f. \g. \h. \k. Cell X [ box w (pt (box z (pt (box y (pt (obj x)))))) ]>> [ box k (node (dot h) (pt (node (dot g) (pt (node (dot f) (pt leaf)))))) ] 
-
-let id : (X : Cat) -> (x : Obj X) -> Arrow X x x
-       = \X. \x. comp X [ obj x ]>> { leaf } 
-
-let refl : (X : Cat) -> (x : Obj X) -> Loop X x (id X x)
-    	 = \X. \x. fill X [ obj x ]>> { leaf } 
-
-let reflIsLeftExt : (X : Cat) -> (x : Obj X) -> isLeftExt (refl X x)
-    		  = \X. \x. fillIsLeft X [ obj x ]>> { leaf }  
-
-let comp : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
-    	 = \X. \x. \y. \z. \f. \g. comp X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
-
-let compFill : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (comp X x y z f g)
-    	     = \X. \x. \y. \z. \f. \g. fill X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
-
-let compFillIsLeft : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> isLeftExt (compFill X x y z f g)
-    	           = \X. \x. \y. \z. \f. \g. fillIsLeft X [ box z (pt (box y (pt (obj x)))) ]>> { node g (pt (node f (pt leaf))) } 
-
-let liftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> 
-    	       (z : Obj X) -> (g : Arrow X x z) -> Arrow X y z
-    	     = \X. \x. \y. \f. \ev. \z. \g. liftLeft f ev z g
-
-let fillTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (f : Arrow X x y) -> (ev : isLeftExt f) -> 
-    	       (z : Obj X) -> (g : Arrow X x z) -> Simplex X x y z f (liftLeft f ev z g) g
-    	     = \X. \x. \y. \f. \ev. \z. \g. fillLeft f ev z g
-
-let rightLiftTest : (X : Cat) -> (y : Obj X) -> (z : Obj X) -> (g : Arrow X y z) -> (ev : isRightExt g #) ->
-    		    (x : Obj X) -> (h : Arrow X x z) -> Arrow X x y
-		  = \X. \y. \z. \g. \ev. \x. \h. liftRight g ev x h
-
-let rightFillTest : (X : Cat) -> (y : Obj X) -> (z : Obj X) -> (g : Arrow X y z) -> (ev : isRightExt g #) ->
-    		    (x : Obj X) -> (h : Arrow X x z) -> Simplex X x y z (liftRight g ev x h) g h
-		  = \X. \y. \z. \g. \ev. \x. \h. fillRight g ev x h
-
-let compLeftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
-    		   (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> 
-		   (a : Simplex X x y z f g h) -> 
-		   (fe : isLeftExt f) -> (ge : isLeftExt g) -> (ae : isLeftExt a) -> isLeftExt h
-		 = \X. \x. \y. \z. \f. \g. \h. \a. \fe. \ge. \ae. shellIsLeft a ae (nd ge (pt (nd fe (pt lf)))) empty
-
-let compLiftTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
-    		   (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> 
-		   (a : Simplex X x y z f g h) -> 
-		   (fe : isLeftExt f) -> (he : isLeftExt h) -> (ae : isLeftExt a) -> isLeftExt g
-		 = \X. \x. \y. \z. \f. \g. \h. \a. \fe. \he. \ae. shellIsLeft a ae (nd empty (pt (nd fe (pt lf)))) he
-
+tt
