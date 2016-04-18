@@ -7,6 +7,8 @@
 
 package opetopic.newtt
 
+import opetopic._
+
 // Expressions
 sealed trait Expr
 case object EType extends Expr
@@ -32,8 +34,8 @@ case class ENd(e: Expr, sh: Expr) extends Expr
 // Categories and Cells
 case object ECat extends Expr
 case class EOb(c: Expr) extends Expr
-case class ECell(c: Expr, s: Expr, t: Expr) extends Expr
-case class EHom(c: Expr, s: Expr, t: Expr) extends Expr
+case class ECell(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
+case class EHom(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
 
 // Patterns
 sealed trait Patt
@@ -67,8 +69,8 @@ case class VNd(v: Val, sh: Val) extends Val
 // Category and Cell Values
 case object Cat extends Val
 case class Ob(cv: Val) extends Val
-case class Cell(c: Val, s: Val, t: Val) extends Val
-case class Hom(c: Val, s: Val, t: Val) extends Val
+case class Cell(c: Val, d: Nat, s: Val, t: Val) extends Val
+case class Hom(c: Val, d: Nat, s: Val, t: Val) extends Val
 
 // Neutral terms
 sealed trait Neut

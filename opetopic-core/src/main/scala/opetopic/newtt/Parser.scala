@@ -10,10 +10,15 @@ package opetopic.newtt
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
+import opetopic._
+
 object OTTParser extends RegexParsers with PackratParsers {
 
   lazy val ident: Parser[String] = 
     """[a-zA-Z]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
+
+  lazy val intLit: Parser[String] = 
+    """([0-9])+""".r
 
   lazy val expr: PackratParser[Expr] = (
       expr1 ~ "," ~ expr ^^
@@ -51,10 +56,11 @@ object OTTParser extends RegexParsers with PackratParsers {
     | "Cat" ^^^ ECat
     | "Ob" ~ expr3 ^^ 
         { case "Ob" ~ c => EOb(c) }
-    | "Cell" ~ expr3 ~ trExpr ~ expr3 ^^ 
-        { case "Cell" ~ c ~ s ~ t => ECell(c, s, t) }
-    | "Hom" ~ expr3 ~ trExpr ~ expr3 ^^
-        { case "Hom" ~ c ~ s ~ t => EHom(c, s, t) }
+    | "Cell" ~ expr3 ~ intLit ~ trExpr ~ expr3 ^^ 
+        { case "Cell" ~ c ~ d ~ s ~ t => ECell(c, intToNat(d.toInt - 1), s, t) }
+    | "Hom" ~ expr3 ~ intLit ~ trExpr ~ expr3 ^^
+        { case "Hom" ~ c ~ d ~ s ~ t => EHom(c, intToNat(d.toInt - 1), s, t) }
+    | trExpr
     | expr3 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }
     | expr3 ~ ".2" ^^ 

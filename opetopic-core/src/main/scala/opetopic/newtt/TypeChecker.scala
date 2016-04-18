@@ -7,6 +7,9 @@
 
 package opetopic.newtt
 
+import opetopic._
+import syntax.tree._
+
 object OTTTypeChecker {
 
   def error(msg: String) : Null = 
@@ -110,8 +113,8 @@ object OTTTypeChecker {
       case ENd(e, s) => VNd(eval(e, rho), eval(s, rho))
       case ECat => Cat
       case EOb(c) => Ob(eval(c, rho))
-      case ECell(c, s, t) => Cell(eval(c, rho), eval(s, rho), eval(t, rho))
-      case EHom(c, s, t) => Hom(eval(c, rho), eval(s, rho), eval(t, rho))
+      case ECell(c, d, s, t) => Cell(eval(c, rho), d, eval(s, rho), eval(t, rho))
+      case EHom(c, d, s, t) => Hom(eval(c, rho), d, eval(s, rho), eval(t, rho))
     }
 
   //============================================================================================
@@ -140,8 +143,8 @@ object OTTTypeChecker {
       case VNd(v, s) => ENd(rbV(i, v), rbV(i, s))
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
-      case Cell(c, s, t) => ECell(rbV(i, c), rbV(i, s), rbV(i, t))
-      case Hom(c, s, t) => EHom(rbV(i, c), rbV(i, s), rbV(i, t))
+      case Cell(c, d, s, t) => ECell(rbV(i, c), d, rbV(i, s), rbV(i, t))
+      case Hom(c, d, s, t) => EHom(rbV(i, c), d, rbV(i, s), rbV(i, t))
       case Nt(k) => rbN(i, k)
     }
   }
@@ -180,6 +183,142 @@ object OTTTypeChecker {
   def fail[A](str: String) : G[A] = 
     -\/(str)
 
+  def toShape[A](m: G[A]) : ShapeM[A] = 
+    m match {
+      case -\/(msg) => -\/(ShapeError(msg))
+      case \/-(a) => \/-(a)
+    }
+
+  def fromShape[A](m: ShapeM[A]) : G[A] = 
+    m match {
+      case -\/(ShapeError(msg)) => -\/(msg)
+      case \/-(a) => \/-(a)
+    }
+
+  //============================================================================================
+  // TREE AND COMPLEX ROUTINES
+  //
+
+  @natElim
+  def parseExprTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
+    case (Z, EPt(e)) => pure(Pt(e))
+    case (Z, e) => fail("Not a tree expression in dim 0: " + e.toString)
+    case (S(p: P), ELf) => pure(Leaf(S(p)))
+    case (S(p: P), ENd(e, sh)) => 
+      for {
+        shParse <- parseExprTree(p)(sh)
+        shRes <- shParse.traverse(parseExprTree(S(p))(_))
+      } yield Node(e, shRes)
+    case (S(p: P), e) => fail("Not a tree expression: " + e.toString)
+  }
+
+  @natElim
+  def parseValTree[N <: Nat](n: N)(v: Val) : G[Tree[Val, N]] = {
+    case (Z, VPt(v)) => pure(Pt(v))
+    case (Z, v) => fail("Not a tree value in dim 0: " + v.toString)
+    case (S(p: P), VLf) => pure(Leaf(S(p)))
+    case (S(p: P), VNd(v, s)) => 
+      for {
+        shParse <- parseValTree(p)(s)
+        shRes <- shParse.traverse(parseValTree(S(p))(_))
+      } yield Node(v, shRes)
+    case (S(p: P), v) => fail("Not a tree value: " + v.toString)
+  }
+
+  def nfDiscriminator(rho: Rho) : Discriminator[ConstVal] = 
+    new Discriminator[ConstVal] {
+      val l: Int = lRho(rho)
+      def apply[N <: Nat](n: N)(u: Val, v: Val) : ShapeM[Val] = 
+        toShape(for { _ <- eqNf(l, u, v) } yield u)
+    }
+
+  def buildWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
+    tr match {
+      case Leaf(_) => pure(Nesting.external(p)(bv))
+      case Node(e, sh) => 
+        for {
+          frmV <- checkI(rho, gma, e)
+          l = lRho(rho)
+          frm <- (
+            frmV match {
+              case Cell(c, _, st, tv) => 
+                for {
+                  ct <- parseValTree(p)(st)
+                  _ <- eqNf(l, cv, c)  // Check that it's in the right category
+                  _ <- eqNf(l, tv, bv) // Check that the target is the incoming value specified ...
+                  cn <- fromShape(
+                    Tree.matchTraverse(ct, sh)({
+                      case (sv, et) => toShape(buildWeb(p)(c, sv)(rho, gma, et))
+                    })
+                  )
+                } yield Box(tv, cn)
+              case _ => fail("Expresion is not a cell: " + e.toString)
+            }
+          )
+        } yield frm
+    }
+
+  def checkWeb[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, lvs: Tree[Val, P], tr: Tree[Expr, S[P]]) : G[Val] = 
+    fromShape(
+      Tree.graftRec[Expr, Val, P](p)(tr)(
+        (a: Address[P]) => Tree.valueAt(lvs, a)
+      )({
+        case (e, cn) => toShape(
+          for {
+            frmV <- checkI(rho, gma, e)
+            l = lRho(rho)
+            rv <- (
+              frmV match {
+                case Cell(c, _, st, tv) =>
+                for {
+                  _ <- eqNf(l, cv, c)  // Check that it's in the right category
+                  ct <- parseValTree(p)(st)
+                  _ <- fromShape(
+                    Tree.matchTraverse(ct, cn)({
+                      case (sv, iv) => toShape(eqNf(l, sv, iv)) // Check the source value is the input value
+                    })
+                  )
+                } yield tv // Give back the output type value
+                case _ => fail("Expression is not a cell: " + e.toString)
+              }
+            )
+          } yield rv
+        )
+      })
+    )
+
+  @natElim
+  def checkFrame[N <: Nat](n: N)(c: Expr, s: Expr, t: Expr)(rho: Rho, gma: Gamma) : G[Unit] = {
+    case (Z, c, EPt(s), t, rho, gma) => 
+      for {
+        _ <- check(rho, gma, c, Cat)
+        cv = eval(c, rho)
+        _ <- check(rho, gma, s, Ob(cv))
+        _ <- check(rho, gma, t, Ob(cv))
+      } yield ()
+    case (Z, c, _, t, rho, gma) => fail("Not an object in dimension 0")
+    case (S(p), c, s, t, rho, gma) => 
+      for {
+        _ <- check(rho, gma, c, Cat)
+        cv = eval(c, rho)
+        tcv <- checkI(rho, gma, t)
+        l = lRho(rho)
+        _ <- (
+          tcv match {
+            case Cell(tcat, _, ts, tt) => 
+              for {
+                _ <- eqNf(l, cv, tcat)                        // Target lives in the right category
+                ttr <- parseValTree(p)(ts)                    // Parse the source of the target
+                srcTr <- parseExprTree(S(p))(s)               // Parse the source tree
+                ov <- checkWeb(p)(rho, gma)(cv, ttr, srcTr)   // Recursively verify the source tree
+                _ <- eqNf(l, ov, tt)                          // Target type matches the output
+              } yield ()
+            case _ => fail("Target " + t.toString + " is not a cell")
+          }
+        )
+      } yield ()
+  }
+
   //============================================================================================
   // TYPE ENVIRONMENT
   //
@@ -203,6 +342,16 @@ object OTTTypeChecker {
         } yield gma2
       case _ => fail("upG: p = " ++ p.toString)
     }
+
+  def eqNf(i: Int, m1: Nf, m2: Nf) : G[Unit] = {
+    val e1 = rbV(i, m1)
+    val e2 = rbV(i, m2)
+
+    if (e1 == e2)
+      pure(())
+    else
+      fail("eqNf: " ++ e1.toString ++ " =/= " ++ e2.toString)
+  }
 
   //============================================================================================
   // TYPE CHECKING RULES
@@ -248,16 +397,6 @@ object OTTTypeChecker {
 
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] = {
 
-    def eqNf(i: Int, m1: Nf, m2: Nf) : G[Unit] = {
-      val e1 = rbV(i, m1)
-      val e2 = rbV(i, m2)
-
-      if (e1 == e2)
-        pure(()) 
-      else 
-        fail("eqNf: " ++ e1.toString ++ " =/= " ++ e2.toString)
-    }
-
     (e0, t0) match {
       case (ELam(p, e), Pi(t, g)) => {
         val gen = genV(rho)
@@ -294,6 +433,8 @@ object OTTTypeChecker {
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()
+      case (ECell(c, d, s, t), Type) => 
+        checkFrame(d)(c, s, t)(rho, gma)
       case (e, t) => 
         for {
           t1 <- checkI(rho, gma, e)

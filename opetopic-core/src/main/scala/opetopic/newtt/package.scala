@@ -7,6 +7,8 @@
 
 package opetopic
 
+import opetopic._
+
 package object newtt {
 
   type Ident = String
@@ -14,5 +16,7 @@ package object newtt {
   type SClos = (List[(Name, Expr)], Rho)
   type Nf = Val
   type TVal = Val
+  type ConstExpr[N <: Nat] = Expr
+  type ConstVal[N <: Nat] = Val
 
 }
