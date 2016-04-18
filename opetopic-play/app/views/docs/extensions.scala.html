@@ -64,9 +64,9 @@
     </div>
     <div class="ui bottom attached center aligned segment">
       <div class="ui small steps">
-	<a class="active step" id="begin-step">Begin</a>
-	<a class="step" id="extrude-step">Extrude</a>
-	<a class="step" id="close-step">Close</a>
+	<a class="active step" id="start-left">Start</a>
+	<a class="step" id="extrude-left">Extrude</a>
+	<a class="step" id="enclose-left">Enclose</a>
       </div>
     </div>
 
@@ -82,7 +82,10 @@
 
     <p>
       Right extensions are similar, but work with respect to
-      a given source cell.
+      a given source cell.  In the following demonstration,
+      we perform a "right extension at x".  It should be clear
+      that the same construction can be applied equally well
+      to any other chosen source face.
     </p>
 
     <div class="ui attached center aligned segment">
@@ -96,18 +99,25 @@
       </div>
     </div>
 
+    <p>
+      Observe that in the right extension, we add a new
+      cell "above" the chosen source face, adding a new
+      cell as a descendant of our original, and then 
+      enclosing the structure with the appropriate shape.
+    </p>
+
     <div class="ui secondary menu">
       <div class="item">
-	<a href="/docs/diagrams/geometry" class="ui left labeled icon button">
+	<a href="/docs/diagrams/osets" class="ui left labeled icon button">
     	  <i class="left arrow icon"></i>
-    	  Prev: Geometry
+    	  Prev: Opetopic Sets
 	</a>
       </div>
       <div class="right menu">
 	<div class="item">
-	  <a href="/docs/categories/extensions" class="ui right labeled icon button">
+	  <a href="/docs/categories/uprops" class="ui right labeled icon button">
     	    <i class="right arrow icon"></i>
-    	    Next: Extensions
+    	    Next: Universal Properties
 	  </a>
 	</div>
       </div>

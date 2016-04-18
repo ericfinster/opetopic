@@ -37,7 +37,9 @@ class DocsController @Inject() (
       case "diagrams/complexes" => Future.successful(Ok(views.html.docs.complexes()))
       case "diagrams/opetopes" => Future.successful(Ok(views.html.docs.opetopes()))
       case "diagrams/geometry" => Future.successful(Ok(views.html.docs.geometry()))
+      case "diagrams/osets" => Future.successful(Ok(views.html.docs.osets()))
       case "categories/extensions" => Future.successful(Ok(views.html.docs.extensions()))
+      case "categories/uprops" => Future.successful(Ok(views.html.docs.uprops()))
       case "basicediting" => Future.successful(Ok(views.html.docs.basicediting()))
       case _ => Future.successful(Ok("No doc found"))
     }

@@ -201,7 +201,7 @@ object Docs extends JSApp {
         lextSnap.select("#path3456").attr(lit(d = path3456start))
       })
 
-      jQuery("#begin-step").on("click", () => {
+      jQuery("#start-left").on("click", () => {
         lextSnap.select("#f-group").animate(lit(transform = "t0,1000"), dur)
         lextSnap.selectAll(".step-one").animate(lit(opacity = 0.0), dur)
         lextSnap.selectAll(".step-two").animate(lit(opacity = 0.0), dur)
@@ -212,12 +212,12 @@ object Docs extends JSApp {
         lextSnap.select("#path3464").animate(lit(d = path3464start), dur)
         lextSnap.select("#path3460").animate(lit(d = path3460start), dur)
         lextSnap.select("#path3456").animate(lit(d = path3456start), dur)
-        jQuery("#begin-step").addClass("active")
-        jQuery("#extrude-step").removeClass("active")
-        jQuery("#close-step").removeClass("active")
+        jQuery("#start-left").addClass("active")
+        jQuery("#extrude-left").removeClass("active")
+        jQuery("#enclose-left").removeClass("active")
       })
 
-      jQuery("#extrude-step").on("click", () => {
+      jQuery("#extrude-left").on("click", () => {
         lextSnap.select("#f-group").animate(lit(transform = "t0,0"), dur)
         lextSnap.selectAll(".step-one").animate(lit(opacity = 1.0), dur)
         lextSnap.selectAll(".step-two").animate(lit(opacity = 0.0), dur)
@@ -228,12 +228,12 @@ object Docs extends JSApp {
         lextSnap.select("#path3464").animate(lit(d = path3464end), dur)
         lextSnap.select("#path3460").animate(lit(d = path3460end), dur)
         lextSnap.select("#path3456").animate(lit(d = path3456end), dur)
-        jQuery("#begin-step").removeClass("active")
-        jQuery("#extrude-step").addClass("active")
-        jQuery("#close-step").removeClass("active")
+        jQuery("#start-left").removeClass("active")
+        jQuery("#extrude-left").addClass("active")
+        jQuery("#enclose-left").removeClass("active")
       })
 
-      jQuery("#close-step").on("click", () => {
+      jQuery("#enclose-left").on("click", () => {
         lextSnap.select("#f-group").animate(lit(transform = "t0,0"), dur)
         lextSnap.selectAll(".step-one").animate(lit(opacity = 1.0), dur)
         lextSnap.selectAll(".step-two").animate(lit(opacity = 1.0), dur)
@@ -244,9 +244,9 @@ object Docs extends JSApp {
         lextSnap.select("#path3464").animate(lit(d = path3464end), dur)
         lextSnap.select("#path3460").animate(lit(d = path3460end), dur)
         lextSnap.select("#path3456").animate(lit(d = path3456end), dur)
-        jQuery("#begin-step").removeClass("active")
-        jQuery("#extrude-step").removeClass("active")
-        jQuery("#close-step").addClass("active")
+        jQuery("#start-left").removeClass("active")
+        jQuery("#extrude-left").removeClass("active")
+        jQuery("#enclose-left").addClass("active")
       })
 
     }
