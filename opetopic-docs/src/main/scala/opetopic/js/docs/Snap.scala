@@ -42,6 +42,10 @@ trait SnapElement extends js.Object {
   def attr(o: js.Object) : Unit = js.native
   def attr(name: String) : js.Any = js.native
 
+  def transform(tstr: String) : Unit = js.native
+
+  def animate(o: js.Object, d: Int) : Unit = js.native
+
 }
 
 @js.native
@@ -49,5 +53,7 @@ trait SnapSet extends js.Object {
 
   def attr(o: js.Object) : Unit = js.native
   def attr(name: String) : js.Any = js.native
+
+  def animate(o: js.Object, d: Int) : Unit = js.native
 
 }

@@ -1,0 +1,118 @@
+@()(implicit userOpt: Option[User])
+
+@doc("categories/extensions") {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Left and Right Extensions</h2>
+
+    <p>
+      We will be interested in this section in two constructions
+      which can be made on an arbitrary cell, embedding it in
+      a diagram of the next higher dimension. 
+    </p>
+
+    <p>
+      We first fix some notation.  Consider the diagram below:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/head.svg"></object>
+    </div>
+
+    <p>
+      Recall that according to our definition, an opetope must
+      finish with a single cell in the top dimension.  In view of
+      the bonding relationship, this implies that the codimension 1
+      part of the diagram consists of a single box, the target of
+      the cell, as well as an arbitrary tree consisting of its sources.
+    </p>
+
+    <p>
+      We will refer to the top dimensional cell, together with its
+      codimension 1 part as the <em>head</em> of the diagram as
+      indicated.  Moreover, to depict a cell of arbitrary dimension,
+      we will depict just the head, using an ellipsis to denote
+      the lower dimensional part.
+    </p>
+
+    <p>
+      With the above considerations established, the following is
+      meant to indicate a cell f of some arbitrary dimension with
+      its codimension 1 faces depicted as well.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/cellctxt.svg"></object>
+    </div>
+
+    <p>
+      Notice that we must chose <em>some</em> tree in our diagram to 
+      serve as the source tree for the cell f, but it will be clear
+      from what follows that our constructions do not depend in any
+      way on the shape of this tree.
+    </p>
+
+    <h3 class="ui dividing header">Left Extension</h3>
+
+    <p>
+      Our first construction is called left extension and is 
+      demonstrated in the interactive display below.
+    </p>
+
+    <div class="ui attached center aligned segment">
+      <svg width="360" height="175" id="lext-svg"></svg>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <div class="ui small steps">
+	<a class="active step" id="begin-step">Begin</a>
+	<a class="step" id="extrude-step">Extrude</a>
+	<a class="step" id="close-step">Close</a>
+      </div>
+    </div>
+
+    <p>
+      Notice that the extension consists of two steps: first,
+      enclose the target in a new box, modifying the edge tree
+      of the next dimension to accomodate the bonding relation.
+      Next, enclose the remaining tree and add a new top dimensional
+      cell.
+    </p>
+
+    <h3 class="ui dividing header">Right Extension</h3>
+
+    <p>
+      Right extensions are similar, but work with respect to
+      a given source cell.
+    </p>
+
+    <div class="ui attached center aligned segment">
+      <svg width="360" height="175" id="rext-svg"></svg>
+    </div>
+    <div class="ui bottom attached center aligned segment">
+      <div class="ui small steps">
+	<a class="active step" id="start-right">Start</a>
+	<a class="step" id="extrude-right">Extrude</a>
+	<a class="step" id="enclose-right">Enclose</a>
+      </div>
+    </div>
+
+    <div class="ui secondary menu">
+      <div class="item">
+	<a href="/docs/diagrams/geometry" class="ui left labeled icon button">
+    	  <i class="left arrow icon"></i>
+    	  Prev: Geometry
+	</a>
+      </div>
+      <div class="right menu">
+	<div class="item">
+	  <a href="/docs/categories/extensions" class="ui right labeled icon button">
+    	    <i class="right arrow icon"></i>
+    	    Next: Extensions
+	  </a>
+	</div>
+      </div>
+    </div>
+
+  </div>
+
+}
