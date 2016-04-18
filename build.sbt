@@ -138,15 +138,6 @@ lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opeto
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
-  ).
-  jsSettings(
-    libraryDependencies ++= Seq(
-      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3"
-    )
-  ).jvmSettings(
-    libraryDependencies ++= Seq(
-      "org.scalaz" %% "scalaz-core" % "7.1.3"
-    )
   )
 
 lazy val opetopicMacrosJvm = opetopicMacros.jvm

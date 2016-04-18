@@ -11,9 +11,6 @@ import scala.language.experimental.macros
 import scala.reflect.macros.whitebox.Context
 import scala.annotation.StaticAnnotation
 
-import scalaz.Leibniz
-import scalaz.Leibniz._
-
 sealed trait Nat {
 
   type N <: Nat
