@@ -624,6 +624,15 @@ object OTTTypeChecker {
           pdTr <- parseExprTree(d)(pd)
           res <- compositeType(d)(rho, gma, cv, pdTr)
         } yield res
+      case EFill(c, d, pd) => 
+        for {
+          _ <- checkI(rho, gma, EComp(c, d, pd))  // Repeat composition check for well-formedness
+          pr <- eval(EComp(c, d, pd), rho) match {
+            case Comp(cv, _, pdv) => pure((cv, pdv))
+            case _ => fail("Internal error: composite doesn't reduce to composite")
+          }
+          (cv, pdv) = pr
+        } yield Cell(cv, d, pdv, Comp(cv, d, pdv))
       case e => fail("checkI: " ++ e.toString)
     }
 

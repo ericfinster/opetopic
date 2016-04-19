@@ -29,4 +29,7 @@ let dTest : (X : Cat) -> (x : Ob X) -> Drop X x (rTest X x)
 let cTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
     	  = \X. \x. \y. \z. \f. \g. comp X 1 (nd g (pt (nd f (pt lf)))) ;
 
+let fTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (cTest X x y z f g)
+    	  = \X. \x. \y. \z. \f. \g. fill X 1 (nd g (pt (nd f (pt lf)))) ;
+
 tt
