@@ -76,7 +76,7 @@ case class Nt(n: Neut) extends Val
 // Category and Cell Values
 case object Cat extends Val
 case class Ob(cv: Val) extends Val
-case class Cell[D <: Nat](c: Val, d: D, frm: ValComplex[D]) extends Val
+case class Cell[D <: Nat](c: Val, frm: ValComplex[D]) extends Val
 
 // Property Values
 case class IsLeftExt(v: Val) extends Val

@@ -131,6 +131,12 @@ trait NestingFunctions {
     case (S(p), a) => Dot(a, S(p))
   }
 
+  def isExternal[A, N <: Nat](nst: Nesting[A, N]) : Boolean = 
+    nst match {
+      case Box(_, _) => false
+      case _ => true
+    }
+
   //============================================================================================
   // BASE VALUE
   //

@@ -9,6 +9,7 @@ package opetopic.newtt
 
 import opetopic._
 import syntax.tree._
+import syntax.nesting._
 import syntax.complex._
 import TypeLemmas._
 
@@ -114,11 +115,10 @@ object OTTTypeChecker {
       // Categories and Cells
       case ECat => Cat
       case EOb(c) => Ob(eval(c, rho))
-      case ECell(c, e) => ???
-        // {
-        //   val srcTr = getOrError(parseTree(d)(s))
-        //   Cell(eval(c, rho), d, srcTr.map(eval(_, rho)), eval(t, rho))
-        // }
+      case ECell(c, e) => {
+        val fc = getOrError(parseComplex(e))
+        Cell(eval(c, rho), fc.value.map(EvalMap(rho)))
+      }
 
       // Propertes
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
@@ -152,6 +152,10 @@ object OTTTypeChecker {
       case ETl(_, _) => error("Unreduced tail")
     }
 
+  case class EvalMap(rho: Rho) extends IndexedMap[ConstExpr, ConstVal] {
+    def apply[N <: Nat](n: N)(e: Expr) = eval(e, rho)
+  }
+
   //============================================================================================
   // READBACK FUNCTIONS
   //
@@ -176,7 +180,7 @@ object OTTTypeChecker {
 
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
-      case Cell(c, d, frm) => ??? // ECell(rbV(i, c), d, treeToExpr(d)(s.map(rbV(i, _))), rbV(i, t))
+      case Cell(c, frm) => ECell(rbV(i, c), complexToExpr(frm.dim)(frm.map(RbMap(i))))
 
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
@@ -209,6 +213,10 @@ object OTTTypeChecker {
       case UpVar(rho, _, v) => rbV(i, v) :: rbRho(i, rho)
       case UpDec(rho, _) => rbRho(i, rho)
     }
+
+  case class RbMap(i: Int) extends IndexedMap[ConstVal, ConstExpr] {
+    def apply[N <: Nat](n: N)(v: Val) = rbV(i, v)
+  }
 
   //============================================================================================
   // AN ERROR MONAD
@@ -302,12 +310,8 @@ object OTTTypeChecker {
       case _ => fail("Invalid complex")
     }
 
-  @natElim
-  def treeToExpr[N <: Nat](n: N)(t: Tree[Expr, N]) : Expr = {
-    case (Z, Pt(e)) => EPt(e)
-    case (S(p), Leaf(_)) => ELf
-    case (S(p), Node(e, sh)) => ENd(e, treeToExpr(p)(sh.map(treeToExpr(S(p))(_))))
-  }
+  def parseComplex(e: Expr) : G[FiniteComplex[ConstExpr]] = 
+    parseComplex(Z)(e, SNil[ExprNesting]())
 
   @natElim
   def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
@@ -320,6 +324,85 @@ object OTTTypeChecker {
         tl0 <- parseAddress(S(p))(tl)
       } yield hd0 :: tl0
     case (S(p), _) => fail("parseAdress: unexpected address expression")
+  }
+
+  @natElim
+  def treeToExpr[N <: Nat](n: N)(t: Tree[Expr, N]) : Expr = {
+    case (Z, Pt(e)) => EPt(e)
+    case (S(p), Leaf(_)) => ELf
+    case (S(p), Node(e, sh)) => ENd(e, treeToExpr(p)(sh.map(treeToExpr(S(p))(_))))
+  }
+
+  def nestingToExpr[N <: Nat](n: N)(nst: Nesting[Expr, N]) : Expr = 
+    nst match {
+      case Obj(e) => EDot(e)
+      case Dot(e, _) => EDot(e)
+      case Box(e, cn) => EBox(e, treeToExpr(n)(cn.map(nestingToExpr(n)(_))))
+    }
+
+  @natElim
+  def complexToExpr[N <: Nat](n: N)(c: ExprComplex[N], tlOpt: Option[Expr] = None) : Expr = {
+    case (Z, Complex(_, hd), tlOpt) => {
+      val hde = nestingToExpr(Z)(hd)
+      tlOpt.map(ETl(hde, _)) getOrElse EHd(hde)
+    }
+    case (S(p), Complex(tl, hd), tlOpt) => {
+      val hde = nestingToExpr(S(p))(hd)
+      complexToExpr(p)(tl, Some(tlOpt.map(ETl(hde, _)).getOrElse(EHd(hde))))
+    }
+  }
+
+  // You could elimate this by being smarter below ...
+  def isFrame[N <: Nat](c: ExprComplex[N]) : G[Unit] = 
+    c.head match {
+      case Box(t, cn) => 
+        for {
+          _ <- cn.traverse[G, Unit]((nst : Nesting[Expr, N]) => 
+            if (Nesting.isExternal(nst)) pure(()) else fail("Not a frame: contains a box")
+          )
+        } yield ()
+      case _ => fail("Not a frame")
+    }
+
+  @natElim
+  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
+    case (Z, rho, gma, Complex(_, hd), cat) => {
+      hd match {
+        case Box(tgt, Pt(Obj(src))) => 
+          for {
+            _ <- check(rho, gma, src, Ob(cat))
+            _ <- check(rho, gma, tgt, Ob(cat))
+          } yield ()
+        case _ => fail("checkFrame: failed in dimension 0")
+      }
+    }
+    // Here we should make sure that the top guy is really a frame, meaning
+    // a base with a nesting consisting only of dots.  Right now that's not done.
+    case (S(p: P), rho, gma, cmplx, cat) => {
+      for {
+        _ <- cmplx.head.traverseWithAddress[G, Unit]({
+          case (_, addr) =>
+            for {
+              face <- fromShape(cmplx.sourceAt(S(p))(addr))
+              _ <- checkCell(S(p))(rho, gma, face, cat)
+            } yield ()
+        })
+      } yield ()
+    }
+  }
+
+  @natElim
+  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
+    case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Ob(cat))
+    case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
+    case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
+      // println("Check that expression " ++ prettyPrint(e) ++ " lives is frame " ++ tl.toString)
+      for {
+        _ <- checkFrame(p)(rho, gma, tl, cat)
+        _ <- check(rho, gma, e, Cell(cat, tl.map(EvalMap(rho))))
+      } yield ()
+    }
+    case (S(p: P), rho, gma, Complex(tl, _), cat) => fail("checkCell: too many top cells!")
   }
 
   // // Not sure if we'll need this ... it returns the whole
@@ -391,11 +474,11 @@ object OTTTypeChecker {
   //     }
   //   } yield res
 
-  def inferCell(rho: Rho, gma: Gamma, e: Expr) : G[(Val, Nat, ValComplex[Nat])] = 
+  def inferCell(rho: Rho, gma: Gamma, e: Expr) : G[(Val, ValComplex[Nat])] = 
     for {
       et <- checkI(rho, gma, e)
       res <- et match {
-        case Cell(c, d, f) => pure((c, d, f))
+        case Cell(c, f) => pure((c, f))
         case _ => fail("Expression is not a cell: " + e.toString)
       }
     } yield res
@@ -407,23 +490,23 @@ object OTTTypeChecker {
         toShape(for { _ <- eqNf(l, u, v) } yield u)
     }
 
-  // I believe this assumes that the tree is not a leaf.
-  def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
-      : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
-    for {
-      pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
-        for {
-          tp <- inferCell(rho, gma, e)
-          (ec, ed, ef) = tp
-          ee = eval(e, rho)
-          _ <- eqNf(lRho(rho), cv, ec)
-          eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
-        } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
-      })
-      res <- fromShape(
-        Complex.paste(p)(pd)(nfDiscriminator(rho))
-      )
-    } yield res
+  // // I believe this assumes that the tree is not a leaf.
+  // def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
+  //     : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
+  //   for {
+  //     pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
+  //       for {
+  //         tp <- inferCell(rho, gma, e)
+  //         (ec, ef) = tp
+  //         ee = eval(e, rho)
+  //         _ <- eqNf(lRho(rho), cv, ec)
+  //         eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
+  //       } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
+  //     })
+  //     res <- fromShape(
+  //       Complex.paste(p)(pd)(nfDiscriminator(rho))
+  //     )
+  //   } yield res
 
   // def paste[A[_ <: Nat], N <: Nat](n: N)(pd: Tree[Complex[A, S[N]], S[N]])(disc: Discriminator[A]) 
   //     : ShapeM[(Complex[A, N], Tree[Nesting[A[S[N]], S[N]], S[N]])] = 
@@ -462,35 +545,35 @@ object OTTTypeChecker {
   // Don't yield a unit here, yield the Val for the complex.  That way, 
   // you can use it when you have to evaluate above ...
 
-  @natElim 
-  def checkFrame[N <: Nat](n: N)(c: Expr, s: Expr, t: Expr)(rho: Rho, gma: Gamma) : G[Val] = {
-    case (Z, c, EPt(s), t, rho, gma) => 
-      for {
-        _ <- check(rho, gma, c, Cat)
-        cv = eval(c, rho)
-        _ <- check(rho, gma, s, Ob(cv))
-        _ <- check(rho, gma, t, Ob(cv))
-      } yield Cell(cv, Z, Complex[ConstVal] >> Box(eval(t, rho), Pt(Obj(eval(s, rho)))))
-    case (Z, c, _, t, rho, gma) => fail("Not an object in dimension 0")
-    case (S(p: P), c, s, t, rho, gma) => 
-      for {
-        _ <- check(rho, gma, c, Cat)
-        cv = eval(c, rho)
-        tp <- inferCell(rho, gma, t) 
-        (tc, td, tf) = tp
-        eqEv <- fromOpt(matchNatPair(S(p), td), "Wrong dimension")
-        srcTr <- parseTree(S(p))(s)
-        _ <- if (! Tree.isLeaf(srcTr)) {
-          for {
-            pr <- buildComplex(p)(rho, gma)(cv, srcTr)
-            (web, pd) = pr
-            // You've got the web and the pasting diagram.  The last thing
-            // to do is to check that the target frame agrees with the one
-            // calculated for the source tree.
-          } yield ()
-        } else pure(())
-      } yield ???
-  }
+  // @natElim 
+  // def checkFrame[N <: Nat](n: N)(c: Expr, s: Expr, t: Expr)(rho: Rho, gma: Gamma) : G[Val] = {
+  //   case (Z, c, EPt(s), t, rho, gma) => 
+  //     for {
+  //       _ <- check(rho, gma, c, Cat)
+  //       cv = eval(c, rho)
+  //       _ <- check(rho, gma, s, Ob(cv))
+  //       _ <- check(rho, gma, t, Ob(cv))
+  //     } yield Cell(cv, Z, Complex[ConstVal] >> Box(eval(t, rho), Pt(Obj(eval(s, rho)))))
+  //   case (Z, c, _, t, rho, gma) => fail("Not an object in dimension 0")
+  //   case (S(p: P), c, s, t, rho, gma) => 
+  //     for {
+  //       _ <- check(rho, gma, c, Cat)
+  //       cv = eval(c, rho)
+  //       tp <- inferCell(rho, gma, t) 
+  //       (tc, td, tf) = tp
+  //       eqEv <- fromOpt(matchNatPair(S(p), td), "Wrong dimension")
+  //       srcTr <- parseTree(S(p))(s)
+  //       _ <- if (! Tree.isLeaf(srcTr)) {
+  //         for {
+  //           pr <- buildComplex(p)(rho, gma)(cv, srcTr)
+  //           (web, pd) = pr
+  //           // You've got the web and the pasting diagram.  The last thing
+  //           // to do is to check that the target frame agrees with the one
+  //           // calculated for the source tree.
+  //         } yield ()
+  //       } else pure(())
+  //     } yield ???
+  // }
 
   // def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
   //     : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
@@ -644,18 +727,18 @@ object OTTTypeChecker {
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()
-      case (ECell(c, e), Type) => ???
-        // for { 
-        //   _ <- checkFrame(d)(c, s, t)(rho, gma) 
-        // } yield ()
-      // case (EIsLeftExt(e), Type) => 
-      //   for {
-      //     t <- checkI(rho, gma, e)
-      //     _ <- t match {
-      //       case Cell(_, _, _, _) => pure(())
-      //       case _ => fail("Expression " + e.toString + " is not a cell")
-      //     }
-      //   } yield ()
+      case (ECell(c, e), Type) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          fc <- parseComplex(e)
+          _ <- isFrame(fc.value)  // Make sure we have a real frame
+          _ <- checkFrame(fc.n)(rho, gma, fc.value, cv) // And check it
+        } yield ()
+      case (EIsLeftExt(e), Type) => 
+        for {
+          _ <- inferCell(rho, gma, e)
+        } yield ()
       // case (EIsRightExt(e, a), Type) => 
       //   for {
       //     t <- checkI(rho, gma, e)
