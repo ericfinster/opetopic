@@ -109,14 +109,20 @@ object OTTTypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
+
+      // Categories and Cells
       case ECat => Cat
       case EOb(c) => Ob(eval(c, rho))
       case ECell(c, d, s, t) => {
         val srcTr = getOrError(parseExprTree(d)(s))
         Cell(eval(c, rho), d, srcTr.map(eval(_, rho)), eval(t, rho))
       }
+
+      // Propertes
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
+
+      // Composition and identities
       case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
       case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
       case EComp(c, d, pd) => {
@@ -127,7 +133,14 @@ object OTTTypeChecker {
         val pdTr = getOrError(parseExprTree(d)(pd))
         Fill(eval(c, rho), d, pdTr.map(eval(_, rho)))
       }
-      // These should be errors: eliminate tree values
+
+      // Liftings
+      case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillLeft(e, ev, c, t) => FillLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+
+      // Reducing unconverted trees should be an error ...
       case ELf => error("Unreduced leaf")
       case EPt(e) => error("Unreduced point")
       case ENd(e, s) => error("Unreduced node")
@@ -154,20 +167,25 @@ object OTTTypeChecker {
       case Pair(u, v) => EPair(rbV(i, u), rbV(i, v))
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
+
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
       case Cell(c, d, s, t) => ECell(rbV(i, c), d, treeToExpr(d)(s.map(rbV(i, _))), rbV(i, t))
+
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
+
       case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
       case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
       case Comp(c, d, pd) => EComp(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
       case Fill(c, d, pd) => EFill(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
+
+      case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case LiftRight(e, ev, c, t) => ELiftRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+
       case Nt(k) => rbN(i, k)
-      // I think these should be errors and you should eliminate tree values ...
-      // case VLf => ELf
-      // case VPt(v) => EPt(rbV(i, v))
-      // case VNd(v, s) => ENd(rbV(i, v), rbV(i, s))
     }
   }
 

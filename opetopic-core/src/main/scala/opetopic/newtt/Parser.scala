@@ -59,6 +59,14 @@ object OTTParser extends RegexParsers with PackratParsers {
         { case "comp" ~ c ~ d ~ pd => EComp(c, intToNat(d.toInt), pd) }
     | "fill" ~ expr4 ~ intLit ~ expr4 ^^
         { case "fill" ~ c ~ d ~ pd => EFill(c, intToNat(d.toInt), pd) }
+    | "liftLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "liftLeft" ~ e ~ ev ~ c ~ t => ELiftLeft(e, ev, c, t) }
+    | "fillLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillLeft" ~ e ~ ev ~ c ~ t => EFillLeft(e, ev, c, t) }
+    | "liftRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "liftRight" ~ e ~ ev ~ c ~ t => ELiftRight(e, ev, c, t) }
+    | "fillRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
+        { case "fillRight" ~ e ~ ev ~ c ~ t => EFillRight(e, ev, c, t) }
     | expr3
   )
 

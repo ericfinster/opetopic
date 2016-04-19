@@ -46,6 +46,10 @@ case class ERefl(c: Expr, e: Expr) extends Expr
 case class EDrop(c: Expr, e: Expr) extends Expr
 case class EComp(c: Expr, d: Nat, pd: Expr) extends Expr
 case class EFill(c: Expr, d: Nat, pd: Expr) extends Expr
+case class ELiftLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
+case class EFillLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
+case class ELiftRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
+case class EFillRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -80,6 +84,10 @@ case class Refl(c: Val, v: Val) extends Val
 case class Drop(c: Val, v: Val) extends Val
 case class Comp[D <: Nat](c: Val, d: D, pd: Tree[Val, D]) extends Val
 case class Fill[D <: Nat](c: Val, d: D, pd: Tree[Val, D]) extends Val
+case class LiftLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class FillLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class LiftRight(e: Val, ev: Val, c: Val, t: Val) extends Val
+case class FillRight(e: Val, ev: Val, c: Val, t: Val) extends Val
 
 // Neutral terms
 sealed trait Neut
