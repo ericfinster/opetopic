@@ -115,6 +115,8 @@ object OTTTypeChecker {
       case EOb(c) => Ob(eval(c, rho))
       case ECell(c, d, s, t) => Cell(eval(c, rho), d, eval(s, rho), eval(t, rho))
       case EHom(c, d, s, t) => Hom(eval(c, rho), d, eval(s, rho), eval(t, rho))
+      case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
+      case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
     }
 
   //============================================================================================
@@ -145,6 +147,8 @@ object OTTTypeChecker {
       case Ob(v) => EOb(rbV(i, v))
       case Cell(c, d, s, t) => ECell(rbV(i, c), d, rbV(i, s), rbV(i, t))
       case Hom(c, d, s, t) => EHom(rbV(i, c), d, rbV(i, s), rbV(i, t))
+      case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
+      case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
       case Nt(k) => rbN(i, k)
     }
   }
@@ -225,6 +229,19 @@ object OTTTypeChecker {
     case (S(p: P), v) => fail("Not a tree value: " + v.toString)
   }
 
+  @natElim
+  def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
+    case (Z, AUnit) => pure(())
+    case (Z, _) => fail("parseAdress: only unit in dim 0")
+    case (S(p), ANil) => pure(Nil)
+    case (S(p), ACons(hd, tl)) => 
+      for {
+        hd0 <- parseAddress(p)(hd)
+        tl0 <- parseAddress(S(p))(tl)
+      } yield hd0 :: tl0
+    case (S(p), _) => fail("parseAdress: unexpected address expression")
+  }
+
   def nfDiscriminator(rho: Rho) : Discriminator[ConstVal] = 
     new Discriminator[ConstVal] {
       val l: Int = lRho(rho)
@@ -258,6 +275,8 @@ object OTTTypeChecker {
         } yield frm
     }
 
+  // This could be easily modified to return the whole we at once.  Not sure if
+  // I'll need that ....
   def checkWeb[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, lvs: Tree[Val, P], tr: Tree[Expr, S[P]]) : G[Val] = 
     fromShape(
       Tree.graftRec[Expr, Val, P](p)(tr)(
@@ -435,6 +454,27 @@ object OTTTypeChecker {
         } yield ()
       case (ECell(c, d, s, t), Type) => 
         checkFrame(d)(c, s, t)(rho, gma)
+      case (EIsLeftExt(e), Type) => 
+        for {
+          t <- checkI(rho, gma, e)
+          _ <- t match {
+            case Cell(_, _, _, _) => pure(())
+            case _ => fail("Expression " + e.toString + " is not a cell")
+          }
+        } yield ()
+      case (EIsRightExt(e, a), Type) => 
+        for {
+          t <- checkI(rho, gma, e)
+          _ <- t match {
+            case Cell(_, d, s, t) => 
+              for {
+                addr <- parseAddress(d)(a)
+                src <- parseValTree(d)(s)
+                _ <- fromShape(src.seekTo(addr))  // Seek to the given address to make sure it's valid
+              } yield ()
+            case _ => fail("Expression " + e.toString + " is not a cell")
+          }
+        } yield ()
       case (e, t) => 
         for {
           t1 <- checkI(rho, gma, e)

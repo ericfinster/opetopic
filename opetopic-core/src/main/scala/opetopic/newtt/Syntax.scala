@@ -37,6 +37,10 @@ case class EOb(c: Expr) extends Expr
 case class ECell(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
 case class EHom(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
 
+// Properties
+case class EIsLeftExt(e: Expr) extends Expr
+case class EIsRightExt(e: Expr, a: Addr) extends Expr 
+
 // Patterns
 sealed trait Patt
 case object Punit extends Patt
@@ -72,12 +76,22 @@ case class Ob(cv: Val) extends Val
 case class Cell(c: Val, d: Nat, s: Val, t: Val) extends Val
 case class Hom(c: Val, d: Nat, s: Val, t: Val) extends Val
 
+// Property Values
+case class IsLeftExt(v: Val) extends Val
+case class IsRightExt(v: Val, a: Addr) extends Val
+
 // Neutral terms
 sealed trait Neut
 case class Gen(i: Int, n: Name) extends Neut
 case class App(n: Neut, nf: Nf) extends Neut
 case class Fst(n: Neut) extends Neut
 case class Snd(n: Neut) extends Neut
+
+// Addresses
+sealed trait Addr
+case object AUnit extends Addr
+case object ANil extends Addr
+case class ACons(a: Addr, b: Addr) extends Addr
 
 // Function closures
 sealed trait Clos

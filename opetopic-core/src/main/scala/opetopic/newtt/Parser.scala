@@ -39,6 +39,10 @@ object OTTParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
+    | "isLeftExt" ~ expr3 ^^
+        { case "isLeftExt" ~ e => EIsLeftExt(e) }
+    | "isRightExt" ~ expr3 ~ addrExpr ^^
+        { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
     | expr2
   )
 
@@ -78,6 +82,19 @@ object OTTParser extends RegexParsers with PackratParsers {
         { case "nd" ~ e ~ sh => ENd(e, sh) }
     | "(" ~ trExpr ~ ")" ^^
         { case "(" ~ te ~ ")" => te }
+  )
+
+  lazy val addrExpr : PackratParser[Addr] = (
+      addrExpr1 ~ "::" ~ addrExpr ^^
+        { case a ~ "::" ~ b => ACons(a, b) }
+    | addrExpr1
+  )
+
+  lazy val addrExpr1 : PackratParser[Addr] = (
+      "#" ^^^ AUnit
+    | "nil" ^^^ ANil
+    | "(" ~ addrExpr ~ ")" ^^ 
+        { case "(" ~ a ~ ")" => a }
   )
 
   lazy val pattern: PackratParser[Patt] = (
