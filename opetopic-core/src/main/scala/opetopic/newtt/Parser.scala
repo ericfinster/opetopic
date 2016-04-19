@@ -39,35 +39,45 @@ object OTTParser extends RegexParsers with PackratParsers {
         { case e ~ "->" ~ f => EPi(Punit, e, f) }
     | expr2 ~ "*" ~ expr1 ^^
         { case e ~ "*" ~ f => ESig(Punit, e, f) }
-    | "isLeftExt" ~ expr3 ^^
-        { case "isLeftExt" ~ e => EIsLeftExt(e) }
-    | "isRightExt" ~ expr3 ~ addrExpr ^^
-        { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
     | expr2
   )
 
-  lazy val expr2: PackratParser[Expr] = (
-      expr2 ~ expr3 ^^
-        { case e ~ f => EApp(e, f) }
+  lazy val expr2 : PackratParser[Expr] = (
+      "Ob" ~ expr4 ^^ 
+        { case "Ob" ~ c => EOb(c) }
+    | "Cell" ~ expr4 ~ intLit ~ trExpr ~ expr4 ^^ 
+        { case "Cell" ~ c ~ d ~ s ~ t => ECell(c, intToNat(d.toInt - 1), s, t) }
+    | "isLeftExt" ~ expr4 ^^
+        { case "isLeftExt" ~ e => EIsLeftExt(e) }
+    | "isRightExt" ~ expr4 ~ addrExpr ^^
+        { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
+    | "refl" ~ expr4 ~ expr4 ^^
+        { case "refl" ~ c ~ e => ERefl(c, e) }
+    | "drop" ~ expr4 ~ expr4 ^^
+        { case "drop" ~ c ~ e => EDrop(c, e) }
+    | "comp" ~ expr4 ~ expr4 ^^
+        { case "comp" ~ c ~ pd => EComp(c, pd) }
+    | "fill" ~ expr4 ~ expr4 ^^
+        { case "fill" ~ c ~ pd => EFill(c, pd) }
     | expr3
   )
 
   lazy val expr3: PackratParser[Expr] = (
+      expr3 ~ expr4 ^^
+        { case e ~ f => EApp(e, f) }
+    | expr4
+  )
+
+  lazy val expr4: PackratParser[Expr] = (
       "Unit" ^^^ EUnit
     | "Type" ^^^ EType
     | "empty" ^^^ EEmpty
     | "tt" ^^^ ETt
     | "Cat" ^^^ ECat
-    | "Ob" ~ expr3 ^^ 
-        { case "Ob" ~ c => EOb(c) }
-    | "Cell" ~ expr3 ~ intLit ~ trExpr ~ expr3 ^^ 
-        { case "Cell" ~ c ~ d ~ s ~ t => ECell(c, intToNat(d.toInt - 1), s, t) }
-    | "Hom" ~ expr3 ~ intLit ~ trExpr ~ expr3 ^^
-        { case "Hom" ~ c ~ d ~ s ~ t => EHom(c, intToNat(d.toInt - 1), s, t) }
     | trExpr
-    | expr3 ~ ".1" ^^ 
+    | expr4 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }
-    | expr3 ~ ".2" ^^ 
+    | expr4 ~ ".2" ^^ 
         { case e ~ ".2" => ESnd(e) }
     | ident ^^ { EVar(_) }
     | "(" ~ expr ~ ")" ^^
@@ -75,10 +85,10 @@ object OTTParser extends RegexParsers with PackratParsers {
   )
 
   lazy val trExpr: PackratParser[Expr] = (
-      "pt" ~ expr3 ^^
+      "pt" ~ expr4 ^^
         { case "pt" ~ e => EPt(e) }
     | "lf" ^^^ ELf
-    | "nd" ~ expr3 ~ trExpr ^^
+    | "nd" ~ expr4 ~ trExpr ^^
         { case "nd" ~ e ~ sh => ENd(e, sh) }
     | "(" ~ trExpr ~ ")" ^^
         { case "(" ~ te ~ ")" => te }

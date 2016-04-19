@@ -18,5 +18,6 @@ package object newtt {
   type TVal = Val
   type ConstExpr[N <: Nat] = Expr
   type ConstVal[N <: Nat] = Val
+  type ValTree[N <: Nat] = Tree[Val, N]
 
 }

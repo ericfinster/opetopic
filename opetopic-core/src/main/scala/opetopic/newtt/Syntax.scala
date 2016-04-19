@@ -16,6 +16,7 @@ case object EUnit extends Expr
 case object ETt extends Expr
 case object EEmpty extends Expr
 
+// Basic type theory
 case class ELam(p: Patt, e: Expr) extends Expr
 case class EPi(p: Patt, e: Expr, t: Expr) extends Expr
 case class ESig(p: Patt, e: Expr, t: Expr) extends Expr
@@ -35,22 +36,16 @@ case class ENd(e: Expr, sh: Expr) extends Expr
 case object ECat extends Expr
 case class EOb(c: Expr) extends Expr
 case class ECell(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
-case class EHom(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
 
 // Properties
 case class EIsLeftExt(e: Expr) extends Expr
 case class EIsRightExt(e: Expr, a: Addr) extends Expr 
 
-// Patterns
-sealed trait Patt
-case object Punit extends Patt
-case class PVar(id: Ident) extends Patt
-case class PPair(p: Patt, q: Patt) extends Patt
-
-// Declarations
-sealed trait Decl
-case class Def(p: Patt, e: Expr, f: Expr) extends Decl
-case class Drec(p: Patt, e: Expr, f: Expr) extends Decl
+// Cell Constructors
+case class ERefl(c: Expr, e: Expr) extends Expr
+case class EDrop(c: Expr, e: Expr) extends Expr
+case class EComp(c: Expr, pd: Expr) extends Expr
+case class EFill(c: Expr, pd: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -59,6 +54,7 @@ case object Unt extends Val
 case object Tt extends Val
 case object Empty extends Val
 
+// Basic type theory values
 case class Lam(c: Clos) extends Val
 case class Pair(v: Val, w: Val) extends Val
 case class Pi(v: Val, c: Clos) extends Val
@@ -66,19 +62,24 @@ case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
 
 // Tree Values
-case object VLf extends Val
-case class VPt(v: Val) extends Val
-case class VNd(v: Val, sh: Val) extends Val
+// case object VLf extends Val
+// case class VPt(v: Val) extends Val
+// case class VNd(v: Val, sh: Val) extends Val
 
 // Category and Cell Values
 case object Cat extends Val
 case class Ob(cv: Val) extends Val
-case class Cell(c: Val, d: Nat, s: Val, t: Val) extends Val
-case class Hom(c: Val, d: Nat, s: Val, t: Val) extends Val
+case class Cell[D <: Nat](c: Val, d: D, s: Tree[Val, D], t: Val) extends Val
 
 // Property Values
 case class IsLeftExt(v: Val) extends Val
 case class IsRightExt(v: Val, a: Addr) extends Val
+
+// Cell Constructor values
+case class Refl(c: Val, v: Val) extends Val
+case class Drop(c: Val, v: Val) extends Val
+case class Comp(c: Val, pd: Val) extends Val
+case class Fill(c: Val, pd: Val) extends Val
 
 // Neutral terms
 sealed trait Neut
@@ -92,6 +93,17 @@ sealed trait Addr
 case object AUnit extends Addr
 case object ANil extends Addr
 case class ACons(a: Addr, b: Addr) extends Addr
+
+// Patterns
+sealed trait Patt
+case object Punit extends Patt
+case class PVar(id: Ident) extends Patt
+case class PPair(p: Patt, q: Patt) extends Patt
+
+// Declarations
+sealed trait Decl
+case class Def(p: Patt, e: Expr, f: Expr) extends Decl
+case class Drec(p: Patt, e: Expr, f: Expr) extends Decl
 
 // Function closures
 sealed trait Clos

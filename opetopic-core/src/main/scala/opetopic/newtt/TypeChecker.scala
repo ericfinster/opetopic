@@ -9,6 +9,7 @@ package opetopic.newtt
 
 import opetopic._
 import syntax.tree._
+import TypeLemmas._
 
 object OTTTypeChecker {
 
@@ -108,15 +109,22 @@ object OTTTypeChecker {
       case EApp(e1, e2) => app(eval(e1, rho), eval(e2, rho))
       case EVar(x) => getRho(rho, x)
       case EPair(e1, e2) => Pair(eval(e1, rho), eval(e2, rho))
-      case ELf => VLf
-      case EPt(e) => VPt(eval(e, rho))
-      case ENd(e, s) => VNd(eval(e, rho), eval(s, rho))
       case ECat => Cat
       case EOb(c) => Ob(eval(c, rho))
-      case ECell(c, d, s, t) => Cell(eval(c, rho), d, eval(s, rho), eval(t, rho))
-      case EHom(c, d, s, t) => Hom(eval(c, rho), d, eval(s, rho), eval(t, rho))
+      case ECell(c, d, s, t) => {
+        val srcTr = getOrError(parseExprTree(d)(s))
+        Cell(eval(c, rho), d, srcTr.map(eval(_, rho)), eval(t, rho))
+      }
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
+      case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
+      case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
+      case EComp(c, pd) => Comp(eval(c, rho), eval(pd, rho))
+      case EFill(c, pd) => Fill(eval(c, rho), eval(pd, rho))
+      // These should be errors: eliminate tree values
+      case ELf => error("Unreduced leaf")
+      case EPt(e) => error("Unreduced point")
+      case ENd(e, s) => error("Unreduced node")
     }
 
   //============================================================================================
@@ -140,16 +148,20 @@ object OTTTypeChecker {
       case Pair(u, v) => EPair(rbV(i, u), rbV(i, v))
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
-      case VLf => ELf
-      case VPt(v) => EPt(rbV(i, v))
-      case VNd(v, s) => ENd(rbV(i, v), rbV(i, s))
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
-      case Cell(c, d, s, t) => ECell(rbV(i, c), d, rbV(i, s), rbV(i, t))
-      case Hom(c, d, s, t) => EHom(rbV(i, c), d, rbV(i, s), rbV(i, t))
+      case Cell(c, d, s, t) => ECell(rbV(i, c), d, treeToExpr(d)(s.map(rbV(i, _))), rbV(i, t))
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
+      case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
+      case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
+      case Comp(c, pd) => EComp(rbV(i, c), rbV(i, pd))
+      case Fill(c, pd) => EFill(rbV(i, c), rbV(i, pd))
       case Nt(k) => rbN(i, k)
+      // I think these should be errors and you should eliminate tree values ...
+      // case VLf => ELf
+      // case VPt(v) => EPt(rbV(i, v))
+      // case VNd(v, s) => ENd(rbV(i, v), rbV(i, s))
     }
   }
 
@@ -184,6 +196,12 @@ object OTTTypeChecker {
   val M = Monad[G]
   import M._
 
+  def getOrError[A](m : G[A]) : A = 
+    m match {
+      case -\/(msg) => throw new IllegalStateException(msg)
+      case \/-(a) => a
+    }
+
   def fail[A](str: String) : G[A] = 
     -\/(str)
 
@@ -197,6 +215,12 @@ object OTTTypeChecker {
     m match {
       case -\/(ShapeError(msg)) => -\/(msg)
       case \/-(a) => \/-(a)
+    }
+
+  def fromOpt[A](o: Option[A], msg: String) : G[A] = 
+    o match {
+      case None => fail(msg)
+      case Some(a) => \/-(a)
     }
 
   //============================================================================================
@@ -217,17 +241,34 @@ object OTTTypeChecker {
   }
 
   @natElim
-  def parseValTree[N <: Nat](n: N)(v: Val) : G[Tree[Val, N]] = {
-    case (Z, VPt(v)) => pure(Pt(v))
-    case (Z, v) => fail("Not a tree value in dim 0: " + v.toString)
-    case (S(p: P), VLf) => pure(Leaf(S(p)))
-    case (S(p: P), VNd(v, s)) => 
-      for {
-        shParse <- parseValTree(p)(s)
-        shRes <- shParse.traverse(parseValTree(S(p))(_))
-      } yield Node(v, shRes)
-    case (S(p: P), v) => fail("Not a tree value: " + v.toString)
+  def treeToExpr[N <: Nat](n: N)(t: Tree[Expr, N]) : Expr = {
+    case (Z, Pt(e)) => EPt(e)
+    case (S(p), Leaf(_)) => ELf
+    case (S(p), Node(e, sh)) => ENd(e, treeToExpr(p)(sh.map(treeToExpr(S(p))(_))))
   }
+
+
+  // Don't think we need this now ... seems we should try to keep the
+  // values as semantic trees ...
+  // @natElim
+  // def parseValTree[N <: Nat](n: N)(v: Val) : G[Tree[Val, N]] = {
+  //   case (Z, VPt(v)) => pure(Pt(v))
+  //   case (Z, v) => fail("Not a tree value in dim 0: " + v.toString)
+  //   case (S(p: P), VLf) => pure(Leaf(S(p)))
+  //   case (S(p: P), VNd(v, s)) => 
+  //     for {
+  //       shParse <- parseValTree(p)(s)
+  //       shRes <- shParse.traverse(parseValTree(S(p))(_))
+  //     } yield Node(v, shRes)
+  //   case (S(p: P), v) => fail("Not a tree value: " + v.toString)
+  // }
+
+  // @natElim
+  // def treeToVal[N <: Nat](n: N)(t: Tree[Val, N]) : Val = {
+  //   case (Z, Pt(v)) => VPt(v)
+  //   case (S(p), Leaf(_)) => VLf
+  //   case (S(p), Node(v, sh)) => VNd(v, treeToVal(p)(sh.map(treeToVal(S(p))(_))))
+  // }
 
   @natElim
   def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
@@ -242,38 +283,31 @@ object OTTTypeChecker {
     case (S(p), _) => fail("parseAdress: unexpected address expression")
   }
 
-  def nfDiscriminator(rho: Rho) : Discriminator[ConstVal] = 
-    new Discriminator[ConstVal] {
-      val l: Int = lRho(rho)
-      def apply[N <: Nat](n: N)(u: Val, v: Val) : ShapeM[Val] = 
-        toShape(for { _ <- eqNf(l, u, v) } yield u)
-    }
-
-  def buildWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
-    tr match {
-      case Leaf(_) => pure(Nesting.external(p)(bv))
-      case Node(e, sh) => 
-        for {
-          frmV <- checkI(rho, gma, e)
-          l = lRho(rho)
-          frm <- (
-            frmV match {
-              case Cell(c, _, st, tv) => 
-                for {
-                  ct <- parseValTree(p)(st)
-                  _ <- eqNf(l, cv, c)  // Check that it's in the right category
-                  _ <- eqNf(l, tv, bv) // Check that the target is the incoming value specified ...
-                  cn <- fromShape(
-                    Tree.matchTraverse(ct, sh)({
-                      case (sv, et) => toShape(buildWeb(p)(c, sv)(rho, gma, et))
-                    })
-                  )
-                } yield Box(tv, cn)
-              case _ => fail("Expresion is not a cell: " + e.toString)
-            }
-          )
-        } yield frm
-    }
+  // def buildWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
+  //   tr match {
+  //     case Leaf(_) => pure(Nesting.external(p)(bv))
+  //     case Node(e, sh) => 
+  //       for {
+  //         frmV <- checkI(rho, gma, e)
+  //         l = lRho(rho)
+  //         frm <- (
+  //           frmV match {
+  //             case Cell(c, _, st, tv) => 
+  //               for {
+  //                 ct <- parseValTree(p)(st)
+  //                 _ <- eqNf(l, cv, c)  // Check that it's in the right category
+  //                 _ <- eqNf(l, tv, bv) // Check that the target is the incoming value specified ...
+  //                 cn <- fromShape(
+  //                   Tree.matchTraverse(ct, sh)({
+  //                     case (sv, et) => toShape(buildWeb(p)(c, sv)(rho, gma, et))
+  //                   })
+  //                 )
+  //               } yield Box(tv, cn)
+  //             case _ => fail("Expresion is not a cell: " + e.toString)
+  //           }
+  //         )
+  //       } yield frm
+  //   }
 
   // This could be easily modified to return the whole we at once.  Not sure if
   // I'll need that ....
@@ -288,12 +322,12 @@ object OTTTypeChecker {
             l = lRho(rho)
             rv <- (
               frmV match {
-                case Cell(c, _, st, tv) =>
+                case Cell(c, d, st, tv) =>
                 for {
                   _ <- eqNf(l, cv, c)  // Check that it's in the right category
-                  ct <- parseValTree(p)(st)
+                  neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
                   _ <- fromShape(
-                    Tree.matchTraverse(ct, cn)({
+                    Tree.matchTraverse(rewriteNatIn[ValTree, Nat, P](neq)(st), cn)({
                       case (sv, iv) => toShape(eqNf(l, sv, iv)) // Check the source value is the input value
                     })
                   )
@@ -316,7 +350,7 @@ object OTTTypeChecker {
         _ <- check(rho, gma, t, Ob(cv))
       } yield ()
     case (Z, c, _, t, rho, gma) => fail("Not an object in dimension 0")
-    case (S(p), c, s, t, rho, gma) => 
+    case (S(p: P), c, s, t, rho, gma) => 
       for {
         _ <- check(rho, gma, c, Cat)
         cv = eval(c, rho)
@@ -324,13 +358,14 @@ object OTTTypeChecker {
         l = lRho(rho)
         _ <- (
           tcv match {
-            case Cell(tcat, _, ts, tt) => 
+            case Cell(tcat, d, ts, tt) => 
               for {
-                _ <- eqNf(l, cv, tcat)                        // Target lives in the right category
-                ttr <- parseValTree(p)(ts)                    // Parse the source of the target
-                srcTr <- parseExprTree(S(p))(s)               // Parse the source tree
-                ov <- checkWeb(p)(rho, gma)(cv, ttr, srcTr)   // Recursively verify the source tree
-                _ <- eqNf(l, ov, tt)                          // Target type matches the output
+                _ <- eqNf(l, cv, tcat)                                   // Target lives in the right category
+                neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")    // Ensure dimensions match
+                ttr = rewriteNatIn[ValTree, Nat, P](neq)(ts)             // Cast to correct dimension
+                srcTr <- parseExprTree(S(p))(s)                          // Parse the source tree
+                ov <- checkWeb(p)(rho, gma)(cv, ttr, srcTr)              // Recursively verify the source tree
+                _ <- eqNf(l, ov, tt)                                     // Target type matches the output
               } yield ()
             case _ => fail("Target " + t.toString + " is not a cell")
           }
@@ -469,8 +504,7 @@ object OTTTypeChecker {
             case Cell(_, d, s, t) => 
               for {
                 addr <- parseAddress(d)(a)
-                src <- parseValTree(d)(s)
-                _ <- fromShape(src.seekTo(addr))  // Seek to the given address to make sure it's valid
+                _ <- fromShape(s.seekTo(addr))  // Seek to the given address to make sure it's valid
               } yield ()
             case _ => fail("Expression " + e.toString + " is not a cell")
           }
@@ -517,6 +551,56 @@ object OTTTypeChecker {
           pr <- extSigG(t)
           (_, g) = pr
         } yield g * vfst(eval(e, rho))
+      case ERefl(c, e) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          ct <- checkI(rho, gma, e)
+          res <- ct match {
+            case Ob(ec) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+              } yield Cell(ec, Z, Pt(ee), ee)
+            case Cell(ec, ed, es, et) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+                cor = Node(ee, es.map(_ => Leaf(S(ed))))
+              } yield Cell(ec, S(ed), cor, ee)  
+            case _ => fail("Expression " + e.toString + " is not a cell")
+          }
+        } yield res
+      case EDrop(c, e) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          ct <- checkI(rho, gma, e)
+          res <- ct match {
+            case Ob(ec) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+              } yield Cell(ec, S(Z), Leaf(S(Z)), Refl(cv, ee))
+            case Cell(ec, ed, es, et) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+              } yield Cell(ec, S(S(ed)), Leaf(S(S(ed))), Refl(cv, ee))  
+            case _ => fail("Expression " + e.toString + " is not a cell")
+          }
+        } yield res
+      case EComp(c, pd) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+
+          // So, here we are going to need to
+          // parse the tree (which means we need a dimension)
+          // and then calculate the corresponding boundary type.
+
+
+        } yield ???
       case e => fail("checkI: " ++ e.toString)
     }
 
