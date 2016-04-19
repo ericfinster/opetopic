@@ -26,4 +26,7 @@ let rTest : (X : Cat) -> (x : Ob X) -> Arrow X x x
 let dTest : (X : Cat) -> (x : Ob X) -> Drop X x (rTest X x)
           = \X. \x. drop X x ;
 
+let cTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
+    	  = \X. \x. \y. \z. \f. \g. comp X 1 (nd g (pt (nd f (pt lf)))) ;
+
 tt

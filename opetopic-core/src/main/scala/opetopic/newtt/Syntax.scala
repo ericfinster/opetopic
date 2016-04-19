@@ -44,8 +44,8 @@ case class EIsRightExt(e: Expr, a: Addr) extends Expr
 // Cell Constructors
 case class ERefl(c: Expr, e: Expr) extends Expr
 case class EDrop(c: Expr, e: Expr) extends Expr
-case class EComp(c: Expr, pd: Expr) extends Expr
-case class EFill(c: Expr, pd: Expr) extends Expr
+case class EComp(c: Expr, d: Nat, pd: Expr) extends Expr
+case class EFill(c: Expr, d: Nat, pd: Expr) extends Expr
 
 // Values
 sealed trait Val
@@ -78,8 +78,8 @@ case class IsRightExt(v: Val, a: Addr) extends Val
 // Cell Constructor values
 case class Refl(c: Val, v: Val) extends Val
 case class Drop(c: Val, v: Val) extends Val
-case class Comp(c: Val, pd: Val) extends Val
-case class Fill(c: Val, pd: Val) extends Val
+case class Comp[D <: Nat](c: Val, d: D, pd: Tree[Val, D]) extends Val
+case class Fill[D <: Nat](c: Val, d: D, pd: Tree[Val, D]) extends Val
 
 // Neutral terms
 sealed trait Neut

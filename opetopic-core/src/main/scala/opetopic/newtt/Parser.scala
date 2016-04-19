@@ -55,10 +55,10 @@ object OTTParser extends RegexParsers with PackratParsers {
         { case "refl" ~ c ~ e => ERefl(c, e) }
     | "drop" ~ expr4 ~ expr4 ^^
         { case "drop" ~ c ~ e => EDrop(c, e) }
-    | "comp" ~ expr4 ~ expr4 ^^
-        { case "comp" ~ c ~ pd => EComp(c, pd) }
-    | "fill" ~ expr4 ~ expr4 ^^
-        { case "fill" ~ c ~ pd => EFill(c, pd) }
+    | "comp" ~ expr4 ~ intLit ~ expr4 ^^
+        { case "comp" ~ c ~ d ~ pd => EComp(c, intToNat(d.toInt), pd) }
+    | "fill" ~ expr4 ~ intLit ~ expr4 ^^
+        { case "fill" ~ c ~ d ~ pd => EFill(c, intToNat(d.toInt), pd) }
     | expr3
   )
 

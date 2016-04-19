@@ -119,8 +119,14 @@ object OTTTypeChecker {
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
       case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
       case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
-      case EComp(c, pd) => Comp(eval(c, rho), eval(pd, rho))
-      case EFill(c, pd) => Fill(eval(c, rho), eval(pd, rho))
+      case EComp(c, d, pd) => {
+        val pdTr = getOrError(parseExprTree(d)(pd))
+        Comp(eval(c, rho), d, pdTr.map(eval(_, rho)))
+      }
+      case EFill(c, d, pd) => {
+        val pdTr = getOrError(parseExprTree(d)(pd))
+        Fill(eval(c, rho), d, pdTr.map(eval(_, rho)))
+      }
       // These should be errors: eliminate tree values
       case ELf => error("Unreduced leaf")
       case EPt(e) => error("Unreduced point")
@@ -155,8 +161,8 @@ object OTTTypeChecker {
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
       case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
       case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
-      case Comp(c, pd) => EComp(rbV(i, c), rbV(i, pd))
-      case Fill(c, pd) => EFill(rbV(i, c), rbV(i, pd))
+      case Comp(c, d, pd) => EComp(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
+      case Fill(c, d, pd) => EFill(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
       case Nt(k) => rbN(i, k)
       // I think these should be errors and you should eliminate tree values ...
       // case VLf => ELf
@@ -247,29 +253,6 @@ object OTTTypeChecker {
     case (S(p), Node(e, sh)) => ENd(e, treeToExpr(p)(sh.map(treeToExpr(S(p))(_))))
   }
 
-
-  // Don't think we need this now ... seems we should try to keep the
-  // values as semantic trees ...
-  // @natElim
-  // def parseValTree[N <: Nat](n: N)(v: Val) : G[Tree[Val, N]] = {
-  //   case (Z, VPt(v)) => pure(Pt(v))
-  //   case (Z, v) => fail("Not a tree value in dim 0: " + v.toString)
-  //   case (S(p: P), VLf) => pure(Leaf(S(p)))
-  //   case (S(p: P), VNd(v, s)) => 
-  //     for {
-  //       shParse <- parseValTree(p)(s)
-  //       shRes <- shParse.traverse(parseValTree(S(p))(_))
-  //     } yield Node(v, shRes)
-  //   case (S(p: P), v) => fail("Not a tree value: " + v.toString)
-  // }
-
-  // @natElim
-  // def treeToVal[N <: Nat](n: N)(t: Tree[Val, N]) : Val = {
-  //   case (Z, Pt(v)) => VPt(v)
-  //   case (S(p), Leaf(_)) => VLf
-  //   case (S(p), Node(v, sh)) => VNd(v, treeToVal(p)(sh.map(treeToVal(S(p))(_))))
-  // }
-
   @natElim
   def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
     case (Z, AUnit) => pure(())
@@ -283,31 +266,75 @@ object OTTTypeChecker {
     case (S(p), _) => fail("parseAdress: unexpected address expression")
   }
 
-  // def buildWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
-  //   tr match {
-  //     case Leaf(_) => pure(Nesting.external(p)(bv))
-  //     case Node(e, sh) => 
-  //       for {
-  //         frmV <- checkI(rho, gma, e)
-  //         l = lRho(rho)
-  //         frm <- (
-  //           frmV match {
-  //             case Cell(c, _, st, tv) => 
-  //               for {
-  //                 ct <- parseValTree(p)(st)
-  //                 _ <- eqNf(l, cv, c)  // Check that it's in the right category
-  //                 _ <- eqNf(l, tv, bv) // Check that the target is the incoming value specified ...
-  //                 cn <- fromShape(
-  //                   Tree.matchTraverse(ct, sh)({
-  //                     case (sv, et) => toShape(buildWeb(p)(c, sv)(rho, gma, et))
-  //                   })
-  //                 )
-  //               } yield Box(tv, cn)
-  //             case _ => fail("Expresion is not a cell: " + e.toString)
-  //           }
-  //         )
-  //       } yield frm
-  //   }
+  // Not sure if we'll need this ... it returns the whole
+  // nesting (the web) built from this tree of expressions ...
+  def makeWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
+    tr match {
+      case Leaf(_) => pure(Nesting.external(p)(bv))
+      case Node(e, sh) => 
+        for {
+          frmV <- checkI(rho, gma, e)
+          l = lRho(rho)
+          frm <- frmV match {
+            case Cell(c, d, st, tv) => 
+              for {
+                _ <- eqNf(l, cv, c)                   // Correct category
+                _ <- eqNf(l, tv, bv)                  // Correct output
+                neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
+                cn <- fromShape(
+                  Tree.matchTraverse(rewriteNatIn[ValTree, Nat, P](neq)(st), sh)({
+                    case (sv, et) => toShape(makeWeb(p)(c, sv)(rho, gma, et))
+                  })
+                )                                     // Recursive call on shell
+              } yield Box(tv, cn)
+            case _ => fail("Expresion is not a cell: " + e.toString)
+          }
+        } yield frm
+    }
+
+  @natElim
+  def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
+    case (Z, rho, gma, cv, Pt(e)) => pure(Ob(cv))
+    case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
+    case (S(p: P), rho, gma, cv, Node(e, sh)) => 
+      for {
+        pr <- glueFrame(p)(rho, gma, e, sh, cv)
+      } yield Cell(cv, p, pr._1, pr._2)
+  }
+
+  // Given an expression, expected to be a cell, and an extending tree of remaining expressions,
+  // glue them together to give a frame for the composite of this pasting diagram.
+  def glueFrame[P <: Nat](p: P)(rho: Rho, gma: Gamma, e: Expr, sh: Tree[Tree[Expr, S[P]], P], cv: Val) : G[(Tree[Val, P], Val)] = 
+    for {
+      et <- checkI(rho, gma, e)
+      l = lRho(rho)
+      res <- et match {
+        case Cell(c, d, st, tv) =>
+          for {
+            _ <- eqNf(l, cv, c)                              // Correct category
+            neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
+            rt <- fromShape(
+              for {
+                toJn <- Tree.matchWithDerivative(rewriteNatIn[ValTree, Nat, P](neq)(st), sh)({
+                  case (sv, et, dd) => toShape(
+                    et match {
+                      case Leaf(_) => pure(Zipper.plug(p)(dd, sv))
+                      case Node(f, th) =>
+                        for {
+                          pr <- glueFrame(p)(rho, gma, f, th, cv)
+                          _ <- eqNf(l, sv, pr._2)  // Correct output
+                        } yield pr._1
+                    }
+                  )
+                })
+                jn <- Tree.join(p)(toJn)
+              } yield jn
+            )                                     
+          } yield (rt, tv)
+        case _ => fail("Expresion is not a cell: " + e.toString)
+      }
+    } yield res
+
 
   // This could be easily modified to return the whole we at once.  Not sure if
   // I'll need that ....
@@ -590,17 +617,13 @@ object OTTTypeChecker {
             case _ => fail("Expression " + e.toString + " is not a cell")
           }
         } yield res
-      case EComp(c, pd) => 
+      case EComp(c, d, pd) => 
         for {
           _ <- check(rho, gma, c, Cat)
           cv = eval(c, rho)
-
-          // So, here we are going to need to
-          // parse the tree (which means we need a dimension)
-          // and then calculate the corresponding boundary type.
-
-
-        } yield ???
+          pdTr <- parseExprTree(d)(pd)
+          res <- compositeType(d)(rho, gma, cv, pdTr)
+        } yield res
       case e => fail("checkI: " ++ e.toString)
     }
 
