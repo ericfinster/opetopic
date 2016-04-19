@@ -45,8 +45,8 @@ object OTTParser extends RegexParsers with PackratParsers {
   lazy val expr2 : PackratParser[Expr] = (
       "Ob" ~ expr4 ^^ 
         { case "Ob" ~ c => EOb(c) }
-    | "Cell" ~ expr4 ~ intLit ~ trExpr ~ expr4 ^^ 
-        { case "Cell" ~ c ~ d ~ s ~ t => ECell(c, intToNat(d.toInt - 1), s, t) }
+    | "Cell" ~ expr4 ~ complexExpr ^^ 
+        { case "Cell" ~ c ~ e => ECell(c, e) }
     | "isLeftExt" ~ expr4 ^^
         { case "isLeftExt" ~ e => EIsLeftExt(e) }
     | "isRightExt" ~ expr4 ~ addrExpr ^^
@@ -83,6 +83,7 @@ object OTTParser extends RegexParsers with PackratParsers {
     | "tt" ^^^ ETt
     | "Cat" ^^^ ECat
     | trExpr
+    | nstExpr
     | expr4 ~ ".1" ^^ 
         { case e ~ ".1" => EFst(e) }
     | expr4 ~ ".2" ^^ 
@@ -100,6 +101,20 @@ object OTTParser extends RegexParsers with PackratParsers {
         { case "nd" ~ e ~ sh => ENd(e, sh) }
     | "(" ~ trExpr ~ ")" ^^
         { case "(" ~ te ~ ")" => te }
+  )
+
+  lazy val nstExpr : PackratParser[Expr] = (
+      "dot" ~ expr4 ^^
+        { case "dot" ~ e => EDot(e) }
+    | "box" ~ expr4 ~ trExpr ^^
+        { case "box" ~ e ~ cn => EBox(e, cn) }
+  )
+
+  lazy val complexExpr: PackratParser[Expr] = (
+      "[" ~ nstExpr ~ "]>>" ~ complexExpr ^^
+        { case "[" ~ n ~ "]>>" ~ c => ETl(n, c) }
+    | "[" ~ nstExpr ~ "]" ^^
+        { case "[" ~ n ~ "]" => EHd(n) }
   )
 
   lazy val addrExpr : PackratParser[Addr] = (

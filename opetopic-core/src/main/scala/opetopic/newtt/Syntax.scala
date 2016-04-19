@@ -32,10 +32,18 @@ case class EPt(e: Expr) extends Expr
 case object ELf extends Expr
 case class ENd(e: Expr, sh: Expr) extends Expr
 
+// Nesting Expressions
+case class EDot(e: Expr) extends Expr
+case class EBox(e: Expr, cn: Expr) extends Expr
+
+// Complex Expressions
+case class EHd(e: Expr) extends Expr
+case class ETl(e: Expr, f: Expr) extends Expr
+
 // Categories and Cells
 case object ECat extends Expr
 case class EOb(c: Expr) extends Expr
-case class ECell(c: Expr, d: Nat, s: Expr, t: Expr) extends Expr
+case class ECell(c: Expr, e: Expr) extends Expr
 
 // Properties
 case class EIsLeftExt(e: Expr) extends Expr
@@ -65,15 +73,10 @@ case class Pi(v: Val, c: Clos) extends Val
 case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
 
-// Tree Values
-// case object VLf extends Val
-// case class VPt(v: Val) extends Val
-// case class VNd(v: Val, sh: Val) extends Val
-
 // Category and Cell Values
 case object Cat extends Val
 case class Ob(cv: Val) extends Val
-case class Cell[D <: Nat](c: Val, d: D, s: Tree[Val, D], t: Val) extends Val
+case class Cell[D <: Nat](c: Val, d: D, frm: ValComplex[D]) extends Val
 
 // Property Values
 case class IsLeftExt(v: Val) extends Val

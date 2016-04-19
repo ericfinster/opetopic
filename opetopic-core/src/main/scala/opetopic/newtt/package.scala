@@ -19,5 +19,8 @@ package object newtt {
   type ConstExpr[N <: Nat] = Expr
   type ConstVal[N <: Nat] = Val
   type ValTree[N <: Nat] = Tree[Val, N]
+  type ValComplex[N <: Nat] = Complex[ConstVal, N]
+  type ExprComplex[N <: Nat] = Complex[ConstExpr, N]
+  type ExprNesting[N <: Nat] = Nesting[Expr, N]
 
 }

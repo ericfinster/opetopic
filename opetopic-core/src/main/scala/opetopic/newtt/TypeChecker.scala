@@ -9,6 +9,7 @@ package opetopic.newtt
 
 import opetopic._
 import syntax.tree._
+import syntax.complex._
 import TypeLemmas._
 
 object OTTTypeChecker {
@@ -113,10 +114,11 @@ object OTTTypeChecker {
       // Categories and Cells
       case ECat => Cat
       case EOb(c) => Ob(eval(c, rho))
-      case ECell(c, d, s, t) => {
-        val srcTr = getOrError(parseExprTree(d)(s))
-        Cell(eval(c, rho), d, srcTr.map(eval(_, rho)), eval(t, rho))
-      }
+      case ECell(c, e) => ???
+        // {
+        //   val srcTr = getOrError(parseTree(d)(s))
+        //   Cell(eval(c, rho), d, srcTr.map(eval(_, rho)), eval(t, rho))
+        // }
 
       // Propertes
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
@@ -126,11 +128,11 @@ object OTTTypeChecker {
       case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
       case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
       case EComp(c, d, pd) => {
-        val pdTr = getOrError(parseExprTree(d)(pd))
+        val pdTr = getOrError(parseTree(d)(pd))
         Comp(eval(c, rho), d, pdTr.map(eval(_, rho)))
       }
       case EFill(c, d, pd) => {
-        val pdTr = getOrError(parseExprTree(d)(pd))
+        val pdTr = getOrError(parseTree(d)(pd))
         Fill(eval(c, rho), d, pdTr.map(eval(_, rho)))
       }
 
@@ -140,10 +142,14 @@ object OTTTypeChecker {
       case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
-      // Reducing unconverted trees should be an error ...
+      // Tree, Nesting and Complex expressions shouldn't reduce
       case ELf => error("Unreduced leaf")
-      case EPt(e) => error("Unreduced point")
-      case ENd(e, s) => error("Unreduced node")
+      case EPt(_) => error("Unreduced point")
+      case ENd(_, _) => error("Unreduced node")
+      case EDot(_) => error("Unreduced dot")
+      case EBox(_, _) => error("Unreduced box")
+      case EHd(_) => error("Unreduced head")
+      case ETl(_, _) => error("Unreduced tail")
     }
 
   //============================================================================================
@@ -170,7 +176,7 @@ object OTTTypeChecker {
 
       case Cat => ECat
       case Ob(v) => EOb(rbV(i, v))
-      case Cell(c, d, s, t) => ECell(rbV(i, c), d, treeToExpr(d)(s.map(rbV(i, _))), rbV(i, t))
+      case Cell(c, d, frm) => ??? // ECell(rbV(i, c), d, treeToExpr(d)(s.map(rbV(i, _))), rbV(i, t))
 
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
@@ -252,17 +258,49 @@ object OTTTypeChecker {
   //
 
   @natElim
-  def parseExprTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
+  def parseTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
     case (Z, EPt(e)) => pure(Pt(e))
     case (Z, e) => fail("Not a tree expression in dim 0: " + e.toString)
     case (S(p: P), ELf) => pure(Leaf(S(p)))
     case (S(p: P), ENd(e, sh)) => 
       for {
-        shParse <- parseExprTree(p)(sh)
-        shRes <- shParse.traverse(parseExprTree(S(p))(_))
+        shParse <- parseTree(p)(sh)
+        shRes <- shParse.traverse(parseTree(S(p))(_))
       } yield Node(e, shRes)
     case (S(p: P), e) => fail("Not a tree expression: " + e.toString)
   }
+
+  @natElim
+  def parseNesting[N <: Nat](n: N)(e: Expr) : G[Nesting[Expr, N]] = {
+    case (Z, EDot(e)) => pure(Obj(e))
+    case (Z, EBox(e, ec)) => 
+      for {
+        t <- parseTree(Z)(ec)
+        cn <- t.traverse[G, Nesting[Expr, _0]](parseNesting(Z)(_))
+      } yield Box(e, cn)
+    case (Z, _) => fail("Invalid nesting")
+    case (S(p: P), EDot(e)) => pure(Dot(e, S(p)))
+    case (S(p: P), EBox(e, ec)) => 
+      for {
+        t <- parseTree(S(p))(ec)
+        cn <- t.traverse[G, Nesting[Expr, S[P]]](parseNesting(S(p))(_))
+      } yield Box(e, cn)
+    case (S(p: P), _) => fail("Invalid nesting")
+  }
+
+  def parseComplex[N <: Nat](n: N)(e: Expr, s: Suite[ExprNesting, N]) : G[FiniteComplex[ConstExpr]] = 
+    e match {
+      case EHd(ne) => 
+        for {
+          nst <- parseNesting(n)(ne)
+        } yield Sigma[ExprComplex, N](n)(s >> nst)
+      case ETl(hd, tl) => 
+        for {
+          nst <- parseNesting(n)(hd)
+          res <- parseComplex(S(n))(tl, s >> nst)
+        } yield res
+      case _ => fail("Invalid complex")
+    }
 
   @natElim
   def treeToExpr[N <: Nat](n: N)(t: Tree[Expr, N]) : Expr = {
@@ -284,139 +322,213 @@ object OTTTypeChecker {
     case (S(p), _) => fail("parseAdress: unexpected address expression")
   }
 
-  // Not sure if we'll need this ... it returns the whole
-  // nesting (the web) built from this tree of expressions ...
-  def makeWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
-    tr match {
-      case Leaf(_) => pure(Nesting.external(p)(bv))
-      case Node(e, sh) => 
-        for {
-          frmV <- checkI(rho, gma, e)
-          l = lRho(rho)
-          frm <- frmV match {
-            case Cell(c, d, st, tv) => 
-              for {
-                _ <- eqNf(l, cv, c)                   // Correct category
-                _ <- eqNf(l, tv, bv)                  // Correct output
-                neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
-                cn <- fromShape(
-                  Tree.matchTraverse(rewriteNatIn[ValTree, Nat, P](neq)(st), sh)({
-                    case (sv, et) => toShape(makeWeb(p)(c, sv)(rho, gma, et))
-                  })
-                )                                     // Recursive call on shell
-              } yield Box(tv, cn)
-            case _ => fail("Expresion is not a cell: " + e.toString)
-          }
-        } yield frm
-    }
+  // // Not sure if we'll need this ... it returns the whole
+  // // nesting (the web) built from this tree of expressions ...
+  // def makeWeb[P <: Nat](p: P)(cv: Val, bv: Val)(rho: Rho, gma: Gamma, tr: Tree[Expr, S[P]]) : G[Nesting[Val, P]] = 
+  //   tr match {
+  //     case Leaf(_) => pure(Nesting.external(p)(bv))
+  //     case Node(e, sh) => 
+  //       for {
+  //         frmV <- checkI(rho, gma, e)
+  //         l = lRho(rho)
+  //         frm <- frmV match {
+  //           case Cell(c, d, st, tv) => 
+  //             for {
+  //               _ <- eqNf(l, cv, c)                   // Correct category
+  //               _ <- eqNf(l, tv, bv)                  // Correct output
+  //               neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
+  //               cn <- fromShape(
+  //                 Tree.matchTraverse(rewriteNatIn[ValTree, Nat, P](neq)(st), sh)({
+  //                   case (sv, et) => toShape(makeWeb(p)(c, sv)(rho, gma, et))
+  //                 })
+  //               )                                     // Recursive call on shell
+  //             } yield Box(tv, cn)
+  //           case _ => fail("Expresion is not a cell: " + e.toString)
+  //         }
+  //       } yield frm
+  //   }
 
-  @natElim
-  def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
-    case (Z, rho, gma, cv, Pt(e)) => pure(Ob(cv))
-    case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
-    case (S(p: P), rho, gma, cv, Node(e, sh)) => 
-      for {
-        pr <- glueFrame(p)(rho, gma, e, sh, cv)
-      } yield Cell(cv, p, pr._1, pr._2)
-  }
+  // @natElim
+  // def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
+  //   case (Z, rho, gma, cv, Pt(e)) => pure(Ob(cv))
+  //   case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
+  //   case (S(p: P), rho, gma, cv, Node(e, sh)) => 
+  //     for {
+  //       pr <- glueFrame(p)(rho, gma, e, sh, cv)
+  //     } yield Cell(cv, p, pr._1, pr._2)
+  // }
 
-  // Given an expression, expected to be a cell, and an extending tree of remaining expressions,
-  // glue them together to give a frame for the composite of this pasting diagram.
-  def glueFrame[P <: Nat](p: P)(rho: Rho, gma: Gamma, e: Expr, sh: Tree[Tree[Expr, S[P]], P], cv: Val) : G[(Tree[Val, P], Val)] = 
+  // // Given an expression, expected to be a cell, and an extending tree of remaining expressions,
+  // // glue them together to give a frame for the composite of this pasting diagram.
+  // def glueFrame[P <: Nat](p: P)(rho: Rho, gma: Gamma, e: Expr, sh: Tree[Tree[Expr, S[P]], P], cv: Val) : G[(Tree[Val, P], Val)] = 
+  //   for {
+  //     et <- checkI(rho, gma, e)
+  //     l = lRho(rho)
+  //     res <- et match {
+  //       case Cell(c, d, st, tv) =>
+  //         for {
+  //           _ <- eqNf(l, cv, c)                              // Correct category
+  //           neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
+  //           rt <- fromShape(
+  //             for {
+  //               toJn <- Tree.matchWithDerivative(rewriteNatIn[ValTree, Nat, P](neq)(st), sh)({
+  //                 case (sv, et, dd) => toShape(
+  //                   et match {
+  //                     case Leaf(_) => pure(Zipper.plug(p)(dd, sv))
+  //                     case Node(f, th) =>
+  //                       for {
+  //                         pr <- glueFrame(p)(rho, gma, f, th, cv)
+  //                         _ <- eqNf(l, sv, pr._2)  // Correct output
+  //                       } yield pr._1
+  //                   }
+  //                 )
+  //               })
+  //               jn <- Tree.join(p)(toJn)
+  //             } yield jn
+  //           )                                     
+  //         } yield (rt, tv)
+  //       case _ => fail("Expresion is not a cell: " + e.toString)
+  //     }
+  //   } yield res
+
+  def inferCell(rho: Rho, gma: Gamma, e: Expr) : G[(Val, Nat, ValComplex[Nat])] = 
     for {
       et <- checkI(rho, gma, e)
-      l = lRho(rho)
       res <- et match {
-        case Cell(c, d, st, tv) =>
-          for {
-            _ <- eqNf(l, cv, c)                              // Correct category
-            neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
-            rt <- fromShape(
-              for {
-                toJn <- Tree.matchWithDerivative(rewriteNatIn[ValTree, Nat, P](neq)(st), sh)({
-                  case (sv, et, dd) => toShape(
-                    et match {
-                      case Leaf(_) => pure(Zipper.plug(p)(dd, sv))
-                      case Node(f, th) =>
-                        for {
-                          pr <- glueFrame(p)(rho, gma, f, th, cv)
-                          _ <- eqNf(l, sv, pr._2)  // Correct output
-                        } yield pr._1
-                    }
-                  )
-                })
-                jn <- Tree.join(p)(toJn)
-              } yield jn
-            )                                     
-          } yield (rt, tv)
-        case _ => fail("Expresion is not a cell: " + e.toString)
+        case Cell(c, d, f) => pure((c, d, f))
+        case _ => fail("Expression is not a cell: " + e.toString)
       }
     } yield res
 
+  def nfDiscriminator(rho : Rho) : Discriminator[ConstVal] = 
+    new Discriminator[ConstVal] {
+      val l = lRho(rho)
+      def apply[N <: Nat](n: N)(u: Val, v: Val) = 
+        toShape(for { _ <- eqNf(l, u, v) } yield u)
+    }
+
+  // I believe this assumes that the tree is not a leaf.
+  def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
+      : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
+    for {
+      pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
+        for {
+          tp <- inferCell(rho, gma, e)
+          (ec, ed, ef) = tp
+          ee = eval(e, rho)
+          _ <- eqNf(lRho(rho), cv, ec)
+          eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
+        } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
+      })
+      res <- fromShape(
+        Complex.paste(p)(pd)(nfDiscriminator(rho))
+      )
+    } yield res
+
+  // def paste[A[_ <: Nat], N <: Nat](n: N)(pd: Tree[Complex[A, S[N]], S[N]])(disc: Discriminator[A]) 
+  //     : ShapeM[(Complex[A, N], Tree[Nesting[A[S[N]], S[N]], S[N]])] = 
 
   // This could be easily modified to return the whole we at once.  Not sure if
   // I'll need that ....
-  def checkWeb[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, lvs: Tree[Val, P], tr: Tree[Expr, S[P]]) : G[Val] = 
-    fromShape(
-      Tree.graftRec[Expr, Val, P](p)(tr)(
-        (a: Address[P]) => Tree.valueAt(lvs, a)
-      )({
-        case (e, cn) => toShape(
-          for {
-            frmV <- checkI(rho, gma, e)
-            l = lRho(rho)
-            rv <- (
-              frmV match {
-                case Cell(c, d, st, tv) =>
-                for {
-                  _ <- eqNf(l, cv, c)  // Check that it's in the right category
-                  neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
-                  _ <- fromShape(
-                    Tree.matchTraverse(rewriteNatIn[ValTree, Nat, P](neq)(st), cn)({
-                      case (sv, iv) => toShape(eqNf(l, sv, iv)) // Check the source value is the input value
-                    })
-                  )
-                } yield tv // Give back the output type value
-                case _ => fail("Expression is not a cell: " + e.toString)
-              }
-            )
-          } yield rv
-        )
-      })
-    )
+  // def checkWeb[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, lvs: Tree[Val, P], tr: Tree[Expr, S[P]]) : G[Val] = 
+  //   fromShape(
+  //     Tree.graftRec[Expr, Val, P](p)(tr)(
+  //       (a: Address[P]) => Tree.valueAt(lvs, a)
+  //     )({
+  //       case (e, cn) => toShape(
+  //         for {
+  //           frmV <- checkI(rho, gma, e)
+  //           l = lRho(rho)
+  //           rv <- (
+  //             frmV match {
+  //               case Cell(c, d, st, tv) =>
+  //               for {
+  //                 _ <- eqNf(l, cv, c)  // Check that it's in the right category
+  //                 neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")
+  //                 _ <- fromShape(
+  //                   Tree.matchTraverse(rewriteNatIn[ValTree, Nat, P](neq)(st), cn)({
+  //                     case (sv, iv) => toShape(eqNf(l, sv, iv)) // Check the source value is the input value
+  //                   })
+  //                 )
+  //               } yield tv // Give back the output type value
+  //               case _ => fail("Expression is not a cell: " + e.toString)
+  //             }
+  //           )
+  //         } yield rv
+  //       )
+  //     })
+  //   )
 
-  @natElim
-  def checkFrame[N <: Nat](n: N)(c: Expr, s: Expr, t: Expr)(rho: Rho, gma: Gamma) : G[Unit] = {
+  // Don't yield a unit here, yield the Val for the complex.  That way, 
+  // you can use it when you have to evaluate above ...
+
+  @natElim 
+  def checkFrame[N <: Nat](n: N)(c: Expr, s: Expr, t: Expr)(rho: Rho, gma: Gamma) : G[Val] = {
     case (Z, c, EPt(s), t, rho, gma) => 
       for {
         _ <- check(rho, gma, c, Cat)
         cv = eval(c, rho)
         _ <- check(rho, gma, s, Ob(cv))
         _ <- check(rho, gma, t, Ob(cv))
-      } yield ()
+      } yield Cell(cv, Z, Complex[ConstVal] >> Box(eval(t, rho), Pt(Obj(eval(s, rho)))))
     case (Z, c, _, t, rho, gma) => fail("Not an object in dimension 0")
     case (S(p: P), c, s, t, rho, gma) => 
       for {
         _ <- check(rho, gma, c, Cat)
         cv = eval(c, rho)
-        tcv <- checkI(rho, gma, t)
-        l = lRho(rho)
-        _ <- (
-          tcv match {
-            case Cell(tcat, d, ts, tt) => 
-              for {
-                _ <- eqNf(l, cv, tcat)                                   // Target lives in the right category
-                neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")    // Ensure dimensions match
-                ttr = rewriteNatIn[ValTree, Nat, P](neq)(ts)             // Cast to correct dimension
-                srcTr <- parseExprTree(S(p))(s)                          // Parse the source tree
-                ov <- checkWeb(p)(rho, gma)(cv, ttr, srcTr)              // Recursively verify the source tree
-                _ <- eqNf(l, ov, tt)                                     // Target type matches the output
-              } yield ()
-            case _ => fail("Target " + t.toString + " is not a cell")
-          }
-        )
-      } yield ()
+        tp <- inferCell(rho, gma, t) 
+        (tc, td, tf) = tp
+        eqEv <- fromOpt(matchNatPair(S(p), td), "Wrong dimension")
+        srcTr <- parseTree(S(p))(s)
+        _ <- if (! Tree.isLeaf(srcTr)) {
+          for {
+            pr <- buildComplex(p)(rho, gma)(cv, srcTr)
+            (web, pd) = pr
+            // You've got the web and the pasting diagram.  The last thing
+            // to do is to check that the target frame agrees with the one
+            // calculated for the source tree.
+          } yield ()
+        } else pure(())
+      } yield ???
   }
+
+  // def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
+  //     : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
+
+
+  // @natElim
+  // def checkFrame[N <: Nat](n: N)(c: Expr, s: Expr, t: Expr)(rho: Rho, gma: Gamma) : G[Unit] = {
+  //   case (Z, c, EPt(s), t, rho, gma) => 
+  //     for {
+  //       _ <- check(rho, gma, c, Cat)
+  //       cv = eval(c, rho)
+  //       _ <- check(rho, gma, s, Ob(cv))
+  //       _ <- check(rho, gma, t, Ob(cv))
+  //     } yield ()
+  //   case (Z, c, _, t, rho, gma) => fail("Not an object in dimension 0")
+  //   case (S(p: P), c, s, t, rho, gma) => 
+  //     for {
+  //       _ <- check(rho, gma, c, Cat)
+  //       cv = eval(c, rho)
+  //       tcv <- checkI(rho, gma, t)
+  //       l = lRho(rho)
+  //       _ <- (
+  //         tcv match {
+  //           case Cell(tcat, d, ts, tt) => 
+  //             for {
+  //               _ <- eqNf(l, cv, tcat)                                   // Target lives in the right category
+  //               neq <- fromOpt(matchNatPair(d, p), "Wrong dimension")    // Ensure dimensions match
+  //               ttr = rewriteNatIn[ValTree, Nat, P](neq)(ts)             // Cast to correct dimension
+  //               srcTr <- parseTree(S(p))(s)                          // Parse the source tree
+  //               ov <- checkWeb(p)(rho, gma)(cv, ttr, srcTr)              // Recursively verify the source tree
+  //               _ <- eqNf(l, ov, tt)                                     // Target type matches the output
+  //             } yield ()
+  //           case _ => fail("Target " + t.toString + " is not a cell")
+  //         }
+  //       )
+  //     } yield ()
+  // }
+
 
   //============================================================================================
   // TYPE ENVIRONMENT
@@ -532,28 +644,30 @@ object OTTTypeChecker {
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()
-      case (ECell(c, d, s, t), Type) => 
-        checkFrame(d)(c, s, t)(rho, gma)
-      case (EIsLeftExt(e), Type) => 
-        for {
-          t <- checkI(rho, gma, e)
-          _ <- t match {
-            case Cell(_, _, _, _) => pure(())
-            case _ => fail("Expression " + e.toString + " is not a cell")
-          }
-        } yield ()
-      case (EIsRightExt(e, a), Type) => 
-        for {
-          t <- checkI(rho, gma, e)
-          _ <- t match {
-            case Cell(_, d, s, t) => 
-              for {
-                addr <- parseAddress(d)(a)
-                _ <- fromShape(s.seekTo(addr))  // Seek to the given address to make sure it's valid
-              } yield ()
-            case _ => fail("Expression " + e.toString + " is not a cell")
-          }
-        } yield ()
+      case (ECell(c, e), Type) => ???
+        // for { 
+        //   _ <- checkFrame(d)(c, s, t)(rho, gma) 
+        // } yield ()
+      // case (EIsLeftExt(e), Type) => 
+      //   for {
+      //     t <- checkI(rho, gma, e)
+      //     _ <- t match {
+      //       case Cell(_, _, _, _) => pure(())
+      //       case _ => fail("Expression " + e.toString + " is not a cell")
+      //     }
+      //   } yield ()
+      // case (EIsRightExt(e, a), Type) => 
+      //   for {
+      //     t <- checkI(rho, gma, e)
+      //     _ <- t match {
+      //       case Cell(_, d, s, t) => 
+      //         for {
+      //           addr <- parseAddress(d)(a)
+      //           _ <- fromShape(s.seekTo(addr))  // Seek to the given address to make sure it's valid
+      //         } yield ()
+      //       case _ => fail("Expression " + e.toString + " is not a cell")
+      //     }
+      //   } yield ()
       case (e, t) => 
         for {
           t1 <- checkI(rho, gma, e)
@@ -596,61 +710,62 @@ object OTTTypeChecker {
           pr <- extSigG(t)
           (_, g) = pr
         } yield g * vfst(eval(e, rho))
-      case ERefl(c, e) => 
-        for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          ct <- checkI(rho, gma, e)
-          res <- ct match {
-            case Ob(ec) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-              } yield Cell(ec, Z, Pt(ee), ee)
-            case Cell(ec, ed, es, et) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-                cor = Node(ee, es.map(_ => Leaf(S(ed))))
-              } yield Cell(ec, S(ed), cor, ee)  
-            case _ => fail("Expression " + e.toString + " is not a cell")
-          }
-        } yield res
-      case EDrop(c, e) => 
-        for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          ct <- checkI(rho, gma, e)
-          res <- ct match {
-            case Ob(ec) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-              } yield Cell(ec, S(Z), Leaf(S(Z)), Refl(cv, ee))
-            case Cell(ec, ed, es, et) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-              } yield Cell(ec, S(S(ed)), Leaf(S(S(ed))), Refl(cv, ee))  
-            case _ => fail("Expression " + e.toString + " is not a cell")
-          }
-        } yield res
-      case EComp(c, d, pd) => 
-        for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          pdTr <- parseExprTree(d)(pd)
-          res <- compositeType(d)(rho, gma, cv, pdTr)
-        } yield res
-      case EFill(c, d, pd) => 
-        for {
-          _ <- checkI(rho, gma, EComp(c, d, pd))  // Repeat composition check for well-formedness
-          pr <- eval(EComp(c, d, pd), rho) match {
-            case Comp(cv, _, pdv) => pure((cv, pdv))
-            case _ => fail("Internal error: composite doesn't reduce to composite")
-          }
-          (cv, pdv) = pr
-        } yield Cell(cv, d, pdv, Comp(cv, d, pdv))
+      // case ERefl(c, e) => 
+      //   for {
+      //     _ <- check(rho, gma, c, Cat)
+      //     cv = eval(c, rho)
+      //     ct <- checkI(rho, gma, e)
+      //     res <- ct match {
+      //       case Ob(ec) => 
+      //         for {
+      //           _ <- eqNf(lRho(rho), cv, ec)
+      //           ee = eval(e, rho)
+      //         } yield Cell(ec, Z, Pt(ee), ee)
+      //       case Cell(ec, ed, es, et) => 
+      //         for {
+      //           _ <- eqNf(lRho(rho), cv, ec)
+      //           ee = eval(e, rho)
+      //           cor = Node(ee, es.map(_ => Leaf(S(ed))))
+      //         } yield Cell(ec, S(ed), cor, ee)  
+      //       case _ => fail("Expression " + e.toString + " is not a cell")
+      //     }
+      //   } yield res
+      // case EDrop(c, e) => 
+      //   for {
+      //     _ <- check(rho, gma, c, Cat)
+      //     cv = eval(c, rho)
+      //     ct <- checkI(rho, gma, e)
+      //     res <- ct match {
+      //       case Ob(ec) => 
+      //         for {
+      //           _ <- eqNf(lRho(rho), cv, ec)
+      //           ee = eval(e, rho)
+      //         } yield Cell(ec, S(Z), Leaf(S(Z)), Refl(cv, ee))
+      //       case Cell(ec, ed, es, et) => 
+      //         for {
+      //           _ <- eqNf(lRho(rho), cv, ec)
+      //           ee = eval(e, rho)
+      //         } yield Cell(ec, S(S(ed)), Leaf(S(S(ed))), Refl(cv, ee))  
+      //       case _ => fail("Expression " + e.toString + " is not a cell")
+      //     }
+      //   } yield res
+      // case EComp(c, d, pd) => 
+      //   for {
+      //     _ <- check(rho, gma, c, Cat)
+      //     cv = eval(c, rho)
+      //     pdTr <- parseTree(d)(pd)
+      //     res <- compositeType(d)(rho, gma, cv, pdTr)
+      //   } yield res
+      // case EFill(c, d, pd) => 
+      //   for {
+      //     _ <- checkI(rho, gma, EComp(c, d, pd))  // Repeat composition check for well-formedness
+      //     pr <- eval(EComp(c, d, pd), rho) match {
+      //       case Comp(cv, _, pdv) => pure((cv, pdv))
+      //       case _ => fail("Internal error: composite doesn't reduce to composite")
+      //     }
+      //     (cv, pdv) = pr
+      //   } yield Cell(cv, d, pdv, Comp(cv, d, pdv))
+
       case e => fail("checkI: " ++ e.toString)
     }
 
