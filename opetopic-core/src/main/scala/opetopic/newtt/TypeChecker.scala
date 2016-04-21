@@ -404,7 +404,6 @@ object OTTTypeChecker {
     case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Ob(cat))
     case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
     case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
-      // println("Check that expression " ++ prettyPrint(e) ++ " lives is frame " ++ tl.toString)
       for {
         _ <- checkFrame(p)(rho, gma, tl, cat)
         _ <- check(rho, gma, e, Cell(cat, tl.map(EvalMap(rho))))
@@ -438,16 +437,6 @@ object OTTTypeChecker {
   //         }
   //       } yield frm
   //   }
-
-  // @natElim
-  // def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
-  //   case (Z, rho, gma, cv, Pt(e)) => pure(Ob(cv))
-  //   case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
-  //   case (S(p: P), rho, gma, cv, Node(e, sh)) => 
-  //     for {
-  //       pr <- glueFrame(p)(rho, gma, e, sh, cv)
-  //     } yield Cell(cv, p, pr._1, pr._2)
-  // }
 
   // // Given an expression, expected to be a cell, and an extending tree of remaining expressions,
   // // glue them together to give a frame for the composite of this pasting diagram.
@@ -491,6 +480,15 @@ object OTTTypeChecker {
       }
     } yield res
 
+  def inferObject(rho: Rho, gma: Gamma, e: Expr) : G[Val] = 
+    for {
+      et <- checkI(rho, gma, e)
+      res <- et match {
+        case Ob(cv) => pure(cv)
+        case _ => fail("Expression is not an object: " + e.toString)
+      }
+    } yield res
+
   def nfDiscriminator(rho : Rho) : Discriminator[ConstVal] = 
     new Discriminator[ConstVal] {
       val l = lRho(rho)
@@ -498,26 +496,67 @@ object OTTTypeChecker {
         toShape(for { _ <- eqNf(l, u, v) } yield u)
     }
 
-  // // I believe this assumes that the tree is not a leaf.
-  // def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
-  //     : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
-  //   for {
-  //     pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
-  //       for {
-  //         tp <- inferCell(rho, gma, e)
-  //         (ec, ef) = tp
-  //         ee = eval(e, rho)
-  //         _ <- eqNf(lRho(rho), cv, ec)
-  //         eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
-  //       } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
-  //     })
-  //     res <- fromShape(
-  //       Complex.paste(p)(pd)(nfDiscriminator(rho))
-  //     )
-  //   } yield res
+  @natElim 
+  def cellType[N <: Nat](n: N)(cv: Val, c: ValComplex[N]) : G[Val] = {
+    case (Z, cv, Complex(_, Obj(_))) => pure(Ob(cv))
+    case (Z, cv, _) => fail("Not an object")
+    case (S(p), cv, Complex(tl, Dot(_, _))) => pure(Cell(cv, tl))
+    case (S(p), cv, _) => fail("Not a cell")
+  }
 
-  // def paste[A[_ <: Nat], N <: Nat](n: N)(pd: Tree[Complex[A, S[N]], S[N]])(disc: Discriminator[A]) 
-  //     : ShapeM[(Complex[A, N], Tree[Nesting[A[S[N]], S[N]], S[N]])] = 
+  @natElim
+  def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
+    case (Z, rho, gma, cv, Pt(e)) => 
+      for {
+        et <- inferObject(rho, gma, e)
+        _ <- eqNf(lRho(rho), et, cv)
+      } yield Ob(cv)
+    case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
+    case (S(p: P), rho, gma, cv, tr) => 
+      for {
+        pr <- buildComplex(p)(rho, gma)(cv, tr)
+        (tl, pd) = pr
+        fc = tl >> Box(Empty, pd)
+        cc <- fromShape(fc.sourceAt(S(p))(Nil))
+        ct <- cellType(S(p))(cv, cc)
+      } yield ct
+    }
+
+  @natElim
+  def fillType[N <: Nat](n: N)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, N]) : G[Val] = {
+    case (Z, rho, gma, cv, Pt(e)) => 
+      for {
+        et <- inferObject(rho, gma, e)
+        _ <- eqNf(lRho(rho), et, cv)
+        ee = eval(e, rho)
+      } yield Cell(cv, Complex[ConstVal] >> Box(Comp(cv, Z, Pt(ee)), Pt(Obj(ee))))
+    case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot fill leaf, use drop")
+    case (S(p: P), rho, gma, cv, tr) => 
+      for {
+        pr <- buildComplex(p)(rho, gma)(cv, tr)
+        (tl, pd) = pr
+      } yield Cell(cv, tl >> Box(Comp(cv, S(p), tr.map(eval(_, rho))), pd))
+  }
+
+  // I believe this assumes that the tree is not a leaf.
+  def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
+      : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
+    for {
+      pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
+        for {
+          tp <- inferCell(rho, gma, e)
+          (ec, ef) = tp
+          ed = ef.dim
+          ee = eval(e, rho)
+          _ <- eqNf(lRho(rho), cv, ec)
+          eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
+        } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
+      })
+      res <- fromShape(
+        Complex.paste(p)(pd)(nfDiscriminator(rho))
+      )
+    } yield res
+
 
   // This could be easily modified to return the whole we at once.  Not sure if
   // I'll need that ....
@@ -838,23 +877,20 @@ object OTTTypeChecker {
             case _ => fail("Expression " + e.toString + " is not a cell or object")
           }
         } yield res
-      // case EComp(c, d, pd) => 
-      //   for {
-      //     _ <- check(rho, gma, c, Cat)
-      //     cv = eval(c, rho)
-      //     pdTr <- parseTree(d)(pd)
-      //     res <- compositeType(d)(rho, gma, cv, pdTr)
-      //   } yield res
-      // case EFill(c, d, pd) => 
-      //   for {
-      //     _ <- checkI(rho, gma, EComp(c, d, pd))  // Repeat composition check for well-formedness
-      //     pr <- eval(EComp(c, d, pd), rho) match {
-      //       case Comp(cv, _, pdv) => pure((cv, pdv))
-      //       case _ => fail("Internal error: composite doesn't reduce to composite")
-      //     }
-      //     (cv, pdv) = pr
-      //   } yield Cell(cv, d, pdv, Comp(cv, d, pdv))
-
+      case EComp(c, d, pd) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          pdTr <- parseTree(d)(pd)
+          res <- compositeType(d)(rho, gma, cv, pdTr)
+        } yield res
+      case EFill(c, d, pd) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          pdTr <- parseTree(d)(pd)
+          res <- fillType(d)(rho, gma, cv, pdTr)
+        } yield res
       case e => fail("checkI: " ++ e.toString)
     }
 
