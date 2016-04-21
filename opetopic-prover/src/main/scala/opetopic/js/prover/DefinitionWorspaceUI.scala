@@ -25,7 +25,7 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
   def initUI: Unit = {
 
     jQuery(mainGrid).find(".ui.accordion").accordion()
-    // jQuery(mainGrid).find(".menu .item").tab()
+    jQuery(mainGrid).find(".menu .item").tab()
     jQuery(mainGrid).find(".ui.checkbox").checkbox()
 
     jQuery(assumeForm).on("submit",

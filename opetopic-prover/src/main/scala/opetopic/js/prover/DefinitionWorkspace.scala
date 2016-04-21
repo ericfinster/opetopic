@@ -174,24 +174,141 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
       })
     } yield complexToExpr(ec.dim)(ec)
 
-  // @natElim
-  // def typeExpr[N <: Nat](n: N)(box: EditorBox[N]) : EditorM[Expr] = {
-  //   case (Z, box) => editorSucceed(EOb(catExpr))
-  //   case (S(p), box) => ???
-  //     // for {
-  //     //   frm <- frameComplex(box)
-  //     // } yield ECell(catExpr, frm)
-  // }
+  @natElim
+  def typeExpression[N <: Nat](n: N)(i: EditorInstance)(box: i.InstanceBox[N]) : EditorM[Expr] = {
+    case (Z, _, box) => editorSucceed(EOb(catExpr))
+    case (S(p: P), _, box) => 
+      for {
+        frmExpr <- frameExpression[P](i)(box)
+      } yield ECell(catExpr, frmExpr)
+  }
 
   //============================================================================================
   // PASTING
   //
 
-  def onPaste(e: Expr, id: String) : EditorM[Unit] = ???
-    // for {
-    //   editor <- attempt(activeEditor, "No editor active")
-    //   _ <- editor.pasteToCursor(e, eval(catExpr, rho), id)
-    // } yield ()
+  def onPaste(e: Expr, id: String) : EditorM[Unit] = 
+    for {
+      i <- attempt(activeEditor, "No editor active")
+      _ <- new Paster(i).pasteToRoot(e, id)
+    } yield ()
+
+  class Paster(val i: EditorInstance) {
+
+    type BNst[N <: Nat] = Nesting[i.InstanceBox[N], N]
+    type ENst[N <: Nat] = Nesting[ConstExpr[N], N]
+    type VNst[N <: Nat] = Nesting[ConstVal[N], N]
+    type PNst[N <: Nat] = Nesting[(EditorBox[N], ConstVal[N]), N]
+    type BVPair[N <: Nat] = (BNst[N], VNst[N])
+
+    def pasteToRoot(e: Expr, id: String) : EditorM[Unit] = 
+      for {
+        boxSig <- attempt(i.rootBox, "Nothing selected")
+        _ <- pasteToBox(boxSig.n)(boxSig.value, e, id)
+      } yield ()
+
+    @natElim
+    def pasteToBox[N <: Nat](n: N)(box: i.InstanceBox[N], e: Expr, id: String) : EditorM[Unit] = {
+      case (Z, box, e, id) => 
+        for {
+          _ <- forceNone(box.optLabel, "Destination box is not empty")
+          _ <- simpleCheck(
+            check(rho, gma, e, Ob(eval(catExpr, rho)))
+          )
+        } yield {
+
+          val mk = ObjectMarker(thisWksp, id, e)
+          box.optLabel = Some(mk)
+          box.panel.refresh
+          i.ce.refreshGallery
+
+        }
+      case (S(p: P), box, e, id) => {
+
+        import TypeLemmas._
+
+        val cat = eval(catExpr, rho)
+
+        for {
+          _ <- forceNone(box.optLabel, "Destination box is not empty")
+          frm <- simpleCheck(
+            for {
+              pr <- inferCell(rho, gma, e)
+              (cv, frm) = pr
+              _ <- eqNf(lRho(rho), cv, cat)
+            } yield frm
+          )
+          ed = frm.dim
+          ev <- attempt(matchNatPair(ed, p), "Expression has wrong dimension")
+          vfrm = rewriteNatIn[ValComplex, Nat, P](ev)(frm)
+          fc <- fromShape(box.faceComplex)
+          zc = Suite.zip[BNst, VNst, S[P]](fc.tail, vfrm)
+          pnst <- Suite.traverse[EditorM, BVPair, PNst, S[P]](zc)(Matcher)
+        } yield {
+
+          // Update all the faces
+          Suite.foreach[PNst, S[P]](pnst)(Updater)
+
+          // Update the main cell
+          val mk = CellMarker(p)(thisWksp, id, e)
+          box.optLabel = Some(mk)
+          box.panel.refresh
+          i.ce.refreshGallery
+
+        }
+      }
+    }
+
+    object Matcher extends IndexedTraverse[EditorM, BVPair, PNst] {
+      def apply[N <: Nat](n: N)(pr: BVPair[N]) : EditorM[PNst[N]] = {
+
+        val l = lRho(rho)
+        val (bnst, vnst) = pr
+        val fillings: HashMap[EditorBox[N], Val] = HashMap.empty
+
+        fromShape(
+          Nesting.matchTraverse(bnst, vnst)({
+            case (box, v) =>
+              box.optLabel match {
+                case None =>
+                  if (fillings.isDefinedAt(box)) {
+                    toShape(
+                      for {
+                        _ <- eqNf(l, fillings(box), v)
+                      } yield (box, v)
+                    )
+                  } else {
+                    fillings(box) = v
+                    opetopic.succeed((box, v))
+                  }
+                case Some(mk) =>
+                  toShape(
+                    for {
+                      _ <- eqNf(l, eval(mk.expr, rho), v)
+                    } yield (box, v)
+                  )
+              }
+          })
+        )
+      }
+    }
+
+    object Updater extends IndexedOp[PNst] {
+      def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
+        pr.foreach({ case (b, v) =>
+          if (b.optLabel == None) {
+            val nf = rbV(lRho(rho), v)
+            if (nfMap.isDefinedAt(nf)) {
+              val (id, e) = nfMap(nf)
+              b.optLabel = Some(Marker(n)(thisWksp, id, e))
+            } else b.optLabel = Some(Marker(n)(thisWksp, "unknown", EEmpty))
+          }
+        })
+        pr.baseValue._1.panel.refresh
+      }
+    }
+
+  }
 
   //============================================================================================
   // EXPORTING
@@ -297,75 +414,79 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // COMPOSITION
   //
 
-  def onCompose: EditorM[Unit] = ???
-    // for {
-    //   editor <- attempt(activeEditor, "No editor active")
-    //   _ <- editor.withSelection(new editor.BoxAction[Unit] {
+  def onCompose: EditorM[Unit] = {
 
-    //     def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
-    //       editorError("Cannot fill an object!")
+    val action = new InstanceAction[EditorM[Unit]] {
 
-    //     def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
-    //       for {
-    //         fc <- fromShape(fillBox.faceComplex)
-    //         (fpBoxes, compBox, nchTr) <- (
-    //           fc.tail match {
-    //             case Complex(fpBoxes, Box(compBox, nchTr)) => editorSucceed((fpBoxes, compBox, nchTr))
-    //             case _ => editorError("Malformed composition complex")
-    //           }
-    //         )
-    //         _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-    //         _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
-    //         nch <- nchTr.traverse[EditorM, Expr]({
-    //           case nst => 
-    //             for { 
-    //               b <- attempt(nst.baseValue.optLabel, "Niche is not complete!") 
-    //             } yield b.expr
-    //         })
+      def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
+        editorError("Cannot fill an object!")
 
-    //         // This is pretty damn ugly ...
-    //         fp <- Suite.traverse[EditorM, editor.BNst, editor.ENst, P](fpBoxes)(editor.SuiteExtractExprs)
+      def cellAction[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[P]]) : EditorM[Unit] = 
+        for {
+          fc <- fromShape(fillBox.faceComplex)
+          (fpBoxes, compBox, nchTr) <- (
+            fc.tail match {
+              case Complex(fpBoxes, Box(compBox, nchTr)) => editorSucceed((fpBoxes, compBox, nchTr))
+              case _ => editorError("Malformed composition complex")
+            }
+          )
 
-    //         comp = EComp(catExpr, fp, nch)
-    //         fill = EFill(catExpr, fp, nch)
-    //         prop = EFillIsLeft(catExpr, fp, nch)
-    //         propTy = EIsLeftExt(fill)
+          _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+          _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
 
-    //         compId = jQuery(composeIdInput).value().asInstanceOf[String]
-    //         fillId = jQuery(composeFillInput).value().asInstanceOf[String]
-    //         propId = jQuery(composePropInput).value().asInstanceOf[String]
+          // Have to check if it's a leaf and use refl if so ...
+          nch <- nchTr.traverse[EditorM, Expr]({
+            case nst =>
+              for {
+                b <- attempt(nst.baseValue.optLabel, "Niche is not complete!")
+              } yield b.expr
+          })
 
-    //         // The property must be registered first, since assigning the
-    //         // label will trigger a recalculation of the cell visualization
-    //         _ = registerProperty(
-    //           LeftExtensionProperty(
-    //             propId, prop, propTy, fillId, fill
-    //           )
-    //         )
+          nchExpr = treeToExpr(p)(nch)
 
-    //         _ = compBox.optLabel = Some(Marker(p)(thisWksp, compId, comp))
-    //         _ = fillBox.optLabel = Some(Marker(S(p))(thisWksp, fillId, fill))
+          comp = EComp(catExpr, p, nchExpr)
+          fill = EFill(catExpr, p, nchExpr)
+          prop = EFillIsLeft(catExpr, p, nchExpr)
+          propTy = EIsLeftExt(fill)
 
-    //         compTy <- editor.typeExpr(p)(compBox)
-    //         fillTy <- editor.typeExpr(S(p))(fillBox)
+          compId = jQuery(composeIdInput).value().asInstanceOf[String]
+          fillId = jQuery(composeFillInput).value().asInstanceOf[String]
+          propId = jQuery(composePropInput).value().asInstanceOf[String]
 
-    //       } yield {
+          // The property must be registered first, since assigning the
+          // label will trigger a recalculation of the cell visualization
+          _ = registerProperty(
+            LeftExtensionProperty(
+              propId, prop, propTy, fillId, fill
+            )
+          )
 
-    //         extendEnvironment(compId, comp, compTy)
-    //         extendEnvironment(fillId, fill, fillTy)
-    //         extendEnvironment(propId, prop, propTy)
+          _ = compBox.optLabel = Some(Marker(p)(thisWksp, compId, comp))
+          _ = fillBox.optLabel = Some(Marker(S(p))(thisWksp, fillId, fill))
 
-    //         registerCell(compId, comp)
-    //         registerCell(fillId, fill)
+          compTy <- typeExpression(p)(i)(compBox)
+          fillTy <- typeExpression(S(p))(i)(fillBox)
 
-    //         compBox.panel.refresh
-    //         fillBox.panel.refresh
-    //         editor.ce.refreshGallery
+        } yield {
 
-    //       }
+          extendEnvironment(compId, comp, compTy)
+          extendEnvironment(fillId, fill, fillTy)
+          extendEnvironment(propId, prop, propTy)
 
-    //   })
-    // } yield ()
+          registerCell(compId, comp)
+          registerCell(fillId, fill)
+
+          compBox.panel.refresh
+          fillBox.panel.refresh
+          refreshEditor
+
+        }
+
+    }
+
+    runInstanceAction(action)
+
+  }
 
   //============================================================================================
   // LEFT LIFTING
