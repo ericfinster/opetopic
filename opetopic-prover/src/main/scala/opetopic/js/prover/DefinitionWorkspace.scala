@@ -699,76 +699,78 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // SHELL FORCING
   //
 
-  def onShellForce : EditorM[Unit] = ???
-    // for {
-    //   editor <- attempt(activeEditor, "No editor active")
-    //   _ <- editor.withSelection(new editor.BoxAction[Unit] {
+  def onShellForce : EditorM[Unit] = {
 
-    //     def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
-    //       editorError("Cannot shell force an object!")
+    val action = new InstanceAction[EditorM[Unit]] {
 
-    //     def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
-    //       for {
-    //         fc <- fromShape(fillBox.faceComplex)
-    //         fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
-    //         fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
+      def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] = 
+        editorError("Cannot shell force an object")
 
-    //         nst <- fc.tail.head.traverse[EditorM, (editor.EditorBox[P], Marker[P], Option[Expr])]({
-    //           case b => 
-    //             for {
-    //               mk <- attempt(b.optLabel, "Shell is incomplete!")
-    //             } yield (b, mk, findLeftExtensionWitness(mk.displayName))
-    //         })
+      def cellAction[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[P]]) : EditorM[Unit] = 
+        for {
+          fc <- fromShape(fillBox.faceComplex)
+          fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
+          fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
 
-    //         ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
+          nst <- fc.tail.head.traverse[EditorM, (i.InstanceBox[P], Marker[P], Option[Expr])]({
+            case b =>
+              for {
+                mk <- attempt(b.optLabel, "Shell is incomplete!")
+              } yield (b, mk, findLeftExtensionWitness(mk.displayName))
+          })
 
-    //         (box, mk, src, tgt) <- (
-    //           tgtEvOpt match {
-    //             case None => 
-    //               for {
-    //                 src <- srcTrplTr.traverse[EditorM, Expr]({
-    //                   case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
-    //                 })
-    //               } yield (tgtBox, tgtMk, rbTree(src), EEmpty)
-    //             case Some(tgtEv) => {
-    //               srcTrplTr.nodes.filterNot(_._3.isDefined) match {
-    //                 case (b, m, _) :: Nil => {
+          ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
 
-    //                   val src = rbTree(
-    //                     srcTrplTr map {
-    //                       case (_, _, None) => EEmpty
-    //                       case (_, _, Some(ev)) => ev
-    //                     }
-    //                   )
+          (box, mk, src, tgt) <- (
+            tgtEvOpt match {
+              case None =>
+                for {
+                  src <- srcTrplTr.traverse[EditorM, Expr]({
+                    case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
+                  })
+                } yield (tgtBox, tgtMk, treeToExpr(p)(src), EEmpty)
+              case Some(tgtEv) => {
+                srcTrplTr.nodes.filterNot(_._3.isDefined) match {
+                  case (b, m, _) :: Nil => {
 
-    //                   editorSucceed((b, m, src, tgtEv))
-    //                 }
-    //                 case _ => editorError("Malformed evidence tree.")
-    //               }
+                    val src = treeToExpr(p)(
+                      srcTrplTr map {
+                        case (_, _, None) => EEmpty
+                        case (_, _, Some(ev)) => ev
+                      }
+                    )
 
-    //             }
-    //           }
-    //         )
-    //       } yield {
+                    editorSucceed((b, m, src, tgtEv))
+                  }
+                  case _ => editorError("Malformed evidence tree.")
+                }
 
-    //         val prop = LeftExtensionProperty(
-    //           mk.displayName ++ "-isLeft",
-    //           EShellIsLeft(fillMk.expr, fillEv, src, tgt),
-    //           EIsLeftExt(mk.expr),
-    //           mk.displayName,
-    //           mk.expr
-    //         )
+              }
+            }
+          )
+        } yield {
 
-    //         registerProperty(prop)
+          val prop = LeftExtensionProperty(
+            mk.displayName ++ "-isLeft",
+            EShellIsLeft(fillMk.expr, fillEv, src, tgt),
+            EIsLeftExt(mk.expr),
+            mk.displayName,
+            mk.expr
+          )
 
-    //         box.optLabel = Some(mk)
-    //         box.panel.refresh
-    //         editor.ce.refreshGallery
+          registerProperty(prop)
 
-    //       }
+          box.optLabel = Some(mk)
+          box.panel.refresh
+          i.ce.refreshGallery
 
-    //   })
-    // } yield ()
+        }
+
+    }
+
+    runInstanceAction(action)
+
+  }
 
 }
 

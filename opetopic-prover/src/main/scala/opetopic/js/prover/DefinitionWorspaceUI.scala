@@ -58,6 +58,12 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
         runAction(onRightLift)
       })
 
+    jQuery(shellForceBtn).on("click", 
+      (e : JQueryEventObject) => {
+      e.preventDefault
+      runAction(onShellForce)
+    })
+
     jQuery(composeIdInput).on("input", () => {
       val compId = jQuery(composeIdInput).value().asInstanceOf[String]
       jQuery(composeFillInput).value(compId ++ "Fill")
@@ -170,6 +176,13 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
     ).render
 
   //============================================================================================
+  // SHELL FORCE
+  //
+
+  val shellForceBtn = 
+    button(cls := "ui button", id := "force-btn")("Shell Force").render
+
+  //============================================================================================
   // LISTS
   //
 
@@ -202,7 +215,8 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
               a(cls := "active item", "data-tab".attr := "assume-tab")("Assume"),
               a(cls := "item", "data-tab".attr := "compose-tab")("Compose"),
               a(cls := "item", "data-tab".attr := "lift-tab")("Lift"),
-              a(cls := "item", "data-tab".attr := "import-tab")("Import")
+              a(cls := "item", "data-tab".attr := "import-tab")("Import"),
+              a(cls := "item", "data-tab".attr := "force-tab")("Force")
             )
           ),
           div(cls := "twelve wide stretched column")(
@@ -210,7 +224,10 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
               div(cls := "ui active tab", "data-tab".attr := "assume-tab")(assumeForm),
               div(cls := "ui tab", "data-tab".attr := "compose-tab")(composeForm),
               div(cls := "ui tab", "data-tab".attr := "lift-tab")(liftForm),
-              div(cls := "ui tab", "data-tab".attr := "import-tab")(importForm)
+              div(cls := "ui tab", "data-tab".attr := "import-tab")(importForm),
+              div(cls := "ui tab", "data-tab".attr := "force-tab")(
+                shellForceBtn
+              )
             )
           )
         )
