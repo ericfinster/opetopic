@@ -364,6 +364,20 @@ object OTTTypeChecker {
       case _ => fail("Not a frame")
     }
 
+  def sourceTree[A[_ <: Nat], N <: Nat](c: Complex[A, N]) : G[Tree[A[N], N]] = 
+    c.head match {
+      case Box(_, cn) => 
+        for {
+          st <- cn.traverse[G, A[N]]((nst : Nesting[A[N], N]) => 
+            if (Nesting.isExternal(nst)) 
+              pure(nst.baseValue) 
+            else 
+              fail("Source tree contains non-external nesting")
+          )
+        } yield st
+      case _ => fail("Error extracting source tree")
+    }
+
   @natElim
   def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
     case (Z, rho, gma, Complex(_, hd), cat) => {
@@ -739,18 +753,14 @@ object OTTTypeChecker {
         for {
           _ <- inferCell(rho, gma, e)
         } yield ()
-      // case (EIsRightExt(e, a), Type) => 
-      //   for {
-      //     t <- checkI(rho, gma, e)
-      //     _ <- t match {
-      //       case Cell(_, d, s, t) => 
-      //         for {
-      //           addr <- parseAddress(d)(a)
-      //           _ <- fromShape(s.seekTo(addr))  // Seek to the given address to make sure it's valid
-      //         } yield ()
-      //       case _ => fail("Expression " + e.toString + " is not a cell")
-      //     }
-      //   } yield ()
+      case (EIsRightExt(e, a), Type) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          d = frm.dim
+          addr <- parseAddress(d)(a)
+          _ <- fromShape(frm.head.seekTo(addr :: Nil))
+        } yield ()
       case (e, t) => 
         for {
           t1 <- checkI(rho, gma, e)
@@ -793,26 +803,27 @@ object OTTTypeChecker {
           pr <- extSigG(t)
           (_, g) = pr
         } yield g * vfst(eval(e, rho))
-      // case ERefl(c, e) => 
-      //   for {
-      //     _ <- check(rho, gma, c, Cat)
-      //     cv = eval(c, rho)
-      //     ct <- checkI(rho, gma, e)
-      //     res <- ct match {
-      //       case Ob(ec) => 
-      //         for {
-      //           _ <- eqNf(lRho(rho), cv, ec)
-      //           ee = eval(e, rho)
-      //         } yield Cell(ec, Z, Pt(ee), ee)
-      //       case Cell(ec, ed, es, et) => 
-      //         for {
-      //           _ <- eqNf(lRho(rho), cv, ec)
-      //           ee = eval(e, rho)
-      //           cor = Node(ee, es.map(_ => Leaf(S(ed))))
-      //         } yield Cell(ec, S(ed), cor, ee)  
-      //       case _ => fail("Expression " + e.toString + " is not a cell")
-      //     }
-      //   } yield res
+      case ERefl(c, e) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          ct <- checkI(rho, gma, e)
+          res <- ct match {
+            case Ob(ec) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+              } yield Cell(ec, Complex[ConstVal] >> Box(ee, Pt(Obj(ee))))
+            case Cell(ec, efrm) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+                d = efrm.dim
+                srcTr <- sourceTree(efrm)
+              } yield Cell(ec, efrm >> Box(ee, Node(Dot(ee, S(d)), srcTr.map(_ => Leaf(S(d))))))
+            case _ => fail("Expression " + e.toString + " is not a cell or object")
+          }
+        } yield res
       // case EDrop(c, e) => 
       //   for {
       //     _ <- check(rho, gma, c, Cat)
