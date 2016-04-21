@@ -142,6 +142,21 @@ object OTTTypeChecker {
       case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
+      // Base properties
+      case EFillIsLeft(c, d, pd) => {
+        val pdTr = getOrError(parseTree(d)(pd))
+        FillIsLeft(eval(c, rho), d, pdTr.map(eval(_, rho)))
+      }
+      case EShellIsLeft(e, ev, s, t) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
+
+      // Derived properties
+      case EFillLeftIsLeft(e, ev, c, t) => FillLeftIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
+        FillLeftIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
+      case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
+        FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
+
       // Tree, Nesting and Complex expressions shouldn't reduce
       case ELf => error("Unreduced leaf")
       case EPt(_) => error("Unreduced point")
@@ -194,6 +209,14 @@ object OTTTypeChecker {
       case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case LiftRight(e, ev, c, t) => ELiftRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+
+      case FillIsLeft(c, d, pd) => EFillIsLeft(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
+      case ShellIsLeft(e, ev, s, t) => EShellIsLeft(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
+
+      case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillLeftIsRight(e, ev, c, t, l, f, fev) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
+      case FillRightIsRight(e, ev, c, t, l, f, fev) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
 
       case Nt(k) => rbN(i, k)
     }
@@ -836,7 +859,185 @@ object OTTTypeChecker {
       //  Property Inferences
       //
 
+      // case EFillIsLeft(ce, fp, nch) => {
+
+      //   val cmplx : ExprComplex[Nat] = 
+      //     fp >> Box(EComp(ce, fp, nch), nch.asPd)
+
+      //   val d = cmplx.dim
+
+      //   for {
+      //     _ <- check(rho, gma, ce, Cat)
+      //     cv = eval(ce, rho)
+      //     _ <- nch.traverseWithAddress[G, Unit]({
+      //       case (_, addr) =>
+      //         for {
+      //           face <- fromShape(cmplx.sourceAt(d)(addr :: Nil))
+      //           _ <- checkCell(d)(rho, gma, face, cv)
+      //         } yield ()
+      //     })
+      //   } yield IsLeftExt(eval(EFill(ce, fp, nch), rho))
+
+      // }
+
+      // case EShellIsLeft(e, ev, src, tgt) => {
+
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     (cv, vfrm) <- extCellG(et)
+      //     evl = eval(e, rho)
+      //     _ <- check(rho, gma, ev, IsLeftExt(evl))
+      //     (eTgt, eSrc) <- extractFrame(vfrm.head)
+      //     srcTr <- parseTree(vfrm.dim)(src)
+      //     prTr <- fromShape(eSrc.matchWith(srcTr))
+      //     oTr <- prTr.traverse[G, Option[Val]]({
+      //       case (f, EEmpty) => pure(Some(f))
+      //       case (f, fev) => for { _ <- check(rho, gma, fev, IsLeftExt(f)) } yield None
+      //     })
+      //     ty <- (
+      //       (oTr.nodes.filter(_.isDefined), tgt) match {
+      //         case (Nil, EEmpty) => pure(IsLeftExt(eTgt))
+      //         case (Some(f) :: Nil, tev) => 
+      //           for {
+      //             _ <- check(rho, gma, tev, IsLeftExt(eTgt))
+      //           } yield IsLeftExt(f)
+      //         case _ => fail("malformed shell evidence")
+      //       }
+      //     )
+      //   } yield ty
+
+      // }
+      // case EFillLeftIsLeft(e, ev, c, t) => {
+
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     (cv, vfrm) <- extCellG(et)
+      //     evl = eval(e, rho)
+      //     _ <- check(rho, gma, ev, IsLeftExt(evl))
+      //     ty <- {
+
+      //       val d = vfrm.dim
+      //       val cell = vfrm.value >> Dot(evl, S(d))
+
+      //       for {
+      //         cCell <- fromShape(cell.target)
+      //         cTy <- getCellType(cCell, cv)
+      //         _ <- check(rho, gma, c, cTy)
+      //         cVal = eval(c, rho)
+      //         tNst <- fromShape(vfrm.value.head.replaceAt(Nil, cVal))
+      //         _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+      //         tVal = eval(t, rho)
+      //       } yield IsLeftExt(FillLeft(evl, eval(ev, rho), cVal, tVal))
+            
+      //     }
+      //   } yield ty
+
+      // }
+      // case EFillRightIsLeft(e, ev, c, t) => {
+
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     (cv, vfrm) <- extCellG(et)
+      //     evl = eval(e, rho)
+      //     isRt <- checkI(rho, gma, ev)
+      //     a <- extRightExtAddr(isRt)
+      //     ty <- {
+
+      //       val d = vfrm.dim
+      //       val cell = vfrm.value >> Dot(eval(e, rho), S(d))
+
+      //       for {
+      //         addr <- parseAddress(d)(a)
+      //         cCell <- fromShape(vfrm.value.sourceAt(addr :: Nil))
+      //         cTy <- getCellType(cCell, cv)
+      //         _ <- check(rho, gma, c, cTy)
+      //         cVal = eval(c, rho)
+      //         tNst <- fromShape(vfrm.value.head.replaceAt(addr :: Nil, cVal))
+      //         _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+      //         tVal = eval(t, rho)
+      //       } yield IsLeftExt(FillRight(evl, eval(ev, rho), cVal, tVal))
+
+      //     }
+      //   } yield ty
+
+      // }
+      // case EFillLeftIsRight(e, ev, c, t, l, f, fev) => {
+
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     (cv, vfrm) <- extCellG(et)
+      //     evl = eval(e, rho)
+      //     _ <- check(rho, gma, ev, IsLeftExt(evl))
+      //     ty <- {
+
+      //       val d = vfrm.dim
+      //       val cell = vfrm.value >> Dot(evl, S(d))
+
+      //       for {
+      //         cCell <- fromShape(cell.target)
+      //         cTy <- getCellType(cCell, cv)
+      //         _ <- check(rho, gma, c, cTy)
+      //         cVal = eval(c, rho)
+      //         tNst <- fromShape(vfrm.value.head.replaceAt(Nil, cVal))
+      //         _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+      //         tVal = eval(t, rho)
+      //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))
+      //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))
+      //         lTy <- getCellType(lCell, cv)
+      //         _ <- check(rho, gma, l, lTy)
+      //         lVal = eval(l, rho)
+      //         lNst <- fromShape(lext.head.replaceAt(Nil :: Nil, lVal))
+      //         _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
+      //         fVal = eval(f, rho)
+      //         _ <- check(rho, gma, fev, IsLeftExt(fVal))
+      //       } yield IsRightExt(fVal, ANil)
+            
+      //     }
+      //   } yield ty
+
+      // }
+      // case EFillRightIsRight(e, ev, c, t, l, f, fev) => {
+
+      //   for {
+      //     et <- checkI(rho, gma, e)
+      //     (cv, vfrm) <- extCellG(et)
+      //     evl = eval(e, rho)
+      //     isRt <- checkI(rho, gma, ev)
+      //     a <- extRightExtAddr(isRt)
+      //     ty <- {
+
+      //       val d = vfrm.dim
+      //       val cell = vfrm.value >> Dot(eval(e, rho), S(d))
+
+      //       for {
+      //         addr <- parseAddress(d)(a)
+      //         cCell <- fromShape(vfrm.value.sourceAt(addr :: Nil))
+      //         cTy <- getCellType(cCell, cv)
+      //         _ <- check(rho, gma, c, cTy)
+      //         cVal = eval(c, rho)
+      //         tNst <- fromShape(vfrm.value.head.replaceAt(addr :: Nil, cVal))
+      //         _ <- check(rho, gma, t, Cell(cv, vfrm.value.withHead(tNst)))
+      //         tVal = eval(t, rho)
+      //         rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
+      //         lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+      //         lTy <- getCellType(lCell, cv)
+      //         _ <- check(rho, gma, l, lTy)
+      //         lVal = eval(l, rho)
+      //         lNst <- fromShape(rext.head.replaceAt((addr :: Nil) :: Nil, lVal))
+      //         _ <- check(rho, gma, f, Cell(cv, rext.withHead(lNst)))
+      //         fVal = eval(f, rho)
+      //         _ <- check(rho, gma, fev, IsLeftExt(fVal))
+      //       } yield IsRightExt(fVal, rbAddr(S(d))(addr :: Nil))
+
+      //     }
+      //   } yield ty
+
+      // }
+
+
+      // Oh crap ....
       case e => fail("checkI: " ++ e.toString)
+
     }
 
   }
