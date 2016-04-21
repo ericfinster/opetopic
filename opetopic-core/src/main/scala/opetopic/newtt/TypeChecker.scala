@@ -654,6 +654,11 @@ object OTTTypeChecker {
       }
 
     e0 match {
+
+      //
+      //  Basic Inferences
+      //
+
       case EVar(x) => lookupG(x, gma)
       case EApp(e1, e2) =>
         for {
@@ -673,6 +678,11 @@ object OTTTypeChecker {
           pr <- extSigG(t)
           (_, g) = pr
         } yield g * vfst(eval(e, rho))
+
+      //
+      // Cell Construction
+      // 
+
       case ERefl(c, e) => 
         for {
           _ <- check(rho, gma, c, Cat)
@@ -694,6 +704,7 @@ object OTTTypeChecker {
             case _ => fail("Expression " + e.toString + " is not a cell or object")
           }
         } yield res
+
       case EDrop(c, e) => 
         for {
           _ <- check(rho, gma, c, Cat)
@@ -715,6 +726,7 @@ object OTTTypeChecker {
             case _ => fail("Expression " + e.toString + " is not a cell or object")
           }
         } yield res
+
       case EComp(c, d, pd) => 
         for {
           _ <- check(rho, gma, c, Cat)
@@ -722,6 +734,7 @@ object OTTTypeChecker {
           pdTr <- parseTree(d)(pd)
           res <- compositeType(d)(rho, gma, cv, pdTr)
         } yield res
+
       case EFill(c, d, pd) => 
         for {
           _ <- check(rho, gma, c, Cat)
@@ -729,6 +742,32 @@ object OTTTypeChecker {
           pdTr <- parseTree(d)(pd)
           res <- fillType(d)(rho, gma, cv, pdTr)
         } yield res
+
+
+      case ELiftLeft(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)                             // Check e is a cell
+          (cv, frm) = pr                                           // Store its frame and category
+          ed = frm.dim                                             // Get the dimension
+          ee = eval(e, rho)                                        // Evaluate it
+          _ <- check(rho, gma, ev, IsLeftExt(ee))                  // Check the evidence
+          cell = frm >> Dot(ee, S(ed))                             // Create the full cell
+          cCell <- fromShape(cell.target)                          // Get its target
+          cTy <- cellType(ed)(cv, cCell)                           // Extract the target type
+          _ <- check(rho, gma, c, cTy)                             // Check c is a in that frame
+          cVal = eval(c, rho)                                      // Evaluate c
+          tNst <- fromShape(frm.head.replaceAt(Nil, cVal))         // Put c in the base
+          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))    // Check t lives in that frame
+          tVal = eval(t, rho)                                      // Evaluate it
+          lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Left extend the complex
+          lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
+          lTy <- cellType(S(ed))(cv, lCell)                        // Extract its type and we're done!
+        } yield lTy
+
+      //
+      //  Property Inferences
+      //
+
       case e => fail("checkI: " ++ e.toString)
     }
 
