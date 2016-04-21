@@ -62,7 +62,7 @@ object PrettyPrinter {
 
         case ECat => Literal("Cat")
         case EOb(e) => Phrase(Literal("Obj"), e.parenthesize)
-        case ECell(e, c) => Phrase(Literal("Cell"), e.parenthesize, e.parenthesize)
+        case ECell(e, c) => Phrase(Literal("Cell"), e.parenthesize, c.tokenize)
 
         case EIsLeftExt(e) => Phrase(Literal("isLeftExt"), e.parenthesize)
         case EIsRightExt(e, a) => Phrase(Literal("isRightExt"), e.parenthesize, a.parenthesize)

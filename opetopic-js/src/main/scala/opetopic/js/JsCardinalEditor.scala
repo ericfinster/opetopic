@@ -86,12 +86,36 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
     }
 
+    @natElim
+    def dispatch[T, N <: Nat](n: N)(b: InstanceBox[N], a: InstanceAction[T]) : T = {
+      case (Z, b, a) => a.objectAction(this)(b)
+      case (S(p), b, a) => a.cellAction(p)(this)(b)
+    }
+
+    def dispatchWithRoot[T](a: InstanceAction[T]) : Option[T] = 
+      for {
+        boxSig <- rootBox
+      } yield dispatch(boxSig.n)(boxSig.value, a)
+
   }
 
   //============================================================================================
   // ACTION CLASS
   //
 
+  // This should be the default, I think ....
+  trait InstanceAction[T] {
+    def objectAction(i: EditorInstance)(b: i.InstanceBox[_0]) : T
+    def cellAction[P <: Nat](p: P)(i: EditorInstance)(b: i.InstanceBox[S[P]]) : T
+  }
+
+  def actionWithSelection[T](action: InstanceAction[T]) : Option[T] = 
+    for {
+      i <- activeEditor
+      r <- i.dispatchWithRoot(action)
+    } yield r
+
+  // Old version, you should remove this from the sketchpad ...
   type EditorBox[N <: Nat] = CardinalEditor[A]#CardinalCellBox[N]
 
   trait BoxAction[T] {

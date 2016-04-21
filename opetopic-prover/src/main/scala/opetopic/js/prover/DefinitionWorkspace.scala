@@ -155,6 +155,35 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     properties.filter(_.cellId == cid).length > 0 
 
   //============================================================================================
+  // EDITOR EXTENSIONS
+  //
+
+  def runInstanceAction[T](act: InstanceAction[EditorM[T]]) : EditorM[T] = 
+    for {
+      a <- attempt(actionWithSelection(act), "No selection")
+      r <- a
+    } yield r
+
+
+  def frameExpression[P <: Nat](i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Expr] = 
+    for {
+      fc <- fromShape(box.faceComplex)
+      ec <- fc.tail.traverse(new IndexedTraverse[EditorM, i.InstanceBox, ConstExpr] {
+        def apply[N <: Nat](n: N)(box: i.InstanceBox[N]) : EditorM[Expr] = 
+          for { mk <- attempt(box.optLabel, "Shell is incomplete") } yield mk.expr
+      })
+    } yield complexToExpr(ec.dim)(ec)
+
+  // @natElim
+  // def typeExpr[N <: Nat](n: N)(box: EditorBox[N]) : EditorM[Expr] = {
+  //   case (Z, box) => editorSucceed(EOb(catExpr))
+  //   case (S(p), box) => ???
+  //     // for {
+  //     //   frm <- frameComplex(box)
+  //     // } yield ECell(catExpr, frm)
+  // }
+
+  //============================================================================================
   // PASTING
   //
 
@@ -169,10 +198,8 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   //
 
   def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
-
     val (e, t) = abstractOverContext(context.toList, expr, ty)
     module.addDefinition(id, e, t)
-
   }
 
   //============================================================================================
@@ -197,71 +224,74 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // CELL ASSUMPTIONS
   //
 
-  def onAssume: EditorM[Unit] = ???
-    // for {
-    //   editor <- attempt(activeEditor, "No active editor")
-    //   id = jQuery(assumeIdInput).value().asInstanceOf[String]
-    //   isLext = jQuery(assumeLextCheckbox).prop("checked").asInstanceOf[Boolean]
-    //   _ <- editor.withSelection(new editor.BoxAction[Unit] {
+  def onAssume: EditorM[Unit] = {
 
-    //       def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = 
-    //         for {
-    //           _ <- forceNone(box.optLabel, "Selected box is already occupied!")
-    //         } yield {
+    val id = jQuery(assumeIdInput).value().asInstanceOf[String]
+    val isLext = jQuery(assumeLextCheckbox).prop("checked").asInstanceOf[Boolean]
 
-    //           val ty = EOb(catExpr)
-    //           val mk = ObjectMarker(thisWksp, id, EVar(id))
+    val action = new InstanceAction[EditorM[Unit]] {
 
-    //           extendContext(id, ty)
-    //           registerCell(id, EVar(id))
+      def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
+        for {
+          _ <- forceNone(box.optLabel, "Selected box is already occupied!")
+        } yield {
 
-    //           box.optLabel = Some(mk)
-    //           box.panel.refresh
-    //           editor.ce.refreshGallery
+          val ty = EOb(catExpr)
+          val mk = ObjectMarker(thisWksp, id, EVar(id))
 
-    //           jQuery(assumeIdInput).value("")
+          extendContext(id, ty)
+          registerCell(id, EVar(id))
 
-    //         }
+          box.optLabel = Some(mk)
+          box.panel.refresh
+          refreshEditor
 
-    //       def cellAction[P <: Nat](p: P)(box: editor.EditorBox[S[P]]) : EditorM[Unit] = 
-    //         for {
-    //           _ <- forceNone(box.optLabel, "Selected box is already occupied!")
-    //           frm <- editor.frameComplex(box)
-    //           ty = ECell(catExpr, frm)
-    //           mk = CellMarker(p)(thisWksp, id, EVar(id))
-    //           _ <- runCheck(
-    //             checkT(rho, gma, ty)
-    //           )(
-    //             msg => editorError("Typechecking error: " ++ msg)
-    //           )(
-    //             _ => editorSucceed(())
-    //           )
-    //         } yield {
+          jQuery(assumeIdInput).value("")
 
-    //           extendContext(id, ty)
-    //           registerCell(id, EVar(id))
+        }
 
-    //           if (isLext) {
-    //             val pId = id ++ "-is-left"
-    //             val prop = EIsLeftExt(EVar(id))
-    //             extendContext(pId, prop)
-    //             registerProperty(
-    //               LeftExtensionProperty(
-    //                 pId, EVar(pId), prop, id, EVar(id)
-    //               )
-    //             )
-    //           }
+      def cellAction[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Unit] = 
+        for {
+          _ <- forceNone(box.optLabel, "Selected box is already occupied!")
+          frmExpr <- frameExpression(i)(box)
+          ty = ECell(catExpr, frmExpr)
+          mk = CellMarker(p)(thisWksp, id, EVar(id))
+          _ <- runCheck(
+            checkT(rho, gma, ty)
+          )(
+            msg => editorError("Typechecking error: " ++ msg)
+          )(
+            _ => editorSucceed(())
+          )
+        } yield {
 
-    //           box.optLabel = Some(mk)
-    //           box.panel.refresh
-    //           editor.ce.refreshGallery
+          extendContext(id, ty)
+          registerCell(id, EVar(id))
 
-    //           jQuery(assumeIdInput).value("")
-    //           jQuery(assumeLextCheckbox).prop("checked", false)
+          if (isLext) {
+            val pId = id ++ "-is-left"
+            val prop = EIsLeftExt(EVar(id))
+            extendContext(pId, prop)
+            registerProperty(
+              LeftExtensionProperty(
+                pId, EVar(pId), prop, id, EVar(id)
+              )
+            )
+          }
 
-    //         }
-    //     })
-    // } yield ()
+          box.optLabel = Some(mk)
+          box.panel.refresh
+          refreshEditor
+
+          jQuery(assumeIdInput).value("")
+          jQuery(assumeLextCheckbox).prop("checked", false)
+
+        }
+    }
+
+    runInstanceAction(action)
+
+  }
 
   //============================================================================================
   // COMPOSITION
