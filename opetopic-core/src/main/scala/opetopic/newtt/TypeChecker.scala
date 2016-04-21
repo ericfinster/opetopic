@@ -430,6 +430,15 @@ object OTTTypeChecker {
       }
     } yield res
 
+  def inferRightExt(rho: Rho, gma: Gamma, e: Expr) : G[Addr] = 
+    for {
+      rev <- checkI(rho, gma, e)
+      a <- rev match {
+        case IsRightExt(_, ra) => pure(ra)
+        case _ => fail("Evidence is not for a right extension")
+      }
+    } yield a
+
   def nfDiscriminator(rho : Rho) : Discriminator[ConstVal] = 
     new Discriminator[ConstVal] {
       val l = lRho(rho)
@@ -763,6 +772,65 @@ object OTTTypeChecker {
           lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
           lTy <- cellType(S(ed))(cv, lCell)                        // Extract its type and we're done!
         } yield lTy
+
+
+      case EFillLeft(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ed = frm.dim
+          ee = eval(e, rho)
+          _ <- check(rho, gma, ev, IsLeftExt(ee))
+          cell = frm >> Dot(ee, S(ed))
+          cCell <- fromShape(cell.target)
+          cTy <- cellType(ed)(cv, cCell)
+          _ <- check(rho, gma, c, cTy)
+          cVal = eval(c, rho)
+          tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
+          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+          tVal = eval(t, rho)
+          lext <- fromShape(cell.leftExtend(cVal, LiftLeft(ee, eval(ev, rho), cVal, tVal), tVal))
+        } yield Cell(cv, lext)
+
+      case ELiftRight(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ed = frm.dim
+          ee = eval(e, rho)
+          a <- inferRightExt(rho, gma, ev)
+          addr <- parseAddress(ed)(a)
+          cell = frm >> Dot(ee, S(ed))
+          cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
+          cTy <- cellType(ed)(cv, cCell)
+          _ <- check(rho, gma, c, cTy)
+          cVal = eval(c, rho)
+          tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
+          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+          tVal = eval(t, rho)
+          rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
+          lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+          lTy <- cellType(S(ed))(cv, lCell)
+        } yield lTy
+
+      case EFillRight(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ed = frm.dim
+          ee = eval(e, rho)
+          a <- inferRightExt(rho, gma, ev)
+          addr <- parseAddress(ed)(a)
+          cell = frm >> Dot(ee, S(ed))
+          cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
+          cTy <- cellType(ed)(cv, cCell)
+          _ <- check(rho, gma, c, cTy)
+          cVal = eval(c, rho)
+          tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
+          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+          tVal = eval(t, rho)
+          rext <- fromShape(cell.rightExtend(addr)(cVal, LiftRight(ee, eval(ev, rho), cVal, tVal), tVal))
+        } yield Cell(cv, rext)
 
       //
       //  Property Inferences
