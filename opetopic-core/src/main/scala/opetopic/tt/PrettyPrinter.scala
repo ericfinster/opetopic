@@ -44,15 +44,6 @@ object PrettyPrinter {
 
   implicit object ExprTokenizer extends Tokenizer[Expr] {
 
-    def tokenizeFrame[N <: Nat](c: ExprComplex[N]) : Token = {
-      val tl = Suite.tail[NstExpr, N](c)
-      val hd = Suite.head[NstExpr, N](c)
-      Phrase(tokenizeSuite(tl.length)(tl, "[ ", " ]>>"), Delim("[ ", hd.tokenize, " ]"))
-    }
-
-    def tokenizeNchFrame[N <: Nat](s: Suite[NstExpr, N]) : Token = 
-      tokenizeSuite(s.length)(s, "[ ", " ]>>")
-
     def tokenize(e: Expr) : Token =
       e match {
         case EType => Literal("Type")
@@ -68,26 +59,26 @@ object PrettyPrinter {
         case ESnd(e) => Phrase(e.tokenize, Literal(".2"))
         case EApp(e, f) => Phrase(e.tokenize, f.parenthesize)
         case EDec(d, e) => Phrase(d.tokenize, Literal(";"), e.tokenize)
-        case ERec(_) => Literal("record")
-        case EProj(_, _) => Literal("projection")
 
         case ECat => Literal("Cat")
         case EOb(e) => Phrase(Literal("Obj"), e.parenthesize)
-        case EHom(e, c) => Phrase(Literal("Hom"), e.parenthesize, tokenizeFrame(c))
-        case ECell(e, c) => Phrase(Literal("Cell"), e.parenthesize, tokenizeFrame(c))
+        case ECell(e, c) => Phrase(Literal("Cell"), e.parenthesize, e.parenthesize)
 
         case EIsLeftExt(e) => Phrase(Literal("isLeftExt"), e.parenthesize)
         case EIsRightExt(e, a) => Phrase(Literal("isRightExt"), e.parenthesize, a.parenthesize)
 
-        case EComp(e, fp, nch) => Phrase(Literal("comp"), e.parenthesize, tokenizeNchFrame(fp), Delim("{ ", nch.tokenize, " }"))
-        case EFill(e, fp, nch) => Phrase(Literal("fill"), e.parenthesize, tokenizeNchFrame(fp), Delim("{ ", nch.tokenize, " }"))
+        case ERefl(c, e) => Phrase(Literal("refl"), c.parenthesize, e.parenthesize)
+        case EDrop(c, e) => Phrase(Literal("drop"), c.parenthesize, e.parenthesize)
+        case EComp(e, d, pd) => Phrase(Literal("comp"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
+        case EFill(e, d, pd) => Phrase(Literal("fill"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
         case ELiftLeft(e, ev, c, t) => Phrase(Literal("liftLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillLeft(e, ev, c, t) => Phrase(Literal("fillLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case ELiftRight(e, ev, c, t) => Phrase(Literal("liftRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillRight(e, ev, c, t) => Phrase(Literal("fillRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
 
-        case EFillIsLeft(e, fp, nch) => Phrase(Literal("fillIsLeft"), e.parenthesize, tokenizeNchFrame(fp), Delim("{", nch.tokenize, "}"))
-        case EShellIsLeft(e, ev, src, tgt) => Phrase(Literal("shellIsLeft"), e.parenthesize, ev.parenthesize, src.parenthesize, tgt.parenthesize)
+        case EFillIsLeft(e, d, pd) => Phrase(Literal("fillIsLeft"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
+        case EShellIsLeft(e, ev, s, t) => Phrase(Literal("shellIsLeft"), e.parenthesize, ev.parenthesize, s.parenthesize, t.parenthesize)
+
         case EFillLeftIsLeft(e, ev, c, t) => Phrase(Literal("fillLeftIsLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillRightIsLeft(e, ev, c, t) => Phrase(Literal("fillRightIsLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
@@ -95,17 +86,17 @@ object PrettyPrinter {
         case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
           Phrase(Literal("fillRightIsRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize, l.parenthesize, f.parenthesize, fev.parenthesize)
 
-        case EPt(e) => Phrase(Literal("pt"), e.parenthesize)
+        // Trees, nestings, complexes ...
         case ELf => Literal("lf")
+        case EPt(e) => Phrase(Literal("pt"), e.parenthesize)
         case ENd(e, t) => Phrase(Literal("nd"), e.parenthesize, t.parenthesize)
+        case EDot(e) => Phrase(Literal("dot"), e.parenthesize)
+        case EBox(e, t) => Phrase(Literal("box"), e.parenthesize, t.parenthesize)
+        case EHd(n) => Phrase(Delim("[", n.tokenize, "]"))
+        case ETl(n, tl) => Phrase(Delim("[", n.tokenize, "]>>"), tl.tokenize)
 
       }
 
   }
-
-  implicit val exprNstTokenizer : IndexedTokenizer[NstExpr] =
-    toNestingTokenizer(new IndexedTokenizer[ConstExpr] {
-      def apply[N <: Nat](n: N) = ExprTokenizer
-    })
 
 }

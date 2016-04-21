@@ -16,7 +16,7 @@ import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic.tt._
 import opetopic.pprint.Tokenizer._
-import OpetopicTypeChecker._
+import OTTTypeChecker._
 import PrettyPrinter._
 
 class Module(val name: String) { thisModule =>
@@ -97,7 +97,7 @@ class Module(val name: String) { thisModule =>
 
   def loadData(data: String): Unit = {
 
-    import OpetopicParser._
+    import OTTParser._
 
     val lines : List[String] = data.split("\n\n").toList
 

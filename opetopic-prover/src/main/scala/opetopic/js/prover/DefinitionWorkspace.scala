@@ -19,44 +19,13 @@ import scalaz.std.string._
 
 import opetopic._
 import opetopic.tt._
-import OpetopicTypeChecker._
+import OTTTypeChecker._
 import syntax.all._
 import opetopic.pprint.Tokenizer._
 import PrettyPrinter._
 import Prover.runAction
 
 class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { thisWksp =>
-
-  //============================================================================================
-  // EDITOR MANAGEMENT
-  //
-
-  var editorCount: Int = 0
-  var activeEditor: Option[Editor] = None
-
-  def newEditor: Unit = {
-
-    val editor = new Editor(thisWksp)
-    editorCount += 1
-
-    val cntStr = editorCount.toString
-    val tabName = "tab-" ++ cntStr
-
-    val tabItem = a(cls := "item", "data-tab".attr := tabName)(cntStr).render
-    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
-      editor.ce.element.uiElement
-    ).render
-
-    jQuery(paginationMenu).append(tabItem)
-    jQuery(tabPane).append(tab)
-
-    jQuery(tabItem).tab(lit(
-      onVisible = (s: String) => { activeEditor = Some(editor) }
-    ))
-
-    jQuery(tabItem).click()
-
-  }
 
   //============================================================================================
   // CONTEXT MANAGEMENT
@@ -189,11 +158,11 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // PASTING
   //
 
-  def onPaste(e: Expr, id: String) : EditorM[Unit] = 
-    for {
-      editor <- attempt(activeEditor, "No editor active")
-      _ <- editor.pasteToCursor(e, eval(catExpr, rho), id)
-    } yield ()
+  def onPaste(e: Expr, id: String) : EditorM[Unit] = ???
+    // for {
+    //   editor <- attempt(activeEditor, "No editor active")
+    //   _ <- editor.pasteToCursor(e, eval(catExpr, rho), id)
+    // } yield ()
 
   //============================================================================================
   // EXPORTING
@@ -212,7 +181,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   def onImport : EditorM[Unit] = {
 
-    import OpetopicParser._
+    import OTTParser._
 
     val id = jQuery(importIdInput).value().asInstanceOf[String]
     val exprStr = jQuery(importExprInput).value().asInstanceOf[String]
@@ -228,403 +197,404 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // CELL ASSUMPTIONS
   //
 
-  def onAssume: EditorM[Unit] =
-    for {
-      editor <- attempt(activeEditor, "No active editor")
-      id = jQuery(assumeIdInput).value().asInstanceOf[String]
-      isLext = jQuery(assumeLextCheckbox).prop("checked").asInstanceOf[Boolean]
-      _ <- editor.withSelection(new editor.BoxAction[Unit] {
+  def onAssume: EditorM[Unit] = ???
+    // for {
+    //   editor <- attempt(activeEditor, "No active editor")
+    //   id = jQuery(assumeIdInput).value().asInstanceOf[String]
+    //   isLext = jQuery(assumeLextCheckbox).prop("checked").asInstanceOf[Boolean]
+    //   _ <- editor.withSelection(new editor.BoxAction[Unit] {
 
-          def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = 
-            for {
-              _ <- forceNone(box.optLabel, "Selected box is already occupied!")
-            } yield {
+    //       def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] = 
+    //         for {
+    //           _ <- forceNone(box.optLabel, "Selected box is already occupied!")
+    //         } yield {
 
-              val ty = EOb(catExpr)
-              val mk = ObjectMarker(thisWksp, id, EVar(id))
+    //           val ty = EOb(catExpr)
+    //           val mk = ObjectMarker(thisWksp, id, EVar(id))
 
-              extendContext(id, ty)
-              registerCell(id, EVar(id))
+    //           extendContext(id, ty)
+    //           registerCell(id, EVar(id))
 
-              box.optLabel = Some(mk)
-              box.panel.refresh
-              editor.ce.refreshGallery
+    //           box.optLabel = Some(mk)
+    //           box.panel.refresh
+    //           editor.ce.refreshGallery
 
-              jQuery(assumeIdInput).value("")
+    //           jQuery(assumeIdInput).value("")
 
-            }
+    //         }
 
-          def cellAction[P <: Nat](p: P)(box: editor.EditorBox[S[P]]) : EditorM[Unit] = 
-            for {
-              _ <- forceNone(box.optLabel, "Selected box is already occupied!")
-              frm <- editor.frameComplex(box)
-              ty = ECell(catExpr, frm)
-              mk = CellMarker(p)(thisWksp, id, EVar(id))
-              _ <- runCheck(
-                checkT(rho, gma, ty)
-              )(
-                msg => editorError("Typechecking error: " ++ msg)
-              )(
-                _ => editorSucceed(())
-              )
-            } yield {
+    //       def cellAction[P <: Nat](p: P)(box: editor.EditorBox[S[P]]) : EditorM[Unit] = 
+    //         for {
+    //           _ <- forceNone(box.optLabel, "Selected box is already occupied!")
+    //           frm <- editor.frameComplex(box)
+    //           ty = ECell(catExpr, frm)
+    //           mk = CellMarker(p)(thisWksp, id, EVar(id))
+    //           _ <- runCheck(
+    //             checkT(rho, gma, ty)
+    //           )(
+    //             msg => editorError("Typechecking error: " ++ msg)
+    //           )(
+    //             _ => editorSucceed(())
+    //           )
+    //         } yield {
 
-              extendContext(id, ty)
-              registerCell(id, EVar(id))
+    //           extendContext(id, ty)
+    //           registerCell(id, EVar(id))
 
-              if (isLext) {
-                val pId = id ++ "-is-left"
-                val prop = EIsLeftExt(EVar(id))
-                extendContext(pId, prop)
-                registerProperty(
-                  LeftExtensionProperty(
-                    pId, EVar(pId), prop, id, EVar(id)
-                  )
-                )
-              }
+    //           if (isLext) {
+    //             val pId = id ++ "-is-left"
+    //             val prop = EIsLeftExt(EVar(id))
+    //             extendContext(pId, prop)
+    //             registerProperty(
+    //               LeftExtensionProperty(
+    //                 pId, EVar(pId), prop, id, EVar(id)
+    //               )
+    //             )
+    //           }
 
-              box.optLabel = Some(mk)
-              box.panel.refresh
-              editor.ce.refreshGallery
+    //           box.optLabel = Some(mk)
+    //           box.panel.refresh
+    //           editor.ce.refreshGallery
 
-              jQuery(assumeIdInput).value("")
-              jQuery(assumeLextCheckbox).prop("checked", false)
+    //           jQuery(assumeIdInput).value("")
+    //           jQuery(assumeLextCheckbox).prop("checked", false)
 
-            }
-        })
-    } yield ()
+    //         }
+    //     })
+    // } yield ()
 
   //============================================================================================
   // COMPOSITION
   //
 
-  def onCompose: EditorM[Unit] =
-    for {
-      editor <- attempt(activeEditor, "No editor active")
-      _ <- editor.withSelection(new editor.BoxAction[Unit] {
+  def onCompose: EditorM[Unit] = ???
+    // for {
+    //   editor <- attempt(activeEditor, "No editor active")
+    //   _ <- editor.withSelection(new editor.BoxAction[Unit] {
 
-        def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
-          editorError("Cannot fill an object!")
+    //     def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
+    //       editorError("Cannot fill an object!")
 
-        def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
-          for {
-            fc <- fromShape(fillBox.faceComplex)
-            (fpBoxes, compBox, nchTr) <- (
-              fc.tail match {
-                case Complex(fpBoxes, Box(compBox, nchTr)) => editorSucceed((fpBoxes, compBox, nchTr))
-                case _ => editorError("Malformed composition complex")
-              }
-            )
-            _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-            _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
-            nch <- nchTr.traverse[EditorM, Expr]({
-              case nst => 
-                for { 
-                  b <- attempt(nst.baseValue.optLabel, "Niche is not complete!") 
-                } yield b.expr
-            })
+    //     def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
+    //       for {
+    //         fc <- fromShape(fillBox.faceComplex)
+    //         (fpBoxes, compBox, nchTr) <- (
+    //           fc.tail match {
+    //             case Complex(fpBoxes, Box(compBox, nchTr)) => editorSucceed((fpBoxes, compBox, nchTr))
+    //             case _ => editorError("Malformed composition complex")
+    //           }
+    //         )
+    //         _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+    //         _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
+    //         nch <- nchTr.traverse[EditorM, Expr]({
+    //           case nst => 
+    //             for { 
+    //               b <- attempt(nst.baseValue.optLabel, "Niche is not complete!") 
+    //             } yield b.expr
+    //         })
 
-            // This is pretty damn ugly ...
-            fp <- Suite.traverse[EditorM, editor.BNst, editor.ENst, P](fpBoxes)(editor.SuiteExtractExprs)
+    //         // This is pretty damn ugly ...
+    //         fp <- Suite.traverse[EditorM, editor.BNst, editor.ENst, P](fpBoxes)(editor.SuiteExtractExprs)
 
-            comp = EComp(catExpr, fp, nch)
-            fill = EFill(catExpr, fp, nch)
-            prop = EFillIsLeft(catExpr, fp, nch)
-            propTy = EIsLeftExt(fill)
+    //         comp = EComp(catExpr, fp, nch)
+    //         fill = EFill(catExpr, fp, nch)
+    //         prop = EFillIsLeft(catExpr, fp, nch)
+    //         propTy = EIsLeftExt(fill)
 
-            compId = jQuery(composeIdInput).value().asInstanceOf[String]
-            fillId = jQuery(composeFillInput).value().asInstanceOf[String]
-            propId = jQuery(composePropInput).value().asInstanceOf[String]
+    //         compId = jQuery(composeIdInput).value().asInstanceOf[String]
+    //         fillId = jQuery(composeFillInput).value().asInstanceOf[String]
+    //         propId = jQuery(composePropInput).value().asInstanceOf[String]
 
-            // The property must be registered first, since assigning the
-            // label will trigger a recalculation of the cell visualization
-            _ = registerProperty(
-              LeftExtensionProperty(
-                propId, prop, propTy, fillId, fill
-              )
-            )
+    //         // The property must be registered first, since assigning the
+    //         // label will trigger a recalculation of the cell visualization
+    //         _ = registerProperty(
+    //           LeftExtensionProperty(
+    //             propId, prop, propTy, fillId, fill
+    //           )
+    //         )
 
-            _ = compBox.optLabel = Some(Marker(p)(thisWksp, compId, comp))
-            _ = fillBox.optLabel = Some(Marker(S(p))(thisWksp, fillId, fill))
+    //         _ = compBox.optLabel = Some(Marker(p)(thisWksp, compId, comp))
+    //         _ = fillBox.optLabel = Some(Marker(S(p))(thisWksp, fillId, fill))
 
-            compTy <- editor.typeExpr(p)(compBox)
-            fillTy <- editor.typeExpr(S(p))(fillBox)
+    //         compTy <- editor.typeExpr(p)(compBox)
+    //         fillTy <- editor.typeExpr(S(p))(fillBox)
 
-          } yield {
+    //       } yield {
 
-            extendEnvironment(compId, comp, compTy)
-            extendEnvironment(fillId, fill, fillTy)
-            extendEnvironment(propId, prop, propTy)
+    //         extendEnvironment(compId, comp, compTy)
+    //         extendEnvironment(fillId, fill, fillTy)
+    //         extendEnvironment(propId, prop, propTy)
 
-            registerCell(compId, comp)
-            registerCell(fillId, fill)
+    //         registerCell(compId, comp)
+    //         registerCell(fillId, fill)
 
-            compBox.panel.refresh
-            fillBox.panel.refresh
-            editor.ce.refreshGallery
+    //         compBox.panel.refresh
+    //         fillBox.panel.refresh
+    //         editor.ce.refreshGallery
 
-          }
+    //       }
 
-      })
-    } yield ()
+    //   })
+    // } yield ()
 
   //============================================================================================
   // LEFT LIFTING
   //
 
-  def onLeftLift : EditorM[Unit] = 
-    for {
-      editor <- attempt(activeEditor, "No editor active")
-      _ <- editor.liftAtSelection(new editor.LiftAction[Unit] {
+  def onLeftLift : EditorM[Unit] = ???
+    // for {
+    //   editor <- attempt(activeEditor, "No editor active")
+    //   _ <- editor.liftAtSelection(new editor.LiftAction[Unit] {
 
-        def apply[P <: Nat](p: P)(fillBox: editor.EditorBox[S[S[P]]]) : EditorM[Unit] = 
-          for {
-            fillCmplx <- fromShape(fillBox.faceComplex)
-            liftCmplx <- fromShape(fillCmplx.sourceAt(S(p))(Nil :: Nil))
-            evidenceCmplx <- fromShape(fillCmplx.sourceAt(S(p))((Zipper.rootAddr(p) :: Nil) :: Nil))
-            targetCmplx <- fromShape(fillCmplx.target)
-            competitorCmplx <- fromShape(targetCmplx.target)
+    //     def apply[P <: Nat](p: P)(fillBox: editor.EditorBox[S[S[P]]]) : EditorM[Unit] = 
+    //       for {
+    //         fillCmplx <- fromShape(fillBox.faceComplex)
+    //         liftCmplx <- fromShape(fillCmplx.sourceAt(S(p))(Nil :: Nil))
+    //         evidenceCmplx <- fromShape(fillCmplx.sourceAt(S(p))((Zipper.rootAddr(p) :: Nil) :: Nil))
+    //         targetCmplx <- fromShape(fillCmplx.target)
+    //         competitorCmplx <- fromShape(targetCmplx.target)
 
-            // Extract the required boxes
-            liftBox = liftCmplx.headValue
-            evidenceBox = evidenceCmplx.headValue
-            targetBox = targetCmplx.headValue
-            competitorBox = competitorCmplx.headValue
+    //         // Extract the required boxes
+    //         liftBox = liftCmplx.headValue
+    //         evidenceBox = evidenceCmplx.headValue
+    //         targetBox = targetCmplx.headValue
+    //         competitorBox = competitorCmplx.headValue
 
-            _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-            _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
-            eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
-            cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
-            tMk <- attempt(targetBox.optLabel, "Target is empty!")
+    //         _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+    //         _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
+    //         eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
+    //         cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
+    //         tMk <- attempt(targetBox.optLabel, "Target is empty!")
 
-            lextWitness <- attempt(
-              findLeftExtensionWitness(eMk.displayName),
-              "No left lifting property found for " ++ eMk.displayName
-            )
+    //         lextWitness <- attempt(
+    //           findLeftExtensionWitness(eMk.displayName),
+    //           "No left lifting property found for " ++ eMk.displayName
+    //         )
 
-            liftExpr = ELiftLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
-            fillExpr = EFillLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+    //         liftExpr = ELiftLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+    //         fillExpr = EFillLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
 
-            liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-            fillId = jQuery(liftFillInput).value().asInstanceOf[String]
-            lextId = jQuery(liftLextInput).value().asInstanceOf[String]
-            rextId = jQuery(liftRextInput).value().asInstanceOf[String]
+    //         liftId = jQuery(liftIdInput).value().asInstanceOf[String]
+    //         fillId = jQuery(liftFillInput).value().asInstanceOf[String]
+    //         lextId = jQuery(liftLextInput).value().asInstanceOf[String]
+    //         rextId = jQuery(liftRextInput).value().asInstanceOf[String]
 
-            lextProp = EFillLeftIsLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
-            lextTy = EIsLeftExt(fillExpr)
+    //         lextProp = EFillLeftIsLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+    //         lextTy = EIsLeftExt(fillExpr)
 
-            _ = registerProperty(
-              LeftExtensionProperty(
-                lextId, lextProp, lextTy, fillId, fillExpr
-              )
-            )
+    //         _ = registerProperty(
+    //           LeftExtensionProperty(
+    //             lextId, lextProp, lextTy, fillId, fillExpr
+    //           )
+    //         )
 
-            rextAddr = rbAddr(S(p))(Nil)
-            rextProp = EFillLeftIsRight(eMk.expr, lextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
-            rextTy = EIsRightExt(fillExpr, rextAddr)
+    //         rextAddr = rbAddr(S(p))(Nil)
+    //         rextProp = EFillLeftIsRight(eMk.expr, lextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
+    //         rextTy = EIsRightExt(fillExpr, rextAddr)
 
-            _ = registerProperty(
-              RightExtensionProperty(
-                rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
-              )
-            )
+    //         _ = registerProperty(
+    //           RightExtensionProperty(
+    //             rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
+    //           )
+    //         )
 
-            _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
-            _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
+    //         _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
+    //         _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
 
-            liftTy <- editor.typeExpr(S(p))(liftBox)
-            fillTy <- editor.typeExpr(S(S(p)))(fillBox)
+    //         liftTy <- editor.typeExpr(S(p))(liftBox)
+    //         fillTy <- editor.typeExpr(S(S(p)))(fillBox)
 
-          } yield {
+    //       } yield {
 
-            extendEnvironment(liftId, liftExpr, liftTy)
-            extendEnvironment(fillId, fillExpr, fillTy)
-            extendEnvironment(lextId, lextProp, lextTy)
-            extendEnvironment(rextId, rextProp, rextTy)
+    //         extendEnvironment(liftId, liftExpr, liftTy)
+    //         extendEnvironment(fillId, fillExpr, fillTy)
+    //         extendEnvironment(lextId, lextProp, lextTy)
+    //         extendEnvironment(rextId, rextProp, rextTy)
 
-            registerCell(liftId, liftExpr)
-            registerCell(fillId, fillExpr)
+    //         registerCell(liftId, liftExpr)
+    //         registerCell(fillId, fillExpr)
 
-            liftBox.panel.refresh
-            fillBox.panel.refresh
-            editor.ce.refreshGallery
+    //         liftBox.panel.refresh
+    //         fillBox.panel.refresh
+    //         editor.ce.refreshGallery
 
-          }
+    //       }
 
-      })
-    } yield ()
+    //   })
+    // } yield ()
 
   //============================================================================================
   // RIGHT LIFTING
   //
 
-  def onRightLift : EditorM[Unit] = 
-    for {
-      editor <- attempt(activeEditor, "No editor active")
-      _ <- editor.liftAtSelection(new editor.LiftAction[Unit] {
+  def onRightLift : EditorM[Unit] = ???
+    // for {
+    //   editor <- attempt(activeEditor, "No editor active")
+    //   _ <- editor.liftAtSelection(new editor.LiftAction[Unit] {
 
-        // Okay, this time, we have to *find* the evidence guy and record
-        // his address so that we can search for the appropriate lifting property...
-        def apply[P <: Nat](p: P)(fillBox: editor.EditorBox[S[S[P]]]) : EditorM[Unit] = 
-          for {
-            fillCmplx <- fromShape(fillBox.faceComplex)
-            (targetBox, tgtCanopy) <- fromShape(fillCmplx.tail.head.asFrame)
-            (evidenceBox, liftBox) <- (
-              tgtCanopy.nodes match {
-                case eb :: lb :: Nil => editorSucceed((eb, lb))
-                case _ => editorError("Malformed right lifting setup")
-              }
-            )
+    //     // Okay, this time, we have to *find* the evidence guy and record
+    //     // his address so that we can search for the appropriate lifting property...
+    //     def apply[P <: Nat](p: P)(fillBox: editor.EditorBox[S[S[P]]]) : EditorM[Unit] = 
+    //       for {
+    //         fillCmplx <- fromShape(fillBox.faceComplex)
+    //         (targetBox, tgtCanopy) <- fromShape(fillCmplx.tail.head.asFrame)
+    //         (evidenceBox, liftBox) <- (
+    //           tgtCanopy.nodes match {
+    //             case eb :: lb :: Nil => editorSucceed((eb, lb))
+    //             case _ => editorError("Malformed right lifting setup")
+    //           }
+    //         )
 
-            // Calculate the appropriate address
-            addr <- attempt(liftBox.nestingAddress.headOption, "Malformed address")
-            rextEvAddr <- attempt(addr.headOption, "Malformed address")
+    //         // Calculate the appropriate address
+    //         addr <- attempt(liftBox.nestingAddress.headOption, "Malformed address")
+    //         rextEvAddr <- attempt(addr.headOption, "Malformed address")
 
-            zp <- fromShape(fillCmplx.tail.tail.head.seekTo(addr))
-            (_, cn) <- fromShape(zp._1.asFrame)
-            competitorBox <- (
-              cn.nodes match {
-                case cb :: Nil => editorSucceed(cb)
-                case _ => editorError("Malformed competitor setup")
-              }
-            )
+    //         zp <- fromShape(fillCmplx.tail.tail.head.seekTo(addr))
+    //         (_, cn) <- fromShape(zp._1.asFrame)
+    //         competitorBox <- (
+    //           cn.nodes match {
+    //             case cb :: Nil => editorSucceed(cb)
+    //             case _ => editorError("Malformed competitor setup")
+    //           }
+    //         )
 
-            _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-            _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
-            eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
-            cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
-            tMk <- attempt(targetBox.optLabel, "Target is empty!")
+    //         _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+    //         _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
+    //         eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
+    //         cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
+    //         tMk <- attempt(targetBox.optLabel, "Target is empty!")
 
-            rextWitness <- attempt(
-              findRightExtensionWitness(eMk.displayName, rbAddr(p)(rextEvAddr)),
-              "No right lifting property found for " ++ eMk.displayName
-            )
+    //         rextWitness <- attempt(
+    //           findRightExtensionWitness(eMk.displayName, rbAddr(p)(rextEvAddr)),
+    //           "No right lifting property found for " ++ eMk.displayName
+    //         )
 
-            liftExpr = ELiftRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
-            fillExpr = EFillRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+    //         liftExpr = ELiftRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+    //         fillExpr = EFillRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
 
-            liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-            fillId = jQuery(liftFillInput).value().asInstanceOf[String]
-            lextId = jQuery(liftLextInput).value().asInstanceOf[String]
-            rextId = jQuery(liftRextInput).value().asInstanceOf[String]
+    //         liftId = jQuery(liftIdInput).value().asInstanceOf[String]
+    //         fillId = jQuery(liftFillInput).value().asInstanceOf[String]
+    //         lextId = jQuery(liftLextInput).value().asInstanceOf[String]
+    //         rextId = jQuery(liftRextInput).value().asInstanceOf[String]
 
-            lextProp = EFillRightIsLeft(eMk.expr, rextWitness, cMk.expr, tMk.expr)
-            lextTy = EIsLeftExt(fillExpr)
+    //         lextProp = EFillRightIsLeft(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+    //         lextTy = EIsLeftExt(fillExpr)
 
-            _ = registerProperty(
-              LeftExtensionProperty(
-                lextId, lextProp, lextTy, fillId, fillExpr
-              )
-            )
+    //         _ = registerProperty(
+    //           LeftExtensionProperty(
+    //             lextId, lextProp, lextTy, fillId, fillExpr
+    //           )
+    //         )
 
-            rextAddr = rbAddr(S(p))(addr)
-            rextProp = EFillLeftIsRight(eMk.expr, rextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
-            rextTy = EIsRightExt(fillExpr, rextAddr)
+    //         rextAddr = rbAddr(S(p))(addr)
+    //         rextProp = EFillLeftIsRight(eMk.expr, rextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
+    //         rextTy = EIsRightExt(fillExpr, rextAddr)
 
-            _ = registerProperty(
-              RightExtensionProperty(
-                rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
-              )
-            )
+    //         _ = registerProperty(
+    //           RightExtensionProperty(
+    //             rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
+    //           )
+    //         )
 
-            _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
-            _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
+    //         _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
+    //         _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
 
-            liftTy <- editor.typeExpr(S(p))(liftBox)
-            fillTy <- editor.typeExpr(S(S(p)))(fillBox)
+    //         liftTy <- editor.typeExpr(S(p))(liftBox)
+    //         fillTy <- editor.typeExpr(S(S(p)))(fillBox)
 
-          } yield {
+    //       } yield {
 
-            extendEnvironment(liftId, liftExpr, liftTy)
-            extendEnvironment(fillId, fillExpr, fillTy)
-            extendEnvironment(lextId, lextProp, lextTy)
-            extendEnvironment(rextId, rextProp, rextTy)
+    //         extendEnvironment(liftId, liftExpr, liftTy)
+    //         extendEnvironment(fillId, fillExpr, fillTy)
+    //         extendEnvironment(lextId, lextProp, lextTy)
+    //         extendEnvironment(rextId, rextProp, rextTy)
 
-            registerCell(liftId, liftExpr)
-            registerCell(fillId, fillExpr)
+    //         registerCell(liftId, liftExpr)
+    //         registerCell(fillId, fillExpr)
 
-            liftBox.panel.refresh
-            fillBox.panel.refresh
-            editor.ce.refreshGallery
+    //         liftBox.panel.refresh
+    //         fillBox.panel.refresh
+    //         editor.ce.refreshGallery
 
-          }
+    //       }
 
-      })
-    } yield ()
+    //   })
+    // } yield ()
 
   //============================================================================================
   // SHELL FORCING
   //
 
-  def onShellForce : EditorM[Unit] = 
-    for {
-      editor <- attempt(activeEditor, "No editor active")
-      _ <- editor.withSelection(new editor.BoxAction[Unit] {
+  def onShellForce : EditorM[Unit] = ???
+    // for {
+    //   editor <- attempt(activeEditor, "No editor active")
+    //   _ <- editor.withSelection(new editor.BoxAction[Unit] {
 
-        def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
-          editorError("Cannot shell force an object!")
+    //     def objectAction(box: editor.EditorBox[_0]) : EditorM[Unit] =
+    //       editorError("Cannot shell force an object!")
 
-        def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
-          for {
-            fc <- fromShape(fillBox.faceComplex)
-            fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
-            fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
+    //     def cellAction[P <: Nat](p: P)(fillBox: editor.EditorBox[S[P]]) : EditorM[Unit] =
+    //       for {
+    //         fc <- fromShape(fillBox.faceComplex)
+    //         fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
+    //         fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
 
-            nst <- fc.tail.head.traverse[EditorM, (editor.EditorBox[P], Marker[P], Option[Expr])]({
-              case b => 
-                for {
-                  mk <- attempt(b.optLabel, "Shell is incomplete!")
-                } yield (b, mk, findLeftExtensionWitness(mk.displayName))
-            })
+    //         nst <- fc.tail.head.traverse[EditorM, (editor.EditorBox[P], Marker[P], Option[Expr])]({
+    //           case b => 
+    //             for {
+    //               mk <- attempt(b.optLabel, "Shell is incomplete!")
+    //             } yield (b, mk, findLeftExtensionWitness(mk.displayName))
+    //         })
 
-            ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
+    //         ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
 
-            (box, mk, src, tgt) <- (
-              tgtEvOpt match {
-                case None => 
-                  for {
-                    src <- srcTrplTr.traverse[EditorM, Expr]({
-                      case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
-                    })
-                  } yield (tgtBox, tgtMk, rbTree(src), EEmpty)
-                case Some(tgtEv) => {
-                  srcTrplTr.nodes.filterNot(_._3.isDefined) match {
-                    case (b, m, _) :: Nil => {
+    //         (box, mk, src, tgt) <- (
+    //           tgtEvOpt match {
+    //             case None => 
+    //               for {
+    //                 src <- srcTrplTr.traverse[EditorM, Expr]({
+    //                   case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
+    //                 })
+    //               } yield (tgtBox, tgtMk, rbTree(src), EEmpty)
+    //             case Some(tgtEv) => {
+    //               srcTrplTr.nodes.filterNot(_._3.isDefined) match {
+    //                 case (b, m, _) :: Nil => {
 
-                      val src = rbTree(
-                        srcTrplTr map {
-                          case (_, _, None) => EEmpty
-                          case (_, _, Some(ev)) => ev
-                        }
-                      )
+    //                   val src = rbTree(
+    //                     srcTrplTr map {
+    //                       case (_, _, None) => EEmpty
+    //                       case (_, _, Some(ev)) => ev
+    //                     }
+    //                   )
 
-                      editorSucceed((b, m, src, tgtEv))
-                    }
-                    case _ => editorError("Malformed evidence tree.")
-                  }
+    //                   editorSucceed((b, m, src, tgtEv))
+    //                 }
+    //                 case _ => editorError("Malformed evidence tree.")
+    //               }
 
-                }
-              }
-            )
-          } yield {
+    //             }
+    //           }
+    //         )
+    //       } yield {
 
-            val prop = LeftExtensionProperty(
-              mk.displayName ++ "-isLeft",
-              EShellIsLeft(fillMk.expr, fillEv, src, tgt),
-              EIsLeftExt(mk.expr),
-              mk.displayName,
-              mk.expr
-            )
+    //         val prop = LeftExtensionProperty(
+    //           mk.displayName ++ "-isLeft",
+    //           EShellIsLeft(fillMk.expr, fillEv, src, tgt),
+    //           EIsLeftExt(mk.expr),
+    //           mk.displayName,
+    //           mk.expr
+    //         )
 
-            registerProperty(prop)
+    //         registerProperty(prop)
 
-            box.optLabel = Some(mk)
-            box.panel.refresh
-            editor.ce.refreshGallery
+    //         box.optLabel = Some(mk)
+    //         box.panel.refresh
+    //         editor.ce.refreshGallery
 
-          }
+    //       }
 
-      })
-    } yield ()
+    //   })
+    // } yield ()
 
 }
+

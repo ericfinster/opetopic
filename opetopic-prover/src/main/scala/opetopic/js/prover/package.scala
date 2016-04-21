@@ -16,7 +16,7 @@ import scalaz.-\/
 
 import scalaz.std.string._
 
-import OpetopicTypeChecker._
+import OTTTypeChecker._
 
 package object prover {
 

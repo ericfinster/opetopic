@@ -164,11 +164,10 @@ object Prover extends JSApp {
       val defnWksp = new DefinitionWorkspace(m)
 
       jQuery("#defn-tab").empty().append(defnWksp.mainGrid)
-      defnWksp.initUI
-      defnWksp.newEditor
-      defnWksp.extendContext("X", ECat)
-
       jQuery("#defn-tab-btn").click()
+
+      defnWksp.initUI
+      defnWksp.extendContext("X", ECat)
 
     }
 

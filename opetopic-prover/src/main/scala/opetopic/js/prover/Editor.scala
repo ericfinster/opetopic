@@ -24,7 +24,7 @@ import syntax.nesting._
 import JQuerySemanticUI._
 import Marker.ActiveInstance._
 import JsDomFramework._
-import OpetopicTypeChecker._
+import OTTTypeChecker._
 
 class Editor(wksp: DefinitionWorkspace) {
 
@@ -95,10 +95,10 @@ class Editor(wksp: DefinitionWorkspace) {
   @natElim
   def typeExpr[N <: Nat](n: N)(box: EditorBox[N]) : EditorM[Expr] = {
     case (Z, box) => editorSucceed(EOb(catExpr))
-    case (S(p), box) => 
-      for {
-        frm <- frameComplex(box)
-      } yield ECell(catExpr, frm)
+    case (S(p), box) => ???
+      // for {
+      //   frm <- frameComplex(box)
+      // } yield ECell(catExpr, frm)
   }
 
   def frameComplex[P <: Nat](box: EditorBox[S[P]]) : EditorM[ExprComplex[P]] = 
@@ -149,32 +149,35 @@ class Editor(wksp: DefinitionWorkspace) {
 
         import TypeLemmas._
 
-        for {
-          _ <- forceNone(box.optLabel, "Destination box is not empty")
-          vsig <- simpleCheck(
-            for {
-              ty <- checkI(rho, gma, e)
-              (cv, vsig) <- extCellG(ty)
-              _ <- eqNf(lRho(rho), cv, cat)
-            } yield vsig
-          )
-          ev <- attempt(matchNatPair(vsig.n, p), "Expression has wrong dimension")
-          vfrm = rewriteNatIn[ValComplex, vsig.N, P](ev)(vsig.value)
-          fc <- fromShape(box.faceComplex)
-          zc = Suite.zip[BNst, VNst, S[P]](fc.tail, vfrm)
-          pnst <- Suite.traverse[EditorM, BVPair, PNst, S[P]](zc)(Matcher)
-        } yield {
+        // for {
+        //   _ <- forceNone(box.optLabel, "Destination box is not empty")
+        //   vsig <- simpleCheck(
+        //     for {
+        //       ty <- checkI(rho, gma, e)
+        //       (cv, vsig) <- extCellG(ty)
+        //       _ <- eqNf(lRho(rho), cv, cat)
+        //     } yield vsig
+        //   )
+        //   ev <- attempt(matchNatPair(vsig.n, p), "Expression has wrong dimension")
+        //   vfrm = rewriteNatIn[ValComplex, vsig.N, P](ev)(vsig.value)
+        //   fc <- fromShape(box.faceComplex)
+        //   zc = Suite.zip[BNst, VNst, S[P]](fc.tail, vfrm)
+        //   pnst <- Suite.traverse[EditorM, BVPair, PNst, S[P]](zc)(Matcher)
+        // } yield {
 
-          // Update all the faces
-          Suite.foreach[PNst, S[P]](pnst)(Updater)
+        //   // Update all the faces
+        //   Suite.foreach[PNst, S[P]](pnst)(Updater)
 
-          // Update the main cell
-          val mk = CellMarker(p)(wksp, id, e)
-          box.optLabel = Some(mk)
-          box.panel.refresh
-          ce.refreshGallery
+        //   // Update the main cell
+        //   val mk = CellMarker(p)(wksp, id, e)
+        //   box.optLabel = Some(mk)
+        //   box.panel.refresh
+        //   ce.refreshGallery
 
-        }
+        // }
+
+        ???
+
       }
 
     })

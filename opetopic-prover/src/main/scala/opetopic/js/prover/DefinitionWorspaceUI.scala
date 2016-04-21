@@ -9,25 +9,24 @@ package opetopic.js.prover
 
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
-import opetopic.js.JQuerySemanticUI._
+
+import opetopic.js._
+import JsDomFramework._
+import JQuerySemanticUI._
+import Marker.ActiveInstance._
+
 import Prover.runAction
 
-trait DefinitionWorkspaceUI { self : DefinitionWorkspace => 
+abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : DefinitionWorkspace => 
+
+  implicit val vf: VisualizableFamily[Marker] = 
+    cellMarkerVisFam
 
   def initUI: Unit = {
 
     jQuery(mainGrid).find(".ui.accordion").accordion()
-    jQuery(mainGrid).find(".menu .item").tab()
+    // jQuery(mainGrid).find(".menu .item").tab()
     jQuery(mainGrid).find(".ui.checkbox").checkbox()
-
-    jQuery(tabPane).keypress((e : JQueryEventObject) => {
-      e.which match {
-        case 101 => for { editor <- activeEditor } { editor.ce.extrudeSelection }
-        case 100 => for { editor <- activeEditor } { editor.ce.extrudeDrop }
-        case 112 => for { editor <- activeEditor } { editor.ce.sprout }
-        case _ => ()
-      }
-    })
 
     jQuery(assumeForm).on("submit",
       (e : JQueryEventObject) => {
@@ -72,10 +71,9 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
       jQuery(liftRextInput).value(liftId ++ "FillIsRight")
     })
 
-  }
+    initialize
 
-  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0).render
-  val paginationMenu = div(cls := "ui pagination menu").render
+  }
 
   //============================================================================================
   // ASSUME FORM
@@ -196,21 +194,7 @@ trait DefinitionWorkspaceUI { self : DefinitionWorkspace =>
       ),
       div(cls := "ten wide column")(
         h3(cls := "ui dividing header")("Editor - " + module.name),
-        div(cls := "ui top attached menu")(
-          a(cls := "item")("Shape", i(cls := "dropdown icon")),
-          a(cls := "item")("Shell Force")
-        ),
-        tabPane,
-        div(cls := "ui bottom attached segment")(
-          div(cls := "ui grid")(
-            div(cls := "fourteen wide column")(
-              paginationMenu
-            ),
-            div(cls := "two wide right aligned column")(
-              button(cls := "ui icon button", onclick := { () => newEditor })(i(cls := "add icon"))
-            )
-          )
-        ),
+        uiElement,
         h3(cls := "ui dividing header")("Action"),
         div(cls := "ui grid")(
           div(cls := "four wide column")(

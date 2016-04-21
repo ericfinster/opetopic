@@ -1,5 +1,5 @@
 /**
-  * Main.scala - Main entry point for the typechecker
+  * Main.scala - Main Module for MiniTT in Scala
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -9,71 +9,40 @@ package opetopic.tt
 
 import scala.io.Source._
 
+import scalaz.\/
 import scalaz.-\/
 import scalaz.\/-
 
-// object Main {
+import OTTParser._
+import OTTTypeChecker._
 
-//   def main(args: Array[String]) = {
+object Main {
 
-//     import OpetopicParser._
-//     import OpetopicTypeChecker._
-//     import opetopic.pprint.Tokenizer._
-//     import PrettyPrinter._
+  def main(args: Array[String]) : Unit = {
 
-//     if (args.length != 1) {
+    if (args.length != 1) {
 
-//       println("Usage: opetopictt <filename>")
+      println("Usage: opetopictt <filename>")
 
-//     } else {
+    } else {
 
-//       val rawLines : String = 
-//         fromFile(args(0)).getLines.mkString("\n")
+      val lines : String = 
+        fromFile(args(0)).mkString
 
-//       val lines: List[String] = 
-//         LineParser.parseAll(LineParser.unit, rawLines) match {
-//           case LineParser.Success(lines, _) => lines
-//           case err => { println("Failed to join lines: " + err.toString) ; Nil }
-//         }
+      parseAll(phrase(expr), lines) match {
+        case Success(e, _) => {
 
-//       def getPat(d: Decl) : Patt =
-//         d match {
-//           case Def(p, _, _) => p
-//           case Drec(p, _, _) => p
-//         }
+          println("Parsing succesful, now typechecking ...")
 
-//       def checkLines(rho: Rho, gma: Gamma, lns: List[String]) : Gamma = 
-//         lns match {
-//           case Nil => gma
-//           case l :: ls => {
+          check(RNil, Nil, e, Unt) match {
+            case -\/(msg) => println("Typechecking error: " + msg)
+            case \/-(()) => println("Success")
+          }
+        }
+        case err => println(err.toString)
+      }
+    }
 
-//             parseAll(phrase(decl), l) match {
-//               case Success(d, _) => {
-//                 checkD(rho, gma, d) match {
-//                   case \/-(g) => {
-//                     println(d.pprint)
-//                     checkLines(UpDec(rho, d), g, ls)
-//                   }
-//                   case -\/(str) => {
-//                     println("Type check error: " + str)
-//                     Nil
-//                   }
-//                 }
+  }
 
-//               }
-//               case err => {
-//                 println("Parse error: " + err.toString)
-//                 Nil
-//               }
-//             }
-
-//           }
-//         }
-
-//       val result = checkLines(RNil, Nil, lines)
-
-//     }
-
-//   }
-
-// }
+}
