@@ -76,6 +76,7 @@ object PrettyPrinter {
         case ELiftRight(e, ev, c, t) => Phrase(Literal("liftRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillRight(e, ev, c, t) => Phrase(Literal("fillRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
 
+        case EDropIsLeft(c, e) => Phrase(Literal("dropIsLeft"), c.parenthesize, e.parenthesize)
         case EFillIsLeft(e, d, pd) => Phrase(Literal("fillIsLeft"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
         case EShellIsLeft(e, ev, s, t) => Phrase(Literal("shellIsLeft"), e.parenthesize, ev.parenthesize, s.parenthesize, t.parenthesize)
 

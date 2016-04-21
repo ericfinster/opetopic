@@ -41,6 +41,12 @@ object TypeLemmas {
   }
 
   @natElim
+  def asPred[N <: Nat](n: N) : Option[N =::= S[Nat]] = {
+    case Z => None
+    case S(p) => Some(refl)
+  }
+
+  @natElim
   def addNat[N <: Nat, M <: Nat](n: N, m: M) : N#Plus[M] = {
     case (Z, m) => m
     case (S(n), m) => S(addNat(n, m))

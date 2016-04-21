@@ -147,6 +147,7 @@ object OTTTypeChecker {
         val pdTr = getOrError(parseTree(d)(pd))
         FillIsLeft(eval(c, rho), d, pdTr.map(eval(_, rho)))
       }
+      case EDropIsLeft(c, e) => DropIsLeft(eval(c, rho), eval(e, rho))
       case EShellIsLeft(e, ev, s, t) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
 
       // Derived properties
@@ -210,6 +211,7 @@ object OTTTypeChecker {
       case LiftRight(e, ev, c, t) => ELiftRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
+      case DropIsLeft(c, v) => EDropIsLeft(rbV(i, c), rbV(i, v))
       case FillIsLeft(c, d, pd) => EFillIsLeft(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
       case ShellIsLeft(e, ev, s, t) => EShellIsLeft(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
 
@@ -863,6 +865,12 @@ object OTTTypeChecker {
       //
       //  Property Inferences
       //
+
+      case EDropIsLeft(c, e) => 
+        for {
+          _ <- checkI(rho, gma, EDrop(c, e))
+          ef = eval(EDrop(c, e), rho)
+        } yield IsLeftExt(ef)
 
       case EFillIsLeft(c, d, pd) => 
         for {

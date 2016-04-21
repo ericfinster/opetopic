@@ -60,6 +60,7 @@ case class ELiftRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Property constructors
+case class EDropIsLeft(c: Expr, e: Expr) extends Expr
 case class EFillIsLeft(c: Expr, d: Nat, pd: Expr) extends Expr
 case class EShellIsLeft(e: Expr, ev: Expr, s: Expr, t: Expr) extends Expr
 case class EFillLeftIsLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
@@ -101,6 +102,7 @@ case class LiftRight(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillRight(e: Val, ev: Val, c: Val, t: Val) extends Val
 
 // Property Constructor Values
+case class DropIsLeft(c: Val, e: Val) extends Val
 case class FillIsLeft[D <: Nat](c: Val, d: D, pd: Tree[Val, D]) extends Val
 case class ShellIsLeft(e: Val, ev: Val, s: Val, t: Val) extends Val
 case class FillLeftIsLeft(e: Val, ev: Val, c: Val, t: Val) extends Val

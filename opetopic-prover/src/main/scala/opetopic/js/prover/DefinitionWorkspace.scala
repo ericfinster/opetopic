@@ -455,6 +455,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
           _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
           _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
 
+
           // Have to check if it's a leaf and use refl if so ...
           nch <- nchTr.traverse[EditorM, Expr]({
             case nst =>
@@ -465,10 +466,34 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
           nchExpr = treeToExpr(p)(nch)
 
-          comp = EComp(catExpr, p, nchExpr)
-          fill = EFill(catExpr, p, nchExpr)
-          prop = EFillIsLeft(catExpr, p, nchExpr)
-          propTy = EIsLeftExt(fill)
+          (comp, fill, prop, propTy) = (
+            if (Tree.isLeaf(nchTr)) {
+
+              import TypeLemmas._
+
+              type BN[K <: Nat] = Nesting[i.InstanceBox[K], K]
+              type BS[K <: Nat] = Suite[BN, K]
+
+              // This is a serious hack and you should clean it up ...
+              val ev = asPred(p).get
+              val b = Suite.head(rewriteNatIn[BS, P, S[Nat]](ev)(fpBoxes)).baseValue
+              val expr = b.optLabel.get.expr
+
+              (
+                ERefl(catExpr, expr),
+                EDrop(catExpr, expr),
+                EDropIsLeft(catExpr, expr),
+                EIsLeftExt(EDrop(catExpr, expr))
+              )
+            } else {
+              (
+                EComp(catExpr, p, nchExpr),
+                EFill(catExpr, p, nchExpr),
+                EFillIsLeft(catExpr, p, nchExpr),
+                EIsLeftExt(EFill(catExpr, p, nchExpr))
+              )
+            }
+          )
 
           compId = jQuery(composeIdInput).value().asInstanceOf[String]
           fillId = jQuery(composeFillInput).value().asInstanceOf[String]
