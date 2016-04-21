@@ -352,18 +352,6 @@ object OTTTypeChecker {
     }
   }
 
-  // You could elimate this by being smarter below ...
-  def isFrame[N <: Nat](c: ExprComplex[N]) : G[Unit] = 
-    c.head match {
-      case Box(t, cn) => 
-        for {
-          _ <- cn.traverse[G, Unit]((nst : Nesting[Expr, N]) => 
-            if (Nesting.isExternal(nst)) pure(()) else fail("Not a frame: contains a box")
-          )
-        } yield ()
-      case _ => fail("Not a frame")
-    }
-
   def sourceTree[A[_ <: Nat], N <: Nat](c: Complex[A, N]) : G[Tree[A[N], N]] = 
     c.head match {
       case Box(_, cn) => 
@@ -390,19 +378,25 @@ object OTTTypeChecker {
         case _ => fail("checkFrame: failed in dimension 0")
       }
     }
-    // Here we should make sure that the top guy is really a frame, meaning
-    // a base with a nesting consisting only of dots.  Right now that's not done.
-    case (S(p: P), rho, gma, cmplx, cat) => {
+    case (S(p: P), rho, gma, Complex(Complex(tl, web), frm @ Box(t, cn)), cat) => 
       for {
-        _ <- cmplx.head.traverseWithAddress[G, Unit]({
-          case (_, addr) =>
-            for {
-              face <- fromShape(cmplx.sourceAt(S(p))(addr))
-              _ <- checkCell(S(p))(rho, gma, face, cat)
-            } yield ()
-        })
+        _ <- fromShape( // The following match traverse should ensure that the complex is well-shaped
+          Tree.matchWithAddress(S(p))(web.toTree, cn)({
+            case (expr, nst, addr) => toShape(
+              if (! Nesting.isExternal(nst)) 
+                fail("Frame has non-external nesting in its canopy")
+              else 
+                for {
+                  face <- fromShape(cmplx.sourceAt(S(p))(addr :: Nil))
+                  _ <- checkCell(S(p))(rho, gma, face, cat)
+                } yield ()
+            )
+          })
+        )
+        tc <- fromShape(cmplx.sourceAt(S(p))(Nil))  // Now check the target
+        _ <- checkCell(S(p))(rho, gma, tc, cat)
       } yield ()
-    }
+    case (S(p: P), rho, gma, _, cat) => fail("Malformed complex")
   }
 
   @natElim
@@ -746,8 +740,7 @@ object OTTTypeChecker {
           _ <- check(rho, gma, c, Cat)
           cv = eval(c, rho)
           fc <- parseComplex(e)
-          _ <- isFrame(fc.value)  // Make sure we have a real frame
-          _ <- checkFrame(fc.n)(rho, gma, fc.value, cv) // And check it
+          _ <- checkFrame(fc.n)(rho, gma, fc.value, cv) 
         } yield ()
       case (EIsLeftExt(e), Type) => 
         for {
@@ -824,25 +817,27 @@ object OTTTypeChecker {
             case _ => fail("Expression " + e.toString + " is not a cell or object")
           }
         } yield res
-      // case EDrop(c, e) => 
-      //   for {
-      //     _ <- check(rho, gma, c, Cat)
-      //     cv = eval(c, rho)
-      //     ct <- checkI(rho, gma, e)
-      //     res <- ct match {
-      //       case Ob(ec) => 
-      //         for {
-      //           _ <- eqNf(lRho(rho), cv, ec)
-      //           ee = eval(e, rho)
-      //         } yield Cell(ec, S(Z), Leaf(S(Z)), Refl(cv, ee))
-      //       case Cell(ec, ed, es, et) => 
-      //         for {
-      //           _ <- eqNf(lRho(rho), cv, ec)
-      //           ee = eval(e, rho)
-      //         } yield Cell(ec, S(S(ed)), Leaf(S(S(ed))), Refl(cv, ee))  
-      //       case _ => fail("Expression " + e.toString + " is not a cell")
-      //     }
-      //   } yield res
+      case EDrop(c, e) => 
+        for {
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          ct <- checkI(rho, gma, e)
+          res <- ct match {
+            case Ob(ec) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+              } yield Cell(ec, Complex[ConstVal] >> Obj(ee) >> Box(Refl(ec, ee), Leaf(S(Z)))) 
+            case Cell(ec, efrm) => 
+              for {
+                _ <- eqNf(lRho(rho), cv, ec)
+                ee = eval(e, rho)
+                d = efrm.dim
+                srcTr <- sourceTree(efrm)
+              } yield Cell(ec, efrm >> Dot(ee, S(d)) >> Box(Refl(ec, ee), Leaf(S(S(d)))))
+            case _ => fail("Expression " + e.toString + " is not a cell or object")
+          }
+        } yield res
       // case EComp(c, d, pd) => 
       //   for {
       //     _ <- check(rho, gma, c, Cat)
