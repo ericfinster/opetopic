@@ -292,7 +292,7 @@ object Sketchpad extends JSApp {
       import opetopic.net._
 
       val renderData : String = Complex.toJson(c.value)
-      val sizingMethod : String = write(FixedHeight(200))
+      val sizingMethod : String = write(Percentage(0.05))
 
       jQuery("#render-data").value(renderData)
       jQuery("#sizing-mthd").value(sizingMethod)

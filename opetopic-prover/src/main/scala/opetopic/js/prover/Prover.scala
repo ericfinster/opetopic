@@ -48,6 +48,8 @@ object Prover extends JSApp {
 
     setupModules
 
+    // createModule("Untitled", "Empty module")
+
   }
 
   //============================================================================================
@@ -65,30 +67,36 @@ object Prover extends JSApp {
           val name = jQuery("#module-name-input").value.asInstanceOf[String]
           val description = jQuery("#module-desc-input").value.asInstanceOf[String]
 
-          // Have to parse the imports ...
-          val m = new Module(name)
-          m.description = description
-          m.isLoaded = true
-
-          val mItem = 
-            div(cls := "ui dropdown item", "data-name".attr := name, "data-id".attr := "")(
-              i(cls := "dropdown icon"),
-              name,
-              div(cls := "menu")(
-                a(cls := "edit-item item", onclick := { () => editModule(m) })("Edit"),
-                a(cls := "save-item item", onclick := { () => saveModule(m) })("Save"),
-                a(cls := "delete-item item")("Delete")
-              )
-            ).render
-
-          jQuery("#module-list").append(mItem)
-          jQuery(mItem).dropdown()
-          
-          modules += m
-          editModule(m)
+          createModule(name, description)
 
         }
       )).modal("show")
+
+  }
+
+  def createModule(name: String, desc: String): Unit = {
+
+    // Have to parse the imports ...
+    val m = new Module(name)
+    m.description = desc
+    m.isLoaded = true
+
+    val mItem =
+      div(cls := "ui dropdown item", "data-name".attr := name, "data-id".attr := "")(
+        i(cls := "dropdown icon"),
+        name,
+        div(cls := "menu")(
+          a(cls := "edit-item item", onclick := { () => editModule(m) })("Edit"),
+          a(cls := "save-item item", onclick := { () => saveModule(m) })("Save"),
+          a(cls := "delete-item item")("Delete")
+        )
+      ).render
+
+    jQuery("#module-list").append(mItem)
+    jQuery(mItem).dropdown()
+    
+    modules += m
+    editModule(m)
 
   }
 
@@ -137,7 +145,7 @@ object Prover extends JSApp {
       m.moduleId,
       m.name,
       m.description,
-      m.toCode
+      m.writeData
     )
 
     dom.ext.Ajax.post(

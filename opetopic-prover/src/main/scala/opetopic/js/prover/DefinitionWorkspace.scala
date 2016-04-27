@@ -344,7 +344,56 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // IMPORTING
   //
 
-  def onImport : EditorM[Unit] = {
+  def onImportProperty: EditorM[Unit] = {
+
+    import OTTParser._
+
+    val id = jQuery(importPropIdInput).value().asInstanceOf[String]
+    val exprStr = jQuery(importPropExprInput).value().asInstanceOf[String]
+
+    parseAll(phrase(expr), exprStr) match {
+      case Success(e, _) => {
+
+        runInstanceAction(new InstanceAction[EditorM[Unit]] {
+
+          def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
+            editorError("Objects don't have properties")
+          
+          def cellAction[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Unit] =
+            for {
+              mk <- attempt(box.optLabel, "Cannot assign property to empty box")
+              ee = eval(mk.expr, rho)
+
+              _ <- simpleCheck(
+                check(rho, gma, e, IsLeftExt(ee))
+              )  
+            } yield {
+
+              val propId = id
+              val propExpr = e
+              val propTy = EIsLeftExt(mk.expr)
+
+              registerProperty(
+                LeftExtensionProperty(
+                  propId, propExpr, propTy, mk.displayName, mk.expr
+                )
+              )
+
+              box.optLabel = Some(mk)
+              box.panel.refresh
+              refreshEditor
+
+            }
+
+        })
+
+      }
+      case err => editorError("Parse error: " ++ err.toString)
+    }
+
+  }
+
+  def onImportCell : EditorM[Unit] = {
 
     import OTTParser._
 
@@ -352,7 +401,16 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     val exprStr = jQuery(importExprInput).value().asInstanceOf[String]
 
     parseAll(phrase(expr), exprStr) match {
-      case Success(e, _) => onPaste(e, id)
+      case Success(e, _) => {
+
+        for {
+          _ <- onPaste(e, id)
+        } yield {
+          val nf = rbV(lRho(rho), eval(e, rho))
+          nfMap(nf) = (id, e)
+        }
+
+      }
       case err => editorError("Parse error: " ++ err.toString)
     }
 
@@ -407,7 +465,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
           registerCell(id, EVar(id))
 
           if (isLext) {
-            val pId = id ++ "-is-left"
+            val pId = id ++ "IsLeft"
             val prop = EIsLeftExt(EVar(id))
             extendContext(pId, prop)
             registerProperty(
@@ -465,6 +523,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
           })
 
           nchExpr = treeToExpr(p)(nch)
+          dim = natToInt(p)
 
           (comp, fill, prop, propTy) = (
             if (Tree.isLeaf(nchTr)) {
@@ -487,10 +546,10 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
               )
             } else {
               (
-                EComp(catExpr, p, nchExpr),
-                EFill(catExpr, p, nchExpr),
-                EFillIsLeft(catExpr, p, nchExpr),
-                EIsLeftExt(EFill(catExpr, p, nchExpr))
+                EComp(catExpr, dim, nchExpr),
+                EFill(catExpr, dim, nchExpr),
+                EFillIsLeft(catExpr, dim, nchExpr),
+                EIsLeftExt(EFill(catExpr, dim, nchExpr))
               )
             }
           )
@@ -775,14 +834,17 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
           )
         } yield {
 
+          val propId = mk.displayName ++ "IsLeft"
+          val propExpr = EShellIsLeft(fillMk.expr, fillEv, src, tgt)
+          val propTy = EIsLeftExt(mk.expr)
+
           val prop = LeftExtensionProperty(
-            mk.displayName ++ "-isLeft",
-            EShellIsLeft(fillMk.expr, fillEv, src, tgt),
-            EIsLeftExt(mk.expr),
+            propId, propExpr, propTy,
             mk.displayName,
             mk.expr
           )
 
+          extendEnvironment(propId, propExpr, propTy)
           registerProperty(prop)
 
           box.optLabel = Some(mk)

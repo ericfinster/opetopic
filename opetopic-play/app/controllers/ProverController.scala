@@ -68,8 +68,8 @@ class ProverController @Inject() (
 
       val req = read[SaveModuleRequest](text)
 
-      println("Saving module: " + req.name)
-      println(req.data)
+      // println("Saving module: " + req.name)
+      // println(req.data)
 
       val moduleId = 
         req.moduleId match {

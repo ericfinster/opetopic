@@ -25,8 +25,18 @@ case class SimpleObjectMarker(
   val colorSpec: ColorSpec = DefaultColorSpec
 ) extends SimpleMarker[_0] {
 
-  def visualize(frmwk: UIFramework) : frmwk.Visualization[_0] =
-    frmwk.ObjectVisualization(colorSpec, frmwk.text(label))
+  def visualize(frmwk: UIFramework) : frmwk.Visualization[_0] = {
+    import frmwk._
+    import isNumeric._
+
+    val lblEl = 
+      if (label == "")
+        spacer(Bounds(fromInt(0),fromInt(0),fromInt(600),fromInt(600))) 
+      else text(label)
+
+    frmwk.ObjectVisualization(colorSpec, lblEl)
+
+  }
 
 }
 

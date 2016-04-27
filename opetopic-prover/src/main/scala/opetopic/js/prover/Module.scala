@@ -95,47 +95,26 @@ class Module(val name: String) { thisModule =>
   def toCode: String = 
     (entries map (_.code)).mkString("\n\n")
 
+  def writeData: String = {
+    import upickle.default._
+    write(entries.toList)
+  }
+
+
   def loadData(data: String): Unit = {
 
-    import OTTParser._
+    import upickle.default._
 
-    val lines : List[String] = data.split("\n\n").toList
+    val ents = read[List[ModuleEntry]](data)
 
-    def getId(d: Decl) : String =
-      d match {
-        case Def(PVar(id), _, _) => id
-        case Drec(PVar(id), _, _) => id
-        case _ => "unknown id"
+    ents.foreach({
+      case (decl @ Declaration(id, d @ Def(p, e, f))) => {
+        gma = (id, eval(e, rho)) :: gma
+        rho = UpDec(rho, d)
+        entries += decl
       }
-
-    for {
-      l <- lines
-    } {
-
-      parseAll(phrase(decl), l) match {
-        case Success(d, _) => {
-
-          val tc : EditorM[Unit] = 
-            for {
-              g <- simpleCheck(checkD(rho, gma, d))
-            } yield {
-
-              val id = getId(d)
-              val entry = Declaration(id, d)
-              entries += entry
-
-              rho = UpDec(rho, d)
-              gma = g
-
-            }
-
-          Prover.runAction(tc)
-
-        }
-        case err => Prover.showErrorMessage("Parse error: " + err.toString)
-      }
-
-    }
+      case _ => ()
+    })
 
     isLoaded = true
 

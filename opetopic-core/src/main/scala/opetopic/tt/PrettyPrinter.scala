@@ -69,15 +69,15 @@ object PrettyPrinter {
 
         case ERefl(c, e) => Phrase(Literal("refl"), c.parenthesize, e.parenthesize)
         case EDrop(c, e) => Phrase(Literal("drop"), c.parenthesize, e.parenthesize)
-        case EComp(e, d, pd) => Phrase(Literal("comp"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
-        case EFill(e, d, pd) => Phrase(Literal("fill"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
+        case EComp(e, d, pd) => Phrase(Literal("comp"), e.parenthesize, Literal(d.toString), pd.parenthesize)
+        case EFill(e, d, pd) => Phrase(Literal("fill"), e.parenthesize, Literal(d.toString), pd.parenthesize)
         case ELiftLeft(e, ev, c, t) => Phrase(Literal("liftLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillLeft(e, ev, c, t) => Phrase(Literal("fillLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case ELiftRight(e, ev, c, t) => Phrase(Literal("liftRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
         case EFillRight(e, ev, c, t) => Phrase(Literal("fillRight"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)
 
         case EDropIsLeft(c, e) => Phrase(Literal("dropIsLeft"), c.parenthesize, e.parenthesize)
-        case EFillIsLeft(e, d, pd) => Phrase(Literal("fillIsLeft"), e.parenthesize, Literal(natToInt(d).toString), pd.parenthesize)
+        case EFillIsLeft(e, d, pd) => Phrase(Literal("fillIsLeft"), e.parenthesize, Literal(d.toString), pd.parenthesize)
         case EShellIsLeft(e, ev, s, t) => Phrase(Literal("shellIsLeft"), e.parenthesize, ev.parenthesize, s.parenthesize, t.parenthesize)
 
         case EFillLeftIsLeft(e, ev, c, t) => Phrase(Literal("fillLeftIsLeft"), e.parenthesize, ev.parenthesize, c.parenthesize, t.parenthesize)

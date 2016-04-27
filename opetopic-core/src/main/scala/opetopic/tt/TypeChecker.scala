@@ -128,12 +128,14 @@ object OTTTypeChecker {
       case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
       case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
       case EComp(c, d, pd) => {
-        val pdTr = getOrError(parseTree(d)(pd))
-        Comp(eval(c, rho), d, pdTr.map(eval(_, rho)))
+        val dim = intToNat(d)
+        val pdTr = getOrError(parseTree(dim)(pd))
+        Comp(eval(c, rho), dim, pdTr.map(eval(_, rho)))
       }
       case EFill(c, d, pd) => {
-        val pdTr = getOrError(parseTree(d)(pd))
-        Fill(eval(c, rho), d, pdTr.map(eval(_, rho)))
+        val dim = intToNat(d)
+        val pdTr = getOrError(parseTree(dim)(pd))
+        Fill(eval(c, rho), dim, pdTr.map(eval(_, rho)))
       }
 
       // Liftings
@@ -144,8 +146,9 @@ object OTTTypeChecker {
 
       // Base properties
       case EFillIsLeft(c, d, pd) => {
-        val pdTr = getOrError(parseTree(d)(pd))
-        FillIsLeft(eval(c, rho), d, pdTr.map(eval(_, rho)))
+        val dim = intToNat(d)
+        val pdTr = getOrError(parseTree(dim)(pd))
+        FillIsLeft(eval(c, rho), dim, pdTr.map(eval(_, rho)))
       }
       case EDropIsLeft(c, e) => DropIsLeft(eval(c, rho), eval(e, rho))
       case EShellIsLeft(e, ev, s, t) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
@@ -158,10 +161,12 @@ object OTTTypeChecker {
       case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
         FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
 
-      // Tree, Nesting and Complex expressions shouldn't reduce
-      case ELf => error("Unreduced leaf")
-      case EPt(_) => error("Unreduced point")
-      case ENd(_, _) => error("Unreduced node")
+      // Trees reduce ...
+      case ELf => VLf
+      case EPt(e) => VPt(eval(e, rho)) 
+      case ENd(e, sh) => VNd(eval(e, rho), eval(sh, rho))
+
+      // ... Nestings and complexes don't.
       case EDot(_) => error("Unreduced dot")
       case EBox(_, _) => error("Unreduced box")
       case EHd(_) => error("Unreduced head")
@@ -203,8 +208,8 @@ object OTTTypeChecker {
 
       case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
       case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
-      case Comp(c, d, pd) => EComp(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
-      case Fill(c, d, pd) => EFill(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
+      case Comp(c, d, pd) => EComp(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
+      case Fill(c, d, pd) => EFill(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
 
       case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -212,13 +217,17 @@ object OTTTypeChecker {
       case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case DropIsLeft(c, v) => EDropIsLeft(rbV(i, c), rbV(i, v))
-      case FillIsLeft(c, d, pd) => EFillIsLeft(rbV(i, c), d, treeToExpr(d)(pd.map(rbV(i, _))))
+      case FillIsLeft(c, d, pd) => EFillIsLeft(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
       case ShellIsLeft(e, ev, s, t) => EShellIsLeft(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
 
       case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeftIsRight(e, ev, c, t, l, f, fev) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
       case FillRightIsRight(e, ev, c, t, l, f, fev) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
+
+      case VLf => ELf
+      case VPt(v) => EPt(rbV(i, v))
+      case VNd(v, sh) => ENd(rbV(i, v), rbV(i, sh))
 
       case Nt(k) => rbN(i, k)
     }
@@ -772,16 +781,18 @@ object OTTTypeChecker {
         for {
           _ <- check(rho, gma, c, Cat)
           cv = eval(c, rho)
-          pdTr <- parseTree(d)(pd)
-          res <- compositeType(d)(rho, gma, cv, pdTr)
+          dim = intToNat(d)
+          pdTr <- parseTree(dim)(pd)
+          res <- compositeType(dim)(rho, gma, cv, pdTr)
         } yield res
 
       case EFill(c, d, pd) => 
         for {
           _ <- check(rho, gma, c, Cat)
           cv = eval(c, rho)
-          pdTr <- parseTree(d)(pd)
-          res <- fillType(d)(rho, gma, cv, pdTr)
+          dim = intToNat(d)
+          pdTr <- parseTree(dim)(pd)
+          res <- fillType(dim)(rho, gma, cv, pdTr)
         } yield res
 
       case ELiftLeft(e, ev, c, t) => 

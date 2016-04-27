@@ -52,8 +52,8 @@ case class EIsRightExt(e: Expr, a: Addr) extends Expr
 // Cell Constructors
 case class ERefl(c: Expr, e: Expr) extends Expr
 case class EDrop(c: Expr, e: Expr) extends Expr
-case class EComp(c: Expr, d: Nat, pd: Expr) extends Expr
-case class EFill(c: Expr, d: Nat, pd: Expr) extends Expr
+case class EComp(c: Expr, d: Int, pd: Expr) extends Expr
+case class EFill(c: Expr, d: Int, pd: Expr) extends Expr
 case class ELiftLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class ELiftRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
@@ -61,7 +61,7 @@ case class EFillRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Property constructors
 case class EDropIsLeft(c: Expr, e: Expr) extends Expr
-case class EFillIsLeft(c: Expr, d: Nat, pd: Expr) extends Expr
+case class EFillIsLeft(c: Expr, d: Int, pd: Expr) extends Expr
 case class EShellIsLeft(e: Expr, ev: Expr, s: Expr, t: Expr) extends Expr
 case class EFillLeftIsLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillRightIsLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
@@ -110,6 +110,11 @@ case class FillRightIsLeft(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillLeftIsRight(e: Val, ev: Val, c: Val, t: Val, l: Val, f: Val, fev: Val) extends Val
 case class FillRightIsRight(e: Val, ev: Val, c: Val, t: Val, l: Val, f: Val, fev: Val) extends Val
 
+// Tree Values
+case object VLf extends Val
+case class VPt(v: Val) extends Val
+case class VNd(v: Val, s: Val) extends Val
+
 // Neutral terms
 sealed trait Neut
 case class Gen(i: Int, n: Name) extends Neut
@@ -143,5 +148,4 @@ sealed trait Rho
 case object RNil extends Rho
 case class UpVar(rho: Rho, p: Patt, v: Val) extends Rho
 case class UpDec(rho: Rho, d: Decl) extends Rho
-
 

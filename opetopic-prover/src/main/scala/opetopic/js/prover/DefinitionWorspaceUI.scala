@@ -40,10 +40,16 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
         runAction(onCompose)
       })
 
-    jQuery(importForm).on("submit",
+    jQuery(importCellBtn).on("click",
       (e : JQueryEventObject) => {
         e.preventDefault
-        runAction(onImport)
+        runAction(onImportCell)
+      })
+
+    jQuery(importPropBtn).on("click",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        runAction(onImportProperty)
       })
 
     jQuery(leftLiftBtn).on("click", 
@@ -168,12 +174,29 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
   val importIdInput = input(`type` := "text", placeholder := "Identifier").render
   val importExprInput = input(`type` := "text", placeholder := "Expression").render
 
-  val importForm = 
-    form(cls := "ui form")(
-      div(cls := "field")(label("Display Name: "), importIdInput),
-      div(cls := "field")(label("Expression: "), importExprInput),
-      button(`type` := "submit", cls := "ui green button")("Do It!")
-    ).render
+  val importPropIdInput = input(`type` := "text", placeholder := "Identifier").render
+  val importPropExprInput = input(`type` := "text", placeholder := "Expression").render
+
+  val importCellBtn = button(`type` := "button", cls := "ui green button")("Import Cell").render
+  val importPropBtn = button(`type` := "button", cls := "ui green button")("Import Property").render
+
+  val importPane = 
+    div(cls := "ui grid")(
+      div(cls := "eight wide column")(
+        form(cls := "ui form")(
+          div(cls := "field")(label("Display Name: "), importIdInput),
+          div(cls := "field")(label("Expression: "), importExprInput),
+          importCellBtn
+        )
+      ),
+      div(cls := "eight wide column")(
+        form(cls := "ui form")(
+          div(cls := "field")(label("Display Name: "), importPropIdInput),
+          div(cls := "field")(label("Expression: "), importPropExprInput),
+          importPropBtn
+        )
+      )
+    )
 
   //============================================================================================
   // SHELL FORCE
@@ -224,10 +247,8 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
               div(cls := "ui active tab", "data-tab".attr := "assume-tab")(assumeForm),
               div(cls := "ui tab", "data-tab".attr := "compose-tab")(composeForm),
               div(cls := "ui tab", "data-tab".attr := "lift-tab")(liftForm),
-              div(cls := "ui tab", "data-tab".attr := "import-tab")(importForm),
-              div(cls := "ui tab", "data-tab".attr := "force-tab")(
-                shellForceBtn
-              )
+              div(cls := "ui tab", "data-tab".attr := "import-tab")(importPane),
+              div(cls := "ui tab", "data-tab".attr := "force-tab")(shellForceBtn)
             )
           )
         )
