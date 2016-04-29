@@ -5,21 +5,29 @@
 @main("Signup") {
 
   <div class="ui container">
-    <div class="ui segment">
-      <h3 class="ui dividing header">Sign Up</h3>
+    <div class="ui grid">
+      <div class="two wide column"></div>
+      <div class="twelve wide column">
 
-      @helper.form(action = routes.SignUpController.signUp(), args = 'class -> "ui form") {
-      
-        @helper.CSRF.formField
-        @helper.inputText(signUpForm("firstName"), '_label -> "First Name")
-        @helper.inputText(signUpForm("lastName"), '_label -> "Last Name")
-        @helper.inputText(signUpForm("email"), '_label -> "Email")
-        @helper.inputPassword(signUpForm("password"), '_label -> "Password")
+	<div class="ui segment">
+	  <h3 class="ui dividing header">Sign Up</h3>
 
-        <button id="submit" type="submit" value="submit" class="ui green button">Sign Up!</button>
+	  @helper.form(action = routes.SignUpController.signUp(), args = 'class -> "ui form") {
+	  
+          @helper.CSRF.formField
+          @helper.inputText(signUpForm("firstName"), '_label -> "First Name")
+          @helper.inputText(signUpForm("lastName"), '_label -> "Last Name")
+          @helper.inputText(signUpForm("email"), '_label -> "Email")
+          @helper.inputPassword(signUpForm("password"), '_label -> "Password")
 
-      }
+          <button id="submit" type="submit" value="submit" class="ui green button">Sign Up!</button>
 
+	  }
+
+	</div>
+
+      </div>
+      <div class="two wide column"></div>
     </div>
   </div>
 
