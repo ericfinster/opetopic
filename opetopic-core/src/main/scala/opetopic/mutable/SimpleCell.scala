@@ -34,6 +34,89 @@ class SimpleCell[A] extends Cell[A] {
   var incoming: Option[SimpleCell[A]] = None
   var outgoing: Option[SimpleCell[A]] = None
 
+  //============================================================================================
+  // FACE OPERATIONS
+  //
+
+  import scalaz.Traverse
+  import scalaz.std.option._
+  import scalaz.syntax.traverse._
+
+  def spine: Option[STree] = 
+    canopy match {
+      case None => {
+        for {
+          st <- sourceTree
+        } yield PNode(this, st.nodes.map(_ => PLeaf))
+      }
+      case Some(cn) => 
+        for {
+          jn <- cn.traverse(_.spine)
+        } yield PTree.join(jn)
+    }
+
+  def partialSpine(guide: STree) : Option[STree] = 
+    (guide, canopy) match {
+      case (_, None) => 
+        for {
+          st <- sourceTree
+        } yield PNode(this, st.nodes.map(_ => PLeaf))
+      case (PLeaf, Some(cn)) => // Do the same?
+        for {
+          st <- sourceTree
+        } yield PNode(this, st.nodes.map(_ => PLeaf))
+      case (PNode(_, bs), Some(cn)) => {
+
+        // Right, and now here you see a problem:  the list
+        // of branches is flat, but the canopy is not.  How
+        // do you match les unes avec les autres?
+
+        // Wait .... wait .... use the canopy of the embedded
+        // cell .... or something ....
+
+        // Ah, no, it's an external cell.  Right, but it's
+        // source tree is how the thing was constructed in
+        // the first place.
+
+        // This suggests: zip the source tree 
+
+        ???
+      }
+    }
+
+  // Okay, but I'm not sure we need this.  Rather, if you want to 
+  // compute the face, you take the spine and pass it to the target.
+  // Right, that's the key.  Take the spine, pass it to the target.
+  // Take the spine, pass it to the target.
+
+  // Now, when you receive a spine from the previous dimension,
+  // the idea is that it is a message of what to contract.  Is 
+  // this right?
+
+  // No, I see.  The point is that you should do a kind of
+  // *relative* spine where you use go only as high as is 
+  // specified by what you were given.  Right.  
+
+  def extract(st: STree) : Option[SimpleCell[A]] = 
+    target match {
+      case None => {
+
+        // So, now, you've reached an object and you've
+        // got the tree there.  You basically now traverse
+        // it, ripping out the targets and sources of the
+        // remaining guys and gluing them all together.
+
+        ???
+
+      }
+      case Some(tgt) => {
+        for {
+          sp <- partialSpine(st)
+          res <- tgt.extract(sp)
+        } yield res
+      }
+    }
+
 }
 
 object SimpleCell {
@@ -66,19 +149,19 @@ object SimpleCell {
 
   def bond[A, P <: Nat](m: Nesting[SimpleCell[A], P], n: Nesting[SimpleCell[A], S[P]]) : ShapeM[Unit] = 
     (m, n) match {
-      case (m, Box(a, cn)) => 
+      case (m, Box(_, cn)) => 
         for {
           sp <- Nesting.spineFromCanopy(cn)
           _ <- Tree.matchTraverse(m.toTree, sp)({
-            case (sc0, sc1) => {
+            case (t, c) => {
 
               // Setup remaing bond information
 
-              sc1.sourceTree = sc0.canopy
-              sc1.target = Some(sc0)
+              c.sourceTree = t.canopy
+              c.target = Some(t)
 
-              sc0.incoming = Some(sc1)
-              sc0.canopy.map(_.map(c => { c.outgoing = Some(sc1) }))
+              t.incoming = Some(c)
+              t.canopy.map(_.map(s => { s.outgoing = Some(s) }))
 
               succeed(())
 
@@ -90,8 +173,8 @@ object SimpleCell {
         c.sourceTree = t.canopy
         c.target = Some(t)
 
-        cn.map(s => { s.baseValue.outgoing = Some(c) })
         t.incoming = Some(c)
+        t.canopy.map(_.map(s => { s.outgoing = Some(c) }))
 
         succeed(())
 
