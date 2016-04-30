@@ -29,73 +29,72 @@ class SketchpadEditor extends JsCardinalEditor[SimpleMarker] {
   // SELECTION HANDLERS
   //
 
-  override def onObjectSelect(editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[_0]) : Unit = {
+  @natElim
+  override def onSelect[N <: Nat](n: N)(editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[N]): Unit = {
+    case (Z, editor, box) => {
+      Sketchpad.showProps(box.optLabel)
+      showFace
+    }
+    case (S(p: P), editor, box) => {
+      for {
+        lc <- box.labelComplex
+      } {
 
-    Sketchpad.showProps(box.optLabel)
-    showFace
-
-  }
-
-  override def onCellSelect[P <: Nat](p: P)(editor: CardinalEditor[SimpleMarker])(box: editor.CardinalCellBox[S[P]]) : Unit = {
-    for { 
-      lc <- box.labelComplex
-    } {
-
-      implicit val v : Visualizable[OptMarker[P], P] = 
-        new Visualizable[OptMarker[P], P] {
-          def visualize(m: OptMarker[P]) : Visualization[P] = 
-            Sketchpad.viewer.vf.visualize(p)(m)
-        }
-
-      val frameNesting = lc.tail.head
-
-      val panel = ActivePanel(frameNesting)
-      panel.refresh
-      panel.setupViewport
-      // panel.viewport.width = 200
-      // panel.viewport.height = 200
-      // panel.viewport.setBounds(panel.bounds)
-
-      def defaultLeafDecs : Tree[TriangleDec, P] =
-        frameNesting match {
-          case Box(bv, cn) => cn map (_ => Nonexistant)
-          case _ => throw new IllegalArgumentException("Malformed complex")
-        }
-
-      panel.onBoxClicked = { (b: SimpleActiveCellBox[OptMarker[P], P]) => {
-
-        val curMk : SimpleCellMarker[P] =
-          box.optLabel match {
-            case None => SimpleCellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
-            case Some(SimpleCellMarker(l, s, r, None)) => SimpleCellMarker(l, s, r, Some(defaultLeafDecs))
-            case Some(mk @ SimpleCellMarker(l, s, r, Some(_))) => mk
+        implicit val v : Visualizable[OptMarker[P], P] =
+          new Visualizable[OptMarker[P], P] {
+            def visualize(m: OptMarker[P]) : Visualization[P] =
+              Sketchpad.viewer.vf.visualize(p)(m)
           }
 
-        if (b.isExternal) {
+        val frameNesting = lc.tail.head
 
-          for {
-            lds <- fromOpt(curMk.leafEdgeDecorations)
-            zp <- lds.seekTo(b.address.head)
-            d <- zp._1.rootValue
-          } {
+        val panel = ActivePanel(frameNesting)
+        panel.refresh
+        panel.setupViewport
+        // panel.viewport.width = 200
+        // panel.viewport.height = 200
+        // panel.viewport.setBounds(panel.bounds)
 
-            val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(d.next))
-            box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
+        def defaultLeafDecs : Tree[TriangleDec, P] =
+          frameNesting match {
+            case Box(bv, cn) => cn map (_ => Nonexistant)
+            case _ => throw new IllegalArgumentException("Malformed complex")
           }
 
-        } else { box.optLabel = Some(curMk.copy(rootEdgeDecoration = curMk.rootEdgeDecoration.next)) }
+        panel.onBoxClicked = { (b: SimpleActiveCellBox[OptMarker[P], P]) => {
+
+          val curMk : SimpleCellMarker[P] =
+            box.optLabel match {
+              case None => SimpleCellMarker("", DefaultColorSpec, Nonexistant, Some(defaultLeafDecs))
+              case Some(SimpleCellMarker(l, s, r, None)) => SimpleCellMarker(l, s, r, Some(defaultLeafDecs))
+              case Some(mk @ SimpleCellMarker(l, s, r, Some(_))) => mk
+            }
+
+          if (b.isExternal) {
+
+            for {
+              lds <- fromOpt(curMk.leafEdgeDecorations)
+              zp <- lds.seekTo(b.address.head)
+              d <- zp._1.rootValue
+            } {
+
+              val newLds = Zipper.close(p)(zp._2, zp._1.withRootValue(d.next))
+              box.optLabel = Some(curMk.copy(leafEdgeDecorations = Some(newLds)))
+            }
+
+          } else { box.optLabel = Some(curMk.copy(rootEdgeDecoration = curMk.rootEdgeDecoration.next)) }
 
           box.panel.refresh
           Sketchpad.editor.refreshEditor
           showFace
 
-      }}
+        }}
 
-      jQuery("#edge-props").empty().append(panel.element.uiElement)
+        jQuery("#edge-props").empty().append(panel.element.uiElement)
 
-      Sketchpad.showProps(box.optLabel)
-      showFace
-
+        Sketchpad.showProps(box.optLabel)
+        showFace
+      }
     }
   }
 

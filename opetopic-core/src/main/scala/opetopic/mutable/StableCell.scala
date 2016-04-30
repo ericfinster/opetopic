@@ -147,15 +147,15 @@ object StableCell {
   // BASIC CONTSTRUCTORS
   //
 
-  def apply[A](a: A): StableCell[A] = {
+  def apply[A](opt: Option[A]): StableCell[A] = {
     val sc = new StableCell[A]
-    sc.label = Some(a)
+    sc.label = opt
     sc
   }
 
-  def apply[A, N <: Nat](a: A, n: N): StableCell[A] = {
+  def apply[A, N <: Nat](opt: Option[A], n: N): StableCell[A] = {
     val sc = new StableCell[A]
-    sc.label = Some(a)
+    sc.label = opt
     sc.dim = natToInt(n)
     sc
   }
@@ -164,10 +164,8 @@ object StableCell {
   // FROM NESTINGS AND COMPLEXES
   //
 
-  def fromNesting[A, N <: Nat](nst: Nesting[A, N]) : Nesting[StableCell[A], N] = 
-    nst match {
-      case Obj(a) => Obj(StableCell(a))
-      case Dot(a, d) => Dot(StableCell(a, d), d)
+  def fromBox[A, N <: Nat](b: Box[Option[A], N]): Nesting[StableCell[A], N] = 
+    b match {
       case Box(a, cn) => {
 
         val n = cn.dim
@@ -184,6 +182,17 @@ object StableCell {
 
       }
     }
+
+  @natElim
+  def fromNesting[A, N <: Nat](n: N)(nst: Nesting[Option[A], N]) : Nesting[StableCell[A], N] = {
+    case (Z, Obj(o)) => Obj(StableCell(o))
+    case (Z, b @ Box(a, cn)) => fromBox(b)
+    case (S(p), Dot(o, _)) => Dot(StableCell(o, S(p)), S(p))
+    case (S(p), b @ Box(a, cn)) => fromBox(b)
+  }
+
+  def fromNesting[A, N <: Nat](nst: Nesting[Option[A], N]) : Nesting[StableCell[A], N] = 
+    fromNesting(nst.dim)(nst)
 
   def bond[A, P <: Nat](m: Nesting[StableCell[A], P], n: Nesting[StableCell[A], S[P]]) : ShapeM[Unit] = 
     (m, n) match {
@@ -222,10 +231,10 @@ object StableCell {
 
   class ComplexBuilder[A] {
 
-    type ConstA[N <: Nat] = A
+    type OptA[N <: Nat] = Option[A]
 
     @natElim
-    def fromComplex[N <: Nat](n: N)(c: Complex[ConstA, N]): ShapeM[Nesting[StableCell[A], N]] = {
+    def fromComplex[N <: Nat](n: N)(c: Complex[OptA, N]): ShapeM[Nesting[StableCell[A], N]] = {
       case (Z, Complex(_, objs)) => succeed(fromNesting(objs))
       case (S(p: P), Complex(tl, hd)) => 
         for {

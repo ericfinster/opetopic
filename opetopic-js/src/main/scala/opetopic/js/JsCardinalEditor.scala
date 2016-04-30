@@ -21,6 +21,7 @@ import scalaz.-\/
 import scalaz.std.string._
 
 import opetopic._
+import syntax.complex._
 import JsDomFramework._
 import JQuerySemanticUI._
 
@@ -46,14 +47,15 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
 
     ce.onSelectAsRoot = (boxsig: Sigma[InstanceBox]) => {
 
-      @natElim
-      def runSelectEvent[N <: Nat](n: N)(box: InstanceBox[N]) : Unit = {
-        case (Z, box) => onObjectSelect(ce)(box)
-        case (S(p: P), box) => onCellSelect[P](p)(ce)(box)
-      }
+      // @natElim
+      // def runSelectEvent[N <: Nat](n: N)(box: InstanceBox[N]) : Unit = {
+      //   case (Z, box) => onObjectSelect(ce)(box)
+      //   case (S(p: P), box) => onCellSelect[P](p)(ce)(box)
+      // }
 
       rootBox = Some(boxsig)
-      runSelectEvent(boxsig.n)(boxsig.value)
+      // runSelectEvent(boxsig.n)(boxsig.value)
+      onSelect(boxsig.n)(ce)(boxsig.value)  // This is a duplicate, but I think better.
 
     }
 
@@ -115,6 +117,13 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
       r <- i.dispatchWithRoot(action)
     } yield r
 
+  def selectedFaceComplex: Option[FiniteComplex[OptA]] = 
+    for {
+      i <- activeEditor
+      boxsig <- i.rootBox
+      fc <- toOpt(boxsig.value.labelComplex)
+    } yield fc
+
   // Old version, you should remove this from the sketchpad ...
   type EditorBox[N <: Nat] = CardinalEditor[A]#CardinalCellBox[N]
 
@@ -158,8 +167,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
   // SELECTION HANDLERS
   //
 
-  def onObjectSelect(editor: CardinalEditor[A])(box: editor.CardinalCellBox[_0]) : Unit = ()
-  def onCellSelect[P <: Nat](p: P)(editor: CardinalEditor[A])(box: editor.CardinalCellBox[S[P]]) : Unit = ()
+  def onSelect[N <: Nat](n: N)(editor: CardinalEditor[A])(box: editor.CardinalCellBox[N]): Unit = ()
 
   //============================================================================================
   // EDITOR MANAGEMENT
