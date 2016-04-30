@@ -22,6 +22,9 @@ POST        /saveSketch                      controllers.SketchController.saveSk
 POST        /getSketch                       controllers.SketchController.getSketch
 POST        /renderSketch                    controllers.SketchController.renderSketch
 
+# Stable Editor
+GET         /stable                          controllers.ApplicationController.stable
+
 # Documentation
 GET         /docs                            controllers.DocsController.showDoc(page = "intro")
 GET         /docs/*page                      controllers.DocsController.showDoc(page)

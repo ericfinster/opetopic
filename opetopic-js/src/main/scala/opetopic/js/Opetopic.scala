@@ -13,6 +13,10 @@ import org.scalajs.jquery._
 import org.scalajs.dom
 import scalatags.JsDom.all._
 import JQuerySemanticUI._
+import JsDomFramework._
+
+import opetopic._
+import opetopic.ui._
 
 object Opetopic extends JSApp {
 
@@ -22,11 +26,18 @@ object Opetopic extends JSApp {
 
   def main: Unit = {
 
-    println("Launched Opetopic ...")
+    println("Launched Opetopic Javscript ...")
+    println("Going to do some stable experiments ...")
 
-    jQuery().ready(() => {
-      jQuery("#main-dropdown").dropdown()
-    })
+    val editor = new StableEditor
+    jQuery("#editor-div").append(editor.uiElement)
+    editor.initialize
+
+  }
+
+  class StableEditor extends JsCardinalEditor[ConstString] {
+
+    implicit val vf = VisualizableFamily.constStringVisualizable
 
   }
 

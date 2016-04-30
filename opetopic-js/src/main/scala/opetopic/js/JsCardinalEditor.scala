@@ -255,7 +255,7 @@ abstract class JsCardinalEditor[A[_ <: Nat]] { thisJsEditor =>
     tabWidth = jQuery(tabPane).width.toInt
     tabHeight = jQuery(tabPane).height.toInt
 
-    println("Tab dimensions are: (" + tabWidth.toString + ", " + tabHeight.toString + ")")
+    // println("Tab dimensions are: (" + tabWidth.toString + ", " + tabHeight.toString + ")")
 
     // Install the key handler
     jQuery(uiElement).keypress((e : JQueryEventObject) => {

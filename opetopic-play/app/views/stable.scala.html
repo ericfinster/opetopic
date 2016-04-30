@@ -1,0 +1,37 @@
+@()(implicit request: RequestHeader, userOpt: Option[User])
+
+@import play.api.Play
+
+@main("Stable Editor") {
+
+  <div>
+
+    <div class="ui centered grid">
+
+      <div class="ten wide column" style="min-width: 300px">
+	
+	<h3 class="ui dividing header">Editor</h3>
+	<div id="editor-div"></div>
+
+	<h3 class="ui dividing header">Face Viewer</h3>
+	<div class="ui attached segment" id="viewer-div"></div>
+	<div class="ui bottom right aligned attached segment">
+	  <button type="button" class="ui button">Do Something!</button>
+	</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Main Opetopic Application Script -->
+
+  @if(Play.isProd(Play.current)) {
+    <script src='@routes.Assets.at("opetopicjs-opt.js")' type="text/javascript"></script>
+  } else {
+    <script src='@routes.Assets.at("opetopicjs-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopicjs-launcher.js")' type="text/javascript"></script>
+
+}

@@ -40,6 +40,12 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.index()(request.identity)))
   }
 
+  def stable = UserAwareAction.async { implicit request =>
+    implicit val uo = request.identity
+    Future.successful(Ok(views.html.stable()))
+  }
+
+
   /**
    * Handles the Sign In action.
    *
