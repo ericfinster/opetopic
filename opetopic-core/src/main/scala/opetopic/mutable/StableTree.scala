@@ -192,13 +192,7 @@ object STree {
   // GRAFTING AND JOINING
   //
 
-  case class STreeGrafter[A, B](
-    lf: SAddr => Option[B],
-    nd: (A, STree[B]) => Option[B]
-  ) {
-
-    def caseLeaf(addr: SAddr): Option[B] = lf(addr)
-    def caseNode(a: A, bs: STree[B]): Option[B] = nd(a, bs)
+  case class STreeGrafter[A, B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]) {
 
     def unzipAndJoin(t: STree[(STree[B], STree[SAddr])]): Option[(STree[STree[B]], STree[SAddr])] = {
       val (bs, adJn) = unzip(t)
@@ -221,14 +215,14 @@ object STree {
             hr <- hs.traverseWithData[Option, SAddr, (STree[B], STree[SAddr])]({
               case (hbr, dir, deriv) => graftPass(hbr, SDir(dir) :: addr, deriv)
             })
-            r <- unzipJoinAndAppend(hr, caseLeaf(addr))
+            r <- unzipJoinAndAppend(hr, lr(addr))
           } yield r
         case SNode(SNode(a, vs), hs) =>
           for {
             pr <- graftPass(vs, addr, d)
             (bs, at) = pr
             mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(graftPass(_, _, _))
-            r <- unzipJoinAndAppend(mr, caseNode(a, bs))
+            r <- unzipJoinAndAppend(mr, nr(a, bs))
           } yield r
       }
 
@@ -239,19 +233,19 @@ object STree {
         r <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(graftPass(_, _, _))
         pb <- unzipAndJoin(r)
         (cs, atr) = pb
-        b <- caseNode(a, SNode(c, cs))
+        b <- nr(a, SNode(c, cs))
       } yield (b, atr)
 
     def initVertical(a: A, v: STree[A], h: STree[STree[STree[A]]]): Option[(B, STree[SAddr])] = 
       v match {
         case SLeaf => initHorizontal(a, h)(
           for {
-            b <- caseLeaf(Nil)
+            b <- lr(Nil)
           } yield (b, h.mapWithAddr((_, d) => SDir(d) :: Nil))
         )
         case SNode(aa, SLeaf) => initHorizontal(a, h)(
           for {
-            b <- caseNode(aa, SLeaf)
+            b <- nr(aa, SLeaf)
           } yield (b, h.map(_ => Nil))
         )
         case SNode(aa, SNode(vv, hh)) => 
@@ -264,7 +258,7 @@ object STree {
     t match {
       case SLeaf => lr(Nil)
       case SNode(a, SLeaf) => nr(a, SLeaf)
-      case SNode(a, SNode(v, hs)) => STreeGrafter(lr, nr).initVertical(a, v, hs).map(_._1)
+      case SNode(a, SNode(v, hs)) => STreeGrafter(lr)(nr).initVertical(a, v, hs).map(_._1)
     }
 
   def graft[A](st: STree[A], bs: STree[STree[A]]): Option[STree[A]] = 
@@ -279,5 +273,22 @@ object STree {
           res <- graft(a, blorp)
         } yield res
     }
+
+  //============================================================================================
+  // CONSTRUCTORS
+  //
+
+  import opetopic._
+  import syntax.tree._
+
+  @natElim
+  def apply[A, N <: Nat](n: N)(t: Tree[A, N]): STree[A] = {
+    case (Z, Pt(a)) => SNode(a, SNode(SLeaf, SLeaf))
+    case (S(p), Leaf(_)) => SLeaf
+    case (S(p), Node(a, sh)) => SNode(a, STree(sh).map(STree(_)))
+  }
+
+  def apply[A, N <: Nat](t: Tree[A, N]): STree[A] = 
+    STree(t.dim)(t)
 
 }

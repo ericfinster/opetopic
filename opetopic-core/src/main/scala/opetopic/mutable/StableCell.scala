@@ -20,13 +20,13 @@ class StableCell[A] {
   var label: Option[A] = None
 
   var canopy: Option[CellTree] = None
-  var container: Option[SimpleCell[A]] = None
+  var container: Option[StableCell[A]] = None
 
-  var target: Option[SimpleCell[A]] = None
+  var target: Option[StableCell[A]] = None
   var sourceTree: Option[CellTree] = None
 
-  var incoming: Option[SimpleCell[A]] = None
-  var outgoing: Option[SimpleCell[A]] = None
+  var incoming: Option[StableCell[A]] = None
+  var outgoing: Option[StableCell[A]] = None
 
   //============================================================================================
   // FACES, ETC.
@@ -36,12 +36,19 @@ class StableCell[A] {
     (guide, canopy) match {
       case (SNode(c, cs), Some(cn)) => {
 
-        val theMatch : Option[STree[(CellTree, StableCell[A])]] = 
-          cs.matchWith(cn)
+        // In this case, we expect the shell of our tree to 
+        // agree with the canopy of the cell.  So we match
+        // them and continue the traverse.
 
-        // This is the interesting case.
+        // As we descend back down, we join all of the resulting
+        // cells and so on.
 
-        ???
+        for {
+          jn <- cs.matchTraverse(cn)({
+            case (br, sc) => sc.partialSpine(br)
+          })
+          r <- STree.join(jn)
+        } yield r
 
       }
       case _ => {
@@ -57,4 +64,177 @@ class StableCell[A] {
       }
 
     }
+
+  // The idea of the face algorithm should not be too far from here
+  // now.  Essentially, you iteratively calculate the partial spine
+  // of all the targets.  As one now iterates back up the structure,
+  // you will traverse the partial spines, copying out the source and
+  // targets from any internal nodes and adjoining them to the results
+  // from lower dimensions.
+
+  // It's quite interesting, and it should extract exactly a face, or
+  // I suppose more generally, a pasting diagram of such faces.
+
+  def extractWith(guide: CellTree) : Option[StableCell[A]] = {
+
+    // Okay, I'm not sure I go everything,  but at least you see
+    // the main idea of this routine now: it copies a bond.
+
+    guide match {
+      case SLeaf => ???
+      case SNode(c, cs) => {
+
+        // We are the target cell.  Copy ourselves, etc.
+        val targetCell = new StableCell[A]
+        targetCell.label = label
+
+        // The external cell is a copy of c, the node in our guide
+        val externalCell = new StableCell[A]
+        externalCell.label = c.label
+        // Right, so on the one hand, we are supposed to
+        // be copying the current cell, since this will be
+        // the input and output.  On the other, we seem to
+        // want to copy the cell c as the known space between
+        // the two.
+
+        // Probably we should do both simultaneously, since
+        // what we are really doing is extracting a *bond*.
+
+        // We use the canopy to zip up with the guide
+        // and pass to the cells lying over us.  We are
+        // going to use these for the canopy of the new
+        // guy.  The thing is, I suppose, that we won't
+        // end up with a tree, but just the base of the
+        // new guy ...
+
+        for {
+          cn <- canopy
+          ncn <- cn.matchTraverse(cs)({
+            case (desc, br) => 
+              for {
+                sc <- desc.extractWith(br)
+              } yield {
+                sc.container = Some(targetCell)
+                sc.outgoing = Some(externalCell)
+                sc
+              }
+          })
+        } yield {
+
+          externalCell.sourceTree = Some(ncn)
+          externalCell.target = Some(targetCell)
+
+          targetCell.canopy = Some(ncn)
+          targetCell.incoming = Some(externalCell)
+          targetCell
+
+        }
+      }
+    }
+
+  }
+
+}
+
+object StableCell {
+
+  import opetopic._
+  import syntax.tree._
+  import syntax.nesting._
+  import syntax.complex._
+
+  //============================================================================================
+  // BASIC CONTSTRUCTORS
+  //
+
+  def apply[A](a: A): StableCell[A] = {
+    val sc = new StableCell[A]
+    sc.label = Some(a)
+    sc
+  }
+
+  def apply[A, N <: Nat](a: A, n: N): StableCell[A] = {
+    val sc = new StableCell[A]
+    sc.label = Some(a)
+    sc.dim = natToInt(n)
+    sc
+  }
+
+  //============================================================================================
+  // FROM NESTINGS AND COMPLEXES
+  //
+
+  def fromNesting[A, N <: Nat](nst: Nesting[A, N]) : Nesting[StableCell[A], N] = 
+    nst match {
+      case Obj(a) => Obj(StableCell(a))
+      case Dot(a, d) => Dot(StableCell(a, d), d)
+      case Box(a, cn) => {
+
+        val n = cn.dim
+        val cell = StableCell(a, n)
+        val newCn = cn.map(fromNesting(_))
+
+        val canopy = STree(n)(newCn.map((nn: Nesting[StableCell[A], N]) => {
+          nn.baseValue.container = Some(cell)
+          nn.baseValue
+        }))
+
+        cell.canopy = Some(canopy)
+        Box(cell, newCn)
+
+      }
+    }
+
+  def bond[A, P <: Nat](m: Nesting[StableCell[A], P], n: Nesting[StableCell[A], S[P]]) : ShapeM[Unit] = 
+    (m, n) match {
+      case (m, Box(_, cn)) => 
+        for {
+          sp <- Nesting.spineFromCanopy(cn)
+          _ <- Tree.matchTraverse(m.toTree, sp)({
+            case (t, c) => {
+
+              // Setup remaing bond information
+
+              c.sourceTree = t.canopy
+              c.target = Some(t)
+
+              t.incoming = Some(c)
+              t.canopy.map(_.map(s => { s.outgoing = Some(s) }))
+
+              succeed(())
+
+            }
+          })
+        } yield ()
+      case (Box(t, cn), Dot(c, dm)) => {
+
+        c.sourceTree = t.canopy
+        c.target = Some(t)
+
+        t.incoming = Some(c)
+        t.canopy.map(_.map(s => { s.outgoing = Some(c) }))
+
+        succeed(())
+
+      }
+      case (_, _) => fail("Unexpected bonding condition")
+    }
+
+  class ComplexBuilder[A] {
+
+    type ConstA[N <: Nat] = A
+
+    @natElim
+    def fromComplex[N <: Nat](n: N)(c: Complex[ConstA, N]): ShapeM[Nesting[StableCell[A], N]] = {
+      case (Z, Complex(_, objs)) => succeed(fromNesting(objs))
+      case (S(p: P), Complex(tl, hd)) => 
+        for {
+          blorp <- fromComplex(p)(tl)
+          bleep = fromNesting(hd)
+          _ <- bond(blorp, bleep)
+        } yield bleep
+    }
+
+  }
+
 }
