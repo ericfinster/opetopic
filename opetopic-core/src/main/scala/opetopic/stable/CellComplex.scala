@@ -7,8 +7,16 @@
 
 package opetopic.stable
 
-abstract class CellComplex[A] {
+import scala.collection.mutable.ListBuffer
 
+abstract class CellComplex[A, C <: Cell[A, C]] extends ComplexBuilder[A, C] {
+
+  // Here is a buffer for containing
+  // the list of the base cells.  For now,
+  // I think that's basically all I want. 
+
+
+  val baseCells: ListBuffer[C] = ListBuffer()
 
 
 }

@@ -41,4 +41,6 @@ class SimpleComplexBuilder[A] extends ComplexBuilder[A, SimpleCell[A]] {
   def newCell(opt: Option[A]): SimpleCell[A] = new SimpleCell(opt)
   def newCell(opt: Option[A], d: Nat): SimpleCell[A] = new SimpleCell(opt, d)
 
+  def registerBaseCell(cell: SimpleCell[A]): Unit = ()
+
 }

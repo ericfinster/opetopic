@@ -24,6 +24,8 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
   def newCell(opt: Option[A]): C
   def newCell(opt: Option[A], d: Nat): C
 
+  def registerBaseCell(cell: C) : Unit
+
   def fromBox[N <: Nat](b: Box[Option[A], N]): Nesting[C, N] = 
     b match {
       case Box(a, cn) => {
@@ -130,20 +132,16 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
     @natElim
     def fromComplex[N <: Nat](n: N)(c: Complex[OptA, N]): ShapeM[Nesting[C, N]] = {
       case (Z, Complex(_, objs)) => {
-        // println("Parsing objects...")
         val no = fromNesting(objs)
-        // println("Done")
+        registerBaseCell(no.baseValue)
         succeed(no)
       }
       case (S(p: P), Complex(tl, hd)) => {
-        // println("Parsing dimension " + natToInt(S(p)).toString)
         for {
           blorp <- fromComplex(p)(tl)
-          // _ = println("Parsed tail")
           bleep = fromNesting(hd)
-          // _ = println("Parsed head (" + natToInt(S(p)).toString + ")")
           _ <- bond(blorp, bleep)
-          // _ = println("Bonded")
+          _ = registerBaseCell(bleep.baseValue)
         } yield bleep
       }
     }

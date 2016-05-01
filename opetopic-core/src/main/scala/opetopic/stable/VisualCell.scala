@@ -43,8 +43,8 @@ trait HasVisualCells { self : UIFramework =>
     def labelBounds: Bounds =
       labelElement.bounds
 
-    def rootDecoration: Option[BoundedElement]
-    def leafDecorations: Option[STree[Option[BoundedElement]]]
+    def rootDecoration: Option[BoundedElement] = None
+    def leafDecorations: Option[STree[Option[BoundedElement]]] = None
 
     //
     // Mutable Cell Values
