@@ -5,9 +5,9 @@
   * @version 0.1 
   */
 
-package opetopic.mutable
+package opetopic.stable
 
-class CellComplex[A] {
+abstract class CellComplex[A] {
 
 
 

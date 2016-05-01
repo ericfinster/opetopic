@@ -1,11 +1,11 @@
 /**
-  * SimpleCell.scala - A Simple Cell Implementation
+  * ComplexBuilder.scala - An abstract complex import/export class
   * 
   * @author Eric Finster
   * @version 0.1 
   */
 
-package opetopic.mutable
+package opetopic.stable
 
 import scalaz.Traverse
 import scalaz.Applicative
@@ -17,46 +17,22 @@ import syntax.tree._
 import syntax.nesting._
 import syntax.complex._
 
-class SimpleCell[A] extends Cell[A, SimpleCell[A]] {
-
-  def this(opt: Option[A]) = {
-    this
-    label = opt
-  }
-
-  def this(opt: Option[A], d: Nat) = {
-    this
-    label = opt
-    dim = natToInt(d)
-  }
-
-  var dim: Int = 0
-  var label: Option[A] = None
-
-  var canopy: Option[CellTree] = None
-  var container: Option[SimpleCell[A]] = None
-
-  var target : Option[SimpleCell[A]] = None
-  var sourceTree: Option[CellTree] = None
-
-  var incoming: Option[SimpleCell[A]] = None
-  var outgoing: Option[SimpleCell[A]] = None
-
-}
-
-class ComplexBuilder[A] {
+abstract class ComplexBuilder[A, C <: Cell[A, C]] {
 
   type OptA[N <: Nat] = Option[A]
 
-  def fromBox[N <: Nat](b: Box[Option[A], N]): Nesting[SimpleCell[A], N] = 
+  def newCell(opt: Option[A]): C
+  def newCell(opt: Option[A], d: Nat): C
+
+  def fromBox[N <: Nat](b: Box[Option[A], N]): Nesting[C, N] = 
     b match {
       case Box(a, cn) => {
 
         val n = cn.dim
-        val cell = new SimpleCell(a, n)
+        val cell = newCell(a, n)
         val newCn = cn.map(fromNesting(_))
 
-        val canopy = STree(n)(newCn.map((nn: Nesting[SimpleCell[A], N]) => {
+        val canopy = STree(n)(newCn.map((nn: Nesting[C, N]) => {
           nn.baseValue.container = Some(cell)
           nn.baseValue
         }))
@@ -68,17 +44,17 @@ class ComplexBuilder[A] {
     }
 
   @natElim
-  def fromNesting[N <: Nat](n: N)(nst: Nesting[Option[A], N]) : Nesting[SimpleCell[A], N] = {
-    case (Z, Obj(o)) => Obj(new SimpleCell(o))
+  def fromNesting[N <: Nat](n: N)(nst: Nesting[Option[A], N]) : Nesting[C, N] = {
+    case (Z, Obj(o)) => Obj(newCell(o))
     case (Z, b @ Box(a, cn)) => fromBox(b)
-    case (S(p), Dot(o, _)) => Dot(new SimpleCell(o, S(p)), S(p))
+    case (S(p), Dot(o, _)) => Dot(newCell(o, S(p)), S(p))
     case (S(p), b @ Box(a, cn)) => fromBox(b)
   }
 
-  def fromNesting[N <: Nat](nst: Nesting[Option[A], N]) : Nesting[SimpleCell[A], N] = 
+  def fromNesting[N <: Nat](nst: Nesting[Option[A], N]) : Nesting[C, N] = 
     fromNesting(nst.dim)(nst)
 
-  def toNesting[N <: Nat](n: N)(sc: SimpleCell[A]): Option[Nesting[Option[A], N]] = 
+  def toNesting[N <: Nat](n: N)(sc: C): Option[Nesting[Option[A], N]] = 
     sc.canopy match {
       case None => Some(Nesting.external(n)(sc.label))
       case Some(cn) => 
@@ -90,7 +66,7 @@ class ComplexBuilder[A] {
     }
 
   // A routine for passing down the source and target information
-  def setupInternals(c: SimpleCell[A], lvs: STree[SimpleCell[A]]): Option[SimpleCell[A]] =
+  def setupInternals(c: C, lvs: STree[C]): Option[C] =
     c.canopy match {
       case None => c.target  // When external, return the root
       case Some(cn) => {
@@ -98,7 +74,7 @@ class ComplexBuilder[A] {
         c.sourceTree = Some(lvs)
 
         for {
-          myRoot <- cn.graftRec[SimpleCell[A]]({
+          myRoot <- cn.graftRec[C]({
             case addr => lvs.elementAt(addr)
           })({
             case (sc, tr) => {
@@ -113,7 +89,7 @@ class ComplexBuilder[A] {
       }
     }
 
-  def bond[P <: Nat](m: Nesting[SimpleCell[A], P], n: Nesting[SimpleCell[A], S[P]]) : ShapeM[Unit] = 
+  def bond[P <: Nat](m: Nesting[C, P], n: Nesting[C, S[P]]) : ShapeM[Unit] = 
     (m, n) match {
       case (Box(pcell, pcn), Box(cell, cn)) => {
         for {
@@ -152,7 +128,7 @@ class ComplexBuilder[A] {
     }
 
     @natElim
-    def fromComplex[N <: Nat](n: N)(c: Complex[OptA, N]): ShapeM[Nesting[SimpleCell[A], N]] = {
+    def fromComplex[N <: Nat](n: N)(c: Complex[OptA, N]): ShapeM[Nesting[C, N]] = {
       case (Z, Complex(_, objs)) => {
         // println("Parsing objects...")
         val no = fromNesting(objs)
@@ -173,7 +149,7 @@ class ComplexBuilder[A] {
     }
 
     @natElim
-    def toComplex[N <: Nat](n: N)(sc: SimpleCell[A]): Option[Complex[OptA, N]] = {
+    def toComplex[N <: Nat](n: N)(sc: C): Option[Complex[OptA, N]] = {
       case (Z, sc) => {
         // println("Writing objects ...")
         for {
@@ -196,4 +172,5 @@ class ComplexBuilder[A] {
     }
 
 }
+
 

@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.mutable
+package opetopic.stable
 
 import scala.collection.mutable.ListBuffer
 
