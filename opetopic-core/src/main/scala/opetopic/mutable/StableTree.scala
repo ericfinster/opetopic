@@ -12,6 +12,9 @@ import scalaz.Applicative
 import scalaz.syntax.traverse._
 import scalaz.std.option._
 
+import opetopic._
+import syntax.tree._
+
 sealed trait STree[+A]
 case object SLeaf extends STree[Nothing]
 case class SNode[A](a: A, as: STree[STree[A]]) extends STree[A]
@@ -25,13 +28,45 @@ case class SDeriv[A](sh: STree[STree[A]], gma: SCtxt[A]) {
 
 }
 
-case class SCtxt[A](g: List[(A, SDeriv[STree[A]])]) {
+case class SCtxt[A](val g: List[(A, SDeriv[STree[A]])]) {
 
   def close(t: STree[A]) : STree[A] = 
     g match {
       case Nil => t
       case (a, d) :: gs => 
         SCtxt(gs).close(SNode(a, d.plug(t)))
+    }
+
+  def ::(pr : (A, SDeriv[STree[A]])): SCtxt[A] = 
+    SCtxt(pr :: g)
+
+}
+
+case class SZipper[A](val head: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
+
+  def visit(d: SDir): Option[SZipper[A]] = 
+    (head, d) match {
+      case (SLeaf, SDir(Nil)) => Some(this) // Allow for this?
+      case (SLeaf, _) => None
+      case (SNode(a, as), SDir(ds)) => 
+        for {
+          z <- SZipper(as).seek(ds)
+          r <- z match {
+            case SZipper(SLeaf, _) => None
+            case SZipper(SNode(t, ts), g) => 
+              Some(SZipper(t, (a, SDeriv(ts, g)) :: ctxt))
+          }
+        } yield r
+    }
+
+  def seek(a: List[SDir]): Option[SZipper[A]] = 
+    a match {
+      case Nil => Some(this)
+      case d :: ds => 
+        for {
+          z <- seek(ds)
+          zz <- z.visit(d)
+        } yield zz
     }
 
 }
@@ -158,16 +193,26 @@ object STree {
         case _ => None
       }
 
-    def elementAt(addr: SAddr): Option[A] = 
-      (st, addr) match {
-        case (SLeaf, _) => None
-        case (SNode(a, _), Nil) => Some(a)
-        case (SNode(a, as), SDir(dir) :: ds) => 
-          for {
-            b <- as.elementAt(dir)
-            r <- b.elementAt(ds)
-          } yield r
+    def rootValue: Option[A] = 
+      st match {
+        case SLeaf => None
+        case SNode(a, _) => Some(a)
       }
+
+    def elementAt(addr: SAddr): Option[A] = 
+      for {
+        z <- SZipper(st).seek(addr)
+        v <- z.head.rootValue
+      } yield v
+
+    def graftWith(brs: STree[STree[A]]): Option[STree[A]] = 
+      graft(st, brs)
+
+    def graftRec[B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
+      STree.graftRec(st)(lr)(nr)
+
+    def unstableOfDim[N <: Nat](n: N): Option[Tree[A, N]] = 
+      unstably(n)(st)
 
   }
 
@@ -278,9 +323,6 @@ object STree {
   // CONSTRUCTORS
   //
 
-  import opetopic._
-  import syntax.tree._
-
   @natElim
   def apply[A, N <: Nat](n: N)(t: Tree[A, N]): STree[A] = {
     case (Z, Pt(a)) => SNode(a, SNode(SLeaf, SLeaf))
@@ -290,5 +332,18 @@ object STree {
 
   def apply[A, N <: Nat](t: Tree[A, N]): STree[A] = 
     STree(t.dim)(t)
+
+  @natElim
+  def unstably[A, N <: Nat](n: N)(st: STree[A]) : Option[Tree[A, N]] = {
+    case (Z, SLeaf) => None
+    case (Z, SNode(a, _)) => Some(Pt(a))
+    case (S(p: P), SLeaf) => Some(Leaf(S(p)))
+    case (S(p: P), SNode(a, as)) => 
+      for {
+        bs <- as.traverse(unstably(S(p))(_))
+        cs <- unstably(p)(bs)
+      } yield Node(a, cs)
+  }
+
 
 }

@@ -7,22 +7,38 @@
 
 package opetopic.mutable
 
-trait Cell[A] {
+import scalaz.Traverse
+import scalaz.Applicative
+import scalaz.syntax.traverse._
+import scalaz.std.option._
 
-  type CellTree = PTree[Cell[A]]
+trait Cell[A, C <: Cell[A, C]] { thisCell : C => 
 
-  def dim: Int
-  def label: Option[A]
+  type CellTree = STree[C]
+
+  var dim: Int
+  var label: Option[A]
 
   //
   // Cell attributes
   //
 
-  def canopy: Option[CellTree]
-  def container: Option[Cell[A]]
+  var canopy: Option[CellTree]
+  var container: Option[C]
 
-  def target : Option[Cell[A]]
-  def sourceTree: Option[CellTree]
+  var target : Option[C]
+  var sourceTree: Option[CellTree]
+
+  // 
+  // Edge attributes
+  //
+
+  var incoming: Option[C]
+  var outgoing: Option[C]
+
+  //============================================================================================
+  // HELPERS
+  //
 
   def isBase: Boolean = 
     container == None
@@ -33,12 +49,27 @@ trait Cell[A] {
   def isExternal: Boolean = 
     canopy == None
 
-  // 
-  // Edge attributes
-  //
+  def spine: Option[CellTree] = 
+    canopy match {
+      case None => {
+        if (dim == 0) {
+          // Handle object case by hand
+          Some(SNode(thisCell, SNode(SLeaf, SLeaf)))
+        } else {
+          for {
+            st <- sourceTree
+          } yield SNode(thisCell, st.map(_ => SLeaf))
+        }
+      }
+      case Some(cn) => {
+        for {
+          jn <- cn.traverse(_.spine)
+          res <- STree.join(jn)
+        } yield res
+      }
+    }
 
-  def incoming: Option[Cell[A]]
-  def outgoing: Option[Cell[A]]
 
 }
+
 

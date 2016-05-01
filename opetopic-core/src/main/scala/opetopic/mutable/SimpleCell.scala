@@ -7,135 +7,56 @@
 
 package opetopic.mutable
 
-class SimpleCell[A] extends Cell[A] {
+import scalaz.Traverse
+import scalaz.Applicative
+import scalaz.syntax.traverse._
+import scalaz.std.option._
 
-  def this(a: A) = {
+import opetopic._
+import syntax.tree._
+import syntax.nesting._
+import syntax.complex._
+
+class SimpleCell[A] extends Cell[A, SimpleCell[A]] {
+
+  def this(opt: Option[A]) = {
     this
-    label = Some(a)
+    label = opt
   }
 
-  def this(a: A, d: Int) = {
+  def this(opt: Option[A], d: Nat) = {
     this
-    label = Some(a)
-    dim = d
+    label = opt
+    dim = natToInt(d)
   }
-
-  type STree = PTree[SimpleCell[A]]
 
   var dim: Int = 0
   var label: Option[A] = None
 
-  var canopy: Option[STree] = None
+  var canopy: Option[CellTree] = None
   var container: Option[SimpleCell[A]] = None
 
-  var target: Option[SimpleCell[A]] = None
-  var sourceTree: Option[STree] = None
+  var target : Option[SimpleCell[A]] = None
+  var sourceTree: Option[CellTree] = None
 
   var incoming: Option[SimpleCell[A]] = None
   var outgoing: Option[SimpleCell[A]] = None
 
-  //============================================================================================
-  // FACE OPERATIONS
-  //
-
-  import scalaz.Traverse
-  import scalaz.std.option._
-  import scalaz.syntax.traverse._
-
-  def spine: Option[STree] = 
-    canopy match {
-      case None => {
-        for {
-          st <- sourceTree
-        } yield PNode(this, st.nodes.map(_ => PLeaf))
-      }
-      case Some(cn) => 
-        for {
-          jn <- cn.traverse(_.spine)
-        } yield PTree.join(jn)
-    }
-
-  def partialSpine(guide: STree) : Option[STree] = 
-    (guide, canopy) match {
-      case (_, None) => 
-        for {
-          st <- sourceTree
-        } yield PNode(this, st.nodes.map(_ => PLeaf))
-      case (PLeaf, Some(cn)) => // Do the same?
-        for {
-          st <- sourceTree
-        } yield PNode(this, st.nodes.map(_ => PLeaf))
-      case (PNode(_, bs), Some(cn)) => {
-
-        // Right, and now here you see a problem:  the list
-        // of branches is flat, but the canopy is not.  How
-        // do you match les unes avec les autres?
-
-        // Wait .... wait .... use the canopy of the embedded
-        // cell .... or something ....
-
-        // Ah, no, it's an external cell.  Right, but it's
-        // source tree is how the thing was constructed in
-        // the first place.
-
-        // This suggests: zip the source tree 
-
-        ???
-      }
-    }
-
-  // Okay, but I'm not sure we need this.  Rather, if you want to 
-  // compute the face, you take the spine and pass it to the target.
-  // Right, that's the key.  Take the spine, pass it to the target.
-  // Take the spine, pass it to the target.
-
-  // Now, when you receive a spine from the previous dimension,
-  // the idea is that it is a message of what to contract.  Is 
-  // this right?
-
-  // No, I see.  The point is that you should do a kind of
-  // *relative* spine where you use go only as high as is 
-  // specified by what you were given.  Right.  
-
-  def extract(st: STree) : Option[SimpleCell[A]] = 
-    target match {
-      case None => {
-
-        // So, now, you've reached an object and you've
-        // got the tree there.  You basically now traverse
-        // it, ripping out the targets and sources of the
-        // remaining guys and gluing them all together.
-
-        ???
-
-      }
-      case Some(tgt) => {
-        for {
-          sp <- partialSpine(st)
-          res <- tgt.extract(sp)
-        } yield res
-      }
-    }
-
 }
 
-object SimpleCell {
+class ComplexBuilder[A] {
 
-  import opetopic._
-  import syntax.tree._
-  import syntax.nesting._
-  import syntax.complex._
+  type OptA[N <: Nat] = Option[A]
 
-  def fromNesting[A, N <: Nat](nst: Nesting[A, N]) : Nesting[SimpleCell[A], N] = 
-    nst match {
-      case Obj(a) => Obj(new SimpleCell(a))
-      case Dot(a, d) => Dot(new SimpleCell(a, natToInt(d)), d)
+  def fromBox[N <: Nat](b: Box[Option[A], N]): Nesting[SimpleCell[A], N] = 
+    b match {
       case Box(a, cn) => {
 
         val n = cn.dim
-        val cell = new SimpleCell(a, natToInt(n))
+        val cell = new SimpleCell(a, n)
         val newCn = cn.map(fromNesting(_))
-        val canopy = PTree(n)(newCn.map((nn: Nesting[SimpleCell[A], N]) => {
+
+        val canopy = STree(n)(newCn.map((nn: Nesting[SimpleCell[A], N]) => {
           nn.baseValue.container = Some(cell)
           nn.baseValue
         }))
@@ -146,10 +67,55 @@ object SimpleCell {
       }
     }
 
+  @natElim
+  def fromNesting[N <: Nat](n: N)(nst: Nesting[Option[A], N]) : Nesting[SimpleCell[A], N] = {
+    case (Z, Obj(o)) => Obj(new SimpleCell(o))
+    case (Z, b @ Box(a, cn)) => fromBox(b)
+    case (S(p), Dot(o, _)) => Dot(new SimpleCell(o, S(p)), S(p))
+    case (S(p), b @ Box(a, cn)) => fromBox(b)
+  }
 
-  def bond[A, P <: Nat](m: Nesting[SimpleCell[A], P], n: Nesting[SimpleCell[A], S[P]]) : ShapeM[Unit] = 
+  def fromNesting[N <: Nat](nst: Nesting[Option[A], N]) : Nesting[SimpleCell[A], N] = 
+    fromNesting(nst.dim)(nst)
+
+  def toNesting[N <: Nat](n: N)(sc: SimpleCell[A]): Option[Nesting[Option[A], N]] = 
+    sc.canopy match {
+      case None => Some(Nesting.external(n)(sc.label))
+      case Some(cn) => 
+        for {
+          nstSt <- cn.traverse(toNesting(n)(_))
+          nstCn <- nstSt.unstableOfDim(n)
+        } yield Box(sc.label, nstCn)
+
+    }
+
+  // A routine for passing down the source and target information
+  def setupInternals(c: SimpleCell[A], lvs: STree[SimpleCell[A]]): Option[SimpleCell[A]] =
+    c.canopy match {
+      case None => c.target  // When external, return the root
+      case Some(cn) => {
+
+        c.sourceTree = Some(lvs)
+
+        for {
+          myRoot <- cn.graftRec[SimpleCell[A]]({
+            case addr => lvs.elementAt(addr)
+          })({
+            case (sc, tr) => {
+              for {
+                root <- setupInternals(sc, tr)
+              } yield root
+            }
+          })
+          _ = c.target = Some(myRoot)
+        } yield myRoot
+
+      }
+    }
+
+  def bond[P <: Nat](m: Nesting[SimpleCell[A], P], n: Nesting[SimpleCell[A], S[P]]) : ShapeM[Unit] = 
     (m, n) match {
-      case (m, Box(_, cn)) => 
+      case (Box(pcell, pcn), Box(cell, cn)) => {
         for {
           sp <- Nesting.spineFromCanopy(cn)
           _ <- Tree.matchTraverse(m.toTree, sp)({
@@ -167,7 +133,10 @@ object SimpleCell {
 
             }
           })
+          lvs <- fromOpt(m.baseValue.spine)
+          _ <- fromOpt(setupInternals(cell, lvs))
         } yield ()
+      }
       case (Box(t, cn), Dot(c, dm)) => {
 
         c.sourceTree = t.canopy
@@ -182,21 +151,49 @@ object SimpleCell {
       case (_, _) => fail("Unexpected bonding condition")
     }
 
-  class ComplexBuilder[A] {
-
-    type ConstA[N <: Nat] = A
-
     @natElim
-    def fromComplex[N <: Nat](n: N)(c: Complex[ConstA, N]): ShapeM[Nesting[SimpleCell[A], N]] = {
-      case (Z, Complex(_, objs)) => succeed(fromNesting(objs))
-      case (S(p: P), Complex(tl, hd)) => 
+    def fromComplex[N <: Nat](n: N)(c: Complex[OptA, N]): ShapeM[Nesting[SimpleCell[A], N]] = {
+      case (Z, Complex(_, objs)) => {
+        // println("Parsing objects...")
+        val no = fromNesting(objs)
+        // println("Done")
+        succeed(no)
+      }
+      case (S(p: P), Complex(tl, hd)) => {
+        // println("Parsing dimension " + natToInt(S(p)).toString)
         for {
           blorp <- fromComplex(p)(tl)
+          // _ = println("Parsed tail")
           bleep = fromNesting(hd)
+          // _ = println("Parsed head (" + natToInt(S(p)).toString + ")")
           _ <- bond(blorp, bleep)
+          // _ = println("Bonded")
         } yield bleep
+      }
     }
 
-  }
+    @natElim
+    def toComplex[N <: Nat](n: N)(sc: SimpleCell[A]): Option[Complex[OptA, N]] = {
+      case (Z, sc) => {
+        // println("Writing objects ...")
+        for {
+          objNst <- toNesting(Z)(sc)
+          // _ = println("done")
+        } yield Complex[OptA] >> objNst
+      }
+      case (S(p: P), sc) => {
+        // println("Writing dimension " + natToInt(S(p)).toString)
+        for {
+          tgt <- sc.target
+          // _ = println("Got target")
+          tl <- toComplex(p)(tgt)
+          // _ = println("Got tail")
+          hd <- toNesting(S(p))(sc)
+          // _ = println("Got head")
+        } yield tl >> hd
+      }
+
+    }
 
 }
+

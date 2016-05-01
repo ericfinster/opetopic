@@ -23,6 +23,9 @@ import syntax.complex._
 
 object Opetopic extends JSApp {
 
+  val editor = new StableEditor
+  val viewer = new StableViewer
+
   //============================================================================================
   // MAIN ENTRY POINT
   //
@@ -32,38 +35,46 @@ object Opetopic extends JSApp {
     println("Launched Opetopic Javscript ...")
     println("Going to do some stable experiments ...")
 
-    val editor = new StableEditor
     jQuery("#editor-div").append(editor.uiElement)
     editor.initialize
 
-    jQuery("#action-btn").on("click", () => { doAction(editor) })
+    jQuery("#viewer-div").empty().append(viewer.uiElement)
+    viewer.initialize
+
+    jQuery("#action-btn").on("click", () => { doAction })
 
   }
 
   class StableEditor extends JsCardinalEditor[ConstString] {
-
     implicit val vf = VisualizableFamily.constStringVisualizable
+  }
 
-    override def onSelect[N <: Nat](n: N)(editor: CardinalEditor[ConstString])(box: editor.CardinalCellBox[N]): Unit = {
-    }
+  type OptString[N <: Nat] = Option[String]
 
+  class StableViewer extends JsComplexViewer[OptString] {
+    implicit val vf = 
+      VisualizableFamily.optionVisualizableFamily(
+        Bounds(0, 0, 600, 600),
+        VisualizableFamily.constStringVisualizable
+      )
   }
 
   //============================================================================================
   // STABLE EXPERIMENTS
   //
 
-  def doAction(editor: StableEditor): Unit = {
+  def doAction: Unit = {
 
     for {
       fc <- fromOpt(editor.selectedFaceComplex, ShapeError("Nothing selected"))
-      builder = new StableCell.ComplexBuilder[String]
-      result <- builder.fromComplex(fc.n)(fc.value)
+      builder = new ComplexBuilder[String]
+      stableNst <- builder.fromComplex(fc.n)(fc.value)
+      _ = println("Successfully stabilized")
+      readbackCmplx <- builder.toComplex(fc.n)(stableNst.baseValue)
     } {
 
-      val topCell = result.baseValue
-
-      println("Stable cell was built successfully.")
+      viewer.complex = Some(readbackCmplx)
+      println("Action successful")
 
     }
 

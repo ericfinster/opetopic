@@ -29,8 +29,60 @@ class StableCell[A] {
   var outgoing: Option[StableCell[A]] = None
 
   //============================================================================================
+  // TRAVERSALS
+  //
+
+  def foreachInterior(f: StableCell[A] => Unit): Unit = 
+    canopy match {
+      case None => f(this)
+      case Some(cn) => {
+        for {
+          c <- cn
+        } yield c.foreachInterior(f)
+        f(this)
+      }
+    }
+
+  //============================================================================================
   // FACES, ETC.
   //
+
+
+  // So it seems if we calculate the spine, and then extract the partial, 
+  // that that should in fact be the source tree, no?
+
+  def interiorRoot: Option[StableCell[A]] = 
+    canopy match {
+      case None => Some(this)
+      case Some(SLeaf) => None 
+      case Some(SNode(r, _)) => r.interiorRoot
+    }
+
+  def getTarget: Option[StableCell[A]] = 
+    for {
+      ir <- interiorRoot
+      tgt <- ir.target
+    } yield tgt
+
+  def getSourceTree: Option[CellTree] = 
+    for {
+      sp <- spine
+      tgt <- target
+      st <- tgt.partialSpine(sp)
+    } yield st
+
+  def spine: Option[CellTree] = 
+    canopy match {
+      case None => 
+        for {
+          st <- sourceTree
+        } yield SNode(this, st.map(_ => SLeaf))
+      case Some(cn) => 
+        for {
+          jn <- cn.traverse(_.spine)
+          res <- STree.join(jn)
+        } yield res
+    }
 
   def partialSpine(guide: CellTree): Option[CellTree] = 
     (guide, canopy) match {
@@ -77,11 +129,18 @@ class StableCell[A] {
 
   def extractWith(guide: CellTree) : Option[StableCell[A]] = {
 
-    // Okay, I'm not sure I go everything,  but at least you see
-    // the main idea of this routine now: it copies a bond.
-
     guide match {
-      case SLeaf => ???
+      case SLeaf => {
+
+        // At a leaf, we should copy the current cell
+        // and return it ....
+
+        val thisCell = new StableCell[A]
+        thisCell.label = label
+
+        Some(thisCell)
+
+      }
       case SNode(c, cs) => {
 
         // We are the target cell.  Copy ourselves, etc.
@@ -91,21 +150,6 @@ class StableCell[A] {
         // The external cell is a copy of c, the node in our guide
         val externalCell = new StableCell[A]
         externalCell.label = c.label
-        // Right, so on the one hand, we are supposed to
-        // be copying the current cell, since this will be
-        // the input and output.  On the other, we seem to
-        // want to copy the cell c as the known space between
-        // the two.
-
-        // Probably we should do both simultaneously, since
-        // what we are really doing is extracting a *bond*.
-
-        // We use the canopy to zip up with the guide
-        // and pass to the cells lying over us.  We are
-        // going to use these for the canopy of the new
-        // guy.  The thing is, I suppose, that we won't
-        // end up with a tree, but just the base of the
-        // new guy ...
 
         for {
           cn <- canopy
@@ -196,7 +240,7 @@ object StableCell {
 
   def bond[A, P <: Nat](m: Nesting[StableCell[A], P], n: Nesting[StableCell[A], S[P]]) : ShapeM[Unit] = 
     (m, n) match {
-      case (m, Box(_, cn)) => 
+      case (m, Box(cell, cn)) => 
         for {
           sp <- Nesting.spineFromCanopy(cn)
           _ <- Tree.matchTraverse(m.toTree, sp)({
@@ -214,7 +258,31 @@ object StableCell {
 
             }
           })
-        } yield ()
+        } yield {
+
+          // A hack to see what happens...
+          cell.foreachInterior(c => {
+            c.target = c.getTarget
+          })
+
+          // Now, what's left missing here is to set the source and targets
+          // of all the remaining cells *under* the canopy.  That is, we
+          // must propogate the changes down.  How should this be done?
+
+          // Well, for example, you can test out the spine calculation, since
+          // this would be one way to understand the sources, no?
+
+          // Actually, for now I would think you care mostly just about the target.
+          // Well, then convert the above nesting to a tree, and do a graft rec or
+          // something to propogate the target ...
+
+          // Ah, no, targets in the middle are more complicated.  So there's a non-trivial
+          // problem here.
+
+          // Exactly.  These sorts of operations stumble all the way down to the lowest levels,
+          // and are intimately related to calculating faces, compressing and so on.
+
+        }
       case (Box(t, cn), Dot(c, dm)) => {
 
         c.sourceTree = t.canopy
@@ -244,6 +312,42 @@ object StableCell {
         } yield bleep
     }
 
+    @natElim
+    def toComplex[N <: Nat](n: N)(sc: StableCell[A]): Option[Complex[OptA, N]] = {
+      case (Z, sc) => 
+        for {
+          objNst <- toNesting(Z)(sc)
+          _ = println("Parse object nesting")
+        } yield Complex[OptA] >> objNst
+      case (S(p: P), sc) => {
+        println("Making complex in dimension " + natToInt(S(p)).toString)
+        for {
+          tgt <- sc.target
+          _ = println("Got target")
+          tl <- toComplex(p)(tgt)
+          hd <- toNesting(S(p))(sc)
+          _ = println("Parsed nesting in dim " + natToInt(S(p)).toString)
+        } yield tl >> hd
+      }
+
+    }
+
   }
+
+  //============================================================================================
+  // TO NESTINGS AND COMPLEXES
+  //
+
+  def toNesting[A, N <: Nat](n: N)(sc: StableCell[A]): Option[Nesting[Option[A], N]] = 
+    sc.canopy match {
+      case None => Some(Nesting.external(n)(sc.label))
+      case Some(cn) => 
+        for {
+          nstSt <- cn.traverse(toNesting(n)(_))
+          nstCn <- nstSt.unstableOfDim(n)
+        } yield Box(sc.label, nstCn)
+
+    }
+
 
 }
