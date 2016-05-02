@@ -17,7 +17,7 @@ import JsDomFramework._
 
 import opetopic._
 import opetopic.ui._
-import opetopic.mutable._
+import opetopic.stable._
 import syntax.nesting._
 import syntax.complex._
 
@@ -65,16 +65,27 @@ object Opetopic extends JSApp {
 
   def doAction: Unit = {
 
+    def stringRender: Option[String] => BoundedElement = 
+      _ => spacer(Bounds(0,0,600,600))
+
     for {
       fc <- fromOpt(editor.selectedFaceComplex, ShapeError("Nothing selected"))
-      builder = new ComplexBuilder[String]
-      stableNst <- builder.fromComplex(fc.n)(fc.value)
-      _ = println("Successfully stabilized")
-      readbackCmplx <- builder.toComplex(fc.n)(stableNst.baseValue)
+      // builder = new ComplexBuilder[String]
+      // stableNst <- builder.fromComplex(fc.n)(fc.value)
+      // _ = println("Successfully stabilized")
+      // readbackCmplx <- builder.toComplex(fc.n)(stableNst.baseValue)
     } {
 
-      viewer.complex = Some(readbackCmplx)
-      println("Action successful")
+      val complex = new ActiveComplex[String](ComplexConfig(), stringRender)
+
+      for {
+        _ <- complex.ActiveComplexBuilder.fromComplex(fc.n)(fc.value)
+      } {
+        println("Successfully loaded a complex")
+      }
+
+      // viewer.complex = Some(readbackCmplx)
+      // println("Action successful")
 
     }
 

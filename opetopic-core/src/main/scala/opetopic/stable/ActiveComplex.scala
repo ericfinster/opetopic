@@ -21,7 +21,7 @@ trait HasActiveComplex extends HasVisualCells { self : ActiveFramework =>
 
   import isNumeric._
 
-  case class PanelConfig(
+  case class ComplexConfig(
     val internalPadding : Size = fromInt(400),
     val externalPadding : Size = fromInt(600),
     val decorationPadding : Size = fromInt(400),
@@ -31,7 +31,7 @@ trait HasActiveComplex extends HasVisualCells { self : ActiveFramework =>
     val manageViewport : Boolean = false
   )
 
-  class ActiveComplex[A](config: PanelConfig, labelRender: Option[A] => BoundedElement) {
+  class ActiveComplex[A](config: ComplexConfig, labelRender: Option[A] => BoundedElement) {
 
     // The base cell buffer
     val baseCells: ListBuffer[ActiveVisualCell] = ListBuffer()

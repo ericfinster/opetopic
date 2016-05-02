@@ -19,11 +19,13 @@ import org.scalajs.dom.raw.SVGPolygonElement
 import org.scalajs.dom.raw.SVGTransformable
 
 import opetopic.ui._
+import opetopic.stable._
 
 object JsDomFramework extends ActiveFramework 
     with HasSelectableGalleries 
     with HasActiveGalleries 
-    with HasEditor {
+    with HasEditor 
+    with HasActiveComplex {
 
   val svgns = "http://www.w3.org/2000/svg"
 
