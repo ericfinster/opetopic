@@ -8,5 +8,5 @@ two tools available
 2. A Prover which is a graphical interface to an
 underlying type theory extended with opetopic expressions
 
-You can play with an online demonstration [here][http://opetopic.net].
+You can play with an online demonstration [here](http://opetopic.net).
 
