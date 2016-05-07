@@ -46,7 +46,7 @@ case class SZipper[A](val head: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
 
   def visit(d: SDir): Option[SZipper[A]] = 
     (head, d) match {
-      case (SLeaf, SDir(Nil)) => Some(this) // Allow for this?
+      // case (SLeaf, SDir(Nil)) => Some(this) // Do we need this?
       case (SLeaf, _) => None
       case (SNode(a, as), SDir(ds)) => 
         for {

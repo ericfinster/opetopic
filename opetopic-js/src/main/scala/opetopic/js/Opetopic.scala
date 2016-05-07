@@ -24,7 +24,7 @@ import syntax.complex._
 object Opetopic extends JSApp {
 
   val editor = new StableEditor
-  val viewer = new StableViewer
+  val viewer = new JsStableViewer
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -39,7 +39,6 @@ object Opetopic extends JSApp {
     editor.initialize
 
     jQuery("#viewer-div").empty().append(viewer.uiElement)
-    viewer.initialize
 
     jQuery("#action-btn").on("click", () => { doAction })
 
@@ -63,29 +62,14 @@ object Opetopic extends JSApp {
   // STABLE EXPERIMENTS
   //
 
-  def doAction: Unit = {
 
-    def stringRender: Option[String] => BoundedElement = 
-      _ => spacer(Bounds(0,0,600,600))
+  def doAction: Unit = {
 
     for {
       fc <- fromOpt(editor.selectedFaceComplex, ShapeError("Nothing selected"))
-      // builder = new ComplexBuilder[String]
-      // stableNst <- builder.fromComplex(fc.n)(fc.value)
-      // _ = println("Successfully stabilized")
-      // readbackCmplx <- builder.toComplex(fc.n)(stableNst.baseValue)
     } {
 
-      val complex = new ActiveComplex[String](ComplexConfig(), stringRender)
-
-      for {
-        _ <- complex.ActiveComplexBuilder.fromComplex(fc.n)(fc.value)
-      } {
-        println("Successfully loaded a complex")
-      }
-
-      // viewer.complex = Some(readbackCmplx)
-      // println("Action successful")
+      viewer.loadComplex(fc)
 
     }
 

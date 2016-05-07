@@ -25,7 +25,7 @@ object JsDomFramework extends ActiveFramework
     with HasSelectableGalleries 
     with HasActiveGalleries 
     with HasEditor 
-    with HasActiveComplex {
+    with HasActiveStableGallery {
 
   val svgns = "http://www.w3.org/2000/svg"
 

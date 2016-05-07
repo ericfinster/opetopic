@@ -14,27 +14,25 @@ import scalaz.std.option._
 
 trait Cell[A, C <: Cell[A, C]] { thisCell : C => 
 
-  type CellTree = STree[C]
-
-  var dim: Int
-  var label: Option[A]
+  var dim: Int = 0
+  var label: Option[A] = None
 
   //
   // Cell attributes
   //
 
-  var canopy: Option[CellTree]
-  var container: Option[C]
+  var canopy: Option[STree[C]] = None
+  var container: Option[C] = None
 
-  var target : Option[C]
-  var sourceTree: Option[CellTree]
+  var target : Option[C] = None
+  var sourceTree: Option[STree[C]] = None
 
   // 
   // Edge attributes
   //
 
-  var incoming: Option[C]
-  var outgoing: Option[C]
+  var incoming: Option[C] = None
+  var outgoing: Option[C] = None
 
   //============================================================================================
   // HELPERS
@@ -49,7 +47,7 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
   def isExternal: Boolean = 
     canopy == None
 
-  def spine: Option[CellTree] = 
+  def spine: Option[STree[C]] = 
     canopy match {
       case None => {
         if (dim == 0) {
@@ -69,6 +67,11 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
       }
     }
 
+  def interiorCells: List[C] = 
+    canopy match {
+      case None => List(thisCell)
+      case Some(cn) => thisCell :: cn.toList.map(_.interiorCells).flatten
+    }
 
 }
 

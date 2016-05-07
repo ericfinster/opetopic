@@ -61,10 +61,10 @@ abstract class UIFramework {
   def half(size: Size) : Size
 
   case class Bounds(
-    val x: Size,
-    val y: Size,
-    val width: Size,
-    val height: Size
+    val x: Size = zero,
+    val y: Size = zero,
+    val width: Size = zero,
+    val height: Size = zero
   ) {
 
     def dimString: String = 
