@@ -40,8 +40,6 @@ class JsStableViewer {
       } {
         gallery.initialize
         gallery.refreshAll
-
-        println("Loaded complex.")
       }
 
     jQuery(uiElement).empty().append(gallery.uiElement)

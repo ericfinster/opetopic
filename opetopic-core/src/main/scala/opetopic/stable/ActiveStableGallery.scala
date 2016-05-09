@@ -99,6 +99,10 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
         r
       }
 
+      boxRect.onMouseOver = { (e : UIMouseEvent) => () }
+      boxRect.onMouseOut = { (e : UIMouseEvent) => () }
+      boxRect.onClick = { (e : UIMouseEvent) => println("Clicked box " + label.toString) }
+
       val edgePath = {
         val p = path
         p.stroke = "black"

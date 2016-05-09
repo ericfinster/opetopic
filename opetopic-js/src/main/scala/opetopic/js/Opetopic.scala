@@ -20,11 +20,18 @@ import opetopic.ui._
 import opetopic.stable._
 import syntax.nesting._
 import syntax.complex._
+import opetopic.Examples._
 
 object Opetopic extends JSApp {
 
-  val editor = new StableEditor
-  val viewer = new JsStableViewer
+  type OptString[N <: Nat] = Option[String]
+
+  val fredStrComplex: Complex[OptString, _4] =
+    fredComplex.map(new IndexedMap[ConstInt, OptString] {
+      def apply[N <: Nat](n: N)(i: Int) : Option[String] = Some(i.toString)
+    })
+
+  val mainViewer = new JsStableViewer
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -33,47 +40,10 @@ object Opetopic extends JSApp {
   def main: Unit = {
 
     println("Launched Opetopic Javscript ...")
-    println("Going to do some stable experiments ...")
 
-    jQuery("#editor-div").append(editor.uiElement)
-    editor.initialize
+    jQuery("#main-viewer-div").append(mainViewer.uiElement)
 
-    jQuery("#viewer-div").empty().append(viewer.uiElement)
-
-    jQuery("#action-btn").on("click", () => { doAction })
-
-  }
-
-  class StableEditor extends JsCardinalEditor[ConstString] {
-    implicit val vf = VisualizableFamily.constStringVisualizable
-  }
-
-  type OptString[N <: Nat] = Option[String]
-
-  class StableViewer extends JsComplexViewer[OptString] {
-    implicit val vf = 
-      VisualizableFamily.optionVisualizableFamily(
-        Bounds(0, 0, 600, 600),
-        VisualizableFamily.constStringVisualizable
-      )
-  }
-
-  //============================================================================================
-  // STABLE EXPERIMENTS
-  //
-
-
-  def doAction: Unit = {
-
-    import opetopic.Examples._
-    import opetopic.syntax.complex._
-
-    val fredStrComplex: Complex[OptString, _4] = 
-      fredComplex.map(new IndexedMap[ConstInt, OptString] {
-        def apply[N <: Nat](n: N)(i: Int) : Option[String] = Some(i.toString)
-      })
-
-    viewer.loadComplex(fredStrComplex)
+    mainViewer.loadComplex(fredStrComplex)
 
   }
 

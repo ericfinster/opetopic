@@ -163,9 +163,7 @@ trait HasStableGallery { self : UIFramework =>
 
           for {
             baseLayout <- baseCell.layout(SNode(thisMarker, SNode(SLeaf, SLeaf)))
-          } yield {
-            println("Rendered objects")
-          }
+          } yield ()
 
         } else {
 
@@ -184,7 +182,7 @@ trait HasStableGallery { self : UIFramework =>
             baseLayout <- baseCell.layout(lvs)
           } yield {
 
-            println("Rendered dimension " + baseCell.dim.toString)
+            // println("Rendered dimension " + baseCell.dim.toString)
 
             // Okay, here you are not done.  You need to adjust the
             // incoming leaves and the outgoing guy too.

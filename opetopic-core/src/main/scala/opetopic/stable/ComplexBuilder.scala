@@ -149,21 +149,15 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
     @natElim
     def toComplex[N <: Nat](n: N)(sc: C): Option[Complex[OptA, N]] = {
       case (Z, sc) => {
-        // println("Writing objects ...")
         for {
           objNst <- toNesting(Z)(sc)
-          // _ = println("done")
         } yield Complex[OptA] >> objNst
       }
       case (S(p: P), sc) => {
-        // println("Writing dimension " + natToInt(S(p)).toString)
         for {
           tgt <- sc.target
-          // _ = println("Got target")
           tl <- toComplex(p)(tgt)
-          // _ = println("Got tail")
           hd <- toNesting(S(p))(sc)
-          // _ = println("Got head")
         } yield tl >> hd
       }
 
