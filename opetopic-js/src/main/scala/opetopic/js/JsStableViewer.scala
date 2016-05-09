@@ -24,8 +24,10 @@ class JsStableViewer {
   var viewerWidth : Int = 0
   var viewerHeight : Int = 0
 
-  def renderOption: Option[String] => BoundedElement = 
-    _ => spacer(Bounds(0,0,600,600))
+  def renderOption: Option[String] => BoundedElement = {
+    case None => spacer(Bounds(0,0,600,600))
+    case Some(str) => text(str)
+  }
 
   val gallery = new ActiveStableGallery(StableGalleryConfig(), renderOption)
 

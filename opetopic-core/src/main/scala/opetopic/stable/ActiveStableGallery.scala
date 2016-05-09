@@ -60,12 +60,26 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
       def element = panelGroup
 
       def initialize: Unit = {
-        panelGroup.children = baseCell.interiorCells.map(_.cellGroup)
+
+        val (extCells, intCells) = 
+          baseCell.interiorCells.partition(_.isExternal)
+
+        val edges = 
+          baseCell.target match {
+            case None => List()
+            case Some(tgt) => tgt.interiorCells
+          }
+
+        panelGroup.children = 
+          intCells.map(_.cellGroup) ++
+            edges.map(_.edgePath) ++
+            extCells.map(_.cellGroup)
+
       }
 
     }
 
-    class ActiveCell extends VisualCell { thisCell =>
+    class ActiveCell(var label: Option[A]) extends VisualCell { thisCell =>
 
       //
       //  Cell Structure Variables
@@ -98,8 +112,6 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
 
       def renderCell: Unit = {
 
-        println("Rendering cell")
-
         cellGroup.children = Seq(boxRect, labelElement.element)
 
         boxRect.fill = "white"
@@ -115,16 +127,18 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
       }
 
       def renderEdge : Unit = {
-        //edgePath.d = pathString
+        edgePath.d = pathString
       }
+
+      override def toString: String = 
+        "ActiveCell(" + label.toString + ")"
 
     }
 
     object StableBuilder extends ComplexBuilder[A, ActiveCell] {
 
       def newCell(opt: Option[A]): ActiveCell = {
-        val cell = new ActiveCell
-        cell.label = opt
+        val cell = new ActiveCell(opt)
         cell
       }
 

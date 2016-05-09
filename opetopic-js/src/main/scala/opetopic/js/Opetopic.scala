@@ -65,13 +65,15 @@ object Opetopic extends JSApp {
 
   def doAction: Unit = {
 
-    for {
-      fc <- fromOpt(editor.selectedFaceComplex, ShapeError("Nothing selected"))
-    } {
+    import opetopic.Examples._
+    import opetopic.syntax.complex._
 
-      viewer.loadComplex(fc)
+    val fredStrComplex: Complex[OptString, _4] = 
+      fredComplex.map(new IndexedMap[ConstInt, OptString] {
+        def apply[N <: Nat](n: N)(i: Int) : Option[String] = Some(i.toString)
+      })
 
-    }
+    viewer.loadComplex(fredStrComplex)
 
   }
 

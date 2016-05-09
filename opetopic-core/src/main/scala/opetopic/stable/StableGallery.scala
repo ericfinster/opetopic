@@ -116,12 +116,16 @@ trait HasStableGallery { self : UIFramework =>
 
       def baseCell: CellType
 
-      def render: Unit = {
-        baseCell.interiorCells.foreach(_.renderCell)
-      }
+      def render: Unit = 
+        for {
+          c <- baseCell.interiorCells
+        } {
+          c.renderCell
+          c.renderEdge
+        }
 
       def bounds: Bounds = 
-        Bounds(baseCell.x, baseCell.y, baseCell.width, baseCell.height)
+        Bounds(baseCell.x, baseCell.y - fromInt(1000), baseCell.width, baseCell.height + fromInt(2000))
 
       def layout: Option[Unit] = {
 
@@ -142,18 +146,30 @@ trait HasStableGallery { self : UIFramework =>
             sp <- tgt.spine
             lvs = sp.map((cell: CellType) => {
 
-              val edgeMarker = new EdgeStartMarker(cell)
-
               new LayoutMarker(
-                DummyMarker(),
-                edgeMarker,
+                new EdgeStartMarker(cell),
+                new EdgeStartMarker(cell),
                 true
               )
 
             })
             baseLayout <- baseCell.layout(lvs)
           } yield {
+
             println("Rendered dimension " + baseCell.dim.toString)
+
+            // Okay, here you are not done.  You need to adjust the
+            // incoming leaves and the outgoing guy too.
+
+            for {
+              l <- lvs
+            } yield {
+              l.rootEdge.rootY = baseCell.y - (fromInt(2) * externalPadding)
+            }
+
+            // Set the position of the outgoing edge
+            baseLayout.rootEdge.endMarker.rootY = baseCell.rootY + (fromInt(2) * externalPadding)
+
           }
 
         }
@@ -169,6 +185,7 @@ trait HasStableGallery { self : UIFramework =>
     trait VisualCell extends Cell[A, CellType] { thisCell : CellType =>
 
       def renderCell: Unit
+      def renderEdge: Unit
 
       //
       // Label Values and Elements
@@ -261,6 +278,29 @@ trait HasStableGallery { self : UIFramework =>
       var edgeEndX : Size = zero
       var edgeEndY : Size = zero
       
+      //
+      //  Path String rendering
+      //
+
+      def pathString : String = {
+
+        val isVertical : Boolean = edgeStartX == edgeEndX
+
+        var pathString : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
+
+        if (isVertical) {
+          pathString ++= "V " ++ edgeEndY.toString
+        } else {
+          pathString ++= "V " ++ (edgeEndY - cornerRadius).toString ++ " "
+          pathString ++= "A " ++ cornerRadius.toString ++ " " ++ cornerRadius.toString ++ " 0 0 " ++ (if (edgeStartX > edgeEndX) "1 " else "0 ") ++
+            (if (edgeStartX > edgeEndX) (edgeStartX - cornerRadius) else (edgeStartX + cornerRadius)).toString ++ " " ++ edgeEndY.toString ++ " "
+          pathString ++= "H " ++ edgeEndX.toString
+        }
+
+        pathString
+
+      }
+
       //============================================================================================
       // LAYOUT ROUTINE
       //
@@ -271,14 +311,13 @@ trait HasStableGallery { self : UIFramework =>
 
             clear
 
-            val boxMarker: Rooted =
-              BoxMarker(thisCell)
+            val bm = BoxMarker(thisCell)
 
             val outgoingEdge: EdgeMarker =
               target.map(EdgeStartMarker(_)) getOrElse DummyMarker()
 
-            boxMarker.horizontalDependents += outgoingEdge
-            boxMarker.verticalDependents += outgoingEdge
+            bm.horizontalDependents += outgoingEdge
+            bm.verticalDependents += outgoingEdge
 
             val leafMarkers = lvs.toList
             val leafCount = leafMarkers.length
@@ -292,7 +331,7 @@ trait HasStableGallery { self : UIFramework =>
               if (leafCount == 0) {  // This is a drop. Simply return an appropriate marker ...
 
                 LayoutMarker(
-                  boxMarker, outgoingEdge, false,
+                  bm, outgoingEdge, false,
                   height = height,
                   leftInternalMargin = leftMargin,
                   rightInternalMargin = rightMargin
@@ -314,10 +353,10 @@ trait HasStableGallery { self : UIFramework =>
 
                   val endMarker = midMarker.rootEdge.endMarker
 
-                  boxMarker.horizontalDependents += endMarker
-                  boxMarker.verticalDependents += endMarker
+                  bm.horizontalDependents += endMarker
+                  bm.verticalDependents += endMarker
 
-                  boxMarker.horizontalDependents += midMarker.element
+                  bm.horizontalDependents += midMarker.element
 
                 }
 
@@ -338,30 +377,30 @@ trait HasStableGallery { self : UIFramework =>
                   def doLeftPlacement(marker : LayoutMarker, shift : Size) : Unit = {
 
                     marker.element.shiftLeft(shift)
-                    boxMarker.horizontalDependents += marker.element
+                    bm.horizontalDependents += marker.element
 
                     val endMarker = marker.rootEdge.endMarker
 
-                    marker.rootEdge.rootX = x
-                    marker.rootEdge.rootY = y + strokeWidth + internalPadding + halfLabelHeight
+                    endMarker.rootX = x
+                    endMarker.rootY = y + strokeWidth + internalPadding + halfLabelHeight
 
-                    boxMarker.horizontalDependents += endMarker
-                    boxMarker.verticalDependents += endMarker
+                    bm.horizontalDependents += endMarker
+                    bm.verticalDependents += endMarker
 
                   }
 
                   def doRightPlacement(marker : LayoutMarker, shift : Size) : Unit = {
 
                     marker.element.shiftRight(shift)
-                    boxMarker.horizontalDependents += marker.element
+                    bm.horizontalDependents += marker.element
 
                     val endMarker = marker.rootEdge.endMarker
 
-                    marker.rootEdge.rootX = x + width
-                    marker.rootEdge.rootY = y + strokeWidth + internalPadding + halfLabelHeight
+                    endMarker.rootX = x + width
+                    endMarker.rootY = y + strokeWidth + internalPadding + halfLabelHeight
 
-                    boxMarker.horizontalDependents += endMarker
-                    boxMarker.verticalDependents += endMarker
+                    bm.horizontalDependents += endMarker
+                    bm.verticalDependents += endMarker
 
                   }
 
@@ -394,7 +433,7 @@ trait HasStableGallery { self : UIFramework =>
 
                 LayoutMarker(
 
-                  element = boxMarker,
+                  element = bm,
                   rootEdge = outgoingEdge,
                   wasExternal = false,
 
@@ -434,9 +473,6 @@ trait HasStableGallery { self : UIFramework =>
           case Some(cn) => {
 
             clear
-
-            val boxMarker: Rooted =
-              BoxMarker(thisCell)
 
             val (leafCount : Int, leavesWithIndices : STree[(LayoutMarker, Int)]) =
               lvs.mapAccumL(0)((i: Int, m: LayoutMarker) => (i + 1, (m, i)))
@@ -541,6 +577,8 @@ trait HasStableGallery { self : UIFramework =>
                   }
               })
 
+            val bm = BoxMarker(thisCell)
+
             for {
               layout <- verticalPass(cn)
             } yield {
@@ -550,16 +588,16 @@ trait HasStableGallery { self : UIFramework =>
               rightInteriorMargin = layout.rightMargin
               interiorHeight = layout.height
 
-              boxMarker.horizontalDependents += layout.element
+              bm.horizontalDependents += layout.element
 
               if (! layout.wasExternal) {
                 layout.element.shiftUp(strokeWidth + labelHeight + internalPadding + internalPadding)
-                boxMarker.verticalDependents += layout.element
+                bm.verticalDependents += layout.element
               }
 
               // Setup and return an appropriate marker
               val marker = LayoutMarker(
-                element = boxMarker,
+                element = bm,
                 rootEdge = layout.rootEdge,
                 wasExternal = false,
                 height = height,
@@ -683,11 +721,11 @@ trait HasStableGallery { self : UIFramework =>
     case class EdgeStartMarker(edge: CellType) extends EdgeMarker {
 
       def rootX : Size = edge.edgeStartX
-      def rootX_=(u : Size) : Unit =
+      def rootX_=(u : Size) : Unit = 
         edge.edgeStartX = u
 
       def rootY : Size = edge.edgeStartY
-      def rootY_=(u : Size) : Unit =
+      def rootY_=(u : Size) : Unit = 
         edge.edgeStartY = u
 
       def endMarker = EdgeEndMarker(edge)
