@@ -124,8 +124,36 @@ trait HasStableGallery { self : UIFramework =>
           c.renderEdge
         }
 
-      def bounds: Bounds = 
-        Bounds(baseCell.x, baseCell.y - fromInt(1000), baseCell.width, baseCell.height + fromInt(2000))
+      def bounds: Bounds = {
+        
+        val (panelX, panelWidth) =
+          baseCell.canopy match {
+            case Some(_) => (baseCell.x, baseCell.width)
+            case None => {
+              baseCell.sourceTree match {
+                case None => (baseCell.x, baseCell.width)
+                case Some(srcs) => {
+
+                  val (minX, maxX) = (srcs.toList foldLeft (baseCell.x, baseCell.x + baseCell.width))({
+                    case ((curMin, curMax), edge) =>
+                      (isOrdered.min(curMin, edge.edgeStartX), isOrdered.max(curMax, edge.edgeStartX))
+                  })
+
+                  (minX, maxX - minX)
+
+                }
+              }
+            }
+          }
+
+        Bounds(
+          panelX,
+          baseCell.y - (fromInt(2) * externalPadding), 
+          panelWidth,
+          baseCell.height + (fromInt(4) * externalPadding)
+        )
+
+      }
 
       def layout: Option[Unit] = {
 
