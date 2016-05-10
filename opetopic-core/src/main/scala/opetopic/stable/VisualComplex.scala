@@ -1,5 +1,5 @@
 /**
-  * StablePanel.scala - A Stable Opetopic Panel
+  * VisualComplex.scala - A generic container for visual cells
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -17,10 +17,17 @@ import scalaz.std.list._
 
 import opetopic.ui._
 
-trait StablePanelConfig[F <: UIFramework] {
+trait VisualComplex[A, F <: UIFramework] {
 
   val framework: F
   import framework._
+  import isNumeric._
+
+  type CellType <: VisualCell
+
+  //
+  //  Layout Parameters
+  //
 
   def internalPadding : Size 
   def externalPadding : Size
@@ -28,107 +35,11 @@ trait StablePanelConfig[F <: UIFramework] {
   def strokeWidth : Size
   def cornerRadius : Size
 
-}
+  trait VisualCell extends Cell[A, CellType] { thisCell : CellType =>
 
-abstract class StablePanel[A, F <: UIFramework] {
+    def element: Element
 
-  val config: StablePanelConfig[F]
-
-  import config._
-  import framework._
-  import isNumeric._
-
-  type CellType <: PanelCell
-
-  def baseCell: CellType
-
-  //
-  //  Panel Bounds Calculation
-  //
-
-  def bounds: Bounds = {
-    
-    val (panelX, panelWidth) =
-      baseCell.canopy match {
-        case Some(_) => (baseCell.x, baseCell.width)
-        case None => {
-          baseCell.sourceTree match {
-            case None => (baseCell.x, baseCell.width)
-            case Some(srcs) => {
-
-              val (minX, maxX) = (srcs.toList foldLeft (baseCell.x, baseCell.x + baseCell.width))({
-                case ((curMin, curMax), edge) =>
-                  (isOrdered.min(curMin, edge.edgeStartX), isOrdered.max(curMax, edge.edgeStartX))
-              })
-
-              (minX, maxX - minX)
-
-            }
-          }
-        }
-      }
-
-    Bounds(
-      panelX,
-      baseCell.y - (fromInt(2) * externalPadding),
-      panelWidth,
-      baseCell.height + (fromInt(4) * externalPadding)
-    )
-
-  }
-
-  //
-  //  Panel Layout
-  //
-
-  def layout: Option[Unit] = {
-
-    if (baseCell.target == None) {
-
-      // No edges.  Assume this is an object.
-
-      val thisMarker = new LayoutMarker(DummyMarker(), DummyMarker(), true)
-
-      for {
-        baseLayout <- baseCell.layout(SNode(thisMarker, SNode(SLeaf, SLeaf)))
-      } yield ()
-
-    } else {
-
-      for {
-        tgt <- baseCell.target
-        sp <- tgt.spine
-        lvs = sp.map((cell: CellType) => {
-          new LayoutMarker(
-            new EdgeStartMarker(cell),
-            new EdgeStartMarker(cell),
-            true
-          )
-        })
-        baseLayout <- baseCell.layout(lvs)
-      } yield {
-
-        for { l <- lvs } yield {
-          l.rootEdge.rootY = baseCell.y - (fromInt(2) * externalPadding)
-        }
-
-        // Set the position of the outgoing edge
-        baseLayout.rootEdge.endMarker.rootY = 
-          baseCell.rootY + (fromInt(2) * externalPadding)
-
-      }
-
-    }
-
-  }
-
-
-  //============================================================================================
-  // PANEL CELLS
-  //
-
-  trait PanelCell extends Cell[A, CellType] { thisCell : CellType =>
-
+    def labelElement: Element
     def labelBounds: Bounds
 
     //
