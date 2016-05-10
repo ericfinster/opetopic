@@ -105,7 +105,7 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
               c.target = Some(t)
 
               t.incoming = Some(c)
-              t.canopy.map(_.map(s => { s.outgoing = Some(s) }))
+              t.canopy.map(_.map(s => { s.outgoing = Some(c) }))
 
               succeed(())
 

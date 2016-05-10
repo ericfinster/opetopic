@@ -29,6 +29,8 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
     val panels: ListBuffer[ActivePanel] = ListBuffer()
     val galleryViewport = viewport
 
+    var onCellClick : ActiveCell => Unit = (_ => ())
+
     def uiElement: UIElementType =
       galleryViewport.uiElement
 
@@ -101,7 +103,7 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
 
       boxRect.onMouseOver = { (e : UIMouseEvent) => () }
       boxRect.onMouseOut = { (e : UIMouseEvent) => () }
-      boxRect.onClick = { (e : UIMouseEvent) => println("Clicked box " + label.toString) }
+      boxRect.onClick = { (e : UIMouseEvent) => onCellClick(thisCell) }
 
       val edgePath = {
         val p = path
@@ -158,7 +160,13 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
 
     }
 
-
+    object StableFactory extends CellFactory[A, ActiveCell] {
+      def newCell(opt: Option[A], d: Int): ActiveCell = {
+        val c = new ActiveCell(opt)
+        c.dim = d
+        c
+      }
+    }
 
   }
 

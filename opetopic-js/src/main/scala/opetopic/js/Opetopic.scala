@@ -31,7 +31,35 @@ object Opetopic extends JSApp {
       def apply[N <: Nat](n: N)(i: Int) : Option[String] = Some(i.toString)
     })
 
+  val faceViewer = new JsStableViewer
+
   val mainViewer = new JsStableViewer
+  mainViewer.gallery.onCellClick = 
+    (c : mainViewer.gallery.ActiveCell) => {
+
+      println("Attempting face for cell " + c.label.toString)
+
+      faceViewer.gallery.panels.clear
+
+      for {
+        topCell <- c.face(faceViewer.gallery.StableFactory)
+      } {
+
+        topCell.targets.reverse.foreach(t => {
+          faceViewer.gallery.panels += new faceViewer.gallery.ActivePanel(t)
+        })
+
+
+        faceViewer.gallery.initialize
+        faceViewer.gallery.refreshAll
+
+        println("Face gallery updated")
+
+      }
+
+    }
+
+
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -42,6 +70,9 @@ object Opetopic extends JSApp {
     println("Launched Opetopic Javscript ...")
 
     jQuery("#main-viewer-div").append(mainViewer.uiElement)
+    jQuery("#face-viewer-div").append(faceViewer.uiElement)
+
+    jQuery(faceViewer.uiElement).append(faceViewer.gallery.uiElement)
 
     mainViewer.loadComplex(fredStrComplex)
 

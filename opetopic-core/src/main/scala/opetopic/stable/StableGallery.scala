@@ -374,10 +374,10 @@ trait HasStableGallery { self : UIFramework =>
 
                 if (isOdd) {
 
-                  midMarker.rootEdge.rootX = rootX
-                  midMarker.rootEdge.rootY = rootY - height
-
                   val endMarker = midMarker.rootEdge.endMarker
+
+                  endMarker.rootX = rootX
+                  endMarker.rootY = rootY - height
 
                   bm.horizontalDependents += endMarker
                   bm.verticalDependents += endMarker

@@ -47,18 +47,27 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
   def isExternal: Boolean = 
     canopy == None
 
+  def interiorCells: List[C] = 
+    canopy match {
+      case None => List(thisCell)
+      case Some(cn) => thisCell :: cn.toList.map(_.interiorCells).flatten
+    }
+
+  def targets: List[C] = 
+    target match {
+      case None => List(thisCell)
+      case Some(tgt) => thisCell :: tgt.targets
+    }
+
+  def corollaWith[B](b: B) : STree[B] = 
+    sourceTree match {
+      case None => SNode(b, SNode(SLeaf, SLeaf))
+      case Some(srcs) => SNode(b, srcs.map(_ => SLeaf))
+    }
+
   def spine: Option[STree[C]] = 
     canopy match {
-      case None => {
-        if (dim == 0) {
-          // Handle object case by hand
-          Some(SNode(thisCell, SNode(SLeaf, SLeaf)))
-        } else {
-          for {
-            st <- sourceTree
-          } yield SNode(thisCell, st.map(_ => SLeaf))
-        }
-      }
+      case None => Some(corollaWith(thisCell))
       case Some(cn) => {
         for {
           jn <- cn.traverse(_.spine)
@@ -67,96 +76,152 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
       }
     }
 
-  def interiorCells: List[C] = 
-    canopy match {
-      case None => List(thisCell)
-      case Some(cn) => thisCell :: cn.toList.map(_.interiorCells).flatten
-    }
-
-  def spine(guide: STree[C]): Option[STree[C]] = 
-    (canopy, guide) match {
-      case (Some(cn), SNode(_, sh)) => 
+  def spine[D <: Cell[A, D]](guide: STree[D]): Option[STree[C]] = 
+    guide match {
+      case SLeaf => Some(corollaWith(thisCell))
+      case SNode(_, sh) =>
         for {
+          cn <- canopy
           toJn <- cn.matchTraverse(sh)({
-            case (desc, vbr) => desc.spine(vbr)
+            case (d, v) => d.spine(v)
           })
           res <- STree.join(toJn)
         } yield res
-      case (None, SNode(_, _)) => None // Guide error
-      case (_, _) => 
-        for {
-          srcs <- sourceTree
-        } yield SNode(thisCell, srcs.map(_ => SLeaf))
     }
 
-  // Duplicate up to the given guide, remembering the canopy which
-  // was truncated off.
-  def duplicateWithGuide(cf: CellFactory[A, C], guide: STree[C]) : Option[(C, STree[STree[C]])] = 
-    (canopy, guide) match {
-      case (Some(cn), SLeaf) => 
+  def verticalTree: STree[C] = 
+    canopy match {
+      case None => SLeaf
+      case Some(cn) => SNode(thisCell, cn.map(_.verticalTree))
+    }
+
+  def refreshWith(lvs: STree[C]) : Option[C] = 
+    canopy match {
+      case None => target
+      case Some(cn) => {
+
+        sourceTree = Some(lvs)
+
         for {
-          srcs <- sourceTree
-        } yield (cf.newCell(label), SNode(cn, srcs.map(_ => SLeaf)))
+          myRoot <- cn.graftRec[C]({
+            case addr => lvs.elementAt(addr)
+          })({
+            case (sc, tr) => sc.refreshWith(tr)
+          })
+          _ = target = Some(myRoot)
+        } yield myRoot
+
+      }
+    }
+
+  def duplicateWithGuide[D <: Cell[A, D]](cf: CellFactory[A, D], guide: STree[C]) : Option[(D, STree[(D, STree[C])])] = {
+    (canopy, guide) match {
+      case (_, SLeaf) => {
+        val nc = cf.newCell(label, dim)
+        for {
+          sp <- spine
+        } yield (nc, corollaWith((nc, sp)))
+      }
       case (Some(cn), SNode(_, sh)) => {
-        val nc = cf.newCell(label)
+        val nc = cf.newCell(label, dim)
         for {
           prTr <- cn.matchTraverse(sh)({
             case (d, v) => d.duplicateWithGuide(cf, v)
           })
           pr = STree.unzip(prTr)
           (ncn, toJn) = pr
-          rc <- STree.join(toJn)
+          jnPr <- STree.join(toJn)
           _ = ncn.map(_.container = Some(nc))
-        } yield (nc, rc)
+          _ = nc.canopy = Some(ncn)
+        } yield (nc, jnPr)
       }
-      case (None, SLeaf) => 
-        for {
-          srcs <- sourceTree
-          cst = srcs.map(_ => SLeaf)
-        } yield (cf.newCell(label), SNode(SNode(thisCell, cst), cst))
-      case (None, SNode(_, _)) => None // An error in the guide
+      case (None, SNode(c, _)) => None // An error in the guide
     }
+  }
 
-  def compressWithGuide(guide: STree[STree[C]]) : Option[C] = 
+  def compressWithGuide[D <: Cell[A, D]](cf: CellFactory[A, C], guide: STree[STree[D]]) : Option[C] = {
     guide match {
+      case SNode(SLeaf, sh) => {
+        // This is the case where we must duplicate ...
+        val nc = cf.newCell(label, dim)
+        nc.container = Some(thisCell)
+        nc.sourceTree = sourceTree
+        nc.target = target
+        canopy = Some(corollaWith(nc))
+        for {
+          root <- sh.rootValue
+          ds <- nc.compressWithGuide(cf, root)
+        } yield thisCell
+      }
       case SNode(sk, sh) => 
         for {
           sp <- spine(sk)
           ds <- sp.matchTraverse(sh)({
-            case (d, v) => d.compressWithGuide(v)
+            case (d, v) => d.compressWithGuide(cf, v)
           })
           _ = ds.map(d => d.container = Some(thisCell))
           _ = thisCell.canopy = Some(ds)
         } yield thisCell
       case SLeaf => Some(thisCell)
     }
-
-  def extractWithGuide(cf: CellFactory[A, C], guide: STree[C]) : Option[C] =
-    for {
-      tgt <- target
-      sp <- spine
-      prevBase <- tgt.extractWithGuide(cf, sp)
-      pr <- duplicateWithGuide(cf, guide)
-      (thisBase, toCompress) = pr
-      _ <- prevBase.compressWithGuide(toCompress)
-    } yield thisBase
-
-  def face(cf: CellFactory[A, C]): Option[C] = {
-    val nc = cf.newCell(label)
-    for {
-      srcs <- sourceTree
-      sp <- spine
-      tmp <- extractWithGuide(cf, sp)
-      nt <- compressWithGuide(SNode(sp, srcs.map(_ => SLeaf)))
-    } yield nc
   }
 
+  def extractWithGuide[D <: Cell[A, D]](cf: CellFactory[A, D], guide: STree[C]) : Option[D] =
+    for {
+      pr <- duplicateWithGuide(cf, guide)
+      (thisBase, joinedShell) = pr
+      (localSpine, toCompress) = STree.unzip(joinedShell)
+      sp <- STree.join(toCompress)
+      _ <- target match {
+        case None => Some(())
+        case Some(tgt) => 
+          for {
+            prevBase <- tgt.extractWithGuide(cf, sp)
+            _ <- prevBase.compressWithGuide(cf, toCompress)
+            _ <- localSpine.matchTraverse(prevBase.verticalTree)({
+              case (sc, et) => Some({
+                sc.sourceTree = et.canopy
+                sc.target = Some(et)
+                et.incoming = Some(sc)
+                et.canopy.map(_.map(s => { s.outgoing = Some(sc) }))
+              })
+            })
+            psp <- prevBase.spine
+            _ <- thisBase.refreshWith(psp)
+          } yield ()
+            //thisBase.target = Some(prevBase)  // Do we need this now?
+      }
+    } yield thisBase
+
+  def face[D <: Cell[A, D]](cf: CellFactory[A, D]): Option[D] = {
+
+    val nc = cf.newCell(label, dim)
+
+    println("Starting face routine")
+
+    sourceTree match {
+      case None => Some(nc) // Case of an object
+      case Some(srcs) => 
+        for {
+          sp <- spine
+          tgt <- target
+          tmp <- tgt.extractWithGuide(cf, sp)
+          nt <- tmp.compressWithGuide(cf, SNode(sp, srcs.map(_ => SLeaf)))
+          _ = nt.incoming = Some(nc)
+          _ = nt.canopy.map(_.map(s => { s.outgoing = Some(nc) }))
+          _ = nc.target = Some(nt)
+          _ = nc.sourceTree = nt.canopy
+        } yield nc
+    }
+
+  }
 
 }
 
 
 trait CellFactory[A, C <: Cell[A, C]] {
 
-  def newCell(opt: Option[A]) : C
+  def newCell(opt: Option[A], dim: Int) : C
 
 }
+
