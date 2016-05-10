@@ -19,14 +19,14 @@ import syntax.complex._
 
 abstract class ComplexBuilder[A, C <: Cell[A, C]] {
 
-  type OptA[N <: Nat] = Option[A]
+  type AFam[N <: Nat] = A
 
-  def newCell(opt: Option[A]): C
-  def newCell(opt: Option[A], d: Nat): C
+  def newCell(a: A): C
+  def newCell(a: A, d: Nat): C
 
   def registerBaseCell(cell: C) : Unit
 
-  def fromBox[N <: Nat](b: Box[Option[A], N]): Nesting[C, N] = 
+  def fromBox[N <: Nat](b: Box[A, N]): Nesting[C, N] = 
     b match {
       case Box(a, cn) => {
 
@@ -46,17 +46,17 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
     }
 
   @natElim
-  def fromNesting[N <: Nat](n: N)(nst: Nesting[Option[A], N]) : Nesting[C, N] = {
+  def fromNesting[N <: Nat](n: N)(nst: Nesting[A, N]) : Nesting[C, N] = {
     case (Z, Obj(o)) => Obj(newCell(o))
     case (Z, b @ Box(a, cn)) => fromBox(b)
     case (S(p), Dot(o, _)) => Dot(newCell(o, S(p)), S(p))
     case (S(p), b @ Box(a, cn)) => fromBox(b)
   }
 
-  def fromNesting[N <: Nat](nst: Nesting[Option[A], N]) : Nesting[C, N] = 
+  def fromNesting[N <: Nat](nst: Nesting[A, N]) : Nesting[C, N] = 
     fromNesting(nst.dim)(nst)
 
-  def toNesting[N <: Nat](n: N)(sc: C): Option[Nesting[Option[A], N]] = 
+  def toNesting[N <: Nat](n: N)(sc: C): Option[Nesting[A, N]] = 
     sc.canopy match {
       case None => Some(Nesting.external(n)(sc.label))
       case Some(cn) => 
@@ -130,7 +130,7 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
     }
 
     @natElim
-    def fromComplex[N <: Nat](n: N)(c: Complex[OptA, N]): ShapeM[Nesting[C, N]] = {
+    def fromComplex[N <: Nat](n: N)(c: Complex[AFam, N]): ShapeM[Nesting[C, N]] = {
       case (Z, Complex(_, objs)) => {
         val no = fromNesting(objs)
         registerBaseCell(no.baseValue)
@@ -147,11 +147,11 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
     }
 
     @natElim
-    def toComplex[N <: Nat](n: N)(sc: C): Option[Complex[OptA, N]] = {
+    def toComplex[N <: Nat](n: N)(sc: C): Option[Complex[AFam, N]] = {
       case (Z, sc) => {
         for {
           objNst <- toNesting(Z)(sc)
-        } yield Complex[OptA] >> objNst
+        } yield Complex[AFam] >> objNst
       }
       case (S(p: P), sc) => {
         for {

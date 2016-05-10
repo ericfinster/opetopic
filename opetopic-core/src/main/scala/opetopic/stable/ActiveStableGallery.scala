@@ -18,7 +18,7 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
 
   class ActiveStableGallery[A](
     val config: StableGalleryConfig, 
-    val renderOption: Option[A] => BoundedElement
+    val renderer: A => BoundedElement
   ) extends StableGallery[A] {
 
     import config._
@@ -81,14 +81,14 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
 
     }
 
-    class ActiveCell(var label: Option[A]) extends VisualCell { thisCell =>
+    class ActiveCell(var label: A) extends VisualCell { thisCell =>
 
       //
       //  Cell Structure Variables
       //
 
       var labelElement: BoundedElement = 
-        renderOption(label)
+        renderer(label)
 
       //
       //  Visual Elements
@@ -143,13 +143,10 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
 
     object StableBuilder extends ComplexBuilder[A, ActiveCell] {
 
-      def newCell(opt: Option[A]): ActiveCell = {
-        val cell = new ActiveCell(opt)
-        cell
-      }
+      def newCell(a: A): ActiveCell = new ActiveCell(a)
 
-      def newCell(opt: Option[A], d: Nat): ActiveCell = {
-        val cell = newCell(opt)
+      def newCell(a: A, d: Nat): ActiveCell = {
+        val cell = newCell(a)
         cell.dim = natToInt(d)
         cell
       }
@@ -161,8 +158,8 @@ trait HasActiveStableGallery extends HasStableGallery { self: ActiveFramework =>
     }
 
     object StableFactory extends CellFactory[A, ActiveCell] {
-      def newCell(opt: Option[A], d: Int): ActiveCell = {
-        val c = new ActiveCell(opt)
+      def newCell(a: A, d: Int): ActiveCell = {
+        val c = new ActiveCell(a)
         c.dim = d
         c
       }

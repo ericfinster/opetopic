@@ -19,21 +19,15 @@ import JQuerySemanticUI._
 
 class JsStableViewer {
 
-  type FType = JsDomFramework.type
-
   var viewerWidth : Int = 0
   var viewerHeight : Int = 0
 
-  def renderOption: Option[String] => BoundedElement = {
-    case None => spacer(Bounds(0,0,600,600))
-    case Some(str) => text(str)
-  }
+  def renderer: String => BoundedElement = 
+    str => text(str)
 
-  val gallery = new ActiveStableGallery(StableGalleryConfig(), renderOption)
+  val gallery = new ActiveStableGallery(StableGalleryConfig(), renderer)
 
-  type OptString[N <: Nat] = Option[String]
-
-  def loadComplex(fc: FiniteComplex[OptString]): Unit = {
+  def loadComplex(fc: FiniteComplex[ConstString]): Unit = {
 
       for {
         _ <- gallery.StableBuilder.fromComplex(fc.n)(fc.value)

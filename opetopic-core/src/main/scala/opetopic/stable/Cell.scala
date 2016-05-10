@@ -15,7 +15,7 @@ import scalaz.std.option._
 trait Cell[A, C <: Cell[A, C]] { thisCell : C => 
 
   var dim: Int = 0
-  var label: Option[A]
+  var label: A
 
   //
   // Cell attributes
@@ -53,6 +53,12 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
       case Some(cn) => thisCell :: cn.toList.map(_.interiorCells).flatten
     }
 
+  def verticalTree: STree[C] = 
+    canopy match {
+      case None => SLeaf
+      case Some(cn) => SNode(thisCell, cn.map(_.verticalTree))
+    }
+
   def targets: List[C] = 
     target match {
       case None => List(thisCell)
@@ -87,12 +93,6 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
           })
           res <- STree.join(toJn)
         } yield res
-    }
-
-  def verticalTree: STree[C] = 
-    canopy match {
-      case None => SLeaf
-      case Some(cn) => SNode(thisCell, cn.map(_.verticalTree))
     }
 
   def refreshWith(lvs: STree[C]) : Option[C] = 
@@ -221,7 +221,7 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
 
 trait CellFactory[A, C <: Cell[A, C]] {
 
-  def newCell(opt: Option[A], dim: Int) : C
+  def newCell(a: A, dim: Int) : C
 
 }
 
