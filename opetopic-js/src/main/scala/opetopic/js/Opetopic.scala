@@ -79,4 +79,41 @@ object Opetopic extends JSApp {
 
 }
 
+object Test {
 
+  // Okay, this setup seems to work, and it looks like we'll be able
+  // to go ahead and add the visual elements to the dom.  So let's 
+  // move ahead with reorganizing the class hierarchy and try to get
+  // back to where we were before.
+
+  // object TestConfig extends StablePanelConfig[JsDomFramework.type] {
+
+  //   val framework = JsDomFramework
+
+  //   def internalPadding : Int = 0
+  //   def externalPadding : Int = 0
+  //   def leafWidth : Int = 0
+  //   def strokeWidth : Int = 0
+  //   def cornerRadius : Int = 0
+
+  // }
+
+  // class TestPanel extends StablePanel[String, JsDomFramework.type] {
+
+  //   type CellType = TestCell
+
+  //   val config = TestConfig
+
+  //   def bounds: Bounds = Bounds()
+  //   def element: Element = spacer(Bounds()).element
+
+  //   class TestCell extends PanelCell {
+
+  //     def label: String = "Hello, world!"
+  //     def labelBounds: Bounds = Bounds()
+
+  //   }
+
+  // }
+
+}
