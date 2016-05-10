@@ -22,6 +22,7 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F) extend
   type PanelType <: StablePanel
 
   def panels: List[PanelType]
+  def element: Element
 
   //
   //  Gallery Options

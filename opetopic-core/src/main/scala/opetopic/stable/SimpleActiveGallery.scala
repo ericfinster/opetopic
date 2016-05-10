@@ -9,11 +9,8 @@ package opetopic.stable
 
 import scala.collection.mutable.Buffer
 
+import opetopic._
 import opetopic.ui._
-
-trait Renderable[A] {
-  def render(frmwk: UIFramework)(a: A) : frmwk.BoundedElement
-}
 
 class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F) 
     extends ActiveStableGallery[A, F](frmwk) {
@@ -48,10 +45,11 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
   var spacing: Size = fromInt(2000)
   var manageViewport : Boolean = false
 
-  class SimpleActivePanel extends ActiveStablePanel {
+  abstract class SimpleActivePanel extends ActiveStablePanel
 
-    def baseCell: SimpleActiveCell = ???
-
+  object SimpleActivePanel {
+    def apply(cell: SimpleActiveCell) : SimpleActivePanel = 
+      new SimpleActivePanel { def baseCell = cell }
   }
 
   class SimpleActiveCell(val label: A) extends ActiveCell {
@@ -63,6 +61,28 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
     def labelBounds: Bounds = labelBE.bounds
     def labelElement: Element = labelBE.element
 
+  }
+
+  object ComplexImporter extends ComplexBuilder[A, SimpleActiveCell] {
+
+    def newCell(a: A): SimpleActiveCell = new SimpleActiveCell(a)
+    def newCell(a: A, d: Nat): SimpleActiveCell = {
+      val c = newCell(a)
+      c.dim = natToInt(d)
+      c
+    }
+
+    def registerBaseCell(cell: SimpleActiveCell): Unit = 
+      myPanels += SimpleActivePanel(cell)
+
+  }
+
+  object SimpleFactory extends CellFactory[A, SimpleActiveCell] {
+    def newCell(a: A, d: Int): SimpleActiveCell = {
+      val c = new SimpleActiveCell(a)
+      c.dim = d
+      c
+    }
   }
 
 }

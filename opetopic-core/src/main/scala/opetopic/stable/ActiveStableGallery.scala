@@ -18,6 +18,31 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
   type PanelType <: ActiveStablePanel
   type CellType <: ActiveCell
 
+  val galleryViewport = viewport
+  def element = galleryViewport
+
+  var onCellClick: ActiveCell => Unit = { _ => () }
+
+  override def layout: Option[Bounds] = {
+    val bo = super.layout
+
+    for { bnds <- bo } yield {
+
+      galleryViewport.width = width
+      galleryViewport.height = height
+      galleryViewport.setBounds(bnds)
+
+      bnds
+
+    }
+  }
+
+  def renderAll: Unit = 
+    for { _ <- layout } {
+      panels.foreach(_.renderAll)
+      galleryViewport.children = panels.map(_.element)
+    }
+
   //============================================================================================
   // ACTIVE PANELS
   //
@@ -26,6 +51,12 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
 
     val panelGroup = group
     def element = panelGroup
+
+    def renderAll: Unit = {
+      baseCell.interiorCells.foreach(_.renderCell)
+      baseCell.target.map(_.interiorCells.foreach(_.renderEdge))
+      renderPanel
+    }
 
     def renderPanel: Unit = {
 
@@ -65,7 +96,7 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
 
     boxRect.onMouseOver = { (e : UIMouseEvent) => () }
     boxRect.onMouseOut = { (e : UIMouseEvent) => () }
-    boxRect.onClick = { (e : UIMouseEvent) => () }
+    boxRect.onClick = { (e : UIMouseEvent) => onCellClick(thisCell) }
 
     val edgePath = {
       val p = path

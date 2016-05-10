@@ -29,35 +29,31 @@ object Opetopic extends JSApp {
       def apply[N <: Nat](n: N)(i: Int) : String = i.toString
     })
 
-  val faceViewer = new JsStableViewer
+  val faceViewer = new JsStableViewer[String]
+  val mainViewer = new JsStableViewer[String]
 
-  val mainViewer = new JsStableViewer
   mainViewer.gallery.onCellClick = 
     (c : mainViewer.gallery.ActiveCell) => {
 
       println("Attempting face for cell " + c.label.toString)
 
-      faceViewer.gallery.panels.clear
+      faceViewer.gallery.myPanels.clear
 
       for {
-        topCell <- c.face(faceViewer.gallery.StableFactory)
+        topCell <- c.face(faceViewer.gallery.SimpleFactory)
       } {
 
         topCell.targets.reverse.foreach(t => {
-          faceViewer.gallery.panels += new faceViewer.gallery.ActivePanel(t)
+          faceViewer.gallery.myPanels += faceViewer.gallery.SimpleActivePanel(t)
         })
 
-
-        faceViewer.gallery.initialize
-        faceViewer.gallery.refreshAll
+        faceViewer.gallery.renderAll
 
         println("Face gallery updated")
 
       }
 
     }
-
-
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -70,50 +66,11 @@ object Opetopic extends JSApp {
     jQuery("#main-viewer-div").append(mainViewer.uiElement)
     jQuery("#face-viewer-div").append(faceViewer.uiElement)
 
-    jQuery(faceViewer.uiElement).append(faceViewer.gallery.uiElement)
+    jQuery(faceViewer.uiElement).append(faceViewer.gallery.element.uiElement)
 
     mainViewer.loadComplex(fredStrComplex)
 
   }
 
-
-}
-
-object Test {
-
-  // Okay, this setup seems to work, and it looks like we'll be able
-  // to go ahead and add the visual elements to the dom.  So let's 
-  // move ahead with reorganizing the class hierarchy and try to get
-  // back to where we were before.
-
-  // object TestConfig extends StablePanelConfig[JsDomFramework.type] {
-
-  //   val framework = JsDomFramework
-
-  //   def internalPadding : Int = 0
-  //   def externalPadding : Int = 0
-  //   def leafWidth : Int = 0
-  //   def strokeWidth : Int = 0
-  //   def cornerRadius : Int = 0
-
-  // }
-
-  // class TestPanel extends StablePanel[String, JsDomFramework.type] {
-
-  //   type CellType = TestCell
-
-  //   val config = TestConfig
-
-  //   def bounds: Bounds = Bounds()
-  //   def element: Element = spacer(Bounds()).element
-
-  //   class TestCell extends PanelCell {
-
-  //     def label: String = "Hello, world!"
-  //     def labelBounds: Bounds = Bounds()
-
-  //   }
-
-  // }
 
 }
