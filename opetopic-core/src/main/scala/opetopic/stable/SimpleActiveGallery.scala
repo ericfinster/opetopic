@@ -18,8 +18,8 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
   import framework._
   import isNumeric._
 
-  type PanelType = SimpleActivePanel
   type CellType = SimpleActiveCell
+  type PanelType = SimpleActivePanel
 
   val myPanels: Buffer[SimpleActivePanel] = Buffer.empty
   def panels = myPanels.toList

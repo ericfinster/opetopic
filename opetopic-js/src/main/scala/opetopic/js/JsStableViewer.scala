@@ -34,11 +34,28 @@ class JsStableViewer[A: Renderable] {
         gallery.renderAll
       }
 
-    jQuery(uiElement).empty().append(gallery.element.uiElement)
+  }
 
+  def loadFace(c: Cell[A, _]): Unit = {
+
+    gallery.myPanels.clear
+
+    for {
+      face <- c.face(gallery.SimpleFactory)
+    } {
+
+      face.targets.reverse.foreach(t => {
+        gallery.myPanels += gallery.SimpleActivePanel(t)
+      })
+
+      gallery.renderAll
+
+    }
   }
 
   val uiElement = 
     div(style := "min-height: 200px").render
+
+  jQuery(uiElement).append(gallery.element.uiElement)
 
 }

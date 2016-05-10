@@ -7,36 +7,46 @@
 
 package opetopic.stable
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Buffer
 
 import opetopic._
 import opetopic.ui._
 
-// trait HasStableEditor extends HasStableGallery { self : ActiveFramework =>
+class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F) 
+    extends ActiveStableGallery[A, F](frmwk) { thisEditor => 
 
-//   class StableEditor[A](
-//     val config: StableGalleryConfig, 
-//     val renderer: A => BoundedElement
-//   ) extends StableGallery[Polarity[Option[A]]] {
+  import framework._
+  import isNumeric._
 
-//     type CellType = EditorCell
-//     type PanelType = EditorPanel
+  type CellType = EditorCell
+  type PanelType = EditorPanel
 
-//     val panels: ListBuffer[EditorPanel] = ListBuffer()
+  val editorPanels: Buffer[EditorPanel]= Buffer.empty
+  def panels = editorPanels.toList
 
-//     class EditorPanel extends Panel {
+  //
+  //  Visual Options
+  //
 
-//       val base: PositiveCell = new PositiveCell
-//       def baseCell: EditorCell = base
+  var internalPadding : Size = fromInt(400)
+  var externalPadding : Size = fromInt(600)
+  var leafWidth : Size = fromInt(200)
+  var strokeWidth : Size = fromInt(100)
+  var cornerRadius : Size = fromInt(200)
 
-//       def element: Element = ???
+  //
+  //  Gallery Options
+  //
 
-//     }
+  var width: Size = fromInt(900)
+  var height: Size = fromInt(300)
+  var minViewX: Option[Size] = None
+  var minViewY: Option[Size] = None
+  var spacing: Size = fromInt(2000)
+  var manageViewport : Boolean = false
 
-//     abstract class EditorCell extends VisualCell {
-
-
-//     }
+  abstract class EditorPanel extends ActiveStablePanel 
+  abstract class EditorCell extends ActiveCell
 
 //     class NeutralCell(var value: Option[A]) extends EditorCell {
 //       def label: Polarity[Option[A]] = Neutral(value)
@@ -52,6 +62,6 @@ import opetopic.ui._
 //       def labelElement: BoundedElement = ???
 //     }
 
-//   }
 
-// }
+}
+

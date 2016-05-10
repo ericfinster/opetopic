@@ -24,36 +24,11 @@ import opetopic.Examples._
 
 object Opetopic extends JSApp {
 
-  val fredStrComplex: Complex[ConstString, _4] =
-    fredComplex.map(new IndexedMap[ConstInt, ConstString] {
-      def apply[N <: Nat](n: N)(i: Int) : String = i.toString
-    })
-
-  val faceViewer = new JsStableViewer[String]
-  val mainViewer = new JsStableViewer[String]
+  val faceViewer = new JsStableViewer[Int]
+  val mainViewer = new JsStableViewer[Int]
 
   mainViewer.gallery.onCellClick = 
-    (c : mainViewer.gallery.ActiveCell) => {
-
-      println("Attempting face for cell " + c.label.toString)
-
-      faceViewer.gallery.myPanels.clear
-
-      for {
-        topCell <- c.face(faceViewer.gallery.SimpleFactory)
-      } {
-
-        topCell.targets.reverse.foreach(t => {
-          faceViewer.gallery.myPanels += faceViewer.gallery.SimpleActivePanel(t)
-        })
-
-        faceViewer.gallery.renderAll
-
-        println("Face gallery updated")
-
-      }
-
-    }
+    (c : mainViewer.gallery.ActiveCell) => { faceViewer.loadFace(c) }
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -66,9 +41,7 @@ object Opetopic extends JSApp {
     jQuery("#main-viewer-div").append(mainViewer.uiElement)
     jQuery("#face-viewer-div").append(faceViewer.uiElement)
 
-    jQuery(faceViewer.uiElement).append(faceViewer.gallery.element.uiElement)
-
-    mainViewer.loadComplex(fredStrComplex)
+    mainViewer.loadComplex(fredComplex)
 
   }
 
