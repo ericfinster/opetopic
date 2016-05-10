@@ -47,6 +47,12 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
   def isExternal: Boolean = 
     canopy == None
 
+  def parent: Option[C] = 
+    for {
+      tgt <- target
+      p <- tgt.outgoing
+    } yield p
+
   def interiorCells: List[C] = 
     canopy match {
       case None => List(thisCell)

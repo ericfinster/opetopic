@@ -7,6 +7,7 @@
 
 package opetopic.stable
 
+import opetopic._
 import opetopic.ui._
 
 trait Renderable[A] {
@@ -14,6 +15,8 @@ trait Renderable[A] {
 }
 
 object Renderable {
+
+  def apply[A](implicit r: Renderable[A]): Renderable[A] = r
 
   implicit object StringRenderable extends Renderable[String] {
     def render(f: UIFramework)(s: String): f.BoundedElement = 
@@ -35,6 +38,16 @@ object Renderable {
             import isNumeric._
             spacer(Bounds(fromInt(0), fromInt(0), fromInt(600), fromInt(600)))
           }
+        }
+    }
+
+  implicit def polarityRenderable[A](implicit r: Renderable[A]): Renderable[Polarity[A]] =
+    new Renderable[Polarity[A]] {
+      def render(f: UIFramework)(pol: Polarity[A]): f.BoundedElement = 
+        pol match {
+          case Positive() => f.text("+")
+          case Negative() => f.text("-")
+          case Neutral(a) => r.render(f)(a)
         }
     }
 
