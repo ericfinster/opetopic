@@ -15,7 +15,7 @@ import scalaz.std.option._
 trait Cell[A, C <: Cell[A, C]] { thisCell : C => 
 
   var dim: Int = 0
-  var label: A
+  def label: A
 
   //
   // Cell attributes
