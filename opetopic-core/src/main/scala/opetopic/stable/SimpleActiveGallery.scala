@@ -58,8 +58,20 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
       implicitly[Renderable[A]].
         render(framework)(label)
 
+    makeMouseInvisible(labelElement)
+
     def labelBounds: Bounds = labelBE.bounds
     def labelElement: Element = labelBE.element
+
+    def onMouseOver: Unit = {
+      boxRect.stroke = "red"
+      edgePath.stroke = "red"
+    }
+
+    def onMouseOut: Unit = {
+      boxRect.stroke = "black"
+      edgePath.stroke = "black"
+    }
 
   }
 

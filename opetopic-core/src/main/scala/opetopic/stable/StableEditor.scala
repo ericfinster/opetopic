@@ -23,9 +23,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)
   type CellType = EditorCell
   type PanelType = EditorPanel
 
-  val editorPanels: Buffer[EditorPanel]= Buffer.empty
-  def panels = editorPanels.toList
-
   val renderer = Renderable[Polarity[Option[A]]]
 
   //
@@ -49,7 +46,34 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)
   var spacing: Size = fromInt(2000)
   var manageViewport : Boolean = false
 
-  abstract class EditorPanel extends ActiveStablePanel 
+  //
+  //  Editor Panels
+  //
+
+  def panels = editorPanels.toList
+  val editorPanels: Buffer[EditorPanel]= {
+
+    // Initialize an empty editor panel
+    val posTop = new PositiveCell
+    val cell = new NeutralCell(None)
+    val posBase = new PositiveCell
+
+    posBase.canopy = Some(SNode(cell, SNode(SLeaf, SLeaf)))
+    cell.container = Some(posBase)
+    cell.outgoing = Some(posTop)
+    posBase.incoming = Some(posTop)
+    posTop.target = Some(posBase)
+    posTop.sourceTree = posBase.canopy
+
+    Buffer(
+      new EditorPanel(posBase), 
+      new EditorPanel(posTop)
+    )
+
+  }
+
+
+  class EditorPanel(val baseCell: PositiveCell) extends ActiveStablePanel
 
   abstract class EditorCell extends ActiveCell 
       with MutableCell
@@ -66,22 +90,39 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)
     def label: Polarity[Option[A]] = Neutral(value)
     var isSelected = false
     val canSelect = true
+
+    override def onMouseOver: Unit = {
+      boxRect.stroke = "red"
+      edgePath.stroke = "red"
+    }
+
+    override def onMouseOut: Unit = {
+      boxRect.stroke = "black"
+      edgePath.stroke = "black"
+    }
+
   }
 
-  class PositiveCell extends EditorCell {
+  abstract class PolarizedCell extends EditorCell {
+
+    val canSelect = false
+    val isSelected = false
+    def isSelected_=(b: Boolean): Unit = ()
+    boxRect.fill = "lightgrey"
+
+    def onMouseOver: Unit = ()
+    def onMouseOut: Unit = ()
+
+  }
+
+  class PositiveCell extends PolarizedCell {
     val label: Polarity[Option[A]] = Positive()
     val be: BoundedElement = renderer.render(framework)(label)
-    val canSelect = false
-    val isSelected = false
-    def isSelected_=(b: Boolean): Unit = ()
   }
 
-  class NegativeCell extends EditorCell {
+  class NegativeCell extends PolarizedCell {
     val label: Polarity[Option[A]] = Negative()
     val be: BoundedElement = renderer.render(framework)(label)
-    val canSelect = false
-    val isSelected = false
-    def isSelected_=(b: Boolean): Unit = ()
   }
 
 }

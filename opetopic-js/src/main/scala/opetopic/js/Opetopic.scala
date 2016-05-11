@@ -27,6 +27,8 @@ object Opetopic extends JSApp {
   val faceViewer = new JsStableViewer[Int]
   val mainViewer = new JsStableViewer[Int]
 
+  val editor = new JsStableEditor[String]
+
   mainViewer.gallery.onCellClick = 
     (c : mainViewer.gallery.ActiveCell) => { faceViewer.loadFace(c) }
 
@@ -41,9 +43,12 @@ object Opetopic extends JSApp {
     jQuery("#main-viewer-div").append(mainViewer.uiElement)
     jQuery("#face-viewer-div").append(faceViewer.uiElement)
 
+    jQuery("#editor-div").append(editor.uiElement)
+
     mainViewer.loadComplex(fredComplex)
 
-  }
+    editor.editor.renderAll
 
+  }
 
 }

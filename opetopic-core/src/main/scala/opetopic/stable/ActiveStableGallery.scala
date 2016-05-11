@@ -91,11 +91,16 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
       val r = rect
       r.r = cornerRadius
       r.strokeWidth = strokeWidth
+      r.fill = "white"
+      r.stroke = "black"
       r
     }
 
-    boxRect.onMouseOver = { (e : UIMouseEvent) => () }
-    boxRect.onMouseOut = { (e : UIMouseEvent) => () }
+    def onMouseOver: Unit
+    def onMouseOut: Unit
+
+    boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }
+    boxRect.onMouseOut = { (e : UIMouseEvent) => onMouseOut }
     boxRect.onClick = { (e : UIMouseEvent) => onCellClick(thisCell) }
 
     val edgePath = {
@@ -110,9 +115,6 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
     def renderCell: Unit = {
 
       cellGroup.children = Seq(boxRect, labelElement)
-
-      boxRect.fill = "white"
-      boxRect.stroke = "black"
 
       boxRect.x = x ; boxRect.y = y ; boxRect.width = width ; boxRect.height = height
 

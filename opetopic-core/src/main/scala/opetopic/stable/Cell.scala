@@ -195,15 +195,12 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
             psp <- prevBase.spine
             _ <- thisBase.refreshWith(psp)
           } yield ()
-            //thisBase.target = Some(prevBase)  // Do we need this now?
       }
     } yield thisBase
 
   def face[D <: Cell[A, D]](cf: CellFactory[A, D]): Option[D] = {
 
     val nc = cf.newCell(label, dim)
-
-    println("Starting face routine")
 
     sourceTree match {
       case None => Some(nc) // Case of an object
