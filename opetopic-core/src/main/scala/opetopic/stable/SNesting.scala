@@ -39,6 +39,9 @@ case class SNstCtxt[+A](val g: List[(A, SDeriv[SNesting[A]])]) {
 
 case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCtxt(Nil)) {
 
+  def withFocus[B >: A](f: SNesting[B]): SNstZipper[B] = 
+    SNstZipper(f, ctxt)
+
   def close: SNesting[A] = 
     ctxt.close(focus)
 
@@ -87,22 +90,45 @@ case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCt
 object SNesting {
 
   implicit object NestingTraverse extends Traverse[SNesting] {
-
-    def traverseImpl[G[_], A, B](n: SNesting[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[SNesting[B]] = {
-
-      import isAp._
-
-      n match {
-        case SDot(a) => ap(f(a))(pure(SDot(_)))
-        case SBox(a, cn) => ap2(f(a), cn.traverse(traverseImpl(_)(f)))(pure(SBox(_, _)))
-      }
-    }
+    
+    def traverseImpl[G[_], A, B](n: SNesting[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[SNesting[B]] = 
+      n.lazyTraverse[G, Unit, B](f)
     
   }
 
-
-
   implicit class SNestingOps[A](nst: SNesting[A]) {
+
+    // Okay, I don't really know about the default derivative used here ....
+    def lazyTraverse[G[_], B, C](
+      f: LazyTraverse[G, A, B, C],
+      addr: => SAddr = Nil, 
+      deriv: => SDeriv[B] = SDeriv(SNode(SLeaf, SNode(SLeaf, SLeaf)))
+    )(implicit isAp: Applicative[G]): G[SNesting[C]] =
+      nst match {
+        case SDot(a) => isAp.ap(f(a, addr, deriv))(isAp.pure(SDot(_)))
+        case SBox(a, cn) => {
+
+          import isAp._
+
+          lazy val gc: G[C] = f(a, addr, deriv)
+          lazy val gcn: G[STree[SNesting[C]]] =
+            cn.traverseWithData[G, B, SNesting[C]](
+              (n, dir, drv) => {
+                lazy val eaddr = SDir(dir) :: addr
+                n.lazyTraverse(f, eaddr, drv)
+              }
+            )
+
+          ap2(gc, gcn)(pure(SBox(_, _)))
+
+        }
+      }
+
+    def baseValue: A = 
+      nst match {
+        case SDot(a) => a
+        case SBox(a, _) => a
+      }
 
     def spine(d: SDeriv[A]): Option[STree[A]] = 
       nst match {
