@@ -7,9 +7,6 @@
 
 package opetopic
 
-import scala.language.higherKinds
-import scala.language.implicitConversions
-
 import scalaz.Monad
 import scalaz.syntax.monad._
 

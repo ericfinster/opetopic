@@ -19,9 +19,13 @@ trait SelectableComplex[A] {
   def deselectAll: Unit = {
     selectedCells.foreach(_.deselect)
     selectedCells.clear
+    selectionRoot = None
   }
 
   trait SelectableCell extends Cell[A, CellType] { thisCell : CellType => 
+
+    def onSelected: Unit = ()
+    def onDeselected: Unit = ()
 
     def canSelect: Boolean
     var isSelected: Boolean
@@ -31,6 +35,8 @@ trait SelectableComplex[A] {
         deselectAll
         isSelected = true
         selectionRoot = Some(thisCell)
+        selectedCells += thisCell
+        onSelected
       }
 
     def select: Unit = 
@@ -54,6 +60,7 @@ trait SelectableComplex[A] {
           buf.foreach(cell => {
             cell.isSelected = true
             selectedCells += cell
+            cell.onSelected
           })
         } else selectAsRoot
 
@@ -61,6 +68,7 @@ trait SelectableComplex[A] {
 
     def deselect: Unit = {
       isSelected = false
+      onDeselected
     }
 
   }

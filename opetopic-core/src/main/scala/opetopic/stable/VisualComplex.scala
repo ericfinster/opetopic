@@ -122,6 +122,13 @@ trait VisualComplex[A, F <: UIFramework] {
     var edgeEndX : Size = zero
     var edgeEndY : Size = zero
 
+    def clearEdge: Unit = {
+      edgeStartX = zero
+      edgeStartY = zero
+      edgeEndX = zero
+      edgeEndY = zero
+    }
+
     //
     //  Path Rendering
     //
@@ -158,7 +165,7 @@ trait VisualComplex[A, F <: UIFramework] {
           val bm = BoxMarker(thisCell)
 
           val outgoingEdge: EdgeMarker =
-            target.map(EdgeStartMarker(_)) getOrElse DummyMarker()
+            target.map(tgt => { tgt.clearEdge ; EdgeStartMarker(tgt)}) getOrElse DummyMarker()
 
           bm.horizontalDependents += outgoingEdge
           bm.verticalDependents += outgoingEdge
@@ -322,7 +329,7 @@ trait VisualComplex[A, F <: UIFramework] {
             lvs.mapAccumL(0)((i: Int, m: LayoutMarker) => (i + 1, (m, i)))
 
           def verticalPass(tr : STree[CellType]) : Option[LayoutMarker] =
-            tr.graftRec[LayoutMarker]({
+            tr.treeFold[LayoutMarker]({
               case addr =>
                 for {
                   leafMarkerWithIndex <- leavesWithIndices.elementAt(addr)

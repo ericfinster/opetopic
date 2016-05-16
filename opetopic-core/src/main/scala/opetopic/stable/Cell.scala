@@ -14,7 +14,7 @@ import scalaz.std.option._
 
 trait Cell[A, C <: Cell[A, C]] { thisCell : C => 
 
-  var dim: Int = 0
+  def dim: Int
   def label: A
 
   //
@@ -52,6 +52,26 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
       tgt <- target
       p <- tgt.outgoing
     } yield p
+
+  def foreach(op : C => Unit) : Unit =
+    canopy match {
+      case None => op(this)
+      case Some(cn) => {
+        for { c <- cn } { c.foreach(op) }
+        op(this)
+      }
+    }
+
+  def foreachWithAddr(op : (C, SAddr) => Unit, addr: SAddr = Nil): Unit = 
+    canopy match {
+      case None => op(this, addr)
+      case Some(cn) => {
+        cn.foreachWithAddr({
+          case (c, dir) => c.foreachWithAddr(op, SDir(dir) :: addr)
+        })
+        op(this, addr)
+      }
+    }
 
   def interiorCells: List[C] = 
     canopy match {
@@ -109,7 +129,7 @@ trait Cell[A, C <: Cell[A, C]] { thisCell : C =>
         sourceTree = Some(lvs)
 
         for {
-          myRoot <- cn.graftRec[C]({
+          myRoot <- cn.treeFold[C]({
             case addr => lvs.elementAt(addr)
           })({
             case (sc, tr) => sc.refreshWith(tr)

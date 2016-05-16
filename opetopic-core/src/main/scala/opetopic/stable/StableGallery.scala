@@ -36,6 +36,16 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F) extend
   def manageViewport : Boolean
 
   //
+  //  Gallery Traversal
+  //
+
+  def foreach(op: CellType => Unit): Unit = 
+    panels.foreach(_.baseCell.foreach(op))
+
+  def foreachWithAddr(op: (CellType, SAddr) => Unit): Unit = 
+    panels.foreach(_.baseCell.foreachWithAddr(op))
+
+  //
   //  Gallery Layout
   //
 
@@ -160,6 +170,7 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F) extend
           tgt <- baseCell.target
           sp <- tgt.spine
           lvs = sp.map((cell: CellType) => {
+            cell.clearEdge
             new LayoutMarker(
               new EdgeStartMarker(cell),
               new EdgeStartMarker(cell),

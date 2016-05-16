@@ -11,6 +11,7 @@ import scalaz.Traverse
 import scalaz.Applicative
 import scalaz.syntax.traverse._
 import scalaz.std.option._
+import scalaz.Id._
 
 import opetopic._
 import syntax.tree._
@@ -19,34 +20,36 @@ sealed trait STree[+A]
 case object SLeaf extends STree[Nothing]
 case class SNode[A](a: A, as: STree[STree[A]]) extends STree[A]
 
-case class SDir(pth: List[SDir])
+case class SDir(val dir: List[SDir])
 
-case class SDeriv[A](sh: STree[STree[A]], gma: SCtxt[A]) {
+case class SDeriv[+A](sh: STree[STree[A]], gma: SCtxt[A] = SCtxt(Nil)) {
 
-  def plug(a: A) : STree[A] = 
-    gma.close(SNode(a, sh))
+  def plug[B >: A](b: B) : STree[B] = 
+    gma.close(SNode(b, sh))
 
 }
 
-case class SCtxt[A](val g: List[(A, SDeriv[STree[A]])]) {
+case class SCtxt[+A](val g: List[(A, SDeriv[STree[A]])]) {
 
-  def close(t: STree[A]) : STree[A] = 
+  def close[B >: A](t: STree[B]) : STree[B] = 
     g match {
       case Nil => t
       case (a, d) :: gs => 
         SCtxt(gs).close(SNode(a, d.plug(t)))
     }
 
-  def ::(pr : (A, SDeriv[STree[A]])): SCtxt[A] = 
+  def ::[B >: A](pr : (B, SDeriv[STree[B]])): SCtxt[B] = 
     SCtxt(pr :: g)
 
 }
 
-case class SZipper[A](val head: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
+case class SZipper[+A](val focus: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
+
+  def close: STree[A] = 
+    ctxt.close(focus)
 
   def visit(d: SDir): Option[SZipper[A]] = 
-    (head, d) match {
-      // case (SLeaf, SDir(Nil)) => Some(this) // Do we need this?
+    (focus, d) match {
       case (SLeaf, _) => None
       case (SNode(a, as), SDir(ds)) => 
         for {
@@ -59,8 +62,8 @@ case class SZipper[A](val head: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
         } yield r
     }
 
-  def seek(a: List[SDir]): Option[SZipper[A]] = 
-    a match {
+  def seek(addr: SAddr): Option[SZipper[A]] = 
+    addr match {
       case Nil => Some(this)
       case d :: ds => 
         for {
@@ -73,32 +76,15 @@ case class SZipper[A](val head: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
 
 object STree {
 
-  type SAddr = List[SDir]
-
   //============================================================================================
   // TRAVERSE INSTANCE
   //
 
-  implicit object StableTreeTraverse extends Traverse[STree] {
+  implicit object STreeTraverse extends Traverse[STree] {
 
-    def traverseImpl[G[_], A, B](st: STree[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[STree[B]] = {
+    def traverseImpl[G[_], A, B](st: STree[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[STree[B]] = 
+      st.lazyTraverse[G, Unit, B](f)
 
-      import isAp._
-
-      st match {
-        case SLeaf => pure(SLeaf)
-        case SNode(a, as) => {
-
-          val gb: G[B] = f(a)
-          val gbs: G[STree[STree[B]]] = 
-            traverseImpl(as)(traverseImpl(_)(f))
-
-          ap2(gb, gbs)(pure(SNode(_, _)))
-
-        }
-      }
-
-    }
   }
 
   //============================================================================================
@@ -107,56 +93,49 @@ object STree {
 
   implicit class STreeOps[A](st: STree[A]) {
 
-    def mapWithAddr[B](f: (A, SAddr) => B, addr: SAddr = Nil): STree[B] = 
-      st match {
-        case SLeaf => SLeaf
-        case SNode(a, as) => {
-
-          val bs = as.mapWithAddr((b, dir) => {
-            b.mapWithAddr(f, SDir(dir) :: addr)
-          })
-
-          SNode(f(a, addr), bs)
-
-        }
-      }
-
-    def traverseWithAddr[G[_], B](f: (A, SAddr) => G[B], addr: SAddr = Nil)(implicit isAp: Applicative[G]): G[STree[B]] = 
+    def lazyTraverse[G[_], B, C](f: LazyTraverse[G, A, B, C], addr: => SAddr = Nil)(implicit isAp: Applicative[G]): G[STree[C]] = 
       st match {
         case SLeaf => isAp.pure(SLeaf)
         case SNode(a, as) => {
 
           import isAp._
 
-          val gb: G[B] = f(a, addr)
-          val gbs: G[STree[STree[B]]] = 
-            as.traverseWithAddr({
-              case (b, dir) => b.traverseWithAddr(f, SDir(dir) :: addr)
+          lazy val ld: SDeriv[B] = SDeriv(as.asShell) 
+          lazy val gc: G[C] = f(a, addr, ld)
+
+          lazy val gcs: G[Shell[C]] = {
+            as.lazyTraverse(new LazyTraverse[G, STree[A], B, STree[C]] {
+              def apply(b: STree[A], dir: => SAddr, der: => SDeriv[B]): G[STree[C]] = {
+                lazy val eaddr = SDir(dir) :: addr
+                b.lazyTraverse(f, eaddr)
+              }
             })
-
-          ap2(gb, gbs)(pure(SNode(_, _)))
-
-        }
-      }
-
-    def traverseWithData[G[_], B, C](f: (A, SAddr, SDeriv[B]) => G[C], addr: SAddr = Nil)(implicit isAp: Applicative[G]): G[STree[C]] = 
-      st match {
-        case SLeaf => isAp.pure(SLeaf)
-        case SNode(a, as) => {
-
-          import isAp._
-
-          val gc: G[C] = f(a, addr, SDeriv(as.map(_ => SLeaf), SCtxt(Nil)))
-          val gcs: G[STree[STree[C]]] = 
-            as.traverseWithAddr({
-              case (b, dir) => b.traverseWithData(f, SDir(dir) :: addr)
-            })
+          }
 
           ap2(gc, gcs)(pure(SNode(_, _)))
 
         }
       }
 
+    def mapWithAddr[B](f: (A, => SAddr) => B): STree[B] = 
+      lazyTraverse(funcAddrToLt[Id, A, B](f))
+
+    def mapWithDeriv[B, C](f: (A, => SDeriv[B]) => C): STree[C] = 
+      lazyTraverse(funcDerivToLt[Id, A, B, C](f))
+
+    def mapWithData[B, C](f: (A, => SAddr, => SDeriv[B]) => C): STree[C] = 
+      lazyTraverse(funcAddrDerivToLt[Id, A, B, C](f))
+
+    def traverseWithAddr[G[_], B](f: (A, => SAddr) => G[B])(implicit isAp: Applicative[G]): G[STree[B]] = 
+      lazyTraverse(funcAddrToLt[G, A, B](f))
+
+    def traverseWithDeriv[G[_], B, C](f: (A, => SDeriv[B]) => G[C])(implicit isAp: Applicative[G]): G[STree[C]] = 
+      lazyTraverse(funcDerivToLt[G, A, B, C](f))
+
+    def traverseWithData[G[_], B, C](f: (A, => SAddr, => SDeriv[B]) => G[C])(implicit isAp: Applicative[G]): G[STree[C]] = 
+      lazyTraverse(funcAddrDerivToLt[G, A, B, C](f))
+
+    // Rewrite these using laziness as with the traverse implementation ....
     def matchWith[B](tt: STree[B]): Option[STree[(A, B)]] = 
       (st, tt) match {
         case (SLeaf, SLeaf) => Some(SLeaf)
@@ -187,7 +166,7 @@ object STree {
         case (SLeaf, SLeaf) => Some(SLeaf)
         case (SNode(a, as), SNode(b, bs)) => 
           for {
-            d <- f(a, b, SDeriv(bs.map(_ => SLeaf), SCtxt(Nil)))
+            d <- f(a, b, SDeriv(bs.asShell, SCtxt(Nil)))
             ds <- as.matchTraverse(bs)({ case (r, s) => r.matchWithDeriv(s)(f) })
           } yield SNode(d, ds)
         case _ => None
@@ -201,18 +180,72 @@ object STree {
 
     def elementAt(addr: SAddr): Option[A] = 
       for {
-        z <- SZipper(st).seek(addr)
-        v <- z.head.rootValue
+        z <- st.seekTo(addr)
+        v <- z.focus.rootValue
       } yield v
+
+    def seekTo(addr: SAddr): Option[SZipper[A]] = 
+      SZipper(st).seek(addr)
+
+    def asShell[B]: STree[STree[B]] = 
+      st.map(_ => SLeaf)
+
+    def treeFold[B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
+      STree.treeFold(st)(lr)(nr)
 
     def graftWith(brs: STree[STree[A]]): Option[STree[A]] = 
       graft(st, brs)
 
-    def graftRec[B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
-      STree.graftRec(st)(lr)(nr)
+    // Fix for laziness ...
+    def flattenWith[B](d: SDeriv[B], addr: SAddr = Nil)(f: SAddr => B): Option[STree[B]] = 
+      st match {
+        case SLeaf => Some(d.plug(f(addr)))
+        case SNode(a, sh) => 
+          for {
+            toJn <- sh.traverseWithData[Option, B, STree[B]](
+              (t, dir, deriv) => t.flattenWith(deriv, SDir(dir) :: addr)(f)
+            )
+            res <- join(toJn)
+          } yield res
+      }
 
     def unstableOfDim[N <: Nat](n: N): Option[Tree[A, N]] = 
       unstably(n)(st)
+
+    def takeWhile(deriv: SDeriv[STree[A]], prop: A => Boolean): Option[(STree[A], STree[STree[A]])] = 
+      st match {
+        case SLeaf => Some(SLeaf, deriv.plug(SLeaf))
+        case SNode(a, sh) => 
+          if (prop(a)) {
+            for {
+              pr <- sh.traverseWithDeriv[Option, STree[A], (STree[A], STree[STree[A]])](
+                (b, d) => b.takeWhile(d, prop)
+              )
+              (newSh, toJn) = STree.unzip(pr)
+              cropping <- STree.join(toJn)
+            } yield (SNode(a, newSh), cropping)
+          } else Some(SLeaf, sh)
+      }
+
+    def foreach(op: A => Unit): Unit = 
+      st match {
+        case SLeaf => ()
+        case SNode(a, sh) => {
+          for { b <- sh } { b.foreach(op) }
+          op(a)
+        }
+      }
+
+    def foreachWithAddr(op: (A, SAddr) => Unit, addr: SAddr = Nil): Unit = 
+      st match {
+        case SLeaf => ()
+        case SNode(a, sh) => {
+          sh.foreachWithAddr({
+            case (b, dir) => b.foreachWithAddr(op, SDir(dir) :: addr)
+          })
+          op(a, addr)
+        }
+      }
 
   }
 
@@ -237,7 +270,7 @@ object STree {
   // GRAFTING AND JOINING
   //
 
-  case class STreeGrafter[A, B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]) {
+  case class STreeFold[A, B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]) {
 
     def unzipAndJoin(t: STree[(STree[B], STree[SAddr])]): Option[(STree[STree[B]], STree[SAddr])] = {
       val (bs, adJn) = unzip(t)
@@ -252,21 +285,21 @@ object STree {
       } yield (SNode(b, bs), at)
 
 
-    def graftPass(h: STree[STree[A]], addr: SAddr, d: SDeriv[SAddr]): Option[(STree[B], STree[SAddr])] = 
+    def foldPass(h: STree[STree[A]], addr: SAddr, d: SDeriv[SAddr]): Option[(STree[B], STree[SAddr])] = 
       h match {
         case SLeaf => Some(SLeaf, d.plug(addr))
         case SNode(SLeaf, hs) => 
           for {
             hr <- hs.traverseWithData[Option, SAddr, (STree[B], STree[SAddr])]({
-              case (hbr, dir, deriv) => graftPass(hbr, SDir(dir) :: addr, deriv)
+              (hbr, dir, deriv) => foldPass(hbr, SDir(dir) :: addr, deriv)
             })
             r <- unzipJoinAndAppend(hr, lr(addr))
           } yield r
         case SNode(SNode(a, vs), hs) =>
           for {
-            pr <- graftPass(vs, addr, d)
+            pr <- foldPass(vs, addr, d)
             (bs, at) = pr
-            mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(graftPass(_, _, _))
+            mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _))
             r <- unzipJoinAndAppend(mr, nr(a, bs))
           } yield r
       }
@@ -275,7 +308,7 @@ object STree {
       for {
         pa <- m
         (c, at) = pa
-        r <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(graftPass(_, _, _))
+        r <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _))
         pb <- unzipAndJoin(r)
         (cs, atr) = pb
         b <- nr(a, SNode(c, cs))
@@ -299,15 +332,16 @@ object STree {
 
   }
 
-  def graftRec[A, B](t: STree[A])(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] = 
+  def treeFold[A, B](t: STree[A])(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] = 
     t match {
       case SLeaf => lr(Nil)
       case SNode(a, SLeaf) => nr(a, SLeaf)
-      case SNode(a, SNode(v, hs)) => STreeGrafter(lr)(nr).initVertical(a, v, hs).map(_._1)
+      case SNode(a, SNode(v, hs)) => STreeFold(lr)(nr).initVertical(a, v, hs).map(_._1)
     }
 
   def graft[A](st: STree[A], bs: STree[STree[A]]): Option[STree[A]] = 
-    graftRec(st)(bs.elementAt(_))({ case (a, as) => Some(SNode(a, as)) })
+    treeFold(st)(bs.elementAt(_))({ case (a, as) => Some(SNode(a, as)) })
+
 
   def join[A](st: STree[STree[A]]): Option[STree[A]] = 
     st match {
@@ -318,6 +352,25 @@ object STree {
           res <- graft(a, blorp)
         } yield res
     }
+
+  implicit class ShellOps[A](sh: STree[STree[A]]) {
+
+    def join: Option[STree[A]] = 
+      STree.join(sh)
+
+    def extents: Option[STree[SAddr]] = 
+      extents(Nil)
+
+    def extents(addr: SAddr): Option[STree[SAddr]] = 
+      for {
+        jnSh <- sh.traverseWithData[Option, SAddr, STree[SAddr]]({
+          case (SLeaf, dir, deriv) => Some(deriv.plug(SDir(dir) :: addr))
+          case (SNode(_, ssh), dir, deriv) => ssh.extents(SDir(dir) :: addr)
+        })
+        res <- jnSh.join
+      } yield res
+
+  }
 
   //============================================================================================
   // CONSTRUCTORS

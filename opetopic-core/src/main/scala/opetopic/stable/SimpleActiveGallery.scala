@@ -24,6 +24,8 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
   val myPanels: Buffer[SimpleActivePanel] = Buffer.empty
   def panels = myPanels.toList
 
+  var onCellClick: ActiveCell => Unit = { _ => () }
+
   //
   //  Visual Options
   //
@@ -52,7 +54,7 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
       new SimpleActivePanel { def baseCell = cell }
   }
 
-  class SimpleActiveCell(val label: A) extends ActiveCell {
+  class SimpleActiveCell(val label: A, val dim: Int) extends ActiveCell {
 
     val labelBE: BoundedElement =
       implicitly[Renderable[A]].
@@ -62,6 +64,8 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
 
     def labelBounds: Bounds = labelBE.bounds
     def labelElement: Element = labelBE.element
+
+    def onClick: Unit = onCellClick(this)
 
     def onMouseOver: Unit = {
       boxRect.stroke = "red"
@@ -77,12 +81,9 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
 
   object ComplexImporter extends ComplexBuilder[A, SimpleActiveCell] {
 
-    def newCell(a: A): SimpleActiveCell = new SimpleActiveCell(a)
-    def newCell(a: A, d: Nat): SimpleActiveCell = {
-      val c = newCell(a)
-      c.dim = natToInt(d)
-      c
-    }
+    def newCell(a: A): SimpleActiveCell = new SimpleActiveCell(a, 0)
+    def newCell(a: A, d: Nat): SimpleActiveCell = 
+      new SimpleActiveCell(a, natToInt(d))
 
     def registerBaseCell(cell: SimpleActiveCell): Unit = 
       myPanels += SimpleActivePanel(cell)
@@ -90,11 +91,8 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)
   }
 
   object SimpleFactory extends CellFactory[A, SimpleActiveCell] {
-    def newCell(a: A, d: Int): SimpleActiveCell = {
-      val c = new SimpleActiveCell(a)
-      c.dim = d
-      c
-    }
+    def newCell(a: A, d: Int): SimpleActiveCell = 
+      new SimpleActiveCell(a, d)
   }
 
 }

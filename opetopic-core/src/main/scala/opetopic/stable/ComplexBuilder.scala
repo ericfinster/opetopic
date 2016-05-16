@@ -76,7 +76,7 @@ abstract class ComplexBuilder[A, C <: Cell[A, C]] {
         c.sourceTree = Some(lvs)
 
         for {
-          myRoot <- cn.graftRec[C]({
+          myRoot <- cn.treeFold[C]({
             case addr => lvs.elementAt(addr)
           })({
             case (sc, tr) => {
