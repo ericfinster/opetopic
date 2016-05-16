@@ -136,6 +136,35 @@ object SNesting {
         case SBox(a, cn) => cn.spine
       }
 
+    // It seems one way to get rid of the double join here
+    // is to have another spine implementation which returns
+    // the spind as a canopy, that is, as a tree of nestings.
+
+    // Follow the guide tree, extracting the boxes which match it.
+    // Return the resulting nesting, as well as simultaneously calculating
+    // the spine which remains above the crop point.
+    def exciseWith[B](tr: STree[B], d: SDeriv[A]): Option[(SNesting[A], STree[SNesting[A]], STree[A])] = 
+      (nst, tr) match {
+        case (_, SLeaf) => 
+          for {
+            sp <- nst.spine(d)
+            v = nst.baseValue
+          } yield (SDot(v), d.plug(v).map(SDot(_)), sp)
+        case (SBox(a, cn), SNode(_, sh)) => {
+          for {
+            trplTr <- cn.matchWithDeriv(sh)({
+              case (nn, tt, dd) => nn.exciseWith(tt, dd)
+            })
+            (ncn, ljn, gjn) = STree.unzip3(trplTr)
+            lcn <- ljn.join  // Can you think of a way to avoid the double join????
+            gcn <- gjn.join
+          } yield (SBox(a, ncn), lcn, gcn)
+        }
+        case (SDot(_), SNode(_, _)) => None
+      }
+
+    def compressWith[B](sh: Shell[B]): Option[SNesting[A]] = None
+
   }
 
   implicit class SCanopyOps[A](cn: STree[SNesting[A]]) {
@@ -146,6 +175,23 @@ object SNesting {
       }).flatMap(STree.join(_))
 
   }
+
+  //============================================================================================
+  // CONSTRUCTOR
+  //
+
+  import opetopic._
+
+  @natElim
+  def apply[A, N <: Nat](n: N)(nst: Nesting[A, N]): SNesting[A] = {
+    case (Z, Obj(a)) => SDot(a)
+    case (Z, Box(a, cn)) => SBox(a, STree(cn).map(SNesting(_)))
+    case (S(p), Dot(a, _)) => SDot(a)
+    case (S(p), Box(a, cn)) => SBox(a, STree(cn).map(SNesting(_)))
+  }
+
+  def apply[A, N <: Nat](nst: Nesting[A, N]): SNesting[A] = 
+    SNesting(nst.dim)(nst)
 
 }
 

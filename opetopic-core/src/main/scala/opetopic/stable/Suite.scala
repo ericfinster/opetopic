@@ -49,6 +49,12 @@ object Suite {
         case _ >> a => a
       }
 
+    def withHead(a: A): Suite[A] = 
+      s match {
+        case ||(_) => ||(a)
+        case tl >> _ => tl >> a
+      }
+
     def tail: Option[Suite[A]] = 
       s match {
         case ||(_) => None

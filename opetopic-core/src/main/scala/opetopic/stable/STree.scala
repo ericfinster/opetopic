@@ -227,6 +227,26 @@ object STree {
           } else Some(SLeaf, sh)
       }
 
+    def splitWith[B, C](f: A => (B, C)): (STree[B], STree[C]) =
+      st match {
+        case SLeaf => (SLeaf, SLeaf)
+        case SNode(a, sh) => {
+          val (b, c) = f(a)
+          val (bs, cs) = sh.splitWith(_.splitWith(f))
+          (SNode(b, bs), SNode(c, cs))
+        }
+      }
+
+    def tripleSplitWith[B, C, D](f: A => (B, C, D)): (STree[B], STree[C], STree[D]) = 
+      st match {
+        case SLeaf => (SLeaf, SLeaf, SLeaf)
+        case SNode(a, sh) => {
+          val (b, c, d) = f(a)
+          val (bs, cs, ds) = sh.tripleSplitWith(_.tripleSplitWith(f))
+          (SNode(b, bs), SNode(c, cs), SNode(d, ds))
+        }
+      }
+
     def foreach(op: A => Unit): Unit = 
       st match {
         case SLeaf => ()
@@ -253,18 +273,11 @@ object STree {
   // SPLIT AND UNZIP
   //
 
-  def splitWith[A, B, C](tr: STree[C])(f: C => (A, B)) : (STree[A], STree[B]) = 
-    tr match {
-      case SLeaf => (SLeaf, SLeaf)
-      case SNode(c, cs) => {
-        val (a, b) = f(c)
-        val (as, bs) = splitWith(cs)(splitWith(_)(f))
-        (SNode(a, as), SNode(b, bs))
-      }
-    }
-
   def unzip[A, B](tr: STree[(A, B)]): (STree[A], STree[B]) = 
-    splitWith(tr)({ case (a, b) => (a, b) })
+    tr.splitWith({ case (a, b) => (a, b) })
+
+  def unzip3[A, B, C](tr: STree[(A, B, C)]): (STree[A], STree[B], STree[C]) = 
+    tr.tripleSplitWith({ case (a, b, c) => (a, b, c) })
 
   //============================================================================================
   // GRAFTING AND JOINING
@@ -398,5 +411,13 @@ object STree {
       } yield Node(a, cs)
   }
 
+  def obj[A](a: A): STree[A] = 
+    SNode(a, SNode(SLeaf, SLeaf))
+
+  def lst[A](l: List[A]): STree[A] = 
+    l match {
+      case Nil => SLeaf
+      case a :: as => SNode(a, obj(lst(as)))
+    }
 
 }

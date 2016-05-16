@@ -9,51 +9,19 @@ package opetopic.stable
 
 object Experiment {
 
+  import opetopic._
+  import opetopic.Examples._
 
-  abstract class DataWrapper {
-    val i: Int
-    val j: Int
-  }
+  val fredSComplex: SComplex[Int] = 
+    SComplex(fredComplex)
 
-  object DataWrapper {
+  val arrow: SComplex[Int] = 
+    ||(SBox(1, SNode(SDot(2), SNode(SLeaf, SLeaf)))) >> SDot(3)
 
-    def apply(ii: => Int, jj: => Int): DataWrapper =
-      new DataWrapper {
-        lazy val i = ii
-        lazy val j = jj
-      }
+  val simplex: SComplex[Int] = 
+    ||(SBox(1, STree.obj(SBox(2, STree.obj(SDot(3)))))) >>
+      SBox(4, STree.lst(List(SDot(5), SDot(6)))) >>
+      SDot(7)
 
-  }
-
-  val test: List[Int] = 
-    List(1,2,3,4,5,6,7,8,9)
-
-  def testLength: Int = {
-    println("Calculating test length")
-    test.length
-  }
-
-  def wrap: List[DataWrapper] = 
-    test.map((i: Int) => 
-      DataWrapper(i, testLength)
-    )
-
-  def doTest: Unit = 
-    println(wrap.map(_.i.toString))
-
-  import scalaz.Traverse
-  import scalaz.syntax.traverse._
-
-  val testTree: STree[Int] = 
-    SNode(4, SNode(SNode(3, SLeaf), SLeaf))
-
-  def mappedTree: STree[Int] = 
-    testTree.map(_ + 1)
-
-  def addrMappedTree: STree[Int] = 
-    testTree.mapWithAddr((i, addr) => i + 1 )
-
-  def derivMappedTree: STree[Int] = 
-    testTree.mapWithDeriv[Unit, Int]((i, d) => { println(d.toString) ; i + 1 })
 
 }
