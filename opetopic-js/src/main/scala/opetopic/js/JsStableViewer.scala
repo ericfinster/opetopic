@@ -17,41 +17,12 @@ import opetopic.stable._
 import JsDomFramework.{SimpleActiveGallery => _, _}
 import JQuerySemanticUI._
 
-class JsStableViewer[A: Renderable] {
+class JsStableViewer[A: Renderable](c: SComplex[A]) {
 
-  var viewerWidth : Int = 0
-  var viewerHeight : Int = 0
+  type GalleryType = SimpleActiveGallery[A, JsDomFramework.type]
 
-  val gallery = new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)
-
-  type ConstA[N <: Nat] = A
-
-  def loadComplex(fc: FiniteComplex[ConstA]): Unit = {
-
-      for {
-        _ <- gallery.ComplexImporter.fromComplex(fc.n)(fc.value)
-      } {
-        gallery.renderAll
-      }
-
-  }
-
-  def loadFace(c: Cell[A, _]): Unit = {
-
-    gallery.myPanels.clear
-
-    for {
-      face <- c.face(gallery.SimpleFactory)
-    } {
-
-      face.targets.reverse.foreach(t => {
-        gallery.myPanels += gallery.SimpleActivePanel(t)
-      })
-
-      gallery.renderAll
-
-    }
-  }
+  val gallery: GalleryType =
+    new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(c)
 
   val uiElement = 
     div(style := "min-height: 200px").render

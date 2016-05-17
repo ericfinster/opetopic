@@ -59,6 +59,9 @@ trait ComplexTypes {
     //  Source Calculation
     //
 
+    def truncateToDim(i: Int) = 
+      c.take(i + 1)
+
     def sourceAt(addr: SAddr): Option[SComplex[A]] = 
       for {
         z <- SCmplxZipper(c).seek(addr)

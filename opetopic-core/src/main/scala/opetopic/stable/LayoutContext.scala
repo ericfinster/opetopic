@@ -42,8 +42,7 @@ trait LayoutContext[A, F <: UIFramework] {
   // CELL BOXES
   //
 
-  abstract class CellBox extends Rooted { 
-    thisBox : BoxType =>
+  trait CellBox extends Rooted { thisBox : BoxType =>
 
     def labelElement : Element 
     def labelBounds : Bounds 
@@ -129,8 +128,7 @@ trait LayoutContext[A, F <: UIFramework] {
   // CELL EDGES
   //
 
-  abstract class CellEdge {
-    thisEdge : EdgeType => 
+  trait CellEdge { thisEdge : EdgeType =>
 
     //
     //  Mutable Values

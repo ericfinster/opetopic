@@ -24,13 +24,33 @@ import opetopic.Examples._
 
 object Opetopic extends JSApp {
 
-  val faceViewer = new JsStableViewer[Int]
-  val mainViewer = new JsStableViewer[Int]
+  val fredSComplex: SComplex[Int] = 
+    SComplex(fredComplex)
 
-  val editor = new JsStableEditor[String]
+  val mainViewer = new JsStableViewer[Int](fredSComplex)
 
   mainViewer.gallery.onCellClick = 
-    (c : mainViewer.gallery.ActiveCell) => { faceViewer.loadFace(c) }
+    (c : mainViewer.gallery.ActiveBox) => { 
+
+      println("Testing face routine for: " + c.label.toString)
+      println("Address is: " + c.address.toString)
+      println("Dimension is: " + c.dim.toString)
+
+      for {
+        // This is wrong because you have to go to 
+        // the correct dimension ...
+        face <- fredSComplex.truncateToDim(c.dim).sourceAt(c.address)
+      } {
+
+        println("Face calculation succeeded")
+
+        val viewer = new JsStableViewer[Int](face)
+        jQuery("#face-viewer-div").empty().append(viewer.uiElement)
+        viewer.gallery.renderAll
+
+      }
+
+    }
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -41,13 +61,7 @@ object Opetopic extends JSApp {
     println("Launched Opetopic Javscript ...")
 
     jQuery("#main-viewer-div").append(mainViewer.uiElement)
-    jQuery("#face-viewer-div").append(faceViewer.uiElement)
-
-    jQuery("#editor-div").append(editor.uiElement)
-
-    mainViewer.loadComplex(fredComplex)
-
-    editor.editor.renderAll
+    mainViewer.gallery.renderAll
 
   }
 

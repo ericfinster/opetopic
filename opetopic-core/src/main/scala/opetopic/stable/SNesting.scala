@@ -124,6 +124,23 @@ object SNesting {
         }
       }
 
+    def foldNesting[B](dot: A => B)(box: (A, STree[B]) => B) : B = 
+      nst match {
+        case SDot(a) => dot(a)
+        case SBox(a, cn) => box(a, cn.map(_.foldNesting(dot)(box)))
+      }
+
+    def foldNestingWithAddr[B](addr: SAddr = Nil)(dot: (A, SAddr) => B)(box: (A, SAddr, STree[B]) => B) : B = 
+      nst match {
+        case SDot(a) => dot(a, addr)
+        case SBox(a, cn) => box(a, addr, cn.mapWithAddr(
+          (nn, dir) => nn.foldNestingWithAddr(SDir(dir) :: addr)(dot)(box)
+        ))
+      }
+
+    def toTree: STree[A] = 
+      foldNesting[STree[A]](a => SLeaf)((a, sh) => SNode(a, sh))
+
     def foreach(op: A => Unit): Unit = 
       nst match {
         case SDot(a) => op(a)

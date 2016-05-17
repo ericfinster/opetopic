@@ -70,6 +70,22 @@ object Suite {
         }
       }
 
+    def length: Int = 
+      s match {
+        case ||(_) => 1
+        case tl >> _ => tl.length + 1
+      }
+
+    def drop(i: Int): Suite[A] = 
+      if (i <= 0) s else
+        s match {
+          case ||(a) => ||(a)
+          case tl >> _ => tl.drop(i - 1)
+        }
+
+    def take(i: Int): Suite[A] = 
+      drop(length - i)
+
   }
 
 }

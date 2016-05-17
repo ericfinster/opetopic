@@ -56,8 +56,8 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
     def element = panelGroup
 
     def renderAll: Unit = {
-      boxNesting.foreach(_.render)
-      edgeNesting.foreach(_.render)
+      boxNesting.foreach(_.renderBox)
+      edgeNesting.foreach(_.renderEdge)
       renderPanel
     }
 
@@ -70,9 +70,9 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
         edgeNesting.toList
 
       panelGroup.children =
-        intCells.map(_.cellGroup) ++
+        intCells.map(_.boxGroup) ++
           edges.map(_.edgePath) ++
-          extCells.map(_.cellGroup)
+          extCells.map(_.boxGroup)
 
     }
 
@@ -82,10 +82,14 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
   // ACTIVE BOXES AND EDGES
   //
 
-  abstract class ActiveBox extends CellBox { thisBox: BoxType => 
+  trait ActiveBox extends CellBox { thisBox: BoxType => 
 
-    val cellGroup = group
-    def element = cellGroup
+    def label: A
+    def dim: Int
+    def address: SAddr
+
+    val boxGroup = group
+    def element = boxGroup
 
     val boxRect = {
       val r = rect
@@ -104,9 +108,9 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
     boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }
     boxRect.onMouseOut = { (e : UIMouseEvent) => onMouseOut }
 
-    def render: Unit = {
+    def renderBox: Unit = {
 
-      cellGroup.children = Seq(boxRect, labelElement)
+      boxGroup.children = Seq(boxRect, labelElement)
 
       boxRect.x = x ; boxRect.y = y ; boxRect.width = width ; boxRect.height = height
 
@@ -119,7 +123,7 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
 
   }
 
-  abstract class ActiveEdge extends CellEdge { thisEdge: EdgeType => 
+  trait ActiveEdge extends CellEdge { thisEdge: EdgeType => 
 
     val edgePath = {
       val p = path
@@ -130,7 +134,7 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
       p
     }
 
-    def render: Unit = edgePath.d = pathString
+    def renderEdge: Unit = edgePath.d = pathString
 
   }
 
