@@ -130,7 +130,6 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
       p
     }
 
-
     def render: Unit = edgePath.d = pathString
 
   }
