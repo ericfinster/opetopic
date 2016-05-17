@@ -124,6 +124,15 @@ object SNesting {
         }
       }
 
+    def foreach(op: A => Unit): Unit = 
+      nst match {
+        case SDot(a) => op(a)
+        case SBox(a, cn) => {
+          for { n <- cn } { n.foreach(op) }
+          op(a)
+        }
+      }
+
     def baseValue: A = 
       nst match {
         case SDot(a) => a
