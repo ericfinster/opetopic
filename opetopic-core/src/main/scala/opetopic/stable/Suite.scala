@@ -61,6 +61,15 @@ object Suite {
         case tl >> _ => Some(tl)
       }
 
+    def foreach(op: A => Unit): Unit = 
+      s match {
+        case ||(a) => op(a)
+        case tl >> a => {
+          tl.foreach(op)
+          op(a)
+        }
+      }
+
   }
 
 }

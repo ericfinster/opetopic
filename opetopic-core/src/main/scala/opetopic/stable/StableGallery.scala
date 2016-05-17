@@ -7,19 +7,22 @@
 
 package opetopic.stable
 
+import scalaz.Traverse
+import scalaz.syntax.traverse._
+import scalaz.std.option._
+
 import opetopic.ui._
 
-abstract class StableGallery[A, F <: UIFramework](final val framework: F) { thisGallery =>
+abstract class StableGallery[A, F <: UIFramework](final val framework: F) 
+    extends LayoutContext[A, F] { thisGallery =>
 
   import framework._
   import isNumeric._
 
-//   type PanelType <: StablePanel
+  type PanelType <: StablePanel
 
-//   def panels: List[PanelType]
-//   def element: Element
-
-
+  def panels: Suite[PanelType]
+  def element: Element
 
   //
   //  Gallery Options
@@ -32,167 +35,154 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F) { this
   def spacing: Size
   def manageViewport : Boolean
 
-//   //
-//   //  Gallery Traversal
-//   //
+  //
+  //  Gallery Layout
+  //
 
-//   def foreach(op: CellType => Unit): Unit = 
-//     panels.foreach(_.baseCell.foreach(op))
+  def layout: Option[Bounds] = {
 
-//   def foreachWithAddr(op: (CellType, SAddr) => Unit): Unit = 
-//     panels.foreach(_.baseCell.foreachWithAddr(op))
+    for {
+      bnds <- panels.traverse(_.layout)
+    } yield {
 
-//   //
-//   //  Gallery Layout
-//   //
+      // We are going to shift and locate the panels here
 
-//   def layout: Option[Bounds] = {
+      val maxHeight : Size = bnds.map(_.height).foldRight(fromInt(0))(isOrdered.max(_, _))
+      var xPos : Size = spacing
 
-//     for {
-//       bnds <- panels.traverse(_.layout)
-//     } yield {
+      for {
+        p <- panels
+      } {
 
-//       // We are going to shift and locate the panels here
+        // Annoying that we recalculate this here.  It's just a typing issue ...
+        val b = p.bounds
+        val xTrans = (-b.x) + xPos
+        val yTrans = (-b.y) - b.height - half(maxHeight - b.height)
 
-//       val maxHeight : Size = bnds.map(_.height).foldRight(fromInt(0))(isOrdered.max(_, _))
-//       var xPos : Size = spacing
+        translate(p.element, xTrans, yTrans)
 
-//       for {
-//         p <- panels
-//       } {
+        xPos = xPos + b.width + spacing
 
-//         // Annoying that we recalculate this here.  It's just a typing issue ...
-//         val b = p.bounds
-//         val xTrans = (-b.x) + xPos
-//         val yTrans = (-b.y) - b.height - half(maxHeight - b.height)
+      }
 
-//         translate(p.element, xTrans, yTrans)
+      val (viewY, viewHeight) =
+        minViewY match {
+          case None => (-maxHeight, maxHeight)
+          case Some(mvh) =>
+            if (mvh < maxHeight) {
+              (-maxHeight, maxHeight)
+            } else {
+              val offset = half(mvh - maxHeight)
+              (-maxHeight - offset, mvh)
+            }
+        }
 
-//         xPos = xPos + b.width + spacing
+      val (viewX, viewWidth) =
+        minViewX match {
+          case None => (zero, xPos)
+          case Some(mvw) =>
+            if (mvw < xPos) {
+              (zero, xPos)
+            } else {
+              val offset = half(mvw - xPos)
+              (-offset, mvw)
+            }
+        }
 
-//       }
+      Bounds(zero, viewY, xPos, viewHeight)
 
-//       val (viewY, viewHeight) =
-//         minViewY match {
-//           case None => (-maxHeight, maxHeight)
-//           case Some(mvh) =>
-//             if (mvh < maxHeight) {
-//               (-maxHeight, maxHeight)
-//             } else {
-//               val offset = half(mvh - maxHeight)
-//               (-maxHeight - offset, mvh)
-//             }
-//         }
+    }
+  }
 
-//       val (viewX, viewWidth) =
-//         minViewX match {
-//           case None => (zero, xPos)
-//           case Some(mvw) =>
-//             if (mvw < xPos) {
-//               (zero, xPos)
-//             } else {
-//               val offset = half(mvw - xPos)
-//               (-offset, mvw)
-//             }
-//         }
+  //============================================================================================
+  // PANELS
+  //
 
-//       Bounds(zero, viewY, xPos, viewHeight)
+  abstract class StablePanel {
 
-//     }
-//   }
+    def boxNesting: SNesting[BoxType]
+    def edgeNesting: SNesting[EdgeType]
 
-//   //============================================================================================
-//   // PANELS
-//   //
+    def element: Element
 
-//   abstract class StablePanel {
+    //
+    //  Edge Layout Tree
+    //
 
-//     def baseCell: CellType
-//     def element: Element
+    def edgeLayoutTree(en: SNesting[EdgeType]): Option[STree[LayoutMarker]] = 
+      for {
+        sp <- en.spine(SDeriv(SNode(SLeaf, SLeaf)))  // Default is an object
+      } yield sp.map(edge => {
+        val edgeMarker = new EdgeStartMarker(edge)
+        LayoutMarker(
+          edgeMarker, edgeMarker, true,
+          leftInternalMargin = halfLeafWidth,
+          rightInternalMargin = halfLeafWidth
+        )
+      })
 
-//     //
-//     //  Panel Bounds Calculation
-//     //
+    //
+    //  Panel Bounds Calculation
+    //
 
-//     def bounds: Bounds = {
-      
-//       val (panelX, panelWidth) =
-//         baseCell.canopy match {
-//           case Some(_) => (baseCell.x, baseCell.width)
-//           case None => {
-//             baseCell.sourceTree match {
-//               case None => (baseCell.x, baseCell.width)
-//               case Some(srcs) => {
+    def bounds: Bounds = {
 
-//                 val (minX, maxX) = (srcs.toList foldLeft (baseCell.x, baseCell.x + baseCell.width))({
-//                   case ((curMin, curMax), edge) =>
-//                     (isOrdered.min(curMin, edge.edgeStartX), isOrdered.max(curMax, edge.edgeStartX))
-//                 })
+      val baseBox = boxNesting.baseValue
 
-//                 (minX, maxX - minX)
+      val (panelX, panelWidth) =
+        boxNesting match {
+          case SBox(bx, _) => (baseBox.x, baseBox.width)
+          case SDot(bx) => {
+            edgeNesting match {
+              case SDot(_) => (baseBox.x, baseBox.width) // Error?
+              case SBox(_, srcs) => {
 
-//               }
-//             }
-//           }
-//         }
+                val (minX, maxX) = (srcs.map(_.baseValue).toList foldLeft (baseBox.x, baseBox.x + baseBox.width))({
+                  case ((curMin, curMax), edge) =>
+                    (isOrdered.min(curMin, edge.edgeStartX), 
+                      isOrdered.max(curMax, edge.edgeStartX))
+                })
 
-//       Bounds(
-//         panelX,
-//         baseCell.y - (fromInt(2) * externalPadding),
-//         panelWidth,
-//         baseCell.height + (fromInt(4) * externalPadding)
-//       )
+                (minX, maxX - minX)
 
-//     }
+              }
+            }
+          }
+        }
 
-//     //
-//     //  Panel Layout
-//     //
+      Bounds(
+        panelX,
+        baseBox.y - (fromInt(2) * externalPadding),
+        panelWidth,
+        baseBox.height + (fromInt(4) * externalPadding)
+      )
 
-//     def layout: Option[Bounds] = {
+    }
 
-//       if (baseCell.target == None) {
+    //
+    //  Panel Layout
+    //
 
-//         // No edges.  Assume this is an object.
+    def layout: Option[Bounds] = 
+      for {
+        lvs <- edgeLayoutTree(edgeNesting)
+        baseLayout <- thisGallery.layout(boxNesting, lvs)
+      } yield {
 
-//         val thisMarker = new LayoutMarker(DummyMarker(), DummyMarker(), true)
+        val baseBox = boxNesting.baseValue
 
-//         for {
-//           baseLayout <- baseCell.layout(SNode(thisMarker, SNode(SLeaf, SLeaf)))
-//         } yield bounds
+        for { l <- lvs } {
+          l.rootEdge.rootY = baseBox.y - (fromInt(2) * externalPadding)
+        }
 
-//       } else {
+        // Set the position of the outgoing edge
+        baseLayout.rootEdge.endMarker.rootY =
+          baseBox.rootY + (fromInt(2) * externalPadding)
 
-//         for {
-//           tgt <- baseCell.target
-//           sp <- tgt.spine
-//           lvs = sp.map((cell: CellType) => {
-//             cell.clearEdge
-//             new LayoutMarker(
-//               new EdgeStartMarker(cell),
-//               new EdgeStartMarker(cell),
-//               true
-//             )
-//           })
-//           baseLayout <- baseCell.layout(lvs)
-//         } yield {
+        bounds
 
-//           for { l <- lvs } yield {
-//             l.rootEdge.rootY = baseCell.y - (fromInt(2) * externalPadding)
-//           }
+      }
 
-//           // Set the position of the outgoing edge
-//           baseLayout.rootEdge.endMarker.rootY =
-//             baseCell.rootY + (fromInt(2) * externalPadding)
-
-//           bounds
-
-//         }
-
-//       }
-
-//     }
-
-//   }
+  }
 
 }
