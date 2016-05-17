@@ -227,12 +227,12 @@ object STree {
           } else Some(SLeaf, sh)
       }
 
-    def splitWith[B, C](f: A => (B, C)): (STree[B], STree[C]) =
+    def treeSplit[B, C](f: A => (B, C)): (STree[B], STree[C]) =
       st match {
         case SLeaf => (SLeaf, SLeaf)
         case SNode(a, sh) => {
           val (b, c) = f(a)
-          val (bs, cs) = sh.splitWith(_.splitWith(f))
+          val (bs, cs) = sh.treeSplit(_.treeSplit(f))
           (SNode(b, bs), SNode(c, cs))
         }
       }
@@ -274,7 +274,7 @@ object STree {
   //
 
   def unzip[A, B](tr: STree[(A, B)]): (STree[A], STree[B]) = 
-    tr.splitWith({ case (a, b) => (a, b) })
+    tr.treeSplit({ case (a, b) => (a, b) })
 
   def unzip3[A, B, C](tr: STree[(A, B, C)]): (STree[A], STree[B], STree[C]) = 
     tr.tripleSplitWith({ case (a, b, c) => (a, b, c) })

@@ -136,34 +136,66 @@ object SNesting {
         case SBox(a, cn) => cn.spine
       }
 
-    // It seems one way to get rid of the double join here
-    // is to have another spine implementation which returns
-    // the spind as a canopy, that is, as a tree of nestings.
+    // Total canopy?
+    def canopy(d: SDeriv[SNesting[A]]): Option[STree[SNesting[A]]] = 
+      nst match {
+        case SDot(a) => Some(d.plug(SDot(a)))
+        case SBox(a, cn) => cn.canopy
+      }
+
+    def canopyWithGuide[B](g: STree[B], d: SDeriv[SNesting[A]]): Option[STree[SNesting[A]]] = 
+      (nst, g) match {
+        case (_, SLeaf) => Some(d.plug(nst))
+        case (SBox(_, cn), SNode(_, sh)) => 
+          for {
+            toJn <- cn.matchWithDeriv(sh)({
+              case (nn, gg, dd) => nn.canopyWithGuide(gg, dd)
+            })
+            jn <- toJn.join
+          } yield jn
+        case _ => { println("bad canopy") ; None }
+      }
 
     // Follow the guide tree, extracting the boxes which match it.
     // Return the resulting nesting, as well as simultaneously calculating
     // the spine which remains above the crop point.
-    def exciseWith[B](tr: STree[B], d: SDeriv[A]): Option[(SNesting[A], STree[SNesting[A]], STree[A])] = 
+    def exciseWith[B](tr: STree[B], d: SDeriv[SNesting[A]]): Option[(SNesting[A], STree[SNesting[A]])] = 
       (nst, tr) match {
-        case (_, SLeaf) => 
+        case (_, SLeaf) => {
+          println("compressing a leaf")
           for {
-            sp <- nst.spine(d)
+            cn <- nst.canopy(d)
             v = nst.baseValue
-          } yield (SDot(v), d.plug(v).map(SDot(_)), sp)
+          } yield (SDot(v), d.plug(SBox(v, cn)))
+        }
         case (SBox(a, cn), SNode(_, sh)) => {
           for {
-            trplTr <- cn.matchWithDeriv(sh)({
+            pr <- cn.matchWithDeriv(sh)({
               case (nn, tt, dd) => nn.exciseWith(tt, dd)
             })
-            (ncn, ljn, gjn) = STree.unzip3(trplTr)
-            lcn <- ljn.join  // Can you think of a way to avoid the double join????
-            gcn <- gjn.join
-          } yield (SBox(a, ncn), lcn, gcn)
+            (ncn, toJn) = STree.unzip(pr)
+            jn <- toJn.join
+          } yield (SBox(a, ncn), jn)
         }
-        case (SDot(_), SNode(_, _)) => None
+        case (SDot(_), SNode(_, _)) => { println("bad excise") ; None }
       }
 
-    def compressWith[B](sh: Shell[B]): Option[SNesting[A]] = None
+    def compressWith[B](sh: Shell[B], d: SDeriv[SNesting[A]]): Option[SNesting[A]] = 
+      sh match {
+        case SNode(SLeaf, sh) => 
+          for {
+            root <- sh.rootValue
+            nn <- nst.compressWith(root, d) // Use the same derivative?
+          } yield SBox(nst.baseValue, d.plug(nn))
+        case SNode(sk, sh) => 
+          for {
+            cn <- nst.canopyWithGuide(sk, d)
+            nnn <- cn.matchWithDeriv(sh)({
+              case (nn, gg, dd) => nn.compressWith(gg, dd)
+            })
+          } yield SBox(nst.baseValue, nnn)
+        case SLeaf => Some(nst)
+      }
 
   }
 
@@ -172,6 +204,11 @@ object SNesting {
     def spine: Option[STree[A]] = 
       cn.traverseWithData[Option, A, STree[A]]({
         case (nst, _, deriv) => nst.spine(deriv)
+      }).flatMap(STree.join(_))
+
+    def canopy: Option[STree[SNesting[A]]] = 
+      cn.traverseWithData[Option, SNesting[A], STree[SNesting[A]]]({
+        case (nst, _, deriv) => nst.canopy(deriv)
       }).flatMap(STree.join(_))
 
   }

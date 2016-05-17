@@ -59,34 +59,17 @@ trait ComplexTypes {
     //  Source Calculation
     //
 
-    // def sourceAt(addr: SAddr): Option[SComplex[A]] = 
-    //   for {
-    //     cc <- restrictAt(addr)
-    //     _ = println("Restriction done")
-    //     rc <- cc.contractAt(Nil)
-    //     _ = println("Contraction done")
-    //   } yield rc
+    def sourceAt(addr: SAddr): Option[SComplex[A]] = 
+      for {
+        z <- SCmplxZipper(c).seek(addr)
+        f <- z.focusFace
+      } yield f
 
-    // def restrictAt(addr: SAddr): Option[SComplex[A]] = 
-    //   for {
-    //     z <- SCmplxZipper(c).seek(addr)
-    //     _ = println("Found address")
-    //     zz <- z.restrictFocus
-    //   } yield zz.close
-
-    // def contractAt(addr: SAddr): Option[SComplex[A]] = 
-    //   for {
-    //     z <- SCmplxZipper(c).seek(addr)
-    //     _ = println("Found contraction address")
-    //     zz <- z.contractFocus
-    //     _ = println("Contracted at focus")
-    //   } yield zz.close
-
-    // def target: Option[SComplex[A]] = 
-    //   c match {
-    //     case ||(_) => None
-    //     case tl >> _ => tl.sourceAt(Nil)
-    //   }
+    def target: Option[SComplex[A]] = 
+      c match {
+        case ||(_) => None
+        case tl >> _ => tl.sourceAt(Nil)
+      }
 
   }
 
@@ -106,32 +89,26 @@ trait ComplexTypes {
         case tl >> hd => tl >> hd.withFocus(n)
       }
 
+    // The source tree shell of the current focus
+    // in the form of a derivative
     def focusDeriv[B]: Option[SDeriv[B]] =
-      focus match {
-        case SDot(_) => { println("derivative fail") ; None }
-        case SBox(_, cn) => Some(SDeriv(cn.asShell))
+      z.tail match {
+        case None => Some(SDeriv(SNode(SLeaf, SLeaf))) // Really?
+        case Some(tl) => 
+          tl.focus match {
+            case SDot(_) => 
+              for {
+                d <- tl.focusDeriv[STree[B]]
+              } yield SDeriv(d.plug(SLeaf))
+            case SBox(_, cn) => Some(SDeriv(cn.asShell))
+          }
       }
 
+    // The spine starting from the current focus
     def focusSpine: Option[STree[A]] =
       focus match {
-        case SDot(a) =>
-          for {
-            tl <- z.tail
-            d <- tl.focusDeriv[A]
-          } yield d.plug(a)
+        case SDot(a) => focusDeriv[A].map(_.plug(a))
         case SBox(a, cn) => cn.spine
-      }
-
-    def extract(guide: STree[A]): Option[SComplex[A]] = 
-      z match {
-        case ||(hd) => None
-        case tl >> hd => 
-          for {
-            d <- focusDeriv[A]
-            trpl <- hd.focus.exciseWith(guide, d)
-            (newFcs, localSpine, globalSpine) = trpl
-            c <- tl.extract(globalSpine)
-          } yield ???
       }
 
     def focusFace: Option[SComplex[A]] = 
@@ -140,41 +117,12 @@ trait ComplexTypes {
         case tl >> hd => 
           for {
             sp <- focusSpine
-            c <- extract(sp)
-          } yield ??? //c.withHead(c.head.compressWith(???))
+            d <- focusDeriv[STree[A]]
+            c <- tl.extract(sp)
+            dd <- SCmplxZipper(c).focusDeriv[SNesting[A]]
+            chd <- c.head.compressWith(d.plug(sp), dd)
+          } yield c.withHead(chd) >> SDot(hd.focus.baseValue)
       }
-
-  //   def focusCanopy: Option[STree[SAddr]] = 
-  //     focus match {
-  //       case SDot(_) => { println("canopy fail") ; None }
-  //       case SBox(a, cn) => Some(cn.mapWithAddr[SAddr]((_, addr) => addr))
-  //     }
-
-  //   // @natElim
-  //   // def focusUnit[A[_ <: Nat], N <: Nat](n: N)(z: ComplexZipper[A, N]) : ShapeM[Tree[Nesting[A[N], N], N]] = {
-  //   //   case (Z, z) => succeed(Pt(focusOf(z)))
-  //   //   case (S(p), z) =>
-
-  //   def focusUnit: Option[STree[SNesting[A]]] = 
-  //     z match {
-  //       case ||(hd) => Some(STree.obj(hd.focus))
-  //       case _ => 
-  //         for {
-  //           sp <- focusSpine
-  //           res <- sp match {
-  //             case SLeaf =>
-  //               for {
-  //                 tl <- z.tail
-  //                 u <- tl.focusUnit
-  //               } yield SNode(focus, u.asShell)
-  //             case SNode(a, sh) =>
-  //               for {
-  //                 extents <- sh.extents
-  //               } yield SNode(focus, extents.asShell)
-  //           }
-  //         } yield res
-  //     }
-
 
     //
     //  Basic Zipper Ops
@@ -221,105 +169,31 @@ trait ComplexTypes {
           } yield zzp
       }
 
-  //   //
-  //   //  Source Calculation
-  //   //
+    //
+    //  Source Extraction
+    //
 
-  //   def restrictFocus: Option[SCmplxZipper[A]] = 
-  //     z match {
-  //       case ||(hd) => {
-  //         println("restricted head")
-  //         Some(||(SNstZipper(hd.focus)))
-  //       }
-  //       case tl >> hd => 
-  //         for {
-  //           sp <- focusSpine
-  //           _ = println("Got the spine")
-  //           ntl <- tl.restrictFocus
-  //           _ = println("Restricted tail")
-  //           c <- exciseLocal(sp, Nil).exec(ntl.close)
-  //           _ = println("Finished excistion")
-  //         } yield SCmplxZipper(c) >> SNstZipper(hd.focus)
-  //     }
-
-  //   def contractFocus: Option[SCmplxZipper[A]] = 
-  //     z match {
-  //       case ||(hd) => {
-  //         println("Contracted head focus")
-  //         Some(withFocus(SDot(hd.focus.baseValue)))
-  //       }
-  //       case tl >> hd => 
-  //         for {
-  //           sp <- focusSpine
-  //           _ = println("Got contraction spine")
-  //           ntl <- tl.compressFocus(sp)
-  //           _ = println("Compressed focus")
-  //         } yield ntl >> SNstZipper(SDot(hd.focus.baseValue), hd.ctxt)
-  //     }
-      
-  //   def compressFocus(tr: STree[A]): Option[SCmplxZipper[A]] = 
-  //     for {
-  //       cn <- compressLocal(tr)
-  //     } yield withFocus(SBox(focus.baseValue, cn))
-
-  //   def compressLocal(tr: STree[A]): Option[STree[SNesting[A]]] = 
-  //     tr match {
-  //       case SLeaf => {
-  //         println("Compressing a leaf")
-  //         for {
-  //           u <- focusUnit
-  //           _ = println("Got the unit")
-  //         } yield u
-  //       }
-  //       case SNode(a, sh) => 
-  //         for {
-  //           cn <- focusCanopy
-  //           _ = println("Canopy is: " + cn.toString)
-  //           _ = println("Shell is: " + sh.toString)
-  //           toJn <- cn.matchTraverse(sh)({
-  //             case (d, t) => 
-  //               for {
-  //                 zz <- visit(SDir(d))
-  //                 _ = println("Visit ok")
-  //                 r <- zz.compressLocal(t)
-  //                 _ = println("Compression ok")
-  //               } yield r
-  //           })
-  //           _ = println("finished match")
-  //           res <- toJn.join
-  //           _ = println("finished join")
-  //         } yield res
-  //     }
-
-  //   type SourceM[R] = StateT[Option, SComplex[A], R]
-
-  //   def exciseLocal(tr: STree[A], addr: SAddr): SourceM[Unit] = {
-
-  //     type SrcT[M[_], R] = StateT[M, SComplex[A], R]
-  //     type SrcS[S, R] = StateT[Option, S, R]
-
-  //     val MS = MonadState[SrcS, SComplex[A]]
-  //     import MS._
-
-  //     val MT = MonadTrans[SrcT]
-  //     import MT._
-
-  //     tr match {
-  //       case SLeaf => 
-  //         for {
-  //           complex <- get
-  //           res <- liftM(complex.contractAt(addr))
-  //           _ <- put(res)
-  //         } yield ()
-  //       case SNode(a, sh) => 
-  //         for {
-  //           _ <- sh.traverseWithAddr[SourceM, Unit](
-  //             (t, d) => exciseLocal(t, SDir(d) :: addr)
-  //           )
-  //         } yield ()
-  //     }
-
-  //   }
+    def extract[B](guide: STree[B]): Option[SComplex[A]] = 
+      z match {
+        case ||(hd) => 
+          for {
+            pr <- hd.focus.exciseWith(guide, SDeriv(SNode(SLeaf, SLeaf)))
+          } yield ||(pr._1)
+        case tl >> hd => 
+          for {
+            d <- focusDeriv[SNesting[A]]
+            pr <- hd.focus.exciseWith(guide, d)
+            (excised, boxTr) = pr
+            (localSpine, compressor) = boxTr.treeSplit({
+              case SDot(a) => ??? // An error ...
+              case SBox(a, cn) => (a, cn)
+            })
+            sp <- compressor.join
+            c <- tl.extract(sp)
+            dd <- SCmplxZipper(c).focusDeriv[SNesting[A]]
+            chd <- c.head.compressWith(compressor, dd)
+          } yield c.withHead(chd) >> excised
+      }
 
   }
 
