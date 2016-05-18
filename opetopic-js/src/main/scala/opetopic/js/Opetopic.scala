@@ -32,17 +32,13 @@ object Opetopic extends JSApp {
   mainViewer.gallery.onCellClick = 
     (c : mainViewer.gallery.ActiveBox) => { 
 
-      println("Testing face routine for: " + c.label.toString)
-      println("Address is: " + c.address.toString)
-      println("Dimension is: " + c.dim.toString)
+      // println("Testing face routine for: " + c.toString)
+      // println("Address is: " + c.address.toString)
+      // println("Dimension is: " + c.dim.toString)
 
       for {
-        // This is wrong because you have to go to 
-        // the correct dimension ...
         face <- fredSComplex.truncateToDim(c.dim).sourceAt(c.address)
       } {
-
-        println("Face calculation succeeded")
 
         val viewer = new JsStableViewer[Int](face)
         jQuery("#face-viewer-div").empty().append(viewer.uiElement)

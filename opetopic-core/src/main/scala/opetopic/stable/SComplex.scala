@@ -92,19 +92,32 @@ trait ComplexTypes {
         case tl >> hd => tl >> hd.withFocus(n)
       }
 
-    // The source tree shell of the current focus
-    // in the form of a derivative
+    // This does a bunch of extra work calculating
+    // spines for derivatives which don't get used.
+    // You should use laziness here to avoid all the
+    // extra work.
     def focusDeriv[B]: Option[SDeriv[B]] =
-      z.tail match {
-        case None => Some(SDeriv(SNode(SLeaf, SLeaf))) // Really?
-        case Some(tl) => 
-          tl.focus match {
+      z match {
+        case ||(_) => Some(SDeriv(SNode(SLeaf, SLeaf)))
+        case tl >> hd =>
+          hd.focus match {
             case SDot(_) => 
               for {
-                d <- tl.focusDeriv[STree[B]]
-              } yield SDeriv(d.plug(SLeaf))
-            case SBox(_, cn) => Some(SDeriv(cn.asShell))
+                tc <- tl.focusCanopy
+              } yield SDeriv(tc.asShell)
+            case SBox(_, cn) => 
+              for {
+                sp <- cn.spine
+                d <- tl.focusDeriv[SNesting[A]]
+                dsh <- tl.focus.canopyWithGuide(sp, d)
+              } yield SDeriv(dsh.asShell)
           }
+      }
+
+    def focusCanopy: Option[STree[SNesting[A]]] = 
+      z.focus match {
+        case SDot(_) => None
+        case SBox(_, cn) => Some(cn)
       }
 
     // The spine starting from the current focus
@@ -147,7 +160,7 @@ trait ComplexTypes {
         case (tl >> hd, SDir(d :: ds)) => 
           for {
             zp <- z.visit(SDir(ds))
-            hz <- hd.sibling(d)
+            hz <- zp.head.sibling(d)
             sp <- zp.focusSpine
             res <- sp match {
               case SLeaf => zp.tail.map(_ >> hz)
@@ -155,8 +168,8 @@ trait ComplexTypes {
                 for {
                   extents <- sh.extents
                   addr <- extents.elementAt(d.dir)
-                  tl <- zp.tail
-                  ztl <- tl.seek(addr)
+                  ntl <- zp.tail
+                  ztl <- ntl.seek(addr)
                 } yield ztl >> hz
             }
           } yield res

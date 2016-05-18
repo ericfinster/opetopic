@@ -20,7 +20,9 @@ sealed trait Suite[+A] {
 }
 
 case class ||[+A](a: A) extends Suite[A]
-case class >>[+A](s: Suite[A], a: A) extends Suite[A]
+case class >>[+A](s: Suite[A], a: A) extends Suite[A] {
+  override def toString = s.toString + " >> " + a.toString
+}
 
 object Suite {
 

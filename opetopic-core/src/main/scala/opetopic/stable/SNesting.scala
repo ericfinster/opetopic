@@ -188,7 +188,6 @@ object SNesting {
     def exciseWith[B](tr: STree[B], d: SDeriv[SNesting[A]]): Option[(SNesting[A], STree[SNesting[A]])] = 
       (nst, tr) match {
         case (_, SLeaf) => {
-          println("compressing a leaf")
           for {
             cn <- nst.canopy(d)
             v = nst.baseValue
