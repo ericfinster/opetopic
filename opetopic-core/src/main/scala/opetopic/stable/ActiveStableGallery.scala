@@ -67,7 +67,9 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
         boxNesting.toList.partition(_.isExternal)
 
       val edges =
-        edgeNesting.toList
+        if (boxNesting.baseValue.dim > 0)
+          edgeNesting.toList
+        else List()
 
       panelGroup.children =
         intCells.map(_.boxGroup) ++
