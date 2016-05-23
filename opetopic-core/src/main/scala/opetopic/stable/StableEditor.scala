@@ -196,8 +196,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     def labelBounds: Bounds = labelBE.bounds
 
     override def onClick: Unit = {
-      println("Cell label: " + optA.toString)
-      println("Address: " + cardinalAddress.toString)
 
       for {
         naddr <- cardinalAddress.tail
