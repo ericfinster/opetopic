@@ -55,42 +55,105 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   // EDITOR DATA
   //
 
-  var panels : Suite[PanelType] = buildPanels(c)
+  var panels : Suite[PanelType] = buildPanels(c)._1
 
   def cardinal: SCardinal[NeutralCell] = 
     Traverse[Suite].map(panels)(_.cardinalNesting)
 
   def complex: SComplex[EditorCell] = 
-    Traverse[Suite].map(panels)(_.cellNesting)
+    Traverse[Suite].map(panels)(_.boxNesting)
 
   //============================================================================================
   // INITIALIZATION
   //
 
-  def buildPanels(c: SCardinal[OptA]): Suite[PanelType] = 
+  def buildPanels(c: SCardinal[OptA]): (Suite[PanelType], Int) = 
     c match {
-      case ||(cn) => ???
-      case tl >> hd => ???
+      case ||(cn) => {
+        val bn = Traverse[MTree].map(cn)(buildCells(0, _))
+
+        val inEdge = new NeutralCell(-1, None, true)
+        val outEdge = new NeutralCell(-1, None, false)
+        val en = SBox(outEdge, STree.obj(SDot(inEdge)))
+
+        (||(new EditorPanel(0, bn, Right(en))), 0)
+      }
+      case tl >> hd => {
+        val (pt, d) = buildPanels(tl)
+        val bn = Traverse[MTree].map(hd)(buildCells(d + 1, _))
+        (pt >> new EditorPanel(d + 1, bn, Left(pt.head)), d + 1)
+      }
     }
+
+  // Here we should take an address prefix as well and store
+  // the actual cardinal address...
+  def buildCells(d: Int, n: SNesting[OptA]): SNesting[NeutralCell] = 
+    n.foldNestingWithAddr[SNesting[NeutralCell]]()({
+      case (optA, addr) => SDot(new NeutralCell(d, optA, true))
+    })({
+      case (optA, addr, cn) => SBox(new NeutralCell(d, optA, false), cn)
+    })
+
+  //============================================================================================
+  // REFRESH ROUTINES
+  //
+
+  override def renderAll: Unit = {
+    refreshEdges
+    println("Edge refresh complete, rendering ...")
+    super.renderAll
+  }
+
+  def refreshEdges: Unit = 
+    panels.foreach((p: EditorPanel) => p.refreshEdges)
 
   //============================================================================================
   // PANEL IMPLEMENTATION
   //
 
-  abstract class EditorPanel(
-    val dim: Int
+  class EditorPanel(
+    val dim: Int,
+    var cardinalNesting: SCardNst[NeutralCell],
+    val edgeData: Either[EditorPanel, SNesting[EditorCell]]
   ) extends ActiveStablePanel {
-
-    var cardinalNesting: SCardNst[NeutralCell] = ???
 
     val positiveCell: PositiveCell = new PositiveCell(dim)
     val negativeCell: NegativeCell = new NegativeCell(dim)
 
-    def cellNesting: SNesting[EditorCell] = 
+    def boxNesting: SNesting[EditorCell] = 
       cardinalNesting.toNesting(
         positiveCell, 
         negativeCell
       )
+
+    // Gotta take care of the object case ...
+    def edgeNesting: SNesting[EditorCell] = 
+      edgeData match {
+        case Left(pp) => pp.boxNesting
+        case Right(en) => en
+      }
+
+    // This should be made into a gallery routine ...
+    def refreshEdges: Unit = 
+      edgeData match {
+        case Left(pp) => {
+
+          boxNesting match {
+            case SDot(c) => c.outgoingEdge = Some(pp.boxNesting.baseValue)
+            case SBox(_, cn) => 
+              for {
+                sp <- cn.spine
+                _ <- sp.matchTraverse[EdgeType, Unit](pp.boxNesting.toTree)({
+                  case (c, e) => Some({ c.outgoingEdge = Some(e) })
+                })
+              } { }
+          }
+          
+        }
+        case Right(en) => {
+          boxNesting.map(c => c.outgoingEdge = Some(en.baseValue))
+        }
+      }
 
   }
 
@@ -117,7 +180,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
     // Label data
     def label: PolOptA = Neutral(optA)
-    def labelBE: BoundedElement = renderer.render(framework)(label)
+    var labelBE: BoundedElement = renderer.render(framework)(label)
     def labelElement: Element = labelBE.element
     def labelBounds: Bounds = labelBE.bounds
 
@@ -138,6 +201,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     val polarityElement: BoundedElement = 
       renderer.render(framework)(label)
 
+    boxRect.fill = "lightgrey"
+
   }
 
   class PositiveCell(val dim: Int) extends PolarizedCell {
@@ -148,14 +213,16 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     val polarityElement: BoundedElement = 
       renderer.render(framework)(label)
 
+    boxRect.fill = "lightgrey"
+
   }
 
 }
 
 object StableEditor {
 
-  def apply[A, F <: ActiveFramework](f: F)(implicit r: Renderable[A]): StableEditor[A, F] = 
-    new StableEditor(f)(SCardinal(None))
+  // def apply[A, F <: ActiveFramework](f: F)(implicit r: Renderable[A]): StableEditor[A, F] = 
+  //   new StableEditor(f)(SCardinal(None))
 
   def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(implicit r: Renderable[A]): StableEditor[A, F] = 
     new StableEditor(f)(SCardinal(c.map(Some(_))))

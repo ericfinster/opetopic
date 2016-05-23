@@ -27,26 +27,31 @@ object Opetopic extends JSApp {
   val fredSComplex: SComplex[Int] = 
     SComplex(fredComplex)
 
-  val mainViewer = new JsStableViewer[Int](fredSComplex)
+  val testComplex: SComplex[Int] = 
+    ||(SBox(4, STree.obj(SDot(3)))) >> SDot(7)
 
-  mainViewer.gallery.onCellClick = 
-    (c : mainViewer.gallery.ActiveBox) => { 
+  val editor = new JsStableEditor[Int](testComplex)
 
-      // println("Testing face routine for: " + c.toString)
-      // println("Address is: " + c.address.toString)
-      // println("Dimension is: " + c.dim.toString)
+  // val mainViewer = new JsStableViewer[Int](fredSComplex)
 
-      for {
-        face <- fredSComplex.truncateToDim(c.dim).sourceAt(c.address)
-      } {
+  // mainViewer.gallery.onCellClick = 
+  //   (c : mainViewer.gallery.ActiveBox) => { 
 
-        val viewer = new JsStableViewer[Int](face)
-        jQuery("#face-viewer-div").empty().append(viewer.uiElement)
-        viewer.gallery.renderAll
+  //     // println("Testing face routine for: " + c.toString)
+  //     // println("Address is: " + c.address.toString)
+  //     // println("Dimension is: " + c.dim.toString)
 
-      }
+  //     for {
+  //       face <- fredSComplex.truncateToDim(c.dim).sourceAt(c.address)
+  //     } {
 
-    }
+  //       val viewer = new JsStableViewer[Int](face)
+  //       jQuery("#face-viewer-div").empty().append(viewer.uiElement)
+  //       viewer.gallery.renderAll
+
+  //     }
+
+  //   }
 
   //============================================================================================
   // MAIN ENTRY POINT
@@ -56,8 +61,11 @@ object Opetopic extends JSApp {
 
     println("Launched Opetopic Javscript ...")
 
-    jQuery("#main-viewer-div").append(mainViewer.uiElement)
-    mainViewer.gallery.renderAll
+    // jQuery("#main-viewer-div").append(mainViewer.uiElement)
+    // mainViewer.gallery.renderAll
+
+    jQuery("#editor-div").append(editor.uiElement)
+    editor.editor.renderAll
 
   }
 
