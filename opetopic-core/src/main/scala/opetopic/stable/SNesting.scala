@@ -84,6 +84,20 @@ case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCt
         } yield res
     }
 
+  def predecessor: Option[SNstZipper[A]] = 
+    ctxt.g match {
+      case (a, SDeriv(verts, SCtxt((pred, deriv) :: vs))) :: cs => 
+        Some(SNstZipper(pred, SNstCtxt((a, SDeriv(deriv.plug(SNode(focus, verts)), SCtxt(vs))) :: cs)))
+      case _ => None
+    }
+
+  def predecessorWhich(f: A => Boolean): Option[SNstZipper[A]] = 
+    if (f(focus.baseValue)) Some(this) else
+      for {
+        pred <- predecessor
+        res <- pred.predecessorWhich(f)
+      } yield res
+
 }
 
 

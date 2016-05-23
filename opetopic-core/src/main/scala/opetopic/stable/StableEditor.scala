@@ -14,7 +14,8 @@ import opetopic._
 import opetopic.ui._
 
 class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])
-    extends ActiveStableGallery[Polarity[Option[A]], F](frmwk) {
+    extends ActiveStableGallery[Polarity[Option[A]], F](frmwk) 
+    with SelectableGallery {
 
   import framework._
   import isNumeric._
@@ -23,6 +24,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   type EdgeType = EditorCell
 
   type PanelType = EditorPanel
+
+  type AddressType = SCardAddr
+  type SelectionType = NeutralCell
 
   type OptA = Option[A]
   type PolOptA = Polarity[Option[A]]
@@ -93,6 +97,18 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     })({
       case (optA, addr, cn) => SBox(new NeutralCell(d, optA, false), cn)
     })
+
+  //============================================================================================
+  // SELECTION SEEKING
+  //
+
+  def seekToAddress(addr: SCardAddr): Option[SNstZipper[NeutralCell]] = 
+    for {
+      naddr <- addr.tail
+      pr <- cardinal.seek(naddr)
+      (nst, deriv) = pr
+      zp <- nst.seek(addr.head)
+    } yield zp
 
   //============================================================================================
   // REFRESH ROUTINES
@@ -183,7 +199,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     val dim: Int,
     var optA: Option[A],
     var isExternal: Boolean
-  ) extends EditorCell {
+  ) extends EditorCell with SelectableCell {
 
     // FIXME!!
     def address: SAddr = Nil
@@ -195,17 +211,19 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     def labelElement: Element = labelBE.element
     def labelBounds: Bounds = labelBE.bounds
 
-    override def onClick: Unit = {
+    // Selection stuff
+    val canSelect: Boolean = true
+    var isSelected: Boolean = false
+    def selectionAddress = cardinalAddress
 
-      for {
-        naddr <- cardinalAddress.tail
-        pr <- cardinal.seek(naddr)
-        (nst, deriv) = pr
-        zp <- nst.seek(cardinalAddress.head)
-      } {
-        println("Seek success.  Focus label: " + zp.focus.baseValue.label.toString)
-      }
+    override def onClick: Unit = select
 
+    override def onSelected: Unit = {
+      boxRect.stroke = "red"
+    }
+
+    override def onDeselected: Unit = {
+      boxRect.stroke = "black"
     }
 
   }
