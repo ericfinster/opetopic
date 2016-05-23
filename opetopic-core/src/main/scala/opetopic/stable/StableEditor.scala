@@ -100,12 +100,15 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   override def renderAll: Unit = {
     refreshEdges
-    println("Edge refresh complete, rendering ...")
+    refreshAddresses
     super.renderAll
   }
 
   def refreshEdges: Unit = 
-    panels.foreach((p: EditorPanel) => p.refreshEdges)
+    panels.foreach(_.refreshEdges)
+
+  def refreshAddresses: Unit = 
+    panels.foreach(_.refreshAddresses)
 
   //============================================================================================
   // PANEL IMPLEMENTATION
@@ -132,6 +135,13 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
         case Left(pp) => pp.boxNesting
         case Right(en) => en
       }
+
+    def refreshAddresses: Unit =
+      cardinalNesting.foreachWithAddr((nst, addr) => 
+        nst.foreachWithAddr((c, d) => {
+          c.cardinalAddress = addr >> d
+        })
+      )
 
     // This should be made into a gallery routine ...
     def refreshEdges: Unit = 
@@ -177,12 +187,28 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
     // FIXME!!
     def address: SAddr = Nil
+    var cardinalAddress: SCardAddr = ||(Nil)
 
     // Label data
     def label: PolOptA = Neutral(optA)
     var labelBE: BoundedElement = renderer.render(framework)(label)
     def labelElement: Element = labelBE.element
     def labelBounds: Bounds = labelBE.bounds
+
+    override def onClick: Unit = {
+      println("Cell label: " + optA.toString)
+      println("Address: " + cardinalAddress.toString)
+
+      for {
+        naddr <- cardinalAddress.tail
+        pr <- cardinal.seek(naddr)
+        (nst, deriv) = pr
+        zp <- nst.seek(cardinalAddress.head)
+      } {
+        println("Seek success.  Focus label: " + zp.focus.baseValue.label.toString)
+      }
+
+    }
 
   }
 

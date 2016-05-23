@@ -150,6 +150,20 @@ object SNesting {
         }
       }
 
+    def foreachWithAddr(op: (A, SAddr) => Unit, addr: SAddr = Nil): Unit = 
+      nst match {
+        case SDot(a) => op(a, addr)
+        case SBox(a, cn) => {
+          cn.foreachWithAddr((n, d) => 
+            n.foreachWithAddr(op, SDir(d) :: addr)
+          )
+          op(a, addr)
+        }
+      }
+
+    def seek(addr: SAddr) : Option[SNstZipper[A]] = 
+      SNstZipper(nst).seek(addr)
+
     def baseValue: A = 
       nst match {
         case SDot(a) => a

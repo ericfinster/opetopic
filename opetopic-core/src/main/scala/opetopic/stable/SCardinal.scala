@@ -33,7 +33,7 @@ trait CardinalTypes {
 
   sealed trait SCardDeriv[+A] 
   case object SCardUnit extends SCardDeriv[Nothing]
-  case class SCardSucc[+A](cd: SCardDeriv[STree[A]], d: SDeriv[STree[A]]) extends SCardDeriv[A]
+  case class SCardSucc[+A](cd: SCardDeriv[STree[A]], d: SDeriv[A]) extends SCardDeriv[A]
 
   implicit object MTreeTraverse extends Traverse[MTree] {
     def traverseImpl[G[_], A, B](mt: MTree[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[MTree[B]] = 
@@ -114,21 +114,24 @@ trait CardinalTypes {
         case MFix(t) => SNode(a, t.completeWith(SLeaf))
       }
 
-    // def seekDblSucc(ca: SCardAddr): Option[(Shell[A], SCardDeriv[Shell[A]])] = 
-    //   mt match {
-    //     case MFix(MFix(t)) => t.seek(ca)
-    //     case _ => None
-    //   }
+    def seekDblSucc(ca: SCardAddr): Option[(Shell[A], SCardDeriv[Shell[A]])] = 
+      mt match {
+        case MFix(MFix(t)) => t.seek(ca)
+        case _ => None
+      }
 
-    // def seekSucc(ca: SCardAddr): Option[(STree[A], SCardDeriv[STree[A]])] = 
-    //   mt match {
-    //     case MFix(t) => t.seek(ca)
-    //     case _ => None
-    //   }
+    def seekSucc(ca: SCardAddr): Option[(STree[A], SCardDeriv[STree[A]])] = 
+      mt match {
+        case MFix(t) => t.seek(ca)
+        case _ => None
+      }
 
-    def seek(ca: SCardAddr): Option[(STree[A], SCardDeriv[A])] = 
+    def seek(ca: SCardAddr): Option[(A, SCardDeriv[A])] = 
       (mt, ca) match {
-        case (MObj(a), ||(Nil)) => Some(a, SCardUnit)
+        case (MObj(t), ||(Nil)) => 
+          for {
+            a <- t.rootValue
+          } yield (a, SCardUnit)
         case (MFix(t), tl >> hd) => 
           for {
             res <- t.seek(tl)
@@ -143,14 +146,22 @@ trait CardinalTypes {
         case _ => None
       }
 
+    def foreachWithAddr(op: (A, SCardAddr) => Unit) : Unit = 
+      mt match {
+        case MObj(t) => t.foreachWithAddr((a, d) => op(a, ||(d)))
+        case MFix(t) => t.foreachWithAddr((b, p) => 
+          b.foreachWithAddr((a, d) => op(a, p >> d))
+        )
+      }
+
   }
 
   implicit class SCardDerivOps[A](d: SCardDeriv[A]) {
 
-    def plug(t: STree[A]): MTree[A] = 
+    def plug(a: A): MTree[A] = 
       d match {
-        case SCardUnit => MObj(t)
-        case SCardSucc(cd, d) => MFix(cd.plug(d.plug(t)))
+        case SCardUnit => MObj(STree.obj(a))
+        case SCardSucc(cd, d) => MFix(cd.plug(d.plug(a)))
       }
 
   }
@@ -164,39 +175,39 @@ trait CardinalTypes {
         case MFix(t) => SBox(pos, SNode(SDot(neg), t.completeWith(SLeaf)))
       }
 
-    // def toPolarityNesting: SNesting[Polarity[A]] = 
-    //   c match {
-    //     case MObj(n) => SBox(Positive(), STree.obj(n.map(Neutral(_))))
-    //     case MFix(t) => SBox(Positive(), SNode(SDot(Negative()), 
-    //       t.map(_.map(_.map(Neutral(_)))).completeWith(SLeaf)))
-    //   }
+    def toPolarityNesting: SNesting[Polarity[A]] = 
+      c match {
+        case MObj(t) => SBox(Positive(), t.map(_.map(Neutral(_))))
+        case MFix(t) => SBox(Positive(), SNode(SDot(Negative()), 
+          t.map(_.map(_.map(Neutral(_)))).completeWith(SLeaf)))
+      }
 
     //============================================================================================
     // EXTRUSION
     //
 
-    // def extudeAt(ca: SCardAddr, a: A)(pred: A => Boolean): Option[(SCardNst[A], STree[SNesting[A]])] = 
-    //   (c, ca) match {
-    //     case (MObj(n), ||(Nil)) => 
-    //       if (pred(n.baseValue)) {
-    //         Some(MObj(SBox(a, STree.obj(n))), STree.obj(n))
-    //       } else None
-    //     case (MFix(t), tl >> hd) => 
-    //       for {
-    //         pr <- t.seek(tl)
-    //         (canopy, cd) = pr
-    //         zp <- canopy.seekTo(hd)
-    //         cut <- zp.focus.takeWhile((n:  SNesting[A]) => pred(n.baseValue))
-    //       } yield {
-    //         val (excisedTree, excisedShell) = cut
-    //         (MFix(cd.plug(SNode(SBox(a, excisedTree), excisedShell))), excisedTree)
-    //       }
-    //     case _ => None
-    //   }
+    def extudeAt(ca: SCardAddr, a: A)(pred: A => Boolean): Option[(SCardNst[A], STree[SNesting[A]])] = 
+      (c, ca) match {
+        case (MObj(t), ||(Nil)) => 
+          for {
+            n <- t.rootValue
+            if (pred(n.baseValue))
+          } yield (MObj(STree.obj(SBox(a, t))), t)
+        case (MFix(t), tl >> hd) => 
+          for {
+            pr <- t.seek(tl)
+            (canopy, cd) = pr
+            zp <- canopy.seekTo(hd)
+            cut <- zp.focus.takeWhile((n:  SNesting[A]) => pred(n.baseValue))
+          } yield {
+            val (excisedTree, excisedShell) = cut
+            (MFix(cd.plug(SNode(SBox(a, excisedTree), excisedShell))), excisedTree)
+          }
+        case _ => None
+      }
 
-
-    // // Okay, this looks decent.  There's still a whole lot of address things to do 
-    // // to get the dimensions to match correctly, etc.
+    // Okay, this looks decent.  There's still a whole lot of address things to do 
+    // to get the dimensions to match correctly, etc.
     // def extrudeFillerAt[B](hd: SAddr, tl: SCardAddr, a: A, msk: STree[B]): Option[SCardNst[A]] = 
     //   for {
     //     sd <- c.seekDblSucc(tl)
@@ -278,6 +289,9 @@ trait CardinalTypes {
           } yield tl >> hd
         case _ => None
       }
+
+    def seek(addr: SCardAddr): Option[(SNesting[A], SCardDeriv[SNesting[A]])] = 
+      c.take(addr.length).head.seek(addr)
 
   }
 
