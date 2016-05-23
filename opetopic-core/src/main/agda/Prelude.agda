@@ -83,7 +83,6 @@ module Prelude where
     String : Set
 
   {-# BUILTIN STRING String #-}
-  {-# COMPILED_TYPE String String #-}
 
   record Σ (A : Set) (B : A → Set) : Set where
     constructor _,_

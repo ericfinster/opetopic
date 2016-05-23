@@ -13,28 +13,28 @@ module Stable where
 
   -- An elementary description of stable trees
 
-  data ST (A : Set) : Set where
-    lf : ST A
-    nd : A → ST (ST A) → ST A
+  data STree (A : Set) : Set where
+    lf : STree A
+    nd : A → STree (STree A) → STree A
 
-  mapST : {A B : Set} → (f : A → B) → ST A → ST B
-  mapST f lf = lf
-  mapST f (nd a sh) = nd (f a) (mapST (mapST f) sh)
+  mapSTree : {A B : Set} → (f : A → B) → STree A → STree B
+  mapSTree f lf = lf
+  mapSTree f (nd a sh) = nd (f a) (mapSTree (mapSTree f) sh)
 
-  obj : {A : Set} → A → ST A
+  obj : {A : Set} → A → STree A
   obj a = nd a (nd lf lf)
 
-  stabilize : {A : Set} {n : ℕ} → Tree A n → ST A
+  stabilize : {A : Set} {n : ℕ} → Tree A n → STree A
   stabilize (pt a) = obj a
   stabilize leaf = lf
-  stabilize (node a sh) = nd a (mapST stabilize (stabilize sh))
+  stabilize (node a sh) = nd a (mapSTree stabilize (stabilize sh))
 
   -- Addresses and lookup
 
   data SA : Set where
     ⟨_⟩ : List SA → SA
 
-  lookup : {A : Set} (tr : ST A) (addr : SA) → Maybe A
+  lookup : {A : Set} (tr : STree A) (addr : SA) → Maybe A
   lookup lf addr = nothing
   lookup (nd a sh) ⟨ [] ⟩ = just a
   lookup (nd a sh) ⟨ sa ∷ sas ⟩ = lookup sh sa >>= (λ b → lookup b ⟨ sas ⟩ )
@@ -44,24 +44,24 @@ module Stable where
 
   mutual 
 
-    data ST-Γ (A : Set) : Set where
-      • : ST-Γ A
-      ⟨_,_⟩∶_ : A → ST-∂ (ST A) → ST-Γ A → ST-Γ A
+    data STree-Γ (A : Set) : Set where
+      • : STree-Γ A
+      ⟨_,_⟩∶_ : A → STree-∂ (STree A) → STree-Γ A → STree-Γ A
 
-    data ST-∂ (A : Set) : Set where
-      at : ST (ST A) → ST-Γ A → ST-∂ A
+    data STree-∂ (A : Set) : Set where
+      at : STree (STree A) → STree-Γ A → STree-∂ A
 
-    ST-Z : Set → Set
-    ST-Z A = ST A × ST-Γ A
+    STree-Z : Set → Set
+    STree-Z A = STree A × STree-Γ A
 
-    plug : {A : Set} → ST-∂ A → A → ST A
+    plug : {A : Set} → STree-∂ A → A → STree A
     plug (at sh Γ) a = close Γ (nd a sh) 
 
-    close : {A : Set} → ST-Γ A → ST A → ST A
+    close : {A : Set} → STree-Γ A → STree A → STree A
     close • tr = tr
     close (⟨ a , ∂ ⟩∶ Γ) tr = close Γ (nd a (plug ∂ tr))
 
-    goto : {A : Set} → ST-Z A → SA → Maybe (ST-Z A)
+    goto : {A : Set} → STree-Z A → SA → Maybe (STree-Z A)
     goto z ⟨ [] ⟩ = just z
     goto z ⟨ sa ∷ sas ⟩ = 
       goto z ⟨ sas ⟩ 
@@ -77,7 +77,7 @@ module Stable where
     _++∶_ : SA → SA → SA
     ⟨ s ⟩ ++∶ ⟨ t ⟩ = ⟨ s ++ t ⟩
 
-    addrOf : {A : Set} → ST-Γ A → SA
+    addrOf : {A : Set} → STree-Γ A → SA
     addrOf • = ⟨ [] ⟩
     addrOf (⟨ a , at _ hΓ ⟩∶ Γ) = addrOf hΓ +∶ addrOf Γ
 
@@ -85,35 +85,40 @@ module Stable where
 
   data SN (A : Set) : Set where
     dot : A → SN A
-    box : A → ST (SN A) → SN A
+    box : A → STree (SN A) → SN A
 
-  toST : {A : Set} → SN A → ST A
-  toST (dot a) = obj a
-  toST (box a cn) = nd a (mapST toST cn)
+  toSTree : {A : Set} → SN A → STree A
+  toSTree (dot a) = obj a
+  toSTree (box a cn) = nd a (mapSTree toSTree cn)
 
   -- An address predicate?
 
-  data HasAddr {A : Set} : ST A → SA → Set where
+  data HasAddr {A : Set} : STree A → SA → Set where
     lfAddr : HasAddr lf ⟨ [] ⟩ 
-    zpAddr : (tr : ST A) → (Γ : ST-Γ A) → (sa : SA) → (ev : HasAddr tr sa) → 
+    zpAddr : (tr : STree A) → (Γ : STree-Γ A) → (sa : SA) → (ev : HasAddr tr sa) → 
              HasAddr (close Γ tr) (sa ++∶ addrOf Γ)
 
-  -- It's intersting to wonder about this kind of stable
-  -- multiplication.  Something like it surely works.
+  --
+  --  I want to test multiple trees
+  -- 
 
-  st-graft : {A : Set} → ST A → ST (ST A) → Maybe (ST A)
-  st-graft = {!!}
+  open Monad maybeM hiding (fmap)
 
-  st-join : {A : Set} → ST (ST A) → Maybe (ST A)
-  st-join lf = just lf
-  st-join (nd st ssh) = {!!}
+  data MTree (A : Set) : Set where
+    mobj : (a : A) → MTree A
+    mfix : MTree (STree A) → MTree A
 
-  -- And I guess the point of the above would be that, given a
-  -- stable nesting, you would try to compute the spine and make
-  -- sure that the spine of one was exactly the tree reflection
-  -- of the other.
+  MTreeF : Functor MTree
+  MTreeF = record { fmap = λ { f (mobj a) → mobj (f a) 
+                             ; f (mfix mt) → let open Functor MTreeF in mfix (fmap (mapSTree f) mt) } }
 
-  -- Hmmm ... can I encode some kind of type system here that
-  -- let's me check when functions between stable opetopes are
-  -- well formed ????
+  open Functor MTreeF
 
+  associate : {A : Set} → ℕ → MTree A → Maybe (MTree (MTree A))
+  associate zero mt = just (mobj mt)
+  associate (suc n) (mobj a) = nothing
+  associate (suc n) (mfix mt) = associate n mt >>= (λ mm → just (fmap mfix mm)) 
+    
+  --  Okay, now what?
+
+  

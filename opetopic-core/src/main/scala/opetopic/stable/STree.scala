@@ -212,19 +212,33 @@ object STree {
     def unstableOfDim[N <: Nat](n: N): Option[Tree[A, N]] = 
       unstably(n)(st)
 
-    def takeWhile(deriv: SDeriv[STree[A]], prop: A => Boolean): Option[(STree[A], STree[STree[A]])] = 
+    def takeWhile(prop: A => Boolean, deriv: SDeriv[STree[A]] = SDeriv(SNode(SLeaf, SLeaf))): Option[(STree[A], Shell[A])] = 
       st match {
         case SLeaf => Some(SLeaf, deriv.plug(SLeaf))
         case SNode(a, sh) => 
           if (prop(a)) {
             for {
-              pr <- sh.traverseWithDeriv[Option, STree[A], (STree[A], STree[STree[A]])](
-                (b, d) => b.takeWhile(d, prop)
+              pr <- sh.traverseWithDeriv[Option, STree[A], (STree[A], Shell[A])](
+                (b, d) => b.takeWhile(prop, d)
               )
               (newSh, toJn) = STree.unzip(pr)
               cropping <- STree.join(toJn)
             } yield (SNode(a, newSh), cropping)
           } else Some(SLeaf, sh)
+      }
+
+    def takeWithMask[B](msk: STree[B], deriv: SDeriv[STree[A]] = SDeriv(SNode(SLeaf, SLeaf))): Option[(STree[A], Shell[A])] =
+      (st, msk) match {
+        case (tr, SLeaf) => Some(SLeaf, deriv.plug(tr))
+        case (SNode(a, sh), SNode(_, msh)) => 
+          for {
+            pr <- sh.matchWithDeriv[STree[B], STree[A], (STree[A], Shell[A])](msh)(
+              (b, mb, d) => b.takeWithMask(mb, d)
+            )
+            (nsh, toJn) = STree.unzip(pr)
+            crp <- toJn.join
+          } yield (SNode(a, nsh), crp)
+        case _ => None
       }
 
     def treeSplit[B, C](f: A => (B, C)): (STree[B], STree[C]) =
@@ -234,16 +248,6 @@ object STree {
           val (b, c) = f(a)
           val (bs, cs) = sh.treeSplit(_.treeSplit(f))
           (SNode(b, bs), SNode(c, cs))
-        }
-      }
-
-    def tripleSplitWith[B, C, D](f: A => (B, C, D)): (STree[B], STree[C], STree[D]) = 
-      st match {
-        case SLeaf => (SLeaf, SLeaf, SLeaf)
-        case SNode(a, sh) => {
-          val (b, c, d) = f(a)
-          val (bs, cs, ds) = sh.tripleSplitWith(_.tripleSplitWith(f))
-          (SNode(b, bs), SNode(c, cs), SNode(d, ds))
         }
       }
 
@@ -275,9 +279,6 @@ object STree {
 
   def unzip[A, B](tr: STree[(A, B)]): (STree[A], STree[B]) = 
     tr.treeSplit({ case (a, b) => (a, b) })
-
-  def unzip3[A, B, C](tr: STree[(A, B, C)]): (STree[A], STree[B], STree[C]) = 
-    tr.tripleSplitWith({ case (a, b, c) => (a, b, c) })
 
   //============================================================================================
   // GRAFTING AND JOINING

@@ -66,6 +66,19 @@ lazy val opetopicDocs = (project in file("opetopic-docs")).
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
 
+lazy val opetopicParser = (project in file("opetopic-parser")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
+      "org.parboiled" %%% "parboiled" % "2.1.3"
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
 lazy val opetopicProver = (project in file("opetopic-prover")).
   settings(commonSettings: _*).
   settings(

@@ -7,7 +7,7 @@
 
 package opetopic
 
-package object stable extends ComplexTypes {
+package object stable extends ComplexTypes with CardinalTypes {
 
   type SAddr = List[SDir]
   type Shell[A] = STree[STree[A]]
