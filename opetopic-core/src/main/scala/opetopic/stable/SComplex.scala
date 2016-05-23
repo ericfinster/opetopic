@@ -74,6 +74,18 @@ trait ComplexTypes {
         case tl >> _ => tl.sourceAt(Nil)
       }
 
+    def glob(tgt: A, fill: A): Option[SComplex[A]] = 
+      c match {
+        case ||(n) => Some(||(SBox(tgt, STree.obj(n))) >> SDot(fill))
+        case tl >> hd => 
+          tl.head match {
+            case SBox(_, cn) => Some(
+              tl >> SBox(tgt, SNode(hd, cn.asShell)) >> SDot(fill)
+            )
+            case _ => None
+          }
+      }
+
   }
 
 

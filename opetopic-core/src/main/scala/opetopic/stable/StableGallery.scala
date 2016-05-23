@@ -164,12 +164,9 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F)
     //
 
     def layout: Option[Bounds] = {
-      println("Laying out panel")
       for {
         lvs <- edgeLayoutTree(edgeNesting)
-        _ = println("Got the layou tree")
         baseLayout <- thisGallery.layout(boxNesting, lvs)
-        _ = println("Layout succeeded")
       } yield {
 
         val baseBox = boxNesting.baseValue

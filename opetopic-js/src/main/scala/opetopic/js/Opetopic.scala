@@ -27,12 +27,31 @@ object Opetopic extends JSApp {
   val fredSComplex: SComplex[Int] = 
     SComplex(fredComplex)
 
-  val testComplex: SComplex[Int] = 
-    ||(SBox(4, STree.obj(SDot(3)))) >> SDot(7)
+  val arrow: SComplex[Int] = 
+    ||(SBox(2, STree.obj(SDot(1)))) >> SDot(3)
 
-  val editor = new JsStableEditor[Int](testComplex)
+  // val twoGlob: SComplex[Int] = 
+  //   ||(SBox(2, STree.obj(SDot(1)))) >>
+  //     SBox(4, SNode(SDot(3), STree.obj(SLeaf))) >>
+  //     SDot(5)
 
-  // val mainViewer = new JsStableViewer[Int](fredSComplex)
+  val twoGlob: SComplex[Int] = 
+    arrow.glob(4, 5).get
+
+  val twoGlobCard: SCardinal[Int] = 
+    SCardinal(twoGlob)
+
+  val editor = new JsStableEditor[Int](twoGlob)
+
+  // import scalaz.Traverse
+  // import scalaz.syntax.traverse._
+
+  // println("As a complex: " + editor.editor.complex.map(_.label).toString)
+
+  // val cardComplex: SComplex[Polarity[Option[Int]]] = 
+  //   editor.editor.complex.map(_.label)
+
+  // val mainViewer = new JsStableViewer[Polarity[Option[Int]]](cardComplex)
 
   // mainViewer.gallery.onCellClick = 
   //   (c : mainViewer.gallery.ActiveBox) => { 
