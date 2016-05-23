@@ -151,3 +151,16 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   }
 
 }
+
+object StableEditor {
+
+  def apply[A, F <: ActiveFramework](f: F)(implicit r: Renderable[A]): StableEditor[A, F] = 
+    new StableEditor(f)(SCardinal(None))
+
+  def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(implicit r: Renderable[A]): StableEditor[A, F] = 
+    new StableEditor(f)(SCardinal(c.map(Some(_))))
+
+  // def apply[A, F <: ActiveFramework](f: F)(c: SComplex[Option[A]])(implicit r: Renderable[A]): StableEditor[A, F] = 
+  //   new StableEditor(f)(SCardinal(c))
+
+}

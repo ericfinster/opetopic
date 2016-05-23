@@ -43,25 +43,23 @@ trait CardinalTypes {
       }
   }
 
-  implicit object CardinalTraverse extends Traverse[SCardinal] {
-    def traverseImpl[G[_], A, B](c: SCardinal[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[SCardinal[B]] = {
-      Traverse[Suite].traverse(c)(
-        Traverse[MTree].traverse(_)(
-          Traverse[SNesting].traverse(_)(f)
-        )
+  implicit object CardNstTraverse extends Traverse[SCardNst] {
+    def traverseImpl[G[_], A, B](c: SCardNst[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[SCardNst[B]] = 
+      Traverse[MTree].traverse(c)(
+        Traverse[SNesting].traverse(_)(f)
       )
-    }
   }
 
-  // Okay, this seems to do the trick.  It let's you tag the returned
-  // type from the seek operation below with an extra external STree
-  // instance so that you can the continue to seek on it.  Will will
-  // probably need a second evident class for the case when we need
-  // to use double successors ...
+  implicit object CardinalTraverse extends Traverse[SCardinal] {
+    def traverseImpl[G[_], A, B](c: SCardinal[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[SCardinal[B]] = 
+      Traverse[Suite].traverse(c)(
+        Traverse[SCardNst].traverse(_)(f)
+      )
+  }
 
-  // The other option would to make this somehow a case class as well
-  // which could then be inductively built up as we pass down out of
-  // the outer fixpoint calls and build the guy back up.
+  // You should only need this in the case where the codimension is
+  // really high.  The others should be implemented by just a couple
+  // of extra methods, I think ...
 
   abstract class SSuccDeriv[A] {
 
@@ -287,6 +285,26 @@ trait CardinalTypes {
 
     def apply[A](a: A): SCardinal[A] = 
       ||(MObj(SDot(a))) >> MFix(MObj(SLeaf))
+
+    def apply[A](c: SComplex[A]): SCardinal[A] = 
+      fromComplex(c)._1
+
+    def fromComplex[A](c: SComplex[A]): (SCardinal[A], SDeriv[SNesting[A]]) = 
+      c match {
+        case ||(nst) => (||(MObj(nst)), SDeriv(STree.obj(SLeaf)))
+        case tl >> hd => {
+
+          val (nTl, SDeriv(sh, _)) = fromComplex(tl)
+
+          val nHd: MTree[STree[SNesting[A]]] = 
+            Traverse[MTree].map(nTl.head)(
+              (n: SNesting[A]) => SNode(hd, sh)
+            )
+
+          (nTl >> MFix(nHd), SDeriv(hd.toTree.asShell))
+
+        }
+      }
 
   }
 
