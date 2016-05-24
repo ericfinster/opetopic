@@ -88,6 +88,16 @@ object Suite {
     def take(i: Int): Suite[A] = 
       drop(length - i)
 
+    def splitAt(i: Int, l: List[A] = List()): (Suite[A], List[A]) = 
+      s match {
+        case ||(a) => (||(a), l)
+        case tl >> hd => 
+          if (i <= 0) (s, l) else {
+            splitAt(i - 1, hd :: l)
+          }
+      }
+
+
   }
 
 }

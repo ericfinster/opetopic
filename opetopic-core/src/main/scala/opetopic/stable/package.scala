@@ -11,6 +11,8 @@ package object stable extends ComplexTypes with CardinalTypes {
 
   type SAddr = List[SDir]
   type Shell[A] = STree[STree[A]]
+  type TShell[A] = STree[Shell[A]]
+  type QShell[A] = STree[TShell[A]]
 
   //============================================================================================
   // LAZY TRAVERSAL HELPER
