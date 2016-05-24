@@ -93,9 +93,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   // the actual cardinal address...
   def buildCells(d: Int, n: SNesting[OptA]): SNesting[NeutralCell] = 
     n.foldNestingWithAddr[SNesting[NeutralCell]]()({
-      case (optA, addr) => SDot(new NeutralCell(d, optA, true))
+      case (optLabel, addr) => SDot(new NeutralCell(d, optLabel, true))
     })({
-      case (optA, addr, cn) => SBox(new NeutralCell(d, optA, false), cn)
+      case (optLabel, addr, cn) => SBox(new NeutralCell(d, optLabel, false), cn)
     })
 
   //============================================================================================
@@ -103,12 +103,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   //
 
   def seekToAddress(addr: SCardAddr): Option[SNstZipper[NeutralCell]] = 
-    for {
-      naddr <- addr.tail
-      pr <- cardinal.seek(naddr)
-      (nst, deriv) = pr
-      zp <- nst.seek(addr.head)
-    } yield zp
+    cardinal.seekNesting(addr)
 
   //============================================================================================
   // REFRESH ROUTINES
@@ -152,11 +147,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
         case Right(en) => en
       }
 
-    def refreshAddresses: Unit =
-      cardinalNesting.foreachWithAddr((nst, addr) => 
-        nst.foreachWithAddr((c, d) => {
-          c.cardinalAddress = addr >> d
-        })
+    def refreshAddresses: Unit = 
+      cardinalNesting.foreachWithAddr(
+        (box, addr) => { box.cardinalAddress = addr }
       )
 
     // This should be made into a gallery routine ...
@@ -197,16 +190,16 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   class NeutralCell(
     val dim: Int,
-    var optA: Option[A],
+    var optLabel: Option[A],
     var isExternal: Boolean
   ) extends EditorCell with SelectableCell {
 
     // FIXME!!
     def address: SAddr = Nil
-    var cardinalAddress: SCardAddr = ||(Nil)
+    var cardinalAddress: SCardAddr = SCardAddr()
 
     // Label data
-    def label: PolOptA = Neutral(optA)
+    def label: PolOptA = Neutral(optLabel)
     var labelBE: BoundedElement = renderer.render(framework)(label)
     def labelElement: Element = labelBE.element
     def labelBounds: Bounds = labelBE.bounds
@@ -216,7 +209,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     var isSelected: Boolean = false
     def selectionAddress = cardinalAddress
 
-    override def onClick: Unit = select
+    override def onClick: Unit = {
+      select
+    }
 
     override def onSelected: Unit = {
       boxRect.stroke = "red"

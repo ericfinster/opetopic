@@ -20,15 +20,21 @@ sealed trait MTree[+A]
 case class MObj[+A](t: STree[A]) extends MTree[A] 
 case class MFix[+A](t: MTree[STree[A]]) extends MTree[A] 
 
+sealed trait MDeriv[+A]
+case object MUnit extends MDeriv[Nothing]
+case class MSucc[+A](md: MDeriv[STree[A]], sd: SDeriv[STree[A]]) extends MDeriv[A]
+
 trait CardinalTypes {
 
+  type MAddr = List[SAddr]
   type SCardNst[+A] = MTree[SNesting[A]]
-  type SCardAddr = Suite[SAddr]
   type SCardinal[+A] = Suite[SCardNst[A]]
 
-  sealed trait SCardDeriv[+A] 
-  case object SCardUnit extends SCardDeriv[Nothing]
-  case class SCardSucc[+A](cd: SCardDeriv[STree[A]], d: SDeriv[STree[A]]) extends SCardDeriv[A]
+  case class SCardAddr(
+    val branchAddr: MAddr = Nil,  // Find the correct branch
+    val canopyAddr: SAddr = Nil,  // The address in the canopy there
+    val boxAddr: SAddr    = Nil   // The address of the box
+  ) { def dim: Int = branchAddr.length }
 
   implicit object MTreeTraverse extends Traverse[MTree] {
     def traverseImpl[G[_], A, B](mt: MTree[A])(f: A => G[B])(implicit isAp: Applicative[G]) : G[MTree[B]] = 
@@ -55,7 +61,7 @@ trait CardinalTypes {
 
   // Leaf addresses
   sealed trait SLeafAddr
-  case class SLeafBase(ca: SCardAddr) extends SLeafAddr
+  case class SLeafBase(ma: MAddr) extends SLeafAddr
   case class SLeafSucc(ea: SLeafAddr) extends SLeafAddr
 
   // Leaf Markers
@@ -64,52 +70,42 @@ trait CardinalTypes {
     type T[+U]
 
     val value: TShell[T[A]]
-    val deriv: SCardDeriv[TShell[T[A]]]
-
-    // I think we need a special method for
-    // closing up the derivative!
     def plug(ts: TShell[T[A]]): MTree[A]
 
   }
 
   implicit class MTreeOps[A](mt: MTree[A]) {
 
-    // This is supposed to be a seeking mechanism for
-    // enclosing an arbitrary number of extra types
-    // inside a codimension 2 fixpoint.  We'll see if
-    // it works or not ...
-    def leafSeek(la: SLeafAddr): Option[LeafMarker[A]] = ???
-      // (mt, la) match {
-      //   case (MFix(MFix(t)), SLeafBase(ca)) =>
-      //     for {
-      //       pr <- t.newSeek(ca)
-      //     } yield {
+    def leafSeek(la: SLeafAddr): Option[LeafMarker[A]] = 
+      (mt, la) match {
+        case (MFix(MFix(t)), SLeafBase(ma)) =>
+          for {
+            pr <- t.mSeek(ma)
+          } yield {
 
-      //       new LeafMarker[A] {
-      //         type T[+U] = Id[U]
-      //         val value = pr._1
-      //         val deriv = pr._2
-      //         def plug(ts: TShell[T[A]]): MTree[A] =
-      //           MFix(MFix(MFix(deriv.plug(ts))))
-      //       }
+            new LeafMarker[A] {
+              type T[+U] = Id[U]
+              val value = pr._1
+              def plug(ts: TShell[T[A]]): MTree[A] =
+                MFix(MFix(pr._2.plug(ts)))
+            }
 
-      //     }
-      //   case (MFix(t), SLeafSucc(ls)) => 
-      //     for {
-      //       lm <- t.leafSeek(ls)
-      //     } yield {
+          }
+        case (MFix(t), SLeafSucc(ls)) => 
+          for {
+            lm <- t.leafSeek(ls)
+          } yield {
 
-      //       new LeafMarker[A] {
-      //         type T[+U] = lm.T[STree[U]]
-      //         val value = lm.value
-      //         val deriv = lm.deriv
-      //         def plug(ts: TShell[T[A]]): MTree[A] = 
-      //           MFix(lm.plug(ts))
-      //       }
+            new LeafMarker[A] {
+              type T[+U] = lm.T[STree[U]]
+              val value = lm.value
+              def plug(ts: TShell[T[A]]): MTree[A] = 
+                MFix(lm.plug(ts))
+            }
 
-      //     }
-      //   case _ => None
-      // }
+          }
+        case _ => None
+      }
 
     def completeWith(a: A): STree[A] =
       mt match {
@@ -117,99 +113,98 @@ trait CardinalTypes {
         case MFix(t) => SNode(a, t.completeWith(SLeaf))
       }
 
-    // def seek(ca: SCardAddr): Option[(A, SCardDeriv[A])] = 
-    //   (mt, ca) match {
-    //     case (MObj(t), ||(Nil)) => 
-    //       for {
-    //         a <- t.rootValue
-    //       } yield (a, SCardUnit)
-    //     case (MFix(t), tl >> hd) => 
-    //       for {
-    //         res <- t.seek(tl)
-    //         (tr, d) = res
-    //         plc <- tr.seekTo(hd)
-    //         r <- plc.focus match {
-    //           case SLeaf => None
-    //           case SNode(a, sh) => 
-    //             Some(a, SCardSucc(d, SDeriv(sh, plc.ctxt)))
-    //         }
-    //       } yield r
-    //     case _ => None
-    //   }
-
-    def canopySeek(ca: SCardAddr): Option[(STree[A], SCardDeriv[A])] = 
-      (mt, ca) match {
-        case (MObj(t), ||(Nil)) => Some(t, SCardUnit)
-        case (MFix(t), tl >> hd) => 
+    def mSeek(ma: MAddr): Option[(STree[A], MDeriv[A])] = 
+      (mt, ma) match {
+        case (MObj(t), Nil) => Some(t, MUnit)
+        case (MFix(t), addr :: addrs) => 
           for {
-            res <- t.canopySeek(tl)
+            res <- t.mSeek(addrs)
             (tr, d) = res
-            plc <- tr.seekTo(hd)
+            plc <- tr.seekTo(addr)
             r <- plc.focus match {
               case SLeaf => None
               case SNode(tt, tsh) => 
-                Some(tt, SCardSucc(d, SDeriv(tsh, plc.ctxt)))
+                Some(tt, MSucc(d, SDeriv(tsh, plc.ctxt)))
             }
           } yield r
         case _ => None
       }
 
-    def foreachWithAddr(op: (A, SCardAddr) => Unit) : Unit = 
+    def foreachWithAddr(op: (STree[A], MAddr) => Unit, ma: MAddr = Nil) : Unit = 
       mt match {
-        case MObj(t) => t.foreachWithAddr((a, d) => op(a, ||(d)))
-        case MFix(t) => t.foreachWithAddr((b, p) => 
-          b.foreachWithAddr((a, d) => op(a, p >> d))
+        case MObj(t) => op(t, ma)
+        case MFix(t) => t.foreachWithAddr(
+          (sh, pa) => sh.foreachWithAddr(
+            (b, d) => op(b, d :: pa)
+          )
         )
       }
 
   }
 
-  implicit class SCardDerivOps[A](d: SCardDeriv[A]) {
+  implicit class MDerivOps[A](d: MDeriv[A]) {
 
     def plug(t: STree[A]): MTree[A] = 
       d match {
-        case SCardUnit => MObj(t)
-        case SCardSucc(cd, d) => MFix(cd.plug(d.plug(t)))
+        case MUnit => MObj(t)
+        case MSucc(md, sd) => MFix(md.plug(sd.plug(t)))
       }
 
   }
 
 
-  implicit class SCardNstOps[A](c: SCardNst[A]) {
+  implicit class SCardNstOps[A](cnst: SCardNst[A]) {
 
     def toNesting[B >: A](pos: B, neg: B): SNesting[B] = 
-      c match {
+      cnst match {
         case MObj(t) => SBox(pos, t)
         case MFix(t) => SBox(pos, SNode(SDot(neg), t.completeWith(SLeaf)))
       }
 
     def toPolarityNesting: SNesting[Polarity[A]] = 
-      c match {
+      cnst match {
         case MObj(t) => SBox(Positive(), t.map(_.map(Neutral(_))))
         case MFix(t) => SBox(Positive(), SNode(SDot(Negative()), 
           t.map(_.map(_.map(Neutral(_)))).completeWith(SLeaf)))
       }
 
+    // You can actuall extract much more information, but you
+    // haven't really defined the corresponding derivative type ...
+    def seek(addr: SCardAddr): Option[SNstZipper[A]] = 
+      for {
+        mz <- cnst.mSeek(addr.branchAddr)
+        cz <- mz._1.seekTo(addr.canopyAddr)
+        n <- cz.focus.rootValue
+        nz <- n.seek(addr.boxAddr)
+      } yield nz
+
+    def foreachWithAddr(op: (A, SCardAddr) => Unit): Unit = 
+      MTreeOps(cnst).foreachWithAddr((canopy, ma) =>
+        canopy.foreachWithAddr((nst, ca) => 
+          nst.foreachWithAddr((a, ba) => op(a, SCardAddr(ma, ca, ba)))
+        )
+      )
+
     //============================================================================================
     // EXTRUSION
     //
 
-    def extrudeAt(hd: SAddr, tl: SCardAddr, a: A)(pred: A => Boolean): Option[(SCardNst[A], STree[SNesting[A]])] = 
+    def extrudeAt(ca: SAddr, ma: MAddr, a: A)(pred: A => Boolean): Option[(SCardNst[A], STree[SNesting[A]])] = 
       for {
-        pr <- c.canopySeek(tl)
+        pr <- cnst.mSeek(ma)
         (canopy, cd) = pr
-        zp <- canopy.seekTo(hd)
+        zp <- canopy.seekTo(ca)
         cut <- zp.focus.takeWhile((n: SNesting[A]) => pred(n.baseValue))
         (et, es) = cut
       } yield (cd.plug(SNode(SBox(a, et), es)), et)
 
-    def extrudeFillerAt[B](hd: SAddr, tl: SCardAddr, a: A, msk: STree[B]): Option[SCardNst[A]] = 
-      c match {
+    def extrudeFillerAt[B](ca: SAddr, ma: MAddr, a: A, msk: STree[B]): Option[SCardNst[A]] = 
+      cnst match {
         case MFix(t) =>
           for {
-            sd <- t.canopySeek(tl)
+            sd <- t.mSeek(ma)
             (nt, dd) = sd
-            zp <- nt.seekTo(hd)
+            zp <- nt.seekTo(ca)
             cut <- zp.focus.takeWithMask(msk)
             (et, es) = cut
           } yield {
@@ -227,30 +222,25 @@ trait CardinalTypes {
         case _ => None // Must have at least dimension 1
       }
 
-    def extrudeLeafAt[B](hd: SAddr, la: SLeafAddr, msk: STree[B]): Option[SCardNst[A]] = 
-      c match {
-        case MFix(MFix(t)) => None
-        case _ => None
+    def extrudeLeafAt[B](ca: SAddr, la: SLeafAddr, msk: STree[B]): Option[SCardNst[A]] = 
+      for {
+        lm <- cnst.leafSeek(la)
+        zp <- lm.value.seekTo(ca)
+        cut <- zp.focus.takeWithMask(msk)
+        (et, es) = cut
+      } yield {
+
+        val extrusion = SNode(SNode(SLeaf, et), es)
+        lm.plug(zp.ctxt.close(extrusion))
+
       }
-
-    //   for {
-    //     lm <- c.leafSeek(la)
-    //     zp <- lm.value.seekTo(hd)
-    //     cut <- zp.focus.takeWithMask(msk)
-    //     (et, es) = cut
-    //   } yield {
-
-    //     val extrusion = SNode(SNode(SLeaf, et), es)
-    //     lm.plug(zp.ctxt.close(extrusion))
-
-    //   }
 
   }
 
-  implicit class CardinalOps[A](c: SCardinal[A]) {
+  implicit class CardinalOps[A](card: SCardinal[A]) {
 
     def toComplex(ps: Suite[(A, A)]): Option[SComplex[A]] = 
-      (c, ps) match {
+      (card, ps) match {
         case (||(MObj(cn)), ||((p, _))) => Some(||(SBox(p, cn)))
         case (ct >> chd, pt >> ((p, n))) =>
           for {
@@ -260,8 +250,9 @@ trait CardinalTypes {
         case _ => None
       }
 
-    def seek(addr: SCardAddr): Option[(SNesting[A], SCardDeriv[SNesting[A]])] = ???
-      // c.take(addr.length).head.seek(addr)
+    def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] = 
+      card.take(addr.dim + 1).head.seek(addr)
+
 
     // Okay, so I'd like to actually start working on the extrusion.  Let's 
     // go at it from this end.  The first thing I'm going to need is to
