@@ -39,7 +39,10 @@ object Opetopic extends JSApp {
   val twoGlobCard: SCardinal[Int] = 
     SCardinal(twoGlob)
 
-  val editor = new JsStableEditor[Int](twoGlob)
+  val threeGlob: SComplex[Int] = 
+    twoGlob.glob(6, 7).get
+
+  val editor = new JsStableEditor[Int](threeGlob)
 
   // import scalaz.Traverse
   // import scalaz.syntax.traverse._

@@ -135,12 +135,17 @@ trait CardinalTypes {
             (tr, d) = res
             plc <- tr.seekTo(addr)
             r <- plc.focus match {
-              case SLeaf => None
+              case SLeaf => None 
               case SNode(tt, tsh) => 
                 Some(tt, MSucc(d, SDeriv(tsh, plc.ctxt)))
             }
           } yield r
-        case _ => None
+        case _ => {
+          // println("Failed with unknown match")
+          // println("mt: " + mt.toString)
+          // println("ma: " + ma.toString)
+          None
+        }
       }
 
     def foreachWithAddr(op: (STree[A], MAddr) => Unit, ma: MAddr = Nil) : Unit = 
@@ -222,22 +227,6 @@ trait CardinalTypes {
       }
     }
 
-    // @natElim
-    // def extrudeAt[A, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N], a: A)(pred: A => Boolean) : ShapeM[(CardinalNesting[A, N], Tree[Nesting[A, N], N])] = {
-    //   case (Z, Pt(nst), ca, a, pred) =>
-    //     if (pred(Nesting.baseValue(nst))) {
-    //       succeed(Pt(Box(a, Pt(nst))), Pt(nst))
-    //     } else fail("Nothing selected")
-    //   case (S(p: P), cn, tl >> hd, a, pred) =>
-    //     for {
-    //       pr <- poke(p)(cn, tl)
-    //       zp <- Tree.seekTo(pr._1, hd)
-    //       cut <- Tree.exciseWithProp(zp._1)((nst: Nesting[A, S[P]]) => pred(Nesting.baseValue(nst)))
-    //     } yield {
-    //       (plugCardinal(p)(pr._2, Zipper.close(S(p))(zp._2, Node(Box(a, cut._1), cut._2))), cut._1)
-    //     }
-    // }
-
     def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] = 
       cnst match {
         case MFix(t) =>
@@ -269,6 +258,7 @@ trait CardinalTypes {
         zp <- lm.value.seekTo(ca)
         // _ = println("Canopy seek succeeded")
         cut <- zp.focus.takeWithMask(msk)
+        // _ = println("Excision succeeded")
         (et, es) = cut
       } yield {
 
@@ -315,12 +305,16 @@ trait CardinalTypes {
         // _ = println("Mask: " + msk.toString)
         fn <- fillNst.extrudeFillerAt(addr, fill)(msk)
         // _ = println("Filler extruded: " + fn.toString)
+        // _ = println("About to extrude leaves with " + l.length.toString + " tasks.")
         lns <- l.zipWithIndex.traverse({
           case (lfNst, i) => {
 
-            val lfAddr = SLeafAddr(extDim + i, addr.branchAddr)
-            // println("Extruding leaf in dimension: " + (extDim + i).toString)
-            lfNst.extrudeLeafAt(addr.canopyAddr, lfAddr, msk)
+            // println("Extruding leaf in dimension: " + (extDim + i + 2).toString)
+
+            val lfAddr = SLeafAddr(i, addr.branchAddr)
+            val res = lfNst.extrudeLeafAt(addr.canopyAddr, lfAddr, msk)
+            // println("result: " + res.toString)
+            res
 
           }
         })
