@@ -13,6 +13,8 @@ import scalaz.Leibniz._
 import scalaz.Traverse
 import scalaz.Applicative
 import scalaz.syntax.traverse._
+import scalaz.std.list._
+import scalaz.std.option._
 
 import opetopic._
 
@@ -64,8 +66,17 @@ trait CardinalTypes {
   case class SLeafBase(ma: MAddr) extends SLeafAddr
   case class SLeafSucc(ea: SLeafAddr) extends SLeafAddr
 
+  object SLeafAddr {
+
+    // Pad an MAddr with leaf depth markers
+    def apply(i: Int, ma: MAddr): SLeafAddr =
+      if (i <= 0) SLeafBase(ma) else
+        SLeafSucc(SLeafAddr(i-1, ma))
+
+  }
+
   // Leaf Markers
-  abstract class LeafMarker[A] {
+  abstract class LeafDeriv[A] {
 
     type T[+U]
 
@@ -76,14 +87,16 @@ trait CardinalTypes {
 
   implicit class MTreeOps[A](mt: MTree[A]) {
 
-    def leafSeek(la: SLeafAddr): Option[LeafMarker[A]] = 
+    // This probably more properly belongs to the
+    // cardinal nesting ops, no?
+    def leafSeek(la: SLeafAddr): Option[LeafDeriv[A]] = 
       (mt, la) match {
         case (MFix(MFix(t)), SLeafBase(ma)) =>
           for {
             pr <- t.mSeek(ma)
           } yield {
 
-            new LeafMarker[A] {
+            new LeafDeriv[A] {
               type T[+U] = Id[U]
               val value = pr._1
               def plug(ts: TShell[T[A]]): MTree[A] =
@@ -96,7 +109,7 @@ trait CardinalTypes {
             lm <- t.leafSeek(ls)
           } yield {
 
-            new LeafMarker[A] {
+            new LeafDeriv[A] {
               type T[+U] = lm.T[STree[U]]
               val value = lm.value
               def plug(ts: TShell[T[A]]): MTree[A] = 
@@ -168,7 +181,7 @@ trait CardinalTypes {
           t.map(_.map(_.map(Neutral(_)))).completeWith(SLeaf)))
       }
 
-    // You can actuall extract much more information, but you
+    // You can actualy extract much more information, but you
     // haven't really defined the corresponding derivative type ...
     def seek(addr: SCardAddr): Option[SNstZipper[A]] = 
       for {
@@ -189,22 +202,49 @@ trait CardinalTypes {
     // EXTRUSION
     //
 
-    def extrudeAt(ca: SAddr, ma: MAddr, a: A)(pred: A => Boolean): Option[(SCardNst[A], STree[SNesting[A]])] = 
+    def extrudeAt(addr: SCardAddr, a: A)(pred: A => Boolean): Option[(SCardNst[A], STree[SNesting[A]])] = {
+
+      // println("cnst: " + cnst.toString)
+      // println("branchAddr: " + addr.branchAddr.toString)
+
       for {
-        pr <- cnst.mSeek(ma)
+        pr <- cnst.mSeek(addr.branchAddr)
         (canopy, cd) = pr
-        zp <- canopy.seekTo(ca)
+        zp <- canopy.seekTo(addr.canopyAddr)
         cut <- zp.focus.takeWhile((n: SNesting[A]) => pred(n.baseValue))
         (et, es) = cut
-      } yield (cd.plug(SNode(SBox(a, et), es)), et)
+      } yield {
 
-    def extrudeFillerAt[B](ca: SAddr, ma: MAddr, a: A, msk: STree[B]): Option[SCardNst[A]] = 
+        // println("excised tree: " + et.toString)
+        // println("excised shell: " + es.toString)
+
+        (cd.plug(zp.ctxt.close(SNode(SBox(a, et), es))), et)
+      }
+    }
+
+    // @natElim
+    // def extrudeAt[A, N <: Nat](n: N)(cn: CardinalNesting[A, N], ca: CardinalAddress[N], a: A)(pred: A => Boolean) : ShapeM[(CardinalNesting[A, N], Tree[Nesting[A, N], N])] = {
+    //   case (Z, Pt(nst), ca, a, pred) =>
+    //     if (pred(Nesting.baseValue(nst))) {
+    //       succeed(Pt(Box(a, Pt(nst))), Pt(nst))
+    //     } else fail("Nothing selected")
+    //   case (S(p: P), cn, tl >> hd, a, pred) =>
+    //     for {
+    //       pr <- poke(p)(cn, tl)
+    //       zp <- Tree.seekTo(pr._1, hd)
+    //       cut <- Tree.exciseWithProp(zp._1)((nst: Nesting[A, S[P]]) => pred(Nesting.baseValue(nst)))
+    //     } yield {
+    //       (plugCardinal(p)(pr._2, Zipper.close(S(p))(zp._2, Node(Box(a, cut._1), cut._2))), cut._1)
+    //     }
+    // }
+
+    def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] = 
       cnst match {
         case MFix(t) =>
           for {
-            sd <- t.mSeek(ma)
+            sd <- t.mSeek(addr.branchAddr)
             (nt, dd) = sd
-            zp <- nt.seekTo(ca)
+            zp <- nt.seekTo(addr.canopyAddr)
             cut <- zp.focus.takeWithMask(msk)
             (et, es) = cut
           } yield {
@@ -225,7 +265,9 @@ trait CardinalTypes {
     def extrudeLeafAt[B](ca: SAddr, la: SLeafAddr, msk: STree[B]): Option[SCardNst[A]] = 
       for {
         lm <- cnst.leafSeek(la)
+        // _ = println("Leaf seek succeeded")
         zp <- lm.value.seekTo(ca)
+        // _ = println("Canopy seek succeeded")
         cut <- zp.focus.takeWithMask(msk)
         (et, es) = cut
       } yield {
@@ -253,38 +295,38 @@ trait CardinalTypes {
     def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] = 
       card.take(addr.dim + 1).head.seek(addr)
 
+    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[SCardinal[A]] = {
 
-    // Okay, so I'd like to actually start working on the extrusion.  Let's 
-    // go at it from this end.  The first thing I'm going to need is to
-    // split the cardinal based on the dimension I'm passed.  To do this,
-    // I'll need a routine to split a suite.
+      // println("Extrusion address has dim: " + addr.dim)
 
-    // def extrude(addr: SCardAddr, a: A)(pred: A => Boolean): Option[SCardinal[A]] = {
+      val extDim = addr.dim
+      val (p, l) = card.splitAt(extDim + 2)
 
-    //   val (p, l) = c.splitAt(addr.length)
+      // println("p: " + p.toString)
+      // println("l: " + l.toString)
 
-    //   p match {
-    //     case ||(_) => None
-    //     case tl >> hd => {
+      for {
+        tl <- p.tail
+        extNst = tl.head
+        fillNst = p.head
+        // _ = println("Entering extrudeAt")
+        pr <- extNst.extrudeAt(addr, tgt)(pred)
+        (en, msk) = pr
+        // _ = println("Mask: " + msk.toString)
+        fn <- fillNst.extrudeFillerAt(addr, fill)(msk)
+        // _ = println("Filler extruded: " + fn.toString)
+        lns <- l.zipWithIndex.traverse({
+          case (lfNst, i) => {
 
-    //       val extNst = tl.head
-    //       val fillNst = hd
+            val lfAddr = SLeafAddr(extDim + i, addr.branchAddr)
+            // println("Extruding leaf in dimension: " + (extDim + i).toString)
+            lfNst.extrudeLeafAt(addr.canopyAddr, lfAddr, msk)
 
-    //       // So, the idea is that we've got the head and filler guys.
-    //       // All the things left in the list there should have leaves
-    //       // added to them.
+          }
+        })
+      } yield (tl.withHead(en) >> fn) ++ lns
 
-    //       for {
-    //         pr <- extNst.extrudeAt(addr, a)(pred)
-    //         (cn, msk) = pr
-    //       } yield ???
-
-    //     }
-    //   }
-
-    //   None
-
-    // }
+    }
 
   }
 

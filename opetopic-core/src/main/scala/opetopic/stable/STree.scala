@@ -217,6 +217,7 @@ object STree {
         case SLeaf => Some(SLeaf, deriv.plug(SLeaf))
         case SNode(a, sh) => 
           if (prop(a)) {
+            // println("Taking: " + a.toString)
             for {
               pr <- sh.traverseWithDeriv[Option, STree[A], (STree[A], Shell[A])](
                 (b, d) => b.takeWhile(prop, d)
@@ -224,7 +225,7 @@ object STree {
               (newSh, toJn) = STree.unzip(pr)
               cropping <- STree.join(toJn)
             } yield (SNode(a, newSh), cropping)
-          } else Some(SLeaf, sh)
+          } else Some(SLeaf, deriv.plug(SNode(a, sh)))
       }
 
     def takeWithMask[B](msk: STree[B], deriv: SDeriv[STree[A]] = SDeriv(SNode(SLeaf, SLeaf))): Option[(STree[A], Shell[A])] =

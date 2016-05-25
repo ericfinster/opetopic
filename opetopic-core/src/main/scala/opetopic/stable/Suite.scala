@@ -72,6 +72,14 @@ object Suite {
         }
       }
 
+    def zipWithSuite[B](t: Suite[B]): Suite[(A, B)] = 
+      (s, t) match {
+        case (||(a), tt) => ||(a, tt.head)
+        case (ss, ||(b)) => ||(ss.head, b)
+        case (atl >> ahd, btl >> bhd) =>
+          atl.zipWithSuite(btl) >> (ahd, bhd)
+      }
+
     def length: Int = 
       s match {
         case ||(_) => 1
@@ -88,15 +96,23 @@ object Suite {
     def take(i: Int): Suite[A] = 
       drop(length - i)
 
-    def splitAt(i: Int, l: List[A] = List()): (Suite[A], List[A]) = 
+    def grab(i: Int, l: List[A] = List()): (Suite[A], List[A]) = 
       s match {
         case ||(a) => (||(a), l)
         case tl >> hd => 
           if (i <= 0) (s, l) else {
-            splitAt(i - 1, hd :: l)
+            tl.grab(i - 1, hd :: l)
           }
       }
 
+    def splitAt(i: Int): (Suite[A], List[A]) = 
+      grab(length - i)
+
+    def ++(l: List[A]): Suite[A] = 
+      l match {
+        case Nil => s
+        case l :: ls => (s >> l) ++ ls
+      }
 
   }
 

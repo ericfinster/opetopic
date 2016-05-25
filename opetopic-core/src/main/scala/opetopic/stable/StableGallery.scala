@@ -103,6 +103,8 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F)
     def boxNesting: SNesting[BoxType]
     def edgeNesting: SNesting[EdgeType]
 
+    def dim: Int
+
     def element: Element
 
     //
@@ -113,6 +115,7 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F)
       for {
         sp <- en.spine(SDeriv(SNode(SLeaf, SLeaf)))  // Default is an object
       } yield sp.map(edge => {
+        edge.clearEdge
         val edgeMarker = new EdgeStartMarker(edge)
         LayoutMarker(
           edgeMarker, edgeMarker, true,
@@ -164,10 +167,13 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F)
     //
 
     def layout: Option[Bounds] = {
+
       for {
         lvs <- edgeLayoutTree(edgeNesting)
         baseLayout <- thisGallery.layout(boxNesting, lvs)
       } yield {
+
+        // println("Finished layout in dimension: " + dim)
 
         val baseBox = boxNesting.baseValue
 

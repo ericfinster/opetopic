@@ -31,7 +31,7 @@ class JsStableEditor[A: Renderable](c: SComplex[A]) {
   // Install the key handler
   jQuery(uiElement).keypress((e : JQueryEventObject) => {
     e.which match {
-      case 101 => ()
+      case 101 => editor.extrudeSelection
       case 100 => ()
       case 112 => ()
       case 120 => ()

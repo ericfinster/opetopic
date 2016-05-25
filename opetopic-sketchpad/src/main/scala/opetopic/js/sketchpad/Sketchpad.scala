@@ -99,6 +99,7 @@ object Sketchpad extends JSApp {
     jQuery("#view-btn").on("click", () => { loadSelectedSketch })
     jQuery("#save-btn").on("click", () => { saveSketch })
     jQuery("#svg-btn").on("click", () => { renderSketch })
+    jQuery("#export-btn").on("click", () => { exportSketch })
 
   }
 
@@ -282,6 +283,22 @@ object Sketchpad extends JSApp {
   //     // Sketchpad.editor.refresh()
 
   //   }
+
+  def exportSketch: Unit = 
+    for {
+      c <- viewer.complex
+    } {
+
+      val tc = c.value.map(new IndexedMap[OptMarker, ConstString] {
+        def apply[N <: Nat](n: N)(om: OptMarker[N]) : String = om.toString
+      })
+
+      import opetopic.stable._
+      val sc = SComplex(tc)
+
+      println(sc.toString)
+
+    }
 
   def renderSketch: Unit = 
     for {

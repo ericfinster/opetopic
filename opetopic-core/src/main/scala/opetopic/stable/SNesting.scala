@@ -155,6 +155,9 @@ object SNesting {
     def toTree: STree[A] = 
       foldNesting[STree[A]](a => SLeaf)((a, sh) => SNode(a, sh))
 
+    def toTreeWith[B](f: A => B): STree[B] = 
+      foldNesting[STree[B]](a => SLeaf)((a, sh) => SNode(f(a), sh))
+
     def foreach(op: A => Unit): Unit = 
       nst match {
         case SDot(a) => op(a)

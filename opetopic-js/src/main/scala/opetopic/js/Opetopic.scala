@@ -30,10 +30,8 @@ object Opetopic extends JSApp {
   val arrow: SComplex[Int] = 
     ||(SBox(2, STree.obj(SDot(1)))) >> SDot(3)
 
-  // val twoGlob: SComplex[Int] = 
-  //   ||(SBox(2, STree.obj(SDot(1)))) >>
-  //     SBox(4, SNode(SDot(3), STree.obj(SLeaf))) >>
-  //     SDot(5)
+  val obj: SComplex[Int] = 
+    ||(SDot(14))
 
   val twoGlob: SComplex[Int] = 
     arrow.glob(4, 5).get

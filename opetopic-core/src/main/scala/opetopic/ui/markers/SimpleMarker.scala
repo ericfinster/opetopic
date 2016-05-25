@@ -18,6 +18,8 @@ sealed trait SimpleMarker[N <: Nat] {
 
   def visualize(frmwk: UIFramework) : frmwk.Visualization[N]
   
+  override def toString = label
+
 }
 
 case class SimpleObjectMarker(

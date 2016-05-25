@@ -51,7 +51,9 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
   class SimpleActivePanel(
     val boxNesting: SNesting[BoxType],
     val edgeNesting: SNesting[EdgeType]
-  ) extends ActiveStablePanel 
+  ) extends ActiveStablePanel {
+    def dim: Int = boxNesting.baseValue.dim
+  }
 
   class SimpleActiveCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) 
       extends ActiveBox 

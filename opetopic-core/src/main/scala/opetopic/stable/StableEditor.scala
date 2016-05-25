@@ -122,6 +122,77 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     panels.foreach(_.refreshAddresses)
 
   //============================================================================================
+  // MUTABILITY ROUTINES
+  //
+
+  def extendPanels(ps: Suite[PanelType]): Suite[PanelType] = {
+
+    val ncn : MTree[STree[SNesting[NeutralCell]]] = 
+      Traverse[MTree].map(ps.head.cardinalNesting)(
+        nst => nst.toTreeWith(_ => SDot(new NeutralCell(ps.head.dim + 1, None, true)))
+      )
+
+    val newPanel = new EditorPanel(ps.head.dim + 1, MFix(ncn), Left(ps.head))
+
+    ps >> newPanel
+
+  }
+
+  def extrudeSelection: Unit = {
+
+    println("Starting extrusion.")
+
+    // println("Current complex is: " + complex.toString)
+
+    selectionRoot match {
+      case None => ()
+      case Some(root) => {
+
+        println("Extrusion root is: " + root.toString)
+
+        val tgtCell = new NeutralCell(root.dim, None, false)
+        val fillCell = new NeutralCell(root.dim + 1, None, true)
+
+        val extPanels : Suite[PanelType] = 
+          if (root.dim == panels.head.dim)
+            extendPanels(panels)
+          else panels
+
+
+        val extCardinal : SCardinal[NeutralCell] = 
+          Traverse[Suite].map(extPanels)(_.cardinalNesting)
+
+        for {
+          c <- extCardinal.extrude(root.cardinalAddress, tgtCell, fillCell)(_.isSelected)
+        } {
+
+          println("Extrusion finished, rendering ...")
+
+          deselectAll
+
+          extPanels.zipWithSuite(c).foreach({
+            case (p, n) => p.cardinalNesting = n
+          })
+
+          panels = extPanels
+
+          // println(complex.toString)
+
+          renderAll
+          tgtCell.selectAsRoot
+
+          // def complex: SComplex[EditorCell] =
+          //   Traverse[Suite].map(panels)(_.boxNesting)
+
+
+        }
+
+      }
+    }
+
+  }
+
+  //============================================================================================
   // PANEL IMPLEMENTATION
   //
 
@@ -221,6 +292,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
       boxRect.stroke = "black"
     }
 
+    override def toString: String = 
+      optLabel.toString
+
   }
 
   abstract class PolarizedCell extends EditorCell {
@@ -240,6 +314,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
     boxRect.fill = "lightgrey"
 
+    override def toString = "-"
+
   }
 
   class PositiveCell(val dim: Int) extends PolarizedCell {
@@ -251,6 +327,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
       renderer.render(framework)(label)
 
     boxRect.fill = "lightgrey"
+
+    override def toString = "+"
 
   }
 

@@ -163,6 +163,13 @@ trait LayoutContext[A, F <: UIFramework] {
 
     }
 
+    def clearEdge: Unit = {
+      edgeStartX = zero
+      edgeStartY = zero
+      edgeEndX = zero
+      edgeEndY = zero
+    }
+
   }
 
   //============================================================================================
@@ -176,8 +183,10 @@ trait LayoutContext[A, F <: UIFramework] {
         bx.clear
 
         val edgeMarker = 
-          bx.outgoingEdge.map(EdgeStartMarker(_)).
-            getOrElse(DummyMarker())
+          bx.outgoingEdge.map(edge => {
+            edge.clearEdge
+            EdgeStartMarker(edge)
+          }).getOrElse(DummyMarker())
 
         bx.horizontalDependents += edgeMarker
         bx.verticalDependents += edgeMarker
