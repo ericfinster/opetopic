@@ -143,10 +143,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   def extrudeSelection: Unit = {
 
-    println("Starting extrusion.")
-
-    // println("Current complex is: " + complex.toString)
-
     selectionRoot match {
       case None => ()
       case Some(root) => {
@@ -169,8 +165,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
             c <- extCardinal.extrude(root.cardinalAddress, tgtCell, fillCell)(_.isSelected)
           } {
 
-            println("Extrusion finished, rendering ...")
-
             deselectAll
 
             extPanels.zipWithSuite(c).foreach({
@@ -179,14 +173,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
             panels = extPanels
 
-            // println(complex.toString)
-
             renderAll
             tgtCell.selectAsRoot
-
-            // def complex: SComplex[EditorCell] =
-            //   Traverse[Suite].map(panels)(_.boxNesting)
-
 
           }
 
@@ -198,8 +186,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   }
 
   def loopAtSelection: Unit = {
-
-    println("Starting loop extrusion.")
 
     selectionRoot match {
       case None => ()
@@ -225,8 +211,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
             c <- extCardinal.extrudeLoop(root.cardinalAddress, tgtCell, fillCell)
           } {
 
-            println("Loop extrusion finished, rendering ...")
-
             deselectAll
 
             extPanels.zipWithSuite(c).foreach({
@@ -247,6 +231,50 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
+  def sproutSelection: Unit = {
+
+    selectionRoot match {
+      case None => ()
+      case Some(root) => {
+
+        if (root.isExternal) {
+
+          val srcCell = new NeutralCell(root.dim, None, true)
+          val fillCell = new NeutralCell(root.dim + 1, None, true)
+
+          val extPanels : Suite[PanelType] =
+            if (root.dim == panels.head.dim)
+              extendPanels(panels)
+            else panels
+
+
+          val extCardinal : SCardinal[NeutralCell] =
+            Traverse[Suite].map(extPanels)(_.cardinalNesting)
+
+          for {
+            c <- extCardinal.sprout(root.cardinalAddress, srcCell, fillCell)
+          } {
+
+            deselectAll
+
+            extPanels.zipWithSuite(c).foreach({
+              case (p, n) => p.cardinalNesting = n
+            })
+
+            panels = extPanels
+            root.isExternal = false
+
+            renderAll
+            srcCell.selectAsRoot
+
+          }
+
+        } else println("Can't sprout here")
+
+      }
+    }
+
+  }
 
   //============================================================================================
   // PANEL IMPLEMENTATION

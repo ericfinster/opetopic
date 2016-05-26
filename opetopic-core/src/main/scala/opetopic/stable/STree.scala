@@ -197,6 +197,18 @@ object STree {
         case SNode(a, _) => Some(a)
       }
 
+    def nodeOption: Option[(A, Shell[A])] = 
+      st match {
+        case SNode(a, sh) => Some(a, sh)
+        case _ => None
+      }
+
+    def leafOption: Option[Unit] = 
+      st match {
+        case SLeaf => Some(())
+        case _ => None
+      }
+
     def elementAt(addr: SAddr): Option[A] = 
       for {
         z <- st.seekTo(addr)

@@ -45,6 +45,9 @@ case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCt
   def close: SNesting[A] = 
     ctxt.close(focus)
 
+  def closeWith[B >: A](n: SNesting[B]): SNesting[B] = 
+    ctxt.close(n)
+
   def visit(d: SDir): Option[SNstZipper[A]] = 
     (focus, d) match {
       case (SDot(_), _) => None
@@ -150,6 +153,18 @@ object SNesting {
         case SBox(a, cn) => box(a, addr, cn.mapWithAddr(
           (nn, dir) => nn.foldNestingWithAddr(SDir(dir) :: addr)(dot)(box)
         ))
+      }
+
+    def boxOption: Option[(A, STree[SNesting[A]])] = 
+      nst match {
+        case SBox(a, cn) => Some(a, cn)
+        case _ => None
+      }
+
+    def dotOption: Option[A] = 
+      nst match {
+        case SDot(a) => Some(a)
+        case _ => None
       }
 
     def toTree: STree[A] = 

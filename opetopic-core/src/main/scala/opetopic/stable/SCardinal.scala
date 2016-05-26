@@ -88,6 +88,12 @@ trait CardinalTypes {
 
   implicit class MTreeOps[A](mt: MTree[A]) {
 
+    def unfold: Option[MTree[STree[A]]] = 
+      mt match {
+        case MFix(t) => Some(t)
+        case _ => None
+      }
+
     // This probably more properly belongs to the
     // cardinal nesting ops, no?
     def leafSeek(la: SLeafAddr): Option[LeafDeriv[A]] = 
@@ -171,6 +177,17 @@ trait CardinalTypes {
 
   implicit class SCardNstOps[A](cnst: SCardNst[A]) {
 
+    def foreachWithAddr(op: (A, SCardAddr) => Unit): Unit = 
+      MTreeOps(cnst).foreachWithAddr((canopy, ma) =>
+        canopy.foreachWithAddr((nst, ca) => 
+          nst.foreachWithAddr((a, ba) => op(a, SCardAddr(ma, ca, ba)))
+        )
+      )
+
+    //============================================================================================
+    // NESTING EXTRACTION
+    //
+
     def toNesting[B >: A](pos: B, neg: B): SNesting[B] = 
       cnst match {
         case MObj(t) => SBox(pos, t)
@@ -183,6 +200,10 @@ trait CardinalTypes {
         case MFix(t) => SBox(Positive(), SNode(SDot(Negative()), 
           t.map(_.map(_.map(Neutral(_)))).completeWith(SLeaf)))
       }
+
+    //============================================================================================
+    // SEEK ROUTINES
+    //
 
     // You can actualy extract much more information, but you
     // haven't really defined the corresponding derivative type ...
@@ -201,26 +222,18 @@ trait CardinalTypes {
       for {
         mz <- cnst.mSeek(addr.branchAddr)
         cz <- mz._1.seekTo(addr.canopyAddr)
-        res <- addr.boxAddr match {
+        czr <- addr.boxAddr match {
           case Nil => Some(cz)
           case SDir(d) :: ds => 
             for {
               bn <- cz.focus.rootValue
               bz <- bn.seek(ds)
-              r <- bz.focus match {
-                case SDot(_) => None
-                case SBox(_, cn) => cn.seekTo(d)
-              }
+              bcn <- bz.focus.boxOption
+              (_, cn) = bcn
+              r <- cn.seekTo(d)
             } yield r
         }
-      } yield cz
-
-    def foreachWithAddr(op: (A, SCardAddr) => Unit): Unit = 
-      MTreeOps(cnst).foreachWithAddr((canopy, ma) =>
-        canopy.foreachWithAddr((nst, ca) => 
-          nst.foreachWithAddr((a, ba) => op(a, SCardAddr(ma, ca, ba)))
-        )
-      )
+      } yield czr
 
     //============================================================================================
     // EXTRUSION
@@ -236,24 +249,21 @@ trait CardinalTypes {
       } yield (cd.plug(zp.ctxt.close(SNode(SBox(a, et), es))), et)
 
     def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] = 
-      cnst match {
-        case MFix(t) =>
-          for {
-            sd <- t.mSeek(addr.branchAddr)
-            (nt, dd) = sd
-            zp <- nt.seekTo(addr.canopyAddr)
-            cut <- zp.focus.takeWithMask(msk)
-            (et, es) = cut
-          } yield {
+      for {
+        t <- cnst.unfold
+        sd <- t.mSeek(addr.branchAddr)
+        (nt, dd) = sd
+        zp <- nt.seekTo(addr.canopyAddr)
+        cut <- zp.focus.takeWithMask(msk)
+        (et, es) = cut
+      } yield {
 
-            val extrusion = SNode(SNode(SDot(a), et), es)
-            val ncn : MTree[STree[SNesting[A]]] =
-              dd.plug(zp.ctxt.close(extrusion))
+        val extrusion = SNode(SNode(SDot(a), et), es)
+        val ncn : MTree[STree[SNesting[A]]] =
+          dd.plug(zp.ctxt.close(extrusion))
 
-            MFix(ncn)
+        MFix(ncn)
 
-          }
-        case _ => None // Must have at least dimension 1
       }
 
     def extrudeLeafAt[B](ca: SAddr, la: SLeafAddr, msk: STree[B]): Option[SCardNst[A]] = 
@@ -274,75 +284,127 @@ trait CardinalTypes {
     //
 
     def loopAt(addr: SCardAddr, a: A): Option[SCardNst[A]] = 
-      cnst match {
-        case MFix(t) => {
-          for {
-            pr <- t.mSeek(addr.branchAddr)
-            (canopy, cd) = pr
-            cz <- canopy.seekTo(addr.canopyAddr)
-            // We assume the box address is trivial
-            r <- cz.focus match {
-              case SLeaf => None
-              case SNode(br, brs) => {
+      for {
+        t <- cnst.unfold
+        pr <- t.mSeek(addr.branchAddr)
+        (canopy, cd) = pr
+        cz <- canopy.seekTo(addr.canopyAddr)
+        bbrs <- cz.focus.nodeOption
+        (br, brs) = bbrs
+      } yield {
 
-                // Okay, not sure, but I think this is right.
-                val loopExt: Shell[SNesting[A]] = 
-                  SNode(SNode(SBox(a, SLeaf), SNode(br, brs.asShell)), brs)
+        // Okay, not sure, but I think this is right.
+        val loopExt: Shell[SNesting[A]] =
+          SNode(SNode(SBox(a, SLeaf), SNode(br, brs.asShell)), brs)
 
-                Some(MFix(cd.plug(cz.closeWith(loopExt))))
+        MFix(cd.plug(cz.closeWith(loopExt)))
 
-              }
-            }
-          } yield r
-        }
-        case _ => None
       }
 
     def loopFillerAt(addr: SCardAddr, a: A): Option[SCardNst[A]] = 
-      cnst match {
-        case MFix(MFix(t)) => {
+      for {
+        u <- cnst.unfold
+        t <- u.unfold
+        pr <- t.mSeek(addr.branchAddr)
+        (canopy, cd) = pr
+        cz <- canopy.seekTo(addr.canopyAddr)
+        bbrs <- cz.focus.nodeOption
+        (br, brs) = bbrs
+      } yield {
 
-          for {
-            pr <- t.mSeek(addr.branchAddr)
-            (canopy, cd) = pr
-            cz <- canopy.seekTo(addr.canopyAddr)
-            // We assume the box address is trivial
-            r <- cz.focus match {
-              case SNode(br, brs) => {
+        val dropExt: TShell[SNesting[A]] =
+          SNode(SNode(SNode(SDot(a), SLeaf), SNode(br, brs.asShell)), brs)
 
-                val dropExt: TShell[SNesting[A]] = 
-                  SNode(SNode(SNode(SDot(a), SLeaf), SNode(br, brs.asShell)), brs)
+        MFix(MFix(cd.plug(cz.closeWith(dropExt))))
 
-                Some(MFix(MFix(cd.plug(cz.closeWith(dropExt)))))
-
-              }
-              case _ => None
-            }
-          } yield r
-
-        }
-        case _ => None
       }
 
     def loopLeafAt(ca: SAddr, la: SLeafAddr): Option[SCardNst[A]] = 
-      cnst match {
-        case MFix(t) => 
-          for {
-            lm <- t.leafSeek(la)
-            zp <- lm.value.seekTo(ca)
-            r <- zp.focus match {
-              case SNode(br, brs) => {
+      for {
+        t <- cnst.unfold
+        lm <- t.leafSeek(la)
+        zp <- lm.value.seekTo(ca)
+        bbrs <- zp.focus.nodeOption
+        (br, brs) = bbrs
+      } yield {
 
-                val extrusion : TShell[lm.T[STree[SNesting[A]]]] =
-                  SNode(SNode(SNode(lm.leaf, SLeaf), SNode(br, brs.asShell)), brs)
+        val extrusion : TShell[lm.T[STree[SNesting[A]]]] =
+          SNode(SNode(SNode(lm.leaf, SLeaf), SNode(br, brs.asShell)), brs)
 
-                Some(MFix(lm.plug(zp.closeWith(extrusion))))
+        MFix(lm.plug(zp.closeWith(extrusion)))
 
-              }
-              case _ => None
-            }
-          } yield r
-        case _ => None
+      }
+
+    //============================================================================================
+    // SPROUT
+    //
+
+    def sproutAt(addr: SCardAddr, a: A): Option[SCardNst[A]] = 
+      for {
+        pr <- cnst.mSeek(addr.branchAddr)
+        (canopy, cd) = pr
+        zp <- canopy.seekTo(addr.canopyAddr)
+        nnsh <- zp.focus.nodeOption
+        (n, nsh) = nnsh
+        nz <- n.seek(addr.boxAddr)
+        v <- nz.focus.dotOption
+      } yield {
+
+        val sproutShell : Shell[SNesting[A]] = 
+          nz.ctxt.g match {
+            case Nil => nsh.asShell
+            case (_, SDeriv(sh, _)) :: _ => sh.asShell
+          }
+
+        val sproutExtrusion = SBox(v, SNode(SDot(a), sproutShell))
+        cd.plug(zp.closeWith(SNode(nz.closeWith(sproutExtrusion), nsh)))
+
+      }
+
+    def sproutFillerAt(addr: SCardAddr, a: A): Option[SCardNst[A]] = 
+      for {
+        t <- cnst.unfold
+        pr <- t.mSeek(addr.branchAddr)
+        (canopy, cd) = pr
+        zp <- canopy.seekTo(addr.canopyAddr)
+        ttsh <- zp.focus.nodeOption
+        (t, tsh) = ttsh
+        cz <- t.seekTo(addr.boxAddr)
+        _ <- cz.focus.leafOption
+      } yield {
+
+        val sproutShell : TShell[SNesting[A]] = 
+          cz.ctxt.g match {
+            case Nil => tsh.asShell
+            case (_, SDeriv(sh, _)) :: _ => sh.asShell
+          }
+
+        val sproutExtrusion = SNode(SDot(a), SNode(SLeaf, sproutShell)) 
+        MFix(cd.plug(zp.closeWith(SNode(cz.closeWith(sproutExtrusion), tsh))))
+
+      }
+
+    def sproutLeafAt(ca: SAddr, ba: SAddr, la: SLeafAddr): Option[SCardNst[A]] = 
+      for {
+        lm <- cnst.leafSeek(la)
+        zp <- lm.value.seekTo(ca)
+        ttsh <- zp.focus.nodeOption
+        (t, tsh) = ttsh
+        cz <- t.seekTo(ba)
+        _ <- cz.focus.leafOption
+      } yield {
+
+        val sproutShell : QShell[lm.T[SNesting[A]]] = 
+          cz.ctxt.g match {
+            case Nil => tsh.asShell
+            case (_, SDeriv(sh, _)) :: _ => sh.asShell
+          }
+
+        val extrusion : Shell[lm.T[SNesting[A]]] = 
+          SNode(SLeaf, SNode(SLeaf, sproutShell))
+
+        lm.plug(zp.closeWith(SNode(cz.closeWith(extrusion), tsh)))
+
       }
 
   }
@@ -412,6 +474,29 @@ trait CardinalTypes {
           }
         })
       } yield (tl.withHead(ln) >> fn) ++ lns
+
+    }
+
+    def sprout(addr: SCardAddr, src: A, fill: A): Option[SCardinal[A]] = {
+
+      val extDim = addr.dim
+      val (p, l) = card.splitAt(extDim + 2)
+
+      for {
+        tl <- p.tail
+        extNst = tl.head
+        fillNst = p.head
+        sn <- extNst.sproutAt(addr, src)
+        fn <- fillNst.sproutFillerAt(addr, fill)
+        lns <- l.zipWithIndex.traverse({
+          case (lfNst, i) => {
+
+            val lfAddr = SLeafAddr(i, addr.branchAddr)
+            lfNst.sproutLeafAt(addr.canopyAddr, addr.boxAddr, lfAddr)
+
+          }
+        })
+      } yield (tl.withHead(sn) >> fn) ++ lns
 
     }
 
