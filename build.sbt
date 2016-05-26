@@ -20,7 +20,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -98,7 +98,6 @@ lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
   settings(
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
