@@ -3,7 +3,7 @@ import sbt.Project.projectToRef
 val commonSettings = Seq(
   organization := "opetopic",
   homepage := Some(url("http://ericfinster.github.io")),
-  scalaVersion := "2.11.7",
+  scalaVersion := "2.11.8",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
@@ -13,7 +13,7 @@ val commonSettings = Seq(
   resolvers += Resolver.sonatypeRepo("releases"),
   resolvers += "bintray/non" at "http://dl.bintray.com/non/maven",
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.4"),
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0-M5" cross CrossVersion.full),
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
   initialCommands in console := 
     """
        import opetopic._
@@ -121,6 +121,18 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicCoreJs)
+
+lazy val opetopicStable = (crossProject.crossType(CrossType.Pure) in file("opetopic-stable")).
+  settings(commonSettings: _*).
+  settings(
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "upickle" % "0.3.9"
+    )
+  )
+
+lazy val opetopicStableJvm = opetopicStable.jvm
+lazy val opetopicStableJs = opetopicStable.js
 
 lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopic-core")).
   settings(commonSettings: _*).
