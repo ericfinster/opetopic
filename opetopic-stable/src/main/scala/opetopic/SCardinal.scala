@@ -501,6 +501,9 @@ trait CardinalTypes {
     def apply[A](c: SComplex[A]): SCardinal[A] = 
       fromComplex(c)._1
 
+    def apply[A](): SCardinal[Option[A]] = 
+      ||(MObj(STree.obj(SDot(None))))
+
     def fromComplex[A](c: SComplex[A]): (SCardinal[A], SDeriv[SNesting[A]]) = 
       c match {
         case ||(nst) => (||(MObj(STree.obj(nst))), SDeriv(STree.obj(SLeaf)))

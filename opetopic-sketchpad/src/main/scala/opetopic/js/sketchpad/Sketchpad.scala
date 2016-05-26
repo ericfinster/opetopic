@@ -25,7 +25,7 @@ import JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
 
-  // val editor = new SketchpadEditor
+  val editor = new JsStableEditor[String]
   // val viewer = new SketchpadViewer
 
   // import editor._
@@ -34,9 +34,8 @@ object Sketchpad extends JSApp {
 
     println("Launched Opetopic Sketchpad.")
 
-
-    // jQuery("#editor-div").append(editor.uiElement)
-    // editor.initialize
+    jQuery("#editor-div").append(editor.uiElement)
+    editor.initialize
 
     // jQuery("#viewer-div").append(viewer.uiElement)
     // viewer.initialize

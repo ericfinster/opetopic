@@ -29,8 +29,11 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
 
     for { bnds <- bo } yield {
 
-      galleryViewport.width = width
-      galleryViewport.height = height
+      if (manageViewport) {
+        galleryViewport.width = width
+        galleryViewport.height = height
+      }
+
       galleryViewport.setBounds(bnds)
 
       bnds

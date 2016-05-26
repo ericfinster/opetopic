@@ -7,6 +7,8 @@
 
 package opetopic.js
 
+import scala.collection.mutable.Buffer
+
 import org.scalajs.dom
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
@@ -17,26 +19,171 @@ import opetopic.ui._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class JsStableEditor[A: Renderable](c: SComplex[A]) {
+class JsStableEditor[A: Renderable] {
 
-  // var viewerWidth : Int = 0
-  // var viewerHeight : Int = 0
+  //============================================================================================
+  // TAB CLASS
+  //
 
-  val editor = StableEditor[A, JsDomFramework.type](JsDomFramework)(c)
+  class EditorTab {
 
-  val uiElement = div(tabindex := 0, style := "min-height: 200px").render
+    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(SCardinal[A]())
 
-  jQuery(uiElement).append(editor.element.uiElement)
-
-  // Install the key handler
-  jQuery(uiElement).keypress((e : JQueryEventObject) => {
-    e.which match {
-      case 101 => editor.extrudeSelection
-      case 100 => editor.loopAtSelection
-      case 115 => editor.sproutSelection
-      case 120 => ()
-      case _ => ()
+    def refreshDimensions: Unit = {
+      editor.galleryViewport.width = tabWidth
+      editor.galleryViewport.height = tabHeight
     }
-  })
+
+    editor.renderAll
+    refreshDimensions
+
+  }
+
+  //============================================================================================
+  // SHAPE ACTIONS
+  //
+
+  def doExtrude: Unit = 
+    for { tab <- activeTab } {
+      tab.editor.extrudeSelection
+    }
+
+  def doDrop: Unit =
+    for { tab <- activeTab } {
+      tab.editor.loopAtSelection
+    }
+
+  def doSprout: Unit =
+    for { tab <- activeTab } {
+      tab.editor.sproutAtSelection
+    }
+
+
+  //============================================================================================
+  // EDITOR MANAGEMENT
+  //
+
+  val tabs: Buffer[EditorTab] = Buffer()
+
+  var tabCount: Int = 0
+  var activeTab: Option[EditorTab] = None
+
+  def newEditor : Unit = {
+
+    val editorTab = new EditorTab
+    tabs += editorTab
+    tabCount += 1
+
+    val cntStr = tabCount.toString
+    val tabName = "tab-" ++ cntStr
+
+    val tabItem = a(cls := "item", "data-tab".attr := tabName)(cntStr).render
+    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
+      editorTab.editor.element.uiElement
+    ).render
+
+    jQuery(paginationMenu).append(tabItem)
+    jQuery(tabPane).append(tab)
+
+    jQuery(tabItem).tab(lit(
+      onVisible = (s: String) => { activeTab = Some(editorTab) }
+    ))
+
+    jQuery(tabItem).click()
+
+  }
+
+  def refreshEditor: Unit = 
+    for {
+      tab <- activeTab
+    } { tab.editor.renderAll }
+
+  //============================================================================================
+  // UI ELEMENTS
+  //
+
+  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 300px").render
+  val paginationMenu = div(cls := "ui pagination menu").render
+  
+  val topMenu =
+    div(cls := "ui top attached menu")(
+      div(cls := "ui dropdown item")(
+        "Shape", i(cls := "dropdown icon"),
+        div(cls := "vertical fluid menu")(
+          div(cls := "item", style := "min-width: 150px", onclick := { () => doExtrude })(span(cls := "description")("e"), "Extrude"),
+          div(cls := "item", onclick := { () => doDrop })(span(cls := "description")("d"), "Drop"),
+          div(cls := "item", onclick := { () => doSprout })(span(cls := "description")("s"), "Sprout")
+        )
+      )
+    ).render
+
+  val bottomMenu =
+    div(cls := "ui bottom attached segment")(
+      div(cls := "ui grid")(
+        div(cls := "four column row")(
+          div(cls := "left floated column")(
+            paginationMenu
+          ),
+          div(cls := "right floated right aligned column")(
+            button(cls := "ui icon button", onclick := { () => newEditor })(i(cls := "add icon"))
+          )
+        )
+      )
+    ).render
+
+  val uiElement =
+    div(topMenu, tabPane, bottomMenu).render
+
+
+  //============================================================================================
+  // UI STATE
+  //
+
+  var tabWidth : Int = 0
+  var tabHeight : Int = 0
+
+  //============================================================================================
+  // INITIALIZATION
+  //
+
+  def initialize: Unit = {
+
+    // The idea is that we're going to hook the resize event
+    // on the parent element and manage the viewport ourselves..
+
+    tabWidth = jQuery(tabPane).width.toInt
+    tabHeight = jQuery(tabPane).height.toInt
+
+    // Install the key handler
+    jQuery(uiElement).keypress((e : JQueryEventObject) => {
+      e.which match {
+        case 101 => doExtrude
+        case 100 => doDrop
+        case 115 => doSprout
+        case _ => ()
+      }
+    })
+
+    jQuery(topMenu).
+      find(".dropdown.item").
+      dropdown(lit(action = "hide"))
+
+    jQuery(dom.window).on("resize", () => { resizeInstances })
+
+    newEditor
+
+  }
+
+  def resizeInstances: Unit = {
+
+    tabWidth = jQuery(tabPane).width.toInt
+
+    for {
+      tab <- tabs
+    } { tab.refreshDimensions }
+
+  }
+
+
 
 }

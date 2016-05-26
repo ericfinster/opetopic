@@ -67,10 +67,10 @@ object Opetopic extends JSApp {
     // jQuery("#main-viewer-div").append(mainViewer.uiElement)
     // mainViewer.gallery.renderAll
 
-    val editor = new JsStableEditor[Int](threeGlob)
+    val editor = new JsStableEditor[Int]
 
     jQuery("#editor-div").append(editor.uiElement)
-    editor.editor.renderAll
+    // editor.editor.renderAll
 
   }
 
