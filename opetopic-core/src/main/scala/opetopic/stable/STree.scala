@@ -48,6 +48,9 @@ case class SZipper[+A](val focus: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) 
   def close: STree[A] = 
     ctxt.close(focus)
 
+  def closeWith[B >: A](t: STree[B]): STree[B] = 
+    ctxt.close(t)
+
   def predecessor: Option[SZipper[A]] = 
     ctxt.g match {
       case Nil => None

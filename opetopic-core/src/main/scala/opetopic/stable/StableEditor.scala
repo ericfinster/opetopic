@@ -197,6 +197,57 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
+  def loopAtSelection: Unit = {
+
+    println("Starting loop extrusion.")
+
+    selectionRoot match {
+      case None => ()
+      case Some(root) => {
+
+        if (root.canExtrude) {
+
+          val tgtCell = new NeutralCell(root.dim + 1, None, false)
+          val fillCell = new NeutralCell(root.dim + 2, None, true)
+
+          val extPanels : Suite[PanelType] =
+            if (root.dim == panels.head.dim)
+              extendPanels(extendPanels(panels))
+            else if (root.dim == panels.head.dim - 1)
+              extendPanels(panels)
+            else panels
+
+          val extCardinal : SCardinal[NeutralCell] =
+            Traverse[Suite].map(extPanels)(_.cardinalNesting)
+
+
+          for {
+            c <- extCardinal.extrudeLoop(root.cardinalAddress, tgtCell, fillCell)
+          } {
+
+            println("Loop extrusion finished, rendering ...")
+
+            deselectAll
+
+            extPanels.zipWithSuite(c).foreach({
+              case (p, n) => p.cardinalNesting = n
+            })
+
+            panels = extPanels
+
+            renderAll
+            root.selectAsRoot
+
+          }
+
+        } else println("Can't extrude a loop here")
+
+      }
+    }
+
+  }
+
+
   //============================================================================================
   // PANEL IMPLEMENTATION
   //

@@ -32,7 +32,7 @@ class JsStableEditor[A: Renderable](c: SComplex[A]) {
   jQuery(uiElement).keypress((e : JQueryEventObject) => {
     e.which match {
       case 101 => editor.extrudeSelection
-      case 100 => ()
+      case 108 => editor.loopAtSelection
       case 112 => ()
       case 120 => ()
       case _ => ()
