@@ -244,46 +244,6 @@ object Sketchpad extends JSApp {
 
   }
 
-  // def takeSnapshot: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //     lc <- bs.value.labelComplex
-  //   } {
-
-  //     val exporter = new SvgExporter(lc)
-
-  //     jQuery(".ui.modal.svgexport").find("#exportlink").
-  //       attr(lit(href = "data:text/plain;charset=utf-8," ++
-  //         sjs.URIUtils.encodeURIComponent(exporter.svgString)))
-
-  //     jQuery(".ui.modal.svgexport").modal("show")
-
-  //   }
-
-  // def showScalaCode: Unit = 
-  //   for {
-  //     tab <- activeTab
-  //     bs <- tab.activeBox
-  //     lc <- bs.value.labelComplex
-  //   } {
-
-  //     // import opetopic.pprint._
-
-  //     // implicit val c : Config = Config()
-  //     // import tab._
-
-  //     // val test = ScalaPPrint.pprintComplex(lc).mkString
-
-  //     // jQuery("#code-text").empty().text(test)
-  //     // jQuery(".ui.modal.codeexport").modal("show")
-
-  //     // Sketchpad.editor.getDoc().setValue(pprintComplex(lblCmplx))
-  //     // jQuery(".ui.modal").modal("show")
-  //     // Sketchpad.editor.refresh()
-
-  //   }
-
   def exportSketch: Unit = 
     for {
       c <- viewer.complex

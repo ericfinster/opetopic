@@ -228,6 +228,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
+  //
+  //  BUG!  You still have a sprout bug somewhere.  Have to track it down ...
+  //  
   def sproutSelection: Unit = {
 
     selectionRoot match {
