@@ -13,8 +13,8 @@ import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic._
-import opetopic.stable._
-import JsDomFramework.{SimpleActiveGallery => _, _}
+import opetopic.ui._
+import JsDomFramework._
 import JQuerySemanticUI._
 
 class JsStableViewer[A: Renderable](c: SComplex[A]) {

@@ -17,15 +17,8 @@ import JsDomFramework._
 
 import opetopic._
 import opetopic.ui._
-import opetopic.stable._
-import syntax.nesting._
-import syntax.complex._
-import opetopic.Examples._
 
 object Opetopic extends JSApp {
-
-  val fredSComplex: SComplex[Int] = 
-    SComplex(fredComplex)
 
   val arrow: SComplex[Int] = 
     ||(SBox(2, STree.obj(SDot(1)))) >> SDot(3)

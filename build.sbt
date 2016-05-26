@@ -120,7 +120,7 @@ lazy val opetopicJs = (project in file("opetopic-js")).
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicCoreJs)
+  dependsOn(opetopicStableJs)
 
 lazy val opetopicStable = (crossProject.crossType(CrossType.Pure) in file("opetopic-stable")).
   settings(commonSettings: _*).
