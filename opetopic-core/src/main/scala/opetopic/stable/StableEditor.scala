@@ -105,6 +105,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   def seekToAddress(addr: SCardAddr): Option[SNstZipper[NeutralCell]] = 
     cardinal.seekNesting(addr)
 
+  def seekToCanopy(addr: SCardAddr): Option[SZipper[SNesting[NeutralCell]]] = 
+    cardinal.seekCanopy(addr)
+
   //============================================================================================
   // REFRESH ROUTINES
   //
@@ -148,44 +151,46 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
       case None => ()
       case Some(root) => {
 
-        println("Extrusion root is: " + root.toString)
+        if (root.canExtrude) {
 
-        val tgtCell = new NeutralCell(root.dim, None, false)
-        val fillCell = new NeutralCell(root.dim + 1, None, true)
+          val tgtCell = new NeutralCell(root.dim, None, false)
+          val fillCell = new NeutralCell(root.dim + 1, None, true)
 
-        val extPanels : Suite[PanelType] = 
-          if (root.dim == panels.head.dim)
-            extendPanels(panels)
-          else panels
-
-
-        val extCardinal : SCardinal[NeutralCell] = 
-          Traverse[Suite].map(extPanels)(_.cardinalNesting)
-
-        for {
-          c <- extCardinal.extrude(root.cardinalAddress, tgtCell, fillCell)(_.isSelected)
-        } {
-
-          println("Extrusion finished, rendering ...")
-
-          deselectAll
-
-          extPanels.zipWithSuite(c).foreach({
-            case (p, n) => p.cardinalNesting = n
-          })
-
-          panels = extPanels
-
-          // println(complex.toString)
-
-          renderAll
-          tgtCell.selectAsRoot
-
-          // def complex: SComplex[EditorCell] =
-          //   Traverse[Suite].map(panels)(_.boxNesting)
+          val extPanels : Suite[PanelType] =
+            if (root.dim == panels.head.dim)
+              extendPanels(panels)
+            else panels
 
 
-        }
+          val extCardinal : SCardinal[NeutralCell] =
+            Traverse[Suite].map(extPanels)(_.cardinalNesting)
+
+          for {
+            c <- extCardinal.extrude(root.cardinalAddress, tgtCell, fillCell)(_.isSelected)
+          } {
+
+            println("Extrusion finished, rendering ...")
+
+            deselectAll
+
+            extPanels.zipWithSuite(c).foreach({
+              case (p, n) => p.cardinalNesting = n
+            })
+
+            panels = extPanels
+
+            // println(complex.toString)
+
+            renderAll
+            tgtCell.selectAsRoot
+
+            // def complex: SComplex[EditorCell] =
+            //   Traverse[Suite].map(panels)(_.boxNesting)
+
+
+          }
+
+        } else println("Can't extrude here")
 
       }
     }
@@ -276,6 +281,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     def labelBounds: Bounds = labelBE.bounds
 
     // Selection stuff
+    def canExtrude: Boolean = cardinalAddress.boxAddr == Nil
     val canSelect: Boolean = true
     var isSelected: Boolean = false
     def selectionAddress = cardinalAddress

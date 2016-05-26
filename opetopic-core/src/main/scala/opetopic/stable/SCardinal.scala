@@ -196,6 +196,27 @@ trait CardinalTypes {
         nz <- n.seek(addr.boxAddr)
       } yield nz
 
+    // The address points to a box.  We return a zipper in the
+    // canopy of the box containing this one, or in the case where
+    // it is a root of some polarized canopy, a zipper therein.
+    def canopySeek(addr: SCardAddr): Option[SZipper[SNesting[A]]] = 
+      for {
+        mz <- cnst.mSeek(addr.branchAddr)
+        cz <- mz._1.seekTo(addr.canopyAddr)
+        res <- addr.boxAddr match {
+          case Nil => Some(cz)
+          case SDir(d) :: ds => 
+            for {
+              bn <- cz.focus.rootValue
+              bz <- bn.seek(ds)
+              r <- bz.focus match {
+                case SDot(_) => None
+                case SBox(_, cn) => cn.seekTo(d)
+              }
+            } yield r
+        }
+      } yield cz
+
     def foreachWithAddr(op: (A, SCardAddr) => Unit): Unit = 
       MTreeOps(cnst).foreachWithAddr((canopy, ma) =>
         canopy.foreachWithAddr((nst, ca) => 
@@ -284,6 +305,9 @@ trait CardinalTypes {
 
     def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] = 
       card.take(addr.dim + 1).head.seek(addr)
+
+    def seekCanopy(addr: SCardAddr): Option[SZipper[SNesting[A]]] = 
+      card.take(addr.dim + 1).head.canopySeek(addr)
 
     def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[SCardinal[A]] = {
 

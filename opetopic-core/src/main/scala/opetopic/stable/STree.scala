@@ -48,6 +48,22 @@ case class SZipper[+A](val focus: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) 
   def close: STree[A] = 
     ctxt.close(focus)
 
+  def predecessor: Option[SZipper[A]] = 
+    ctxt.g match {
+      case Nil => None
+      case (a, SDeriv(ts, g)) :: cs => 
+        Some(SZipper(SNode(a, g.close(SNode(focus, ts))), SCtxt(cs)))
+    }
+
+  def predecessorWhich(pred: A => Boolean): Option[SZipper[A]] = 
+    ctxt.g match {
+      case Nil => None
+      case (a, SDeriv(ts, g)) :: cs => {
+        val pz = SZipper(SNode(a, g.close(SNode(focus, ts))), SCtxt(cs))
+        if (pred(a)) Some(pz) else pz.predecessorWhich(pred)
+      }
+    }
+
   def visit(d: SDir): Option[SZipper[A]] = 
     (focus, d) match {
       case (SLeaf, _) => None

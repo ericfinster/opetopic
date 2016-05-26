@@ -23,7 +23,8 @@ trait SelectableGallery {
     selectionRoot = None
   }
 
-  def seekToAddress(addr: AddressType): Option[SNstZipper[SelectionType]]
+  // def seekToAddress(addr: AddressType): Option[SNstZipper[SelectionType]]
+  def seekToCanopy(addr: AddressType): Option[SZipper[SNesting[SelectionType]]]
 
   trait SelectableCell { thisCell : SelectionType => 
 
@@ -47,14 +48,14 @@ trait SelectableGallery {
     def select: Unit = 
       if (canSelect && ! isSelected) {
 
-        val buf: Buffer[SelectionType] = Buffer()
+        val buf: Buffer[SelectionType] = Buffer(thisCell)
         var found: Boolean = false
 
         for {
-          zp <- seekToAddress(selectionAddress)
-          r <- zp.predecessorWhich(b => {
-            buf += b
-            b.isSelected
+          zp <- seekToCanopy(selectionAddress)
+          r <- zp.predecessorWhich(n => {
+            buf += n.baseValue
+            n.baseValue.isSelected
           })
         } { 
 
