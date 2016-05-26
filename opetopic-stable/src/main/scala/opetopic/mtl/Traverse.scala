@@ -7,6 +7,8 @@
 
 package opetopic.mtl
 
+import scala.collection.immutable.Queue
+
 trait Traverse[F[_]] extends Functor[F] {
 
   def map[A, B](fa: F[A])(f: A => B): F[B] = 
@@ -24,7 +26,7 @@ trait Traverse[F[_]] extends Functor[F] {
     traverse[Lambda[C => State[S, C]], A, B](fa)(f)(State.stateIsMonad)
 
   def toList[A](fa: F[A]): List[A] = 
-    exec(traverseS[List[A], A, Unit](fa)((a: A) => modify(l => a :: l)))(Nil)
+    exec(traverseS[Queue[A], A, Unit](fa)((a: A) => modify(q => q.enqueue(a))))(Queue()).toList
 
   def foldRight[A, B](fa: F[A], z: => B)(f: (A, => B) => B): B = 
     exec(traverseS[B, A, Unit](fa)((a: A) => modify(b => f(a, b))))(z)

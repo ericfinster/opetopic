@@ -35,17 +35,7 @@ object Opetopic extends JSApp {
   val threeGlob: SComplex[Int] = 
     twoGlob.glob(6, 7).get
 
-  val editor = new JsStableEditor[Int](threeGlob)
-
-  // import scalaz.Traverse
-  // import scalaz.syntax.traverse._
-
-  // println("As a complex: " + editor.editor.complex.map(_.label).toString)
-
-  // val cardComplex: SComplex[Polarity[Option[Int]]] = 
-  //   editor.editor.complex.map(_.label)
-
-  // val mainViewer = new JsStableViewer[Polarity[Option[Int]]](cardComplex)
+  
 
   // mainViewer.gallery.onCellClick = 
   //   (c : mainViewer.gallery.ActiveBox) => { 
@@ -76,6 +66,8 @@ object Opetopic extends JSApp {
 
     // jQuery("#main-viewer-div").append(mainViewer.uiElement)
     // mainViewer.gallery.renderAll
+
+    val editor = new JsStableEditor[Int](threeGlob)
 
     jQuery("#editor-div").append(editor.uiElement)
     editor.editor.renderAll

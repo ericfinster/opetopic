@@ -15,7 +15,7 @@ trait Applicative[F[_]] extends Functor[F] {
   override def map[A, B](fa: F[A])(f: A => B): F[B] = 
     ap(fa)(pure(f))
 
- def product[A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+  def product[A, B](fa: F[A], fb: F[B]): F[(A, B)] =
     ap(fb)(map(fa)(a => (b: B) => (a, b)))
 
   def ap2[A, B, C](fa: F[A], fb: F[B])(ff: F[(A, B) => C]): F[C] =
