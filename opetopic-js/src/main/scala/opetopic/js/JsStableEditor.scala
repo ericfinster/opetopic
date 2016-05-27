@@ -23,6 +23,8 @@ class JsStableEditor[A: Renderable] {
 
   type StableCell = StableEditor[A, JsDomFramework.type]#NeutralCell
 
+  var onSelectAsRoot: StableCell => Unit = { _ => () }
+
   //============================================================================================
   // TAB CLASS
   //
@@ -31,9 +33,11 @@ class JsStableEditor[A: Renderable] {
 
     val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(SCardinal[A]())
 
-    editor.onCellClick = (c: editor.EditorCell) => {
+    editor.onCellClick = 
+      (c: editor.EditorCell) => { }
 
-    }
+    editor.onSelectAsRoot = 
+      (c: StableCell) => onSelectAsRoot(c)
 
     def refreshDimensions: Unit = {
       editor.galleryViewport.width = tabWidth

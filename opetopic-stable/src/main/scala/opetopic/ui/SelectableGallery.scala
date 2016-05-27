@@ -16,6 +16,8 @@ trait SelectableGallery {
   type AddressType
   type SelectionType <: SelectableCell
 
+  var onSelectAsRoot: SelectionType => Unit = { _ => () }
+
   val selectedCells: Buffer[SelectionType] = Buffer.empty
   var selectionRoot: Option[SelectionType] = None
 
@@ -44,6 +46,7 @@ trait SelectableGallery {
         isSelected = true
         selectionRoot = Some(thisCell)
         selectedCells += thisCell
+        onSelectAsRoot(thisCell)
         onSelected
       }
 

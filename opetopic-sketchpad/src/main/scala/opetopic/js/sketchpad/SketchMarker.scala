@@ -18,7 +18,18 @@ object SketchMarker {
 
   implicit object SketchMarkerRenderable extends Renderable[SketchMarker] {
     def render(f: UIFramework)(mk: SketchMarker): f.CellRendering = {
-      f.CellRendering(f.text(mk.lbl), mk.colorSpec)
+
+      import f._
+      import isNumeric._
+
+      val lblEl = 
+        if (mk.lbl == "")
+          spacer(Bounds(fromInt(0), fromInt(0), fromInt(600), fromInt(600)))
+        else text(mk.lbl)
+
+
+      CellRendering(lblEl, mk.colorSpec)
+
     }
   }
 
