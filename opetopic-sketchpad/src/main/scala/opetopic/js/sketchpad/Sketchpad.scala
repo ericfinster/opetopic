@@ -25,7 +25,7 @@ import JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
 
-  val editor = new JsStableEditor[String]
+  val editor = new JsStableEditor[SketchMarker]
   // val viewer = new SketchpadViewer
 
   // import editor._
@@ -54,7 +54,7 @@ object Sketchpad extends JSApp {
     //   onShow = () => { isFill = false }
     // ))
 
-    // jQuery("#label-input").on("input", () => { updateLabel })
+    jQuery("#label-input").on("input", () => { updateLabel })
 
     // jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
 
@@ -106,53 +106,25 @@ object Sketchpad extends JSApp {
   // var strokeColor: String = "black"
   // var selectedSketch: Option[(String, dom.Element)] = None
 
-  // def unescapeUnicode(str: String): String =
-  //   """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
-  //     m => Integer.parseInt(m.group(1), 16).toChar.toString)
+  def unescapeUnicode(str: String): String =
+    """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
+      m => Integer.parseInt(m.group(1), 16).toChar.toString)
 
-  // def updateLabel: Unit = {
+  def updateLabel: Unit = {
 
-  //   val labelVal = unescapeUnicode(
-  //     jQuery("#label-input").value().toString
-  //   )
+    val labelVal = unescapeUnicode(
+      jQuery("#label-input").value().toString
+    )
 
-  //   for {
-  //     _ <- withSelection(new BoxAction[Unit] {
+    editor.updateLabel({
+      case None => Some(SketchMarker(labelVal))
+      case Some(SketchMarker(l, s)) => Some(SketchMarker(labelVal, s))
+    })
 
-  //       def objectAction(box : EditorBox[_0]) : Unit = {
+      // refreshEditor 
+      // editor.showFace
 
-  //         box.optLabel match {
-  //           case None => 
-  //             box.optLabel = Some(SimpleObjectMarker(labelVal, DefaultColorSpec))
-  //           case Some(SimpleObjectMarker(l, s)) => 
-  //             box.optLabel = Some(SimpleObjectMarker(labelVal, s))
-  //         }
-
-  //         box.panel.refresh
-
-  //       }
-
-  //       def cellAction[P <: Nat](p : P)(box: EditorBox[S[P]]) : Unit = {
-
-  //         box.optLabel match {
-  //           case None => 
-  //             box.optLabel = Some(SimpleCellMarker(labelVal, DefaultColorSpec))
-  //           case Some(SimpleCellMarker(l, s, r, e)) => 
-  //             box.optLabel = Some(SimpleCellMarker(labelVal, s, r, e))
-  //         }
-
-  //         box.panel.refresh
-  //       }
-
-  //     })
-  //   } { 
-
-  //     refreshEditor 
-  //     editor.showFace
-
-  //   }
-
-  // }
+  }
 
   // def updateFillColor: Unit = {
 

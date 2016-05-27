@@ -31,6 +31,12 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   val renderer : Renderable[PolOptA] = 
     Renderable[PolOptA]
 
+  //  
+  //  Event Handlers
+  //
+
+  var onCellClick: EditorCell => Unit = { _ => () }
+
   //
   //  Visual Options
   //
@@ -345,7 +351,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   class NeutralCell(
     val dim: Int,
-    var optLabel: Option[A],
+    initLabel: Option[A], 
     var isExternal: Boolean
   ) extends EditorCell with SelectableCell {
 
@@ -353,11 +359,17 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     def address: SAddr = Nil
     var cardinalAddress: SCardAddr = SCardAddr()
 
-    // Label data
     def label: PolOptA = Neutral(optLabel)
-    var labelBE: BoundedElement = renderer.render(framework)(label)
-    def labelElement: Element = labelBE.element
-    def labelBounds: Bounds = labelBE.bounds
+
+    private var myOptLabel: Option[A] = initLabel
+    def optLabel: Option[A] = myOptLabel
+    def optLabel_=(opt: Option[A]): Unit = {
+      myOptLabel = opt
+      cellRendering = renderer.render(framework)(label)
+    }
+
+    var cellRendering: CellRendering = 
+      renderer.render(framework)(label)
 
     // Selection stuff
     def canExtrude: Boolean = cardinalAddress.boxAddr == Nil
@@ -366,6 +378,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     def selectionAddress = cardinalAddress
 
     override def onClick: Unit = {
+      onCellClick(this)
       select
     }
 
@@ -384,9 +397,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   abstract class PolarizedCell extends EditorCell {
     val address: SAddr = Nil
-    def polarityElement: BoundedElement
-    def labelElement = polarityElement.element
-    def labelBounds = polarityElement.bounds
+    override def onClick: Unit = deselectAll
   }
 
   class NegativeCell(val dim: Int) extends PolarizedCell {
@@ -394,10 +405,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     val label: PolOptA = Negative()
     val isExternal: Boolean = true
 
-    val polarityElement: BoundedElement = 
+    val cellRendering: CellRendering = 
       renderer.render(framework)(label)
-
-    boxRect.fill = "lightgrey"
 
     override def toString = "-"
 
@@ -408,10 +417,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     val label: PolOptA = Positive()
     val isExternal: Boolean = false
 
-    val polarityElement: BoundedElement = 
+    val cellRendering: CellRendering = 
       renderer.render(framework)(label)
-
-    boxRect.fill = "lightgrey"
 
     override def toString = "+"
 

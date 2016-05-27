@@ -91,6 +91,14 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
     def dim: Int
     def address: SAddr
 
+    def cellRendering: CellRendering
+
+    def labelBounds: Bounds = cellRendering.boundedElement.bounds
+    def labelElement: Element = cellRendering.boundedElement.element
+
+    def colorSpec: ColorSpec = 
+      cellRendering.colorSpec
+
     val boxGroup = group
     def element = boxGroup
 
@@ -114,6 +122,9 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
     def renderBox: Unit = {
 
       boxGroup.children = Seq(boxRect, labelElement)
+
+      boxRect.fill = colorSpec.fill
+      boxRect.stroke = colorSpec.stroke
 
       boxRect.x = x ; boxRect.y = y ; boxRect.width = width ; boxRect.height = height
 

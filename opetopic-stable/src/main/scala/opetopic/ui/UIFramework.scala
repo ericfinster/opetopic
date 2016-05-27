@@ -88,6 +88,11 @@ abstract class UIFramework {
 
   }
 
+  case class CellRendering(
+    val boundedElement: BoundedElement,
+    val colorSpec: ColorSpec = DefaultColorSpec
+  )
+
   //============================================================================================
   // TEXT RENDERING
   //

@@ -58,14 +58,11 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
       extends ActiveBox 
       with ActiveEdge {
 
-    val labelBE: BoundedElement =
+    val cellRendering: CellRendering = 
       implicitly[Renderable[A]].
         render(framework)(label)
 
     makeMouseInvisible(labelElement)
-
-    def labelBounds: Bounds = labelBE.bounds
-    def labelElement: Element = labelBE.element
 
     def onClick: Unit = onCellClick(this)
 

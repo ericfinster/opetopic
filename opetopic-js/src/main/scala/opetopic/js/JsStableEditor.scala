@@ -29,6 +29,10 @@ class JsStableEditor[A: Renderable] {
 
     val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(SCardinal[A]())
 
+    editor.onCellClick = (c: editor.EditorCell) => {
+
+    }
+
     def refreshDimensions: Unit = {
       editor.galleryViewport.width = tabWidth
       editor.galleryViewport.height = tabHeight
@@ -58,6 +62,19 @@ class JsStableEditor[A: Renderable] {
       tab.editor.sproutAtSelection
     }
 
+  //============================================================================================
+  // LABEL ACTIONS
+  //
+
+  def updateLabel(f: Option[A] => Option[A]): Unit = 
+    for {
+      tab <- activeTab
+      root <- tab.editor.selectionRoot
+    } {
+      root.optLabel = f(root.optLabel)
+      refreshEditor
+      root.selectAsRoot
+    }
 
   //============================================================================================
   // EDITOR MANAGEMENT
