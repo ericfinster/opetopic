@@ -26,9 +26,9 @@ import JQuerySemanticUI._
 object Sketchpad extends JSApp {
 
   val editor = new JsStableEditor[SketchMarker]
-  // val viewer = new SketchpadViewer
+  val viewer = new JsStableViewer[Option[SketchMarker]]
 
-  // import editor._
+  import editor.StableCell
 
   def main : Unit = {
 
@@ -37,8 +37,8 @@ object Sketchpad extends JSApp {
     jQuery("#editor-div").append(editor.uiElement)
     editor.initialize
 
-    // jQuery("#viewer-div").append(viewer.uiElement)
-    // viewer.initialize
+    jQuery("#viewer-div").append(viewer.uiElement)
+    viewer.initialize
 
     // jQuery("#fill-color-btn").popup(lit(
     //   popup = jQuery(".color-select.popup"),
@@ -121,10 +121,17 @@ object Sketchpad extends JSApp {
       case Some(SketchMarker(l, s)) => Some(SketchMarker(labelVal, s))
     })
 
-      // refreshEditor 
-      // editor.showFace
+    showRootFace
 
   }
+
+  def showRootFace: Unit = 
+    for {
+      face <- editor.rootFace
+    } {
+      println("Got face ...")
+      viewer.complex = Some(face)
+    }
 
   // def updateFillColor: Unit = {
 
@@ -355,6 +362,7 @@ object Sketchpad extends JSApp {
   //       jQuery("#label-input").value(mk.label)
   //     }
   //   }
+
   // def showFill(str: String): Unit = {
   //   jQuery("#fill-color-btn").removeClass(fillColor).addClass(str).popup("hide")
   //   fillColor = str

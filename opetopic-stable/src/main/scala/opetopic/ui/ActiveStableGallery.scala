@@ -112,10 +112,11 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
     }
 
     def onClick: Unit
+    def onCtrlClick: Unit
     def onMouseOver: Unit
     def onMouseOut: Unit
 
-    boxRect.onClick = { (e : UIMouseEvent) => onClick }
+    boxRect.onClick = { (e : UIMouseEvent) => if (e.ctrlKey) onCtrlClick else onClick }
     boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }
     boxRect.onMouseOut = { (e : UIMouseEvent) => onMouseOut }
 

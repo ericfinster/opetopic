@@ -13,7 +13,10 @@ sealed trait STree[+A]
 case object SLeaf extends STree[Nothing]
 case class SNode[A](a: A, as: STree[STree[A]]) extends STree[A]
 
-case class SDir(val dir: List[SDir])
+case class SDir(val dir: List[SDir]) {
+  def :+:(d: SDir): SDir = SDir(d :: dir)
+  def +:+(ds: SAddr): SDir = SDir(dir ++ ds)
+}
 
 case class SDeriv[+A](sh: STree[STree[A]], gma: SCtxt[A] = SCtxt(Nil)) {
 

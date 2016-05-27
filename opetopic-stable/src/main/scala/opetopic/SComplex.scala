@@ -32,7 +32,7 @@ trait ComplexTypes {
     //  Source Calculation
     //
 
-    def truncateToDim(i: Int) = 
+    def truncateToDim(i: Int): SComplex[A] = 
       c.take(i + 1)
 
     def sourceAt(addr: SAddr): Option[SComplex[A]] = 
@@ -40,6 +40,9 @@ trait ComplexTypes {
         z <- SCmplxZipper(c).seek(addr)
         f <- z.focusFace
       } yield f
+
+    def face(i: Int)(addr: SAddr): Option[SComplex[A]] = 
+      truncateToDim(i + 1).sourceAt(addr)
 
     def target: Option[SComplex[A]] = 
       c match {
@@ -58,6 +61,11 @@ trait ComplexTypes {
             case _ => None
           }
       }
+
+    def foreachWithAddr(op: (A, SAddr) => Unit): Unit = 
+      c.foreach((n: SNesting[A]) => 
+        n.foreachWithAddr(op)
+      )
 
   }
 

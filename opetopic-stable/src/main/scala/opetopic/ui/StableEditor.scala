@@ -124,8 +124,12 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   def refreshEdges: Unit = 
     panels.foreach(_.refreshEdges)
 
-  def refreshAddresses: Unit = 
+  def refreshAddresses: Unit = {
     panels.foreach(_.refreshAddresses)
+    complex.foreachWithAddr({
+      case (c, addr) => c.tempComplexAddress = addr
+    })
+  }
 
   //============================================================================================
   // MUTABILITY ROUTINES
@@ -344,8 +348,13 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   abstract class EditorCell extends ActiveBox with ActiveEdge {
 
     def onClick: Unit = ()
+    def onCtrlClick: Unit = ()
     def onMouseOver: Unit = ()
     def onMouseOut: Unit = ()
+
+    var tempComplexAddress: SAddr = Nil
+
+    def optLabel: Option[A]
 
   }
 
@@ -356,7 +365,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   ) extends EditorCell with SelectableCell {
 
     // FIXME!!
-    def address: SAddr = Nil
+    def address: SAddr = cardinalAddress.complexAddress
     var cardinalAddress: SCardAddr = SCardAddr()
 
     def label: PolOptA = Neutral(optLabel)
@@ -377,10 +386,15 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     var isSelected: Boolean = false
     def selectionAddress = cardinalAddress
 
+    def face: Option[SComplex[OptA]] = 
+      complex.truncateToDim(dim).map(_.optLabel).sourceAt(address)
+
     override def onClick: Unit = {
       onCellClick(this)
       select
     }
+
+    override def onCtrlClick: Unit = ()
 
     override def onSelected: Unit = {
       boxRect.stroke = "red"
@@ -398,6 +412,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   abstract class PolarizedCell extends EditorCell {
     val address: SAddr = Nil
     override def onClick: Unit = deselectAll
+    def optLabel: Option[A] = None
   }
 
   class NegativeCell(val dim: Int) extends PolarizedCell {

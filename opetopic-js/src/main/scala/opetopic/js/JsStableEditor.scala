@@ -21,6 +21,8 @@ import JQuerySemanticUI._
 
 class JsStableEditor[A: Renderable] {
 
+  type StableCell = StableEditor[A, JsDomFramework.type]#NeutralCell
+
   //============================================================================================
   // TAB CLASS
   //
@@ -63,7 +65,7 @@ class JsStableEditor[A: Renderable] {
     }
 
   //============================================================================================
-  // LABEL ACTIONS
+  // ACTIONS
   //
 
   def updateLabel(f: Option[A] => Option[A]): Unit = 
@@ -75,6 +77,16 @@ class JsStableEditor[A: Renderable] {
       refreshEditor
       root.selectAsRoot
     }
+
+  def withRoot[B](f: StableCell => Option[B]): Option[B] = 
+    for {
+      tab <- activeTab
+      root <- tab.editor.selectionRoot
+      res <- f(root)
+    } yield res
+
+  def rootFace: Option[SComplex[Option[A]]] =
+    withRoot(_.face)
 
   //============================================================================================
   // EDITOR MANAGEMENT

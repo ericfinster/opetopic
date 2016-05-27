@@ -65,6 +65,7 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
     makeMouseInvisible(labelElement)
 
     def onClick: Unit = onCellClick(this)
+    def onCtrlClick: Unit = ()
 
     def onMouseOver: Unit = {
       boxRect.stroke = "red"
