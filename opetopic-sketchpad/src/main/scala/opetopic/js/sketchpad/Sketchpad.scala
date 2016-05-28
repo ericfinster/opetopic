@@ -32,7 +32,7 @@ object Sketchpad extends JSApp {
 
   editor.onSelectAsRoot = (c: StableCell) => {
     showRootFace
-    showProps(c.optLabel)
+    showProps(c.label)
   }
 
   def main : Unit = {
@@ -111,15 +111,20 @@ object Sketchpad extends JSApp {
   var strokeColor: String = "black"
   // var selectedSketch: Option[(String, dom.Element)] = None
 
-  def unescapeUnicode(str: String): String =
-    """\\u([0-9a-fA-F]{4})""".r.replaceAllIn(str,
-      m => Integer.parseInt(m.group(1), 16).toChar.toString)
-
   def updateLabel: Unit = {
 
-    val labelVal = unescapeUnicode(
-      jQuery("#label-input").value().toString
-    )
+    import latex.LatexParser
+    import fastparse.all._
+
+    val inputVal = jQuery("#label-input").value().toString
+
+    val labelVal = 
+      LatexParser.Input.parse(
+        inputVal
+      ) match {
+        case Parsed.Success(value, _) => value
+        case Parsed.Failure(_, _, _) => inputVal
+      }
 
     editor.updateLabel({
       case None => Some(SketchMarker(labelVal))
@@ -296,7 +301,8 @@ object Sketchpad extends JSApp {
       case _ => "white"
     }
 
-  def showProps(m: Option[SketchMarker]): Unit = 
+  def showProps(m: Option[SketchMarker]): Unit = {
+    println("showing props")
     m match {
       case None => {
         showFill("white")
@@ -309,6 +315,7 @@ object Sketchpad extends JSApp {
         jQuery("#label-input").value(mk.lbl)
       }
     }
+  }
 
   def showFill(str: String): Unit = {
     jQuery("#fill-color-btn").removeClass(fillColor).addClass(str).popup("hide")
@@ -321,4 +328,3 @@ object Sketchpad extends JSApp {
   }
 
 }
-

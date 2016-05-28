@@ -77,9 +77,9 @@ class JsStableEditor[A: Renderable] {
       tab <- activeTab
       root <- tab.editor.selectionRoot
     } {
-      root.optLabel = f(root.optLabel)
+      root.label = f(root.label)
       refreshEditor
-      root.selectAsRoot
+      // root.selectAsRoot
     }
 
   def withRoot[B](f: StableCell => Option[B]): Option[B] = 

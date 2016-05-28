@@ -10,16 +10,22 @@ package opetopic.ui
 import opetopic._
 import opetopic.mtl._
 
-abstract class StableGallery[A, F <: UIFramework](final val framework: F) 
-    extends LayoutContext[A, F] { thisGallery =>
+abstract class StableGallery[F <: UIFramework](final val framework: F) 
+    extends LayoutContext[F] { thisGallery =>
 
   import framework._
   import isNumeric._
 
+  type LabelType
+
+  type BoxType <: GalleryBox
   type PanelType <: StablePanel
 
   def panels: Suite[PanelType]
   def element: Element
+
+  def boxComplex: SComplex[BoxType] = 
+    panels.map(_.boxNesting)
 
   //
   //  Gallery Options
@@ -89,6 +95,33 @@ abstract class StableGallery[A, F <: UIFramework](final val framework: F)
       Bounds(zero, viewY, xPos, viewHeight)
 
     }
+  }
+
+  //============================================================================================
+  // CELLS
+  //
+
+  trait GalleryBox extends CellBox { thisBox : BoxType => 
+
+    def dim: Int
+    def address: SAddr
+
+    def label: LabelType
+
+    def face: Option[SComplex[LabelType]] = 
+      boxComplex.face(dim)(address).map(_.map(_.label))
+
+    def boxFace: Option[SComplex[BoxType]] =
+      boxComplex.face(dim)(address)
+
+    def cellRendering: CellRendering
+
+    def labelBounds: Bounds = cellRendering.boundedElement.bounds
+    def labelElement: Element = cellRendering.boundedElement.element
+
+    def colorSpec: ColorSpec = 
+      cellRendering.colorSpec
+
   }
 
   //============================================================================================

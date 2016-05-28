@@ -8,7 +8,8 @@ val commonSettings = Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
     "-feature",
-    "-deprecation"
+    "-deprecation",
+    "-unchecked"
   ),
   resolvers += Resolver.sonatypeRepo("releases"),
   resolvers += "bintray/non" at "http://dl.bintray.com/non/maven",
@@ -102,7 +103,8 @@ lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9"
+      "com.lihaoyi" %%% "upickle" % "0.3.9",
+      "com.lihaoyi" %%% "fastparse" % "0.3.7"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -126,7 +128,8 @@ lazy val opetopicStable = (crossProject.crossType(CrossType.Pure) in file("opeto
   settings(
     libraryDependencies ++= Seq(
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9"
+      "com.lihaoyi" %%% "upickle" % "0.3.9",
+      "com.lihaoyi" %%% "fastparse" % "0.3.7"
     )
   )
 

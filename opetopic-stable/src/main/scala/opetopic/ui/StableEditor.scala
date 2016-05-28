@@ -11,11 +11,13 @@ import opetopic._
 import opetopic.mtl._
 
 class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])
-    extends ActiveStableGallery[Polarity[Option[A]], F](frmwk) 
+    extends ActiveStableGallery[F](frmwk) 
     with SelectableGallery {
 
   import framework._
   import isNumeric._
+
+  type LabelType = Option[A]
 
   type BoxType = EditorCell
   type EdgeType = EditorCell
@@ -121,14 +123,12 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     super.renderAll
   }
 
+  // These should be combined somehow ...
   def refreshEdges: Unit = 
     panels.foreach(_.refreshEdges)
 
   def refreshAddresses: Unit = {
     panels.foreach(_.refreshAddresses)
-    complex.foreachWithAddr({
-      case (c, addr) => c.tempComplexAddress = addr
-    })
   }
 
   //============================================================================================
@@ -351,10 +351,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     def onCtrlClick: Unit = ()
     def onMouseOver: Unit = ()
     def onMouseOut: Unit = ()
-
-    var tempComplexAddress: SAddr = Nil
-
-    def optLabel: Option[A]
+    def onHover: Unit = ()
+    def onUnhover: Unit = ()
 
   }
 
@@ -364,30 +362,24 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     var isExternal: Boolean
   ) extends EditorCell with SelectableCell {
 
-    // FIXME!!
     def address: SAddr = cardinalAddress.complexAddress
     var cardinalAddress: SCardAddr = SCardAddr()
 
-    def label: PolOptA = Neutral(optLabel)
-
-    private var myOptLabel: Option[A] = initLabel
-    def optLabel: Option[A] = myOptLabel
-    def optLabel_=(opt: Option[A]): Unit = {
-      myOptLabel = opt
-      cellRendering = renderer.render(framework)(label)
+    private var myLabel: Option[A] = initLabel
+    def label: Option[A] = myLabel
+    def label_=(opt: Option[A]): Unit = {
+      myLabel = opt
+      cellRendering = renderer.render(framework)(Neutral(label))
     }
 
     var cellRendering: CellRendering = 
-      renderer.render(framework)(label)
+      renderer.render(framework)(Neutral(label))
 
     // Selection stuff
     def canExtrude: Boolean = cardinalAddress.boxAddr == Nil
     val canSelect: Boolean = true
     var isSelected: Boolean = false
     def selectionAddress = cardinalAddress
-
-    def face: Option[SComplex[OptA]] = 
-      complex.truncateToDim(dim).map(_.optLabel).sourceAt(address)
 
     override def onClick: Unit = {
       onCellClick(this)
@@ -397,31 +389,32 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
     override def onCtrlClick: Unit = ()
 
     override def onSelected: Unit = {
-      boxRect.stroke = "red"
+      boxRect.fill = colorSpec.fillSelected
+      boxRect.stroke = colorSpec.strokeSelected
     }
 
     override def onDeselected: Unit = {
-      boxRect.stroke = "black"
+      boxRect.fill = colorSpec.fill
+      boxRect.stroke = colorSpec.stroke
     }
 
     override def toString: String = 
-      optLabel.toString
+      label.toString
 
   }
 
   abstract class PolarizedCell extends EditorCell {
     val address: SAddr = Nil
     override def onClick: Unit = deselectAll
-    def optLabel: Option[A] = None
   }
 
   class NegativeCell(val dim: Int) extends PolarizedCell {
 
-    val label: PolOptA = Negative()
+    val label: Option[A] = None
     val isExternal: Boolean = true
 
     val cellRendering: CellRendering = 
-      renderer.render(framework)(label)
+      renderer.render(framework)(Negative())
 
     override def toString = "-"
 
@@ -429,11 +422,11 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   class PositiveCell(val dim: Int) extends PolarizedCell {
 
-    val label: PolOptA = Positive()
+    val label: Option[A] = None
     val isExternal: Boolean = false
 
     val cellRendering: CellRendering = 
-      renderer.render(framework)(label)
+      renderer.render(framework)(Positive())
 
     override def toString = "+"
 

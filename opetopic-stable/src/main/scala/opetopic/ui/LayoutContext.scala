@@ -12,7 +12,7 @@ import scala.collection.mutable.Buffer
 import opetopic._
 import opetopic.mtl._
 
-trait LayoutContext[A, F <: UIFramework] {
+trait LayoutContext[F <: UIFramework] {
 
   val framework: F
   

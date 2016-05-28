@@ -10,8 +10,8 @@ package opetopic.ui
 import opetopic._
 import opetopic.mtl._
 
-abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F) 
-    extends StableGallery[A, F](frmwk) {
+abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F) 
+    extends StableGallery[F](frmwk) {
 
   import framework._
   import isNumeric._
@@ -85,19 +85,18 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
   // ACTIVE BOXES AND EDGES
   //
 
-  trait ActiveBox extends CellBox { thisBox: BoxType => 
+  trait ActiveBox extends GalleryBox { thisBox: BoxType => 
 
-    def label: A
-    def dim: Int
-    def address: SAddr
+    // Events
+    def onClick: Unit
+    def onCtrlClick: Unit
+    def onMouseOver: Unit
+    def onMouseOut: Unit
 
-    def cellRendering: CellRendering
+    def onHover: Unit
+    def onUnhover: Unit
 
-    def labelBounds: Bounds = cellRendering.boundedElement.bounds
-    def labelElement: Element = cellRendering.boundedElement.element
-
-    def colorSpec: ColorSpec = 
-      cellRendering.colorSpec
+    // UI Elements
 
     val boxGroup = group
     def element = boxGroup
@@ -110,11 +109,6 @@ abstract class ActiveStableGallery[A, F <: ActiveFramework](frmwk: F)
       r.stroke = "black"
       r
     }
-
-    def onClick: Unit
-    def onCtrlClick: Unit
-    def onMouseOver: Unit
-    def onMouseOut: Unit
 
     boxRect.onClick = { (e : UIMouseEvent) => if (e.ctrlKey) onCtrlClick else onClick }
     boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }

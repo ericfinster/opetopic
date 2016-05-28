@@ -12,10 +12,12 @@ import scala.collection.mutable.Buffer
 import opetopic._
 
 class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val complex: SComplex[A]) 
-    extends ActiveStableGallery[A, F](frmwk) {
+    extends ActiveStableGallery[F](frmwk) {
 
   import framework._
   import isNumeric._
+
+  type LabelType = A
 
   type BoxType = SimpleActiveCell
   type EdgeType = SimpleActiveCell
@@ -67,15 +69,11 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
     def onClick: Unit = onCellClick(this)
     def onCtrlClick: Unit = ()
 
-    def onMouseOver: Unit = {
-      boxRect.stroke = "red"
-      edgePath.stroke = "red"
-    }
+    def onMouseOver: Unit = ()
+    def onMouseOut: Unit = ()
 
-    def onMouseOut: Unit = {
-      boxRect.stroke = "black"
-      edgePath.stroke = "black"
-    }
+    def onHover: Unit = ()
+    def onUnhover: Unit = ()
 
   }
 
