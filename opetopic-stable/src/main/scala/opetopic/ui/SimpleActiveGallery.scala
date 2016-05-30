@@ -12,17 +12,15 @@ import scala.collection.mutable.Buffer
 import opetopic._
 
 class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val complex: SComplex[A]) 
-    extends ActiveStableGallery[F](frmwk) {
+    extends ActiveStableGallery[F](frmwk) with ComplexGallery[F] {
 
   import framework._
   import isNumeric._
 
   type LabelType = A
 
-  type BoxType = SimpleActiveCell
-  type EdgeType = SimpleActiveCell
-
   type PanelType = SimpleActivePanel
+  type CellType = SimpleActiveCell
 
   var onCellClick: ActiveBox => Unit = { _ => () }
 
@@ -49,14 +47,20 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
 
   val panels : Suite[PanelType] = buildPanels(complex)
 
+  def createPanel(bn: SNesting[CellType], ed: Either[PanelType, SNesting[CellType]]): PanelType = 
+    new SimpleActivePanel(bn, ed)
+
+  def createCell(lbl: LabelType, dim: Int, addr: SAddr, isExternal: Boolean): CellType = 
+    new SimpleActiveCell(lbl, dim, addr, isExternal)
+
   class SimpleActivePanel(
     val boxNesting: SNesting[BoxType],
-    val edgeNesting: SNesting[EdgeType]
-  ) extends ActiveStablePanel {
+    val edgeData: Either[PanelType, SNesting[EdgeType]]
+  ) extends ActiveStablePanel with ComplexPanel {
     def dim: Int = boxNesting.baseValue.dim
   }
 
-  class SimpleActiveCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) 
+  class SimpleActiveCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean)
       extends ActiveBox 
       with ActiveEdge {
 
@@ -76,68 +80,5 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
     def onUnhover: Unit = ()
 
   }
-
-  //
-  //  Gallery Construction
-  //
-
-  // This is seriously ugly and should be redone in a more
-  // systematic way ...
-
-  def buildCellNesting(dim: Int, n: SNesting[A]): SNesting[SimpleActiveCell] =
-    n.foldNestingWithAddr[SNesting[SimpleActiveCell]]()({
-      case (a, addr) => SDot(new SimpleActiveCell(a, dim, addr, true))
-    })({
-      case (a, addr, cn) => SBox(new SimpleActiveCell(a, dim, addr, false), cn)
-    })
-
-  def buildPanels(c: SComplex[A]) : Suite[PanelType] =
-    c match {
-      case ||(n) => {
-
-        val objNesting = buildCellNesting(0, n)
-
-        val inEdge = new SimpleActiveCell(n.baseValue, -1, Nil, true)
-        val outEdge = new SimpleActiveCell(n.baseValue, -1, Nil, false)
-
-        val panel = new SimpleActivePanel(
-          objNesting,
-          SBox(outEdge, STree.obj(SDot(inEdge)))
-        )
-
-        objNesting.foldNesting(c => { c.outgoingEdge = Some(outEdge) })((_, _) => ())
-
-        ||(panel)
-
-      }
-      case tl >> hd => {
-
-        val newTail = buildPanels(tl)
-
-        val prevCellNesting = newTail.head.boxNesting
-        val thisCellNesting = buildCellNesting(prevCellNesting.baseValue.dim + 1, hd)
-
-        // Connect the edges
-        thisCellNesting match {
-          case SDot(c) => c.outgoingEdge = Some(prevCellNesting.baseValue)
-          case SBox(_, cn) => 
-            for {
-              sp <- cn.spine
-              _ <- sp.matchTraverse[EdgeType, Unit](prevCellNesting.toTree)({
-                case (c, e) => Some({ c.outgoingEdge = Some(e) })
-              })
-            } yield ()
-        }
-
-        val panel = new SimpleActivePanel(
-          thisCellNesting,
-          prevCellNesting
-        )
-
-        newTail >> panel
-
-      }
-    }
-
 
 }
