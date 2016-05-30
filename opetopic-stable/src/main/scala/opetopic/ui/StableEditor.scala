@@ -305,7 +305,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
         negativeCell
       )
 
-    // Gotta take care of the object case ...
     def edgeNesting: SNesting[EditorCell] = 
       edgeData match {
         case Left(pp) => pp.boxNesting
@@ -317,7 +316,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
         (box, addr) => { box.cardinalAddress = addr }
       )
 
-    // This should be made into a gallery routine ...
     def refreshEdges: Unit = 
       edgeData match {
         case Left(pp) => {

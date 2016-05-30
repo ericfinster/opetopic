@@ -34,6 +34,9 @@ trait Traverse[F[_]] extends Functor[F] {
   def mapAccumL[S, A, B](fa: F[A], z: S)(f: (S, A) ⇒ (S, B)): (S, F[B]) = 
     run(traverseS[S, A, B](fa)((a: A) => (s: S) => f(s, a)))(z)
 
+  def sequence[G[_], A](fga: F[G[A]])(implicit isAp: Applicative[G]): G[F[A]] = 
+    traverse(fga)((ga : G[A]) => ga)
+
 }
 
 object Traverse {

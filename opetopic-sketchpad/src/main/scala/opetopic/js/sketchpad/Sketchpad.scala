@@ -302,7 +302,6 @@ object Sketchpad extends JSApp {
     }
 
   def showProps(m: Option[SketchMarker]): Unit = {
-    println("showing props")
     m match {
       case None => {
         showFill("white")

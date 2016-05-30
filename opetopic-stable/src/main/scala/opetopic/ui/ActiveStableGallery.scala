@@ -24,28 +24,20 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
   val galleryViewport = viewport
   def element = galleryViewport
 
-  override def layout: Option[Bounds] = {
-    val bo = super.layout
+  def renderAll: Unit = {
 
-    for { bnds <- bo } yield {
+    val (gbnds, els) = panelElementsAndBounds
+    panels.foreach(_.renderAll)
 
-      if (manageViewport) {
-        galleryViewport.width = width
-        galleryViewport.height = height
-      }
-
-      galleryViewport.setBounds(bnds)
-
-      bnds
-
+    if (manageViewport) {
+      galleryViewport.width = width
+      galleryViewport.height = height
     }
+
+    galleryViewport.setBounds(gbnds)
+    galleryViewport.children = els.toList
+
   }
-
-  def renderAll: Unit = 
-    for { _ <- layout } {
-      panels.foreach(_.renderAll)
-      galleryViewport.children = panels.map(_.element).toList
-    }
 
   //============================================================================================
   // ACTIVE PANELS

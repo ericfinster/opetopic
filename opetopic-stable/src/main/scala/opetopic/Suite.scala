@@ -69,6 +69,12 @@ object Suite {
         }
       }
 
+    def foldRight[B](b: => B)(f: (A, => B) => B): B = 
+      s match {
+        case ||(a) => f(a, b)
+        case tl >> hd => f(hd, foldRight(b)(f))
+      }
+
     def zipWithSuite[B](t: Suite[B]): Suite[(A, B)] = 
       (s, t) match {
         case (||(a), tt) => ||(a, tt.head)

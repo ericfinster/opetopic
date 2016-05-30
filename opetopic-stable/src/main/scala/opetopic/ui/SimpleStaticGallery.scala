@@ -21,8 +21,6 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
   type PanelType = SimpleStaticPanel
   type CellType = SimpleStaticCell
 
-  def element: Element = ???
-
   //
   //  Visual Options
   //
@@ -67,9 +65,6 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
   ) extends StaticPanel with ComplexPanel {
 
     def dim: Int = boxNesting.baseValue.dim
-
-    def element: Element = ???
-
 
   }
 

@@ -42,7 +42,7 @@ trait ComplexTypes {
       } yield f
 
     def face(i: Int)(addr: SAddr): Option[SComplex[A]] = 
-      truncateToDim(i + 1).sourceAt(addr)
+      truncateToDim(i).sourceAt(addr)
 
     def target: Option[SComplex[A]] = 
       c match {

@@ -42,60 +42,106 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
   //  Gallery Layout
   //
 
-  def layout: Option[Bounds] = {
+  def panelElementsAndBounds: (Bounds, Suite[Element]) = {
 
-    for {
-      bnds <- panels.traverse(_.layout)
-    } yield {
+    // I see, we have to traverse twice since we need to know
+    // the maximum height in order to shift everything to the
+    // center.
 
-      // We are going to shift and locate the panels here
+    val (maxHeight, pbnds): (Size, Suite[(PanelType, Bounds)]) = 
+      panels.mapAccumL[Size, (PanelType, Bounds)](zero)({
+        case (h, p) => {
 
-      val maxHeight : Size = bnds.map(_.height).foldRight(fromInt(0))(isOrdered.max(_, _))
-      var xPos : Size = spacing
+          val lr = 
+            for {
+              bnds <- p.layout
+            } yield (isOrdered.max(h, bnds.height), (p, bnds))
 
-      for {
-        p <- panels
-      } {
 
-        // Annoying that we recalculate this here.  It's just a typing issue ...
-        val b = p.bounds
-        val xTrans = (-b.x) + xPos
-        val yTrans = (-b.y) - b.height - half(maxHeight - b.height)
+          lr.getOrElse((h, (p, Bounds())))
 
-        translate(p.element, xTrans, yTrans)
-
-        xPos = xPos + b.width + spacing
-
-      }
-
-      val (viewY, viewHeight) =
-        minViewY match {
-          case None => (-maxHeight, maxHeight)
-          case Some(mvh) =>
-            if (mvh < maxHeight) {
-              (-maxHeight, maxHeight)
-            } else {
-              val offset = half(mvh - maxHeight)
-              (-maxHeight - offset, mvh)
-            }
         }
+      })
 
-      val (viewX, viewWidth) =
-        minViewX match {
-          case None => (zero, xPos)
-          case Some(mvw) =>
-            if (mvw < xPos) {
-              (zero, xPos)
-            } else {
-              val offset = half(mvw - xPos)
-              (-offset, mvw)
-            }
+
+    // Now the idea is that we do it again, this time with the 
+    // parameter being the x-shift, and the result being the 
+    // elements shifted into place
+
+    val (xPos, els): (Size, Suite[Element]) = 
+      pbnds.mapAccumL[Size, Element](spacing)({
+        case (xPos, (p, bnds)) => {
+
+          val xTrans = (-bnds.x) + xPos
+          val yTrans = (-bnds.y) - bnds.height - half(maxHeight - bnds.height)
+
+          val tEl = translate(p.element, xTrans, yTrans)
+
+          (xPos + bnds.width + spacing, tEl)
+
         }
+      })
 
-      Bounds(zero, viewY, xPos, viewHeight)
+    (Bounds(zero, -maxHeight, xPos, maxHeight), els)
 
-    }
   }
+
+  // // Get rid of this.  The previous implementation is more
+  // // general and more useful.
+  // def layout: Option[Bounds] = {
+
+  //   for {
+  //     bnds <- panels.traverse(_.layout)
+  //   } yield {
+
+  //     // We are going to shift and locate the panels here
+
+  //     val maxHeight : Size = bnds.map(_.height).foldRight(fromInt(0))(isOrdered.max(_, _))
+  //     var xPos : Size = spacing
+
+  //     for {
+  //       p <- panels
+  //     } {
+
+  //       // Annoying that we recalculate this here.  It's just a typing issue ...
+  //       val b = p.bounds
+  //       val xTrans = (-b.x) + xPos
+  //       val yTrans = (-b.y) - b.height - half(maxHeight - b.height)
+
+  //       translate(p.element, xTrans, yTrans)
+
+  //       xPos = xPos + b.width + spacing
+
+  //     }
+
+  //     val (viewY, viewHeight) =
+  //       minViewY match {
+  //         case None => (-maxHeight, maxHeight)
+  //         case Some(mvh) =>
+  //           if (mvh < maxHeight) {
+  //             (-maxHeight, maxHeight)
+  //           } else {
+  //             val offset = half(mvh - maxHeight)
+  //             (-maxHeight - offset, mvh)
+  //           }
+  //       }
+
+  //     val (viewX, viewWidth) =
+  //       minViewX match {
+  //         case None => (zero, xPos)
+  //         case Some(mvw) =>
+  //           if (mvw < xPos) {
+  //             (zero, xPos)
+  //           } else {
+  //             val offset = half(mvw - xPos)
+  //             (-offset, mvw)
+  //           }
+  //       }
+
+  //     Bounds(zero, viewY, xPos, viewHeight)
+
+  //   }
+  // }
 
   //============================================================================================
   // CELLS
