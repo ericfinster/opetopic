@@ -25,6 +25,7 @@ import forms.RenderSketchForm
 import upickle.default._
 
 import opetopic._
+import opetopic.ui._
 import opetopic.net._
 
 class SketchController @Inject() (
@@ -71,17 +72,10 @@ class SketchController @Inject() (
 
     request.body.asText.map { text => 
 
-      import opetopic.ui.markers._
-      import SimpleMarker._
-
       val req = read[SaveSketchRequest](text)
+      val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(req.data))
 
-      // The read here is just to check that it parses.  Probable
-      // we should catch any exception and return a bad result.
-      val fc : FiniteComplex[OptMarker] =
-        Complex.fromJson[OptMarker](upickle.json.read(req.data))
-
-      println("Read a complex: " ++ fc.value.toString)
+      println("Read a complex: " ++ c.toString)
 
       val sketch = Sketch(
         UUID.randomUUID(),
@@ -106,65 +100,29 @@ class SketchController @Inject() (
       form => Future.successful(BadRequest("Bad render reqeust")),
       data => {
 
-        import opetopic.ui._
-        import opetopic.ui.markers._
-        import opetopic.net._
-        import ScalatagsTextFramework._
-        import SimpleMarker._
+        // val sm : SizingMethod = read[SizingMethod](data.sizingMethod)
 
-        import upickle.default._
+        // val sf : Bounds => (Int, Int) = 
+        //   sm match {
+        //     case Sized(w, h) => (b: Bounds) => (w, h)
+        //     case FixedWidth(w) => (b: Bounds) => {
+        //       val fct : Double = (w.toDouble) / b.width
+        //       (w, (b.height * fct).toInt)
+        //     }
+        //     case FixedHeight(h) => (b: Bounds) => {
+        //       val fct : Double = (h.toDouble) / b.height
+        //       ((b.width * fct).toInt, h)
+        //     }
+        //     case Percentage(pct) => (b: Bounds) => {
+        //       ((b.width * pct).toInt, (b.height * pct).toInt)
+        //     }
+        //   }
 
-        val sm : SizingMethod = read[SizingMethod](data.sizingMethod)
+        val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(data.renderData))
 
-        val sf : Bounds => (Int, Int) = 
-          sm match {
-            case Sized(w, h) => (b: Bounds) => (w, h)
-            case FixedWidth(w) => (b: Bounds) => {
-              val fct : Double = (w.toDouble) / b.width
-              (w, (b.height * fct).toInt)
-            }
-            case FixedHeight(h) => (b: Bounds) => {
-              val fct : Double = (h.toDouble) / b.height
-              ((b.width * fct).toInt, h)
-            }
-            case Percentage(pct) => (b: Bounds) => {
-              ((b.width * pct).toInt, (b.height * pct).toInt)
-            }
-          }
+        println("Rendering complex: " ++ c.toString)
 
-        implicit val staticPanelConfig =
-          PanelConfig(
-            internalPadding = 400,
-            externalPadding = 600,
-            decorationPadding = 400,
-            leafWidth = 200,
-            strokeWidth = 100,
-            cornerRadius = 200
-          )
-
-        implicit val staticGalleryConfig =
-          GalleryConfig(
-            panelConfig = staticPanelConfig,
-            width = 1000,
-            height = 300,
-            spacing = 2000,
-            minViewX = None, // Some(80000),
-            minViewY = None, // Some(15000),
-            sizingFunction = sf,
-            spacerBounds = Bounds(0, 0, 600, 600)
-          )
-
-        implicit val spacerBounds = Bounds(0, 0, 600, 600)
-
-        implicit val vf: VisualizableFamily[SimpleMarker] =
-          frameworkFamily(ScalatagsTextFramework)
-
-        val fc : FiniteComplex[OptMarker] =
-          Complex.fromJson[OptMarker](upickle.json.read(data.renderData))
-
-        println("Rendering complex: " ++ fc.value.toString)
-
-        val staticGallery = SimpleStaticGallery(fc)
+        val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(c)
         val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
         Future.successful(Ok(xmlHeader + "\n" + staticGallery.element.toString).as("image/svg+xml"))
 

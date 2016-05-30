@@ -119,4 +119,31 @@ object Suite {
 
   }
 
+  //============================================================================================
+  // PICKLING
+  //
+
+  import upickle.Js
+  import upickle.default._
+
+  import scala.{PartialFunction => PF}
+
+  def suiteWriter[A](implicit w: Writer[A]): Writer[Suite[A]] = 
+    new Writer[Suite[A]] {
+      def write0: Suite[A] => Js.Value = {
+        case ||(a) => Js.Obj(("type", Js.Str("snil")), ("val", w.write(a)))
+        case tl >> hd => Js.Obj(("type", Js.Str("scons")), ("tail", write(tl)), ("head", w.write(hd)))
+      }
+    }
+
+  def suiteReader[A](implicit r: Reader[A]): Reader[Suite[A]] = 
+    new Reader[Suite[A]] {
+      def read0: PF[Js.Value, Suite[A]] = {
+        case Js.Obj(("type", Js.Str("snil")), ("val", a)) => ||(r.read(a))
+        case Js.Obj(("type", Js.Str("scons")), ("tail", tl), ("head", hd)) =>
+          read(tl) >> r.read(hd)
+      }
+    }
+
+
 }

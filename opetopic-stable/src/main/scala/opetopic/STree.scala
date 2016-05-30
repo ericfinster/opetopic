@@ -424,4 +424,36 @@ object STree {
       case a :: as => SNode(a, obj(lst(as)))
     }
 
+  //============================================================================================
+  // PICKLING
+  //
+
+  import upickle.Js
+  import upickle.default._
+
+  import scala.{PartialFunction => PF}
+
+  def treeWriter[A](implicit w: Writer[A]): Writer[STree[A]] = 
+    new Writer[STree[A]] {
+      def write0: STree[A] => Js.Value = {
+        case SLeaf => Js.Obj(("type", Js.Str("lf")))
+        case SNode(a, sh) => {
+          val shw : Writer[Shell[A]] = treeWriter(this)
+          Js.Obj(("type", Js.Str("nd")), ("lbl", w.write(a)), ("sh", shw.write(sh)))
+        }
+      }
+    }
+
+  def treeReader[A](implicit r: Reader[A]): Reader[STree[A]] = 
+    new Reader[STree[A]] {
+      def read0: PF[Js.Value, STree[A]] = {
+        case Js.Obj(("type", Js.Str("lf"))) => SLeaf
+        case Js.Obj(("type", Js.Str("nd")), ("lbl", a), ("sh", sh)) => {
+          val shr : Reader[Shell[A]] = treeReader(this)
+          SNode(r.read(a), shr.read(sh))
+        }
+      }
+    }
+
+
 }

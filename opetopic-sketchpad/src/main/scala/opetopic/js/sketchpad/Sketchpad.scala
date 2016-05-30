@@ -25,8 +25,8 @@ import JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
 
-  val editor = new JsStableEditor[SketchMarker]
-  val viewer = new JsStableViewer[Option[SketchMarker]]
+  val editor = new JsStableEditor[SimpleMarker]
+  val viewer = new JsStableViewer[Option[SimpleMarker]]
 
   import editor.StableCell
 
@@ -98,7 +98,7 @@ object Sketchpad extends JSApp {
 
     // jQuery("#view-btn").on("click", () => { loadSelectedSketch })
     // jQuery("#save-btn").on("click", () => { saveSketch })
-    // jQuery("#svg-btn").on("click", () => { renderSketch })
+    jQuery("#svg-btn").on("click", () => { renderSketch })
     // jQuery("#export-btn").on("click", () => { exportSketch })
 
   }
@@ -127,8 +127,8 @@ object Sketchpad extends JSApp {
       }
 
     editor.updateLabel({
-      case None => Some(SketchMarker(labelVal))
-      case Some(SketchMarker(l, s)) => Some(SketchMarker(labelVal, s))
+      case None => Some(SimpleMarker(labelVal))
+      case Some(SimpleMarker(l, s)) => Some(SimpleMarker(labelVal, s))
     })
 
     showRootFace
@@ -147,9 +147,9 @@ object Sketchpad extends JSApp {
     val (f, fh, fs) = colorTripleGen(fillColor)
 
     editor.updateLabel({
-      case None => Some(SketchMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-      case Some(SketchMarker(l, s)) =>
-        Some(SketchMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
+      case None => Some(SimpleMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
+      case Some(SimpleMarker(l, s)) =>
+        Some(SimpleMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
     })
 
     showRootFace
@@ -161,9 +161,9 @@ object Sketchpad extends JSApp {
     val (st, sh, ss) = colorTripleGen(strokeColor)
 
     editor.updateLabel({
-      case None => Some(SketchMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-      case Some(SketchMarker(l, s)) => 
-        Some(SketchMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+      case None => Some(SimpleMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+      case Some(SimpleMarker(l, s)) => 
+        Some(SimpleMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
     })
 
     showRootFace
@@ -186,22 +186,22 @@ object Sketchpad extends JSApp {
 
   //   }
 
-  // def renderSketch: Unit = 
-  //   for {
-  //     c <- viewer.complex
-  //   } {
+  def renderSketch: Unit = 
+    for {
+      c <- viewer.complex
+    } {
 
-  //     import upickle.default._
-  //     import opetopic.net._
+      import upickle.default._
+      import opetopic.net._
 
-  //     val renderData : String = Complex.toJson(c.value)
-  //     val sizingMethod : String = write(Percentage(0.05))
+      val renderData : String = complexToJson(c)
+      val sizingMethod : String = write(Percentage(0.05))
 
-  //     jQuery("#render-data").value(renderData)
-  //     jQuery("#sizing-mthd").value(sizingMethod)
-  //     jQuery("#render-request-form").submit()
+      jQuery("#render-data").value(renderData)
+      jQuery("#sizing-mthd").value(sizingMethod)
+      jQuery("#render-request-form").submit()
 
-  //   }
+    }
 
   // def loadSelectedSketch: Unit = 
   //   for { (id, _) <- selectedSketch } {
@@ -301,7 +301,7 @@ object Sketchpad extends JSApp {
       case _ => "white"
     }
 
-  def showProps(m: Option[SketchMarker]): Unit = {
+  def showProps(m: Option[SimpleMarker]): Unit = {
     m match {
       case None => {
         showFill("white")

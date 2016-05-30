@@ -1,23 +1,21 @@
 /**
-  * SketchMarker.scala - A Simple Marker for the Sketchpad
+  * SimpleMarker.scala - A Simple Cell Marker Implementation
   * 
   * @author Eric Finster
   * @version 0.1 
   */
 
-package opetopic.js.sketchpad
+package opetopic.ui
 
-import opetopic.ui._
-
-case class SketchMarker(
+case class SimpleMarker(
   val lbl: String,
   val colorSpec: ColorSpec = DefaultColorSpec
 )
 
-object SketchMarker {
+object SimpleMarker {
 
-  implicit object SketchMarkerRenderable extends Renderable[SketchMarker] {
-    def render(f: UIFramework)(mk: SketchMarker): f.CellRendering = {
+  implicit object SimpleMarkerRenderable extends Renderable[SimpleMarker] {
+    def render(f: UIFramework)(mk: SimpleMarker): f.CellRendering = {
 
       import f._
       import isNumeric._

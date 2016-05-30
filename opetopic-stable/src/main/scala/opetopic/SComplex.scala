@@ -206,4 +206,17 @@ trait ComplexTypes {
 
   }
 
+  //============================================================================================
+  // PICKLING
+  //
+
+  import upickle.Js
+  import upickle.default._
+
+  def complexToJson[A](c: SComplex[A])(implicit w: Writer[A]): String =
+    upickle.json.write(Suite.suiteWriter(SNesting.nestingWriter(w)).write(c))
+
+  def complexFromJson[A](c: Js.Value)(implicit r: Reader[A]): SComplex[A] = 
+    Suite.suiteReader(SNesting.nestingReader(r)).read(c)
+
 }

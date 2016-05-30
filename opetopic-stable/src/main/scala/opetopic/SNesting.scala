@@ -281,5 +281,37 @@ object SNesting {
 
   }
 
+  //============================================================================================
+  // PICKLING
+  //
+
+  import upickle.Js
+  import upickle.default._
+
+  import scala.{PartialFunction => PF}
+
+  def nestingWriter[A](implicit w: Writer[A]): Writer[SNesting[A]] =
+    new Writer[SNesting[A]] {
+      def write0: SNesting[A] => Js.Value = {
+        case SDot(a) => Js.Obj(("type", Js.Str("dot")), ("lbl", w.write(a)))
+        case SBox(a, cn) => {
+          val cnw : Writer[STree[SNesting[A]]] = STree.treeWriter(this)
+          Js.Obj(("type", Js.Str("box")), ("lbl", w.write(a)), ("cn", cnw.write(cn)))
+        }
+      }
+    }
+
+  def nestingReader[A](implicit r: Reader[A]): Reader[SNesting[A]] =
+    new Reader[SNesting[A]] {
+      def read0: PF[Js.Value, SNesting[A]] = {
+        case Js.Obj(("type", Js.Str("dot")), ("lbl", a)) => SDot(r.read(a))
+        case Js.Obj(("type", Js.Str("box")), ("lbl", a), ("cn", cn)) => {
+          val cnr : Reader[STree[SNesting[A]]] = STree.treeReader(this)
+          SBox(r.read(a), cnr.read(cn))
+        }
+      }
+    }
+
+
 }
 
