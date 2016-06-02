@@ -50,4 +50,7 @@ package object mtl {
   implicit def toTraverseOps[F[_], A](fa: F[A])(implicit t: Traverse[F]): TraverseOps[F, A] = 
     new TraverseOps[F, A](fa) { val T = t }
 
+  implicit def toMonadOps[F[_], A](fa: F[A])(implicit m: Monad[F]): MonadOps[F, A] = 
+    new MonadOps[F, A](fa) { val M = m }
+
 }

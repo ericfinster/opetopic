@@ -24,3 +24,23 @@ trait Monad[F[_]] extends Applicative[F] {
     flatMap(fa)(a => pure(f(a)))
 
 }
+
+object Monad {
+
+  def apply[F[_]](implicit m: Monad[F]): Monad[F] = m
+
+
+
+}
+
+abstract class MonadOps[F[_], A](fa: F[A]) {
+
+  val M: Monad[F]
+
+  def map[B](f: A => B): F[B] = 
+    M.map(fa)(f)
+
+  def flatMap[B](f: A => F[B]): F[B] = 
+    M.flatMap(fa)(f)
+
+}

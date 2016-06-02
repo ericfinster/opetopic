@@ -199,6 +199,12 @@ object SNesting {
         case SBox(a, _) => a
       }
 
+    def withBase(a: A): SNesting[A] = 
+      nst match {
+        case SDot(_) => SDot(a)
+        case SBox(_, cn) => SBox(a, cn)
+      }
+
     def spine(d: SDeriv[A]): Option[STree[A]] = 
       nst match {
         case SDot(a) => Some(d.plug(a))
@@ -280,6 +286,25 @@ object SNesting {
       }).flatMap(STree.join(_))
 
   }
+
+  //============================================================================================
+  // NESTING JOIN
+  //
+
+  // This does a join without regard to the equality between the external
+  // dots and the base of new incoming guy.  Perhaps enhance with a discrimination
+  // function ...
+  def join[A](nn: SNesting[SNesting[A]]): Option[SNesting[A]] = 
+    nn match {
+      case SDot(n) => Some(n)
+      case SBox(n, cn) => 
+        for {
+          trNst <- cn.traverse(join(_))
+          r <- n.toTree.treeFold[SNesting[A]](trNst.elementAt(_))({
+            case (a, c) => Some(SBox(a, c))
+          })
+        } yield r
+    }
 
   //============================================================================================
   // PICKLING

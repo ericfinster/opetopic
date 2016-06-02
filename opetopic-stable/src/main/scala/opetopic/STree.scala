@@ -214,6 +214,17 @@ object STree {
     def seekTo(addr: SAddr): Option[SZipper[A]] = 
       SZipper(st).seek(addr)
 
+    def toNesting(f: SAddr => Option[A], addr: SAddr = Nil): Option[SNesting[A]] = 
+      st match {
+        case SLeaf => for { a <- f(addr) } yield SDot(a)
+        case SNode(a, sh) => 
+          for {
+            cn <- sh.traverseWithAddr[Option, SNesting[A]](
+              (t, d) => t.toNesting(f, SDir(d) :: addr)
+            )
+          } yield SBox(a, cn)
+      }
+
     def asShell[B]: STree[STree[B]] = 
       st.map(_ => SLeaf)
 
@@ -235,6 +246,7 @@ object STree {
             res <- join(toJn)
           } yield res
       }
+
 
     def takeWhile(prop: A => Boolean, deriv: SDeriv[STree[A]] = SDeriv(SNode(SLeaf, SLeaf))): Option[(STree[A], Shell[A])] = 
       st match {

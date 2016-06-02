@@ -207,6 +207,52 @@ trait ComplexTypes {
   }
 
   //============================================================================================
+  // COMPLEX GRAFTING
+  //
+
+  // def graft[A](pd: STree[SComplex[A]])(d: (A, A) => Option[A]): Option[(SComplex[A], STree[SNesting[A]])] = None
+
+  def graftNesting[A](nst: SNesting[SComplex[A]])(disc: (A, A) => Option[A]): Option[SComplex[A]] = 
+    nst match {
+      case SDot(c) => Some(c)
+      case SBox(||(SBox(tgt, SNode(SDot(src), _))), SNode(pd, _)) => {
+
+        // This should mean we are grafting a bunch of arrows, I think.
+
+        for {
+          grft <- graftNesting(pd)(disc)
+          objNesting = grft.head
+          v <- disc(src, objNesting.baseValue)
+        } yield ||(SBox(tgt, STree.obj(objNesting.withBase(v))))
+
+      }
+      case SBox(c >> SBox(tgt, tcn), cn) => {
+
+        // Blech.  A bit rough, no?
+
+        for {
+          cmplxSh <- cn.traverse(graftNesting(_)(disc))
+          prTr <- tcn.matchTraverse(cmplxSh)({
+            case (SDot(src), c0 >> nst) => {
+              for {
+                v <- disc(src, nst.baseValue)
+              } yield (nst.withBase(v), c0.head)
+            }
+            case _ => None // Malformed result
+          })
+          (newCnpy, fillerTr) = STree.unzip(prTr)
+          nstNst <- fillerTr.toNesting((addr: SAddr) => {
+            for { zp <- c.head.seek(addr) } yield zp.focus
+          })
+          cdim2 <- SNesting.join(nstNst)
+        } yield c.withHead(cdim2) >> SBox(tgt, newCnpy)
+
+      }
+      case _ => None // Malformed grafting problem ...
+    }
+
+
+  //============================================================================================
   // PICKLING
   //
 
