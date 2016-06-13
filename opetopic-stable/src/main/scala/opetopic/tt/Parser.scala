@@ -120,8 +120,8 @@ object Parser {
     P( "Obj" ~ expr4 ).map(EObj(_))
 
   val cell: Parser[Expr] = 
-    P( "Cell" ~ expr4 ~ complex ).map({
-      case (cat, frm) => ECell(cat, frm)
+    P( "Cell" ~ expr4 ~ tree ~ expr4 ).map({
+      case (c, s, t) => ECell(c, s, t)
     })
 
   val isLeftExt: Parser[Expr] = 
@@ -196,10 +196,10 @@ object Parser {
     P( ("dot" ~ expr4).map({ case e => EDot(e) }) | 
        ("box" ~ expr4 ~ tree).map({ case (e, t) => EBox(e, t) }) )
 
-  val complex: Parser[Expr] = 
-    P( ("[" ~ nesting ~ "]>>" ~ complex).map({ case (n, c) => ETl(n, c) }) |
-       ("[" ~ nesting ~ "]").map(EHd(_))
-    )
+  // val complex: Parser[Expr] = 
+  //   P( ("[" ~ nesting ~ "]>>" ~ complex).map({ case (n, c) => ETl(n, c) }) |
+  //      ("[" ~ nesting ~ "]").map(EHd(_))
+  //   )
 
   //============================================================================================
   // ADDRESSES

@@ -112,10 +112,7 @@ object TypeChecker {
       // Categories and Cells
       case ECat => Cat
       case EObj(c) => Obj(eval(c, rho))
-      // case ECell(c, e) => {
-      //   val fc = getOrError(parseComplex(e))
-      //   Cell(eval(c, rho), fc.value.map(EvalMap(rho)))
-      // }
+      case ECell(c, s, t) => Cell(eval(c, rho), eval(s, rho), eval(t, rho))
 
       // Propertes
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
@@ -124,16 +121,8 @@ object TypeChecker {
       // Composition and identities
       case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
       case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
-      // case EComp(c, d, pd) => {
-      //   val dim = intToNat(d)
-      //   val pdTr = getOrError(parseTree(dim)(pd))
-      //   Comp(eval(c, rho), dim, pdTr.map(eval(_, rho)))
-      // }
-      // case EFill(c, d, pd) => {
-      //   val dim = intToNat(d)
-      //   val pdTr = getOrError(parseTree(dim)(pd))
-      //   Fill(eval(c, rho), dim, pdTr.map(eval(_, rho)))
-      // }
+      case EComp(c, pd) => Comp(eval(c, rho), eval(pd, rho))
+      case EFill(c, pd) => Fill(eval(c, rho), eval(pd, rho))
 
       // Liftings
       case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -141,14 +130,8 @@ object TypeChecker {
       case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
-      // Base properties
-      // case EFillIsLeft(c, d, pd) => {
-      //   val dim = intToNat(d)
-      //   val pdTr = getOrError(parseTree(dim)(pd))
-      //   FillIsLeft(eval(c, rho), dim, pdTr.map(eval(_, rho)))
-      // }
-
       case EDropIsLeft(c, e) => DropIsLeft(eval(c, rho), eval(e, rho))
+      case EFillIsLeft(c, pd) => FillIsLeft(eval(c, rho), eval(pd, rho))
       case EShellIsLeft(e, ev, s, t) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
 
       // Derived properties
@@ -161,11 +144,9 @@ object TypeChecker {
       case ELf => VLf
       case ENd(e, sh) => VNd(eval(e, rho), eval(sh, rho))
 
-      // ... Nestings and complexes don't.
-      // case EDot(_) => error("Unreduced dot")
-      // case EBox(_, _) => error("Unreduced box")
-      // case EHd(_) => error("Unreduced head")
-      // case ETl(_, _) => error("Unreduced tail")
+      case EDot(e) => VDot(eval(e, rho))
+      case EBox(e, c) => VBox(eval(e, rho), eval(c, rho))
+
     }
 
   //============================================================================================
@@ -192,15 +173,15 @@ object TypeChecker {
 
       case Cat => ECat
       case Obj(v) => EObj(rbV(i, v))
-      // case Cell(c, frm) => ECell(rbV(i, c), complexToExpr(frm.dim)(frm.map(RbMap(i))))
+      case Cell(c, s, t) => ECell(rbV(i, c), rbV(i, s), rbV(i, t))
 
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
 
       case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
       case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
-      // case Comp(c, d, pd) => EComp(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
-      // case Fill(c, d, pd) => EFill(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
+      case Comp(c, pd) => EComp(rbV(i, c), rbV(i, pd))
+      case Fill(c, pd) => EFill(rbV(i, c), rbV(i, pd))
 
       case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -208,7 +189,7 @@ object TypeChecker {
       case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case DropIsLeft(c, v) => EDropIsLeft(rbV(i, c), rbV(i, v))
-      // case FillIsLeft(c, d, pd) => EFillIsLeft(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
+      case FillIsLeft(c, pd) => EFillIsLeft(rbV(i, c), rbV(i, pd))
       case ShellIsLeft(e, ev, s, t) => EShellIsLeft(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
 
       case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -219,7 +200,11 @@ object TypeChecker {
       case VLf => ELf
       case VNd(v, sh) => ENd(rbV(i, v), rbV(i, sh))
 
+      case VDot(v) => EDot(rbV(i, v))
+      case VBox(v, c) => EBox(rbV(i, v), rbV(i, c))
+
       case Nt(k) => rbN(i, k)
+
     }
   }
 
@@ -264,36 +249,39 @@ object TypeChecker {
   // TREE AND COMPLEX ROUTINES
   //
 
-  // @natElim
-  // def parseTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
-  //   case (Z, EPt(e)) => pure(Pt(e))
-  //   case (Z, e) => fail("Not a tree expression in dim 0: " + e.toString)
-  //   case (S(p: P), ELf) => pure(Leaf(S(p)))
-  //   case (S(p: P), ENd(e, sh)) => 
-  //     for {
-  //       shParse <- parseTree(p)(sh)
-  //       shRes <- shParse.traverse(parseTree(S(p))(_))
-  //     } yield Node(e, shRes)
-  //   case (S(p: P), e) => fail("Not a tree expression: " + e.toString)
-  // }
+  def parseTree(expr: Expr): G[STree[Expr]] = 
+    expr match {
+      case ELf => pure(SLeaf)
+      case ENd(e, s) => 
+        for {
+          shParse <- parseTree(s)
+          shRes <- shParse.traverse(parseTree(_))
+        } yield SNode(e, shRes)
+      case _ => fail("Not a tree: " + expr.toString)
+    }
 
-  // @natElim
-  // def parseNesting[N <: Nat](n: N)(e: Expr) : G[Nesting[Expr, N]] = {
-  //   case (Z, EDot(e)) => pure(Objj(e))
-  //   case (Z, EBox(e, ec)) => 
-  //     for {
-  //       t <- parseTree(Z)(ec)
-  //       cn <- t.traverse[G, Nesting[Expr, _0]](parseNesting(Z)(_))
-  //     } yield Box(e, cn)
-  //   case (Z, _) => fail("Invalid nesting")
-  //   case (S(p: P), EDot(e)) => pure(Dot(e, S(p)))
-  //   case (S(p: P), EBox(e, ec)) => 
-  //     for {
-  //       t <- parseTree(S(p))(ec)
-  //       cn <- t.traverse[G, Nesting[Expr, S[P]]](parseNesting(S(p))(_))
-  //     } yield Box(e, cn)
-  //   case (S(p: P), _) => fail("Invalid nesting")
-  // }
+  def parseNesting(expr: Expr): G[SNesting[Expr]] = 
+    expr match {
+      case EDot(e) => pure(SDot(e))
+      case EBox(e, cn) => 
+        for {
+          cnParse <- parseTree(cn)
+          cnRes <- cnParse.traverse(parseNesting(_))
+        } yield SBox(e, cnRes)
+      case _ => fail("Not a nesting: " + expr.toString)
+    }
+
+  // def parseComplex(expr: Expr): G[SComplex[Expr]] = 
+  //   expr match {
+  //     case EHd(n) =>
+  //       for {
+  //         nst <- parseNesting(n)
+  //       } yield ||(nst)
+  //     case ETl(tl, hd) => 
+  //       for {
+  //       }
+  //     case _ => fail("Not a complex: " + expr.toString)
+  //   }
 
   // def parseComplex[N <: Nat](n: N)(e: Expr, s: Suite[ExprNesting, N]) : G[FiniteComplex[ConstExpr]] = 
   //   e match {
