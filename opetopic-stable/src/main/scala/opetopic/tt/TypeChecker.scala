@@ -111,7 +111,7 @@ object TypeChecker {
 
       // Categories and Cells
       case ECat => Cat
-      case EOb(c) => Ob(eval(c, rho))
+      case EObj(c) => Obj(eval(c, rho))
       // case ECell(c, e) => {
       //   val fc = getOrError(parseComplex(e))
       //   Cell(eval(c, rho), fc.value.map(EvalMap(rho)))
@@ -190,8 +190,8 @@ object TypeChecker {
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
 
-      // case Cat => ECat
-      // case Ob(v) => EOb(rbV(i, v))
+      case Cat => ECat
+      case Obj(v) => EObj(rbV(i, v))
       // case Cell(c, frm) => ECell(rbV(i, c), complexToExpr(frm.dim)(frm.map(RbMap(i))))
 
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
@@ -279,7 +279,7 @@ object TypeChecker {
 
   // @natElim
   // def parseNesting[N <: Nat](n: N)(e: Expr) : G[Nesting[Expr, N]] = {
-  //   case (Z, EDot(e)) => pure(Obj(e))
+  //   case (Z, EDot(e)) => pure(Objj(e))
   //   case (Z, EBox(e, ec)) => 
   //     for {
   //       t <- parseTree(Z)(ec)
@@ -341,7 +341,7 @@ object TypeChecker {
 
   // def nestingToExpr[N <: Nat](n: N)(nst: Nesting[Expr, N]) : Expr = 
   //   nst match {
-  //     case Obj(e) => EDot(e)
+  //     case Objj(e) => EDot(e)
   //     case Dot(e, _) => EDot(e)
   //     case Box(e, cn) => EBox(e, treeToExpr(n)(cn.map(nestingToExpr(n)(_))))
   //   }
@@ -374,7 +374,7 @@ object TypeChecker {
 
   // @natElim
   // def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
-  //   case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Ob(cat))
+  //   case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Obj(cat))
   //   case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
   //   case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
   //     for {
@@ -391,8 +391,8 @@ object TypeChecker {
   //     hd match {
   //       case Box(tgt, Pt(Obj(src))) => 
   //         for {
-  //           _ <- check(rho, gma, src, Ob(cat))
-  //           _ <- check(rho, gma, tgt, Ob(cat))
+  //           _ <- check(rho, gma, src, Obj(cat))
+  //           _ <- check(rho, gma, tgt, Obj(cat))
   //         } yield ()
   //       case _ => fail("checkFrame: failed in dimension 0")
   //     }
@@ -431,7 +431,7 @@ object TypeChecker {
   //   for {
   //     et <- checkI(rho, gma, e)
   //     res <- et match {
-  //       case Ob(cv) => pure(cv)
+  //       case Obj(cv) => pure(cv)
   //       case _ => fail("Expression is not an object: " + e.toString)
   //     }
   //   } yield res
@@ -454,7 +454,7 @@ object TypeChecker {
 
   // @natElim 
   // def cellType[N <: Nat](n: N)(cv: Val, c: ValComplex[N]) : G[Val] = {
-  //   case (Z, cv, Complex(_, Obj(_))) => pure(Ob(cv))
+  //   case (Z, cv, Complex(_, Obj(_))) => pure(Obj(cv))
   //   case (Z, cv, _) => fail("Not an object")
   //   case (S(p), cv, Complex(tl, Dot(_, _))) => pure(Cell(cv, tl))
   //   case (S(p), cv, _) => fail("Not a cell")
@@ -466,7 +466,7 @@ object TypeChecker {
   //     for {
   //       et <- inferObject(rho, gma, e)
   //       _ <- eqNf(lRho(rho), et, cv)
-  //     } yield Ob(cv)
+  //     } yield Obj(cv)
   //   case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
   //   case (S(p: P), rho, gma, cv, tr) => 
   //     for {
@@ -623,7 +623,7 @@ object TypeChecker {
           _ <- check(UpDec(rho, d), gma1, e, t)
         } yield ()
       case (ECat, Type) => pure(())
-      case (EOb(c), Type) =>
+      case (EObj(c), Type) =>
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()

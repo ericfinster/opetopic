@@ -210,8 +210,30 @@ trait ComplexTypes {
   // COMPLEX GRAFTING
   //
 
-  // def graft[A](pd: STree[SComplex[A]])(d: (A, A) => Option[A]): Option[(SComplex[A], STree[SNesting[A]])] = None
+  // Uh, yeah, I haven't really tested these routines out yet.  I just translated from the
+  // unstable version so they would be here for use in the type checker.  But you should
+  // do some kind of test to make sure they're working as you would expect ...
+  def graft[A](pd: STree[SComplex[A]])(disc: (A, A) => Option[A]): Option[(SComplex[A], STree[SNesting[A]])] = 
+    for {
+      pr <- pd.traverse({ 
+        case ||(_) => None
+        case tl >> hd => Some(tl, hd)
+      })
+      (cmplxTr, pdTr) = STree.unzip(pr)
+      cmplxNst <- cmplxTr.toNesting({
+        case Nil => None // Should have been a leaf? (I don't know what this means ...)
+        case d :: ds => 
+          for {
+            zp <- cmplxTr.seekTo(ds)
+            c <- zp.focus.rootValue
+            cnst <- c.sourceAt(d :: Nil)
+          } yield cnst
+      })
+      gres <- graftNesting(cmplxNst)(disc)
+    } yield (gres, pdTr)
 
+
+  // Uggh.  I hate this name, but I can't think of anything which is much better ...
   def graftNesting[A](nst: SNesting[SComplex[A]])(disc: (A, A) => Option[A]): Option[SComplex[A]] = 
     nst match {
       case SDot(c) => Some(c)

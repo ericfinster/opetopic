@@ -41,7 +41,7 @@ case class ETl(e: Expr, f: Expr) extends Expr
 
 // Categories and Cells
 case object ECat extends Expr
-case class EOb(c: Expr) extends Expr
+case class EObj(c: Expr) extends Expr
 case class ECell(c: Expr, e: Expr) extends Expr
 
 // Properties
@@ -51,8 +51,8 @@ case class EIsRightExt(e: Expr, a: Addr) extends Expr
 // Cell Constructors
 case class ERefl(c: Expr, e: Expr) extends Expr
 case class EDrop(c: Expr, e: Expr) extends Expr
-case class EComp(c: Expr, d: Int, pd: Expr) extends Expr
-case class EFill(c: Expr, d: Int, pd: Expr) extends Expr
+case class EComp(c: Expr, pd: Expr) extends Expr
+case class EFill(c: Expr, pd: Expr) extends Expr
 case class ELiftLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillLeft(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class ELiftRight(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
@@ -83,7 +83,7 @@ case class Nt(n: Neut) extends Val
 
 // Category and Cell Values
 case object Cat extends Val
-case class Ob(cv: Val) extends Val
+case class Obj(cv: Val) extends Val
 case class Cell(c: Val, frm: SComplex[Val]) extends Val
 
 // Property Values
