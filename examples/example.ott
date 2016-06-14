@@ -1,0 +1,20 @@
+-- 
+--  example.ott - testing and examples
+--
+
+let id : (X : Type) -> X -> X
+       = \X. \x. x ; 
+
+let projOne : (X : Type) -> (P : X -> Type) -> (e : (x : X) * P x) -> X
+    	    = \X. \P. \e. fst e ;
+
+let projTwo : (X : Type) -> (P : X -> Type) -> (e : (x : X) * P x) -> P (fst e)
+    	    =  \X. \P. \e. snd e ;
+
+let objType : (X : Cat) -> Type
+    	    = \X. Obj X ;
+
+let objFrame : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> Type
+    	     = \X. \x. \y. Cell X (nd x lf) y ;
+
+tt

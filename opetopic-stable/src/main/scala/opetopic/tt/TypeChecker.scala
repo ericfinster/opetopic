@@ -550,6 +550,7 @@ object TypeChecker {
           t = eval(a, rho)
           _ <- check(rho, gma, e, t)
           gma1 <- upG(gma, p, t, eval(e, rho))
+          _ = println("Checked definition: " + p.toString)
         } yield gma1
       case d@(Drec(p, a, e)) => 
         for {
