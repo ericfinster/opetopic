@@ -248,7 +248,7 @@ object STree {
       }
 
 
-    def takeWhile(prop: A => Boolean, deriv: SDeriv[STree[A]] = SDeriv(SNode(SLeaf, SLeaf))): Option[(STree[A], Shell[A])] = 
+    def takeWhile(prop: A => Boolean, deriv: SDeriv[STree[A]] = SDeriv(SLeaf)): Option[(STree[A], Shell[A])] = 
       st match {
         case SLeaf => Some(SLeaf, deriv.plug(SLeaf))
         case SNode(a, sh) => 
@@ -264,7 +264,7 @@ object STree {
           } else Some(SLeaf, deriv.plug(SNode(a, sh)))
       }
 
-    def takeWithMask[B](msk: STree[B], deriv: SDeriv[STree[A]] = SDeriv(SNode(SLeaf, SLeaf))): Option[(STree[A], Shell[A])] =
+    def takeWithMask[B](msk: STree[B], deriv: SDeriv[STree[A]] = SDeriv(SLeaf)): Option[(STree[A], Shell[A])] =
       (st, msk) match {
         case (tr, SLeaf) => Some(SLeaf, deriv.plug(tr))
         case (SNode(a, sh), SNode(_, msh)) => 
@@ -427,8 +427,7 @@ object STree {
   // CONSTRUCTORS
   //
 
-  def obj[A](a: A): STree[A] = 
-    SNode(a, SNode(SLeaf, SLeaf))
+  def obj[A](a: A): STree[A] = SNode(a, SLeaf)
 
   def lst[A](l: List[A]): STree[A] = 
     l match {

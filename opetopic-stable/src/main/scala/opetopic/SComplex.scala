@@ -91,7 +91,7 @@ trait ComplexTypes {
     // extra work.
     def focusDeriv[B]: Option[SDeriv[B]] =
       z match {
-        case ||(_) => Some(SDeriv(SNode(SLeaf, SLeaf)))
+        case ||(_) => Some(SDeriv(SLeaf))
         case tl >> hd =>
           hd.focus match {
             case SDot(_) => 
@@ -186,7 +186,7 @@ trait ComplexTypes {
       z match {
         case ||(hd) => 
           for {
-            pr <- hd.focus.exciseWith(guide, SDeriv(SNode(SLeaf, SLeaf)))
+            pr <- hd.focus.exciseWith(guide, SDeriv(SLeaf))
           } yield ||(pr._1)
         case tl >> hd => 
           for {

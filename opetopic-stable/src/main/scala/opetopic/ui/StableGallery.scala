@@ -189,7 +189,7 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
 
     def edgeLayoutTree(en: SNesting[EdgeType]): Option[STree[LayoutMarker]] = 
       for {
-        sp <- en.spine(SDeriv(SNode(SLeaf, SLeaf)))  // Default is an object
+        sp <- en.spine(SDeriv(SLeaf))  // Default is an object
       } yield sp.map(edge => {
         edge.clearEdge
         val edgeMarker = new EdgeStartMarker(edge)

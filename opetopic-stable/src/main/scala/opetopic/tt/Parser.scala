@@ -110,7 +110,7 @@ object Parser {
   // Expr2
 
   val expr2: Parser[Expr] = 
-    P( tree | nesting | obj | cell |
+    P( obj | cell |
       isLeftExt | isRightExt |
       refl | drop | comp | fill |
       liftLeft | liftRight | fillLeft | fillRight |
@@ -175,9 +175,19 @@ object Parser {
   // Expr3
 
   val expr3: Parser[Expr] =
-    P( expr4 ~ expr.rep(1).? ).map({
-      case (e, None) => e
-      case (e, Some(s)) => s.foldLeft(e)(EApp(_, _))
+    P( expr4.rep(1) ).map({
+      case exprs => {
+
+        def mkApp(ex: Expr, seq: Seq[Expr]): Expr = 
+          if (seq.length > 0) 
+            mkApp(EApp(ex, seq.head), seq.tail)
+          else ex
+
+        if (exprs.length > 1) {
+          mkApp(exprs.head, exprs.tail)
+        } else exprs.head
+
+      }
     })
 
   // Expr4
@@ -190,11 +200,11 @@ object Parser {
   //
 
   val tree: Parser[Expr] = 
-    P( "lf".!.map(_ => ELf) | ("nd" ~ expr4 ~ tree).map({ case (e, s) => ENd(e, s) }) | ("(" ~ tree ~ ")") )
+    P( "lf".!.map(_ => ELf) | ("nd" ~ (tree | expr4) ~ tree).map({ case (e, s) => ENd(e, s) }) | ("(" ~ tree ~ ")") )
 
-  val nesting: Parser[Expr] = 
-    P( ("dot" ~ expr4).map({ case e => EDot(e) }) | 
-       ("box" ~ expr4 ~ tree).map({ case (e, t) => EBox(e, t) }) )
+  // val nesting: Parser[Expr] = 
+  //   P( ("dot" ~ expr4).map({ case e => EDot(e) }) | 
+  //      ("box" ~ expr4 ~ tree).map({ case (e, t) => EBox(e, t) }) )
 
   // val complex: Parser[Expr] = 
   //   P( ("[" ~ nesting ~ "]>>" ~ complex).map({ case (n, c) => ETl(n, c) }) |

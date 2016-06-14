@@ -116,7 +116,7 @@ object SNesting {
     def lazyTraverse[G[_], B, C](
       f: LazyTraverse[G, A, B, C],
       addr: => SAddr = Nil, 
-      deriv: => SDeriv[B] = SDeriv(SNode(SLeaf, SNode(SLeaf, SLeaf)))
+      deriv: => SDeriv[B] = SDeriv(SNode(SLeaf, SLeaf))
     )(implicit isAp: Applicative[G]): G[SNesting[C]] =
       nst match {
         case SDot(a) => isAp.ap(f(a, addr, deriv))(isAp.pure(SDot(_)))

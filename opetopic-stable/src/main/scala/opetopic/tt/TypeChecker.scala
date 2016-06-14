@@ -245,6 +245,12 @@ object TypeChecker {
       case Some(a) => Xor.Right(a)
     }
 
+  def toOpt[A](m: G[A]): Option[A] = 
+    m match {
+      case Xor.Left(_) => None
+      case Xor.Right(a) => Some(a)
+    }
+
   //============================================================================================
   // TREE AND COMPLEX ROUTINES
   //
@@ -258,6 +264,17 @@ object TypeChecker {
           shRes <- shParse.traverse(parseTree(_))
         } yield SNode(e, shRes)
       case _ => fail("Not a tree: " + expr.toString)
+    }
+
+  def parseTree(v: Val): G[STree[Val]] = 
+    v match {
+      case VLf => pure(SLeaf)
+      case VNd(u, s) =>
+        for {
+          shParse <- parseTree(s)
+          shRes <- shParse.traverse(parseTree(_))
+        } yield SNode(u, shRes)
+      case _ => fail("Not a tree: " + v.toString)
     }
 
   def parseNesting(expr: Expr): G[SNesting[Expr]] = 
@@ -502,6 +519,72 @@ object TypeChecker {
   //   } yield res
 
   //============================================================================================
+  // COMPLEX INFERENCE
+  //
+
+  sealed trait Frame
+  case class ObjFrame(cat: Val) extends Frame
+  case class HomFrame(cat: Val, frm: SComplex[Val]) extends Frame
+
+  def nfDisc(rho: Rho): (Val, Val) => Option[Val] = 
+    (v0: Val, v1: Val) => {
+      eqNf(lRho(rho), v0, v1) match {
+        case Xor.Right(_) => Some(v0)
+        case Xor.Left(_) => None
+      }
+    }
+
+  def inferFrame(rho: Rho, gma: Gamma, expr: Expr) : G[Frame] = 
+    for {
+      t <- checkI(rho, gma, expr)
+      r <- t match {
+        case Obj(cat) => pure(ObjFrame(cat))
+        case Cell(cat, src, tgt) => {
+
+          // This is the interesting case.
+
+          ???
+
+        }
+        case _ => fail("inferFrame: " + expr.toString)
+      }
+    } yield r
+
+  // Evaluate and paste together a tree of expressions ...
+  def inferPdFrame(rho: Rho, gma: Gamma, tr: STree[Expr]): G[(SComplex[Val], STree[SNesting[Val]])] = 
+    for {
+      pd <- tr.traverse((e: Expr) => {
+        for {
+          frm <- inferFrame(rho, gma, e)
+          v = eval(e, rho)
+          r = frm match {
+            case ObjFrame(cat) => ||(SDot(v))
+            case HomFrame(cat, f) => f >> SDot(v)
+          }
+        } yield r
+      })
+      res <- attempt(graft(pd)(nfDisc(rho)), "Complex grafting failed")
+    } yield res
+
+  // Uh, yeah, you've gotta rewrite the tree library to be "monad agnostic" so that this kind
+  // of thing works better and doesn't smush the errors away ...
+  def joinFrame(rho: Rho, tr: STree[(STree[Val], Val)], tv: Val, d: SDeriv[Val] = SDeriv(SLeaf)): G[STree[Val]] = 
+    tr match {
+      case SLeaf => pure(d.plug(tv))
+      case SNode((s, t), sh) => 
+        for {
+          _ <- eqNf(lRho(rho), tv, t)
+          toJn <- attempt(
+            sh.matchWithDeriv(s)({
+              case (b, bv, dr) => toOpt(joinFrame(rho, b, bv, dr))
+            }),
+            "Match failure in join frame"
+          )
+          res <- attempt(STree.join(toJn), "Join failed in joinFrame")
+        } yield res
+    }
+
+  //============================================================================================
   // TYPE ENVIRONMENT
   //
 
@@ -535,6 +618,14 @@ object TypeChecker {
       fail("eqNf: " ++ e1.toString ++ " =/= " ++ e2.toString)
   }
 
+  def eqNfTr(i: Int, t1: STree[Val], t2: STree[Val]): G[Unit] = 
+    attempt(
+      t1.matchTraverse(t2)({
+        case (v1, v2) => toOpt(eqNf(i, v1, v2))
+      }),
+      "Tree mismatch!"
+    ).flatMap(_ => pure(()))
+
   //============================================================================================
   // TYPE CHECKING RULES
   //
@@ -544,7 +635,9 @@ object TypeChecker {
 
   def checkD(rho: Rho, gma: Gamma, decl: Decl) : G[Gamma] = 
     decl match {
-      case d@(Def(p, a, e)) => 
+      case d@(Def(p, a, e)) => {
+        // println("Checking def with type: " + a.toString)
+        // println("Checking def: " + e.toString)
         for {
           _ <- checkT(rho, gma, a)
           t = eval(a, rho)
@@ -552,6 +645,7 @@ object TypeChecker {
           gma1 <- upG(gma, p, t, eval(e, rho))
           _ = println("Checked definition: " + p.toString)
         } yield gma1
+      }
       case d@(Drec(p, a, e)) => 
         for {
           _ <- checkT(rho, gma, a)
@@ -616,13 +710,51 @@ object TypeChecker {
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()
-  //     case (ECell(c, e), Type) => 
-  //       for {
-  //         _ <- check(rho, gma, c, Cat)
-  //         cv = eval(c, rho)
-  //         fc <- parseComplex(e)
-  //         _ <- checkFrame(fc.n)(rho, gma, fc.value, cv) 
-  //       } yield ()
+      case (ECell(c, s, t), Type) => {
+
+        // Yeah, well, this is basically what you want to do, but it's
+        // a bit rough and could be definitely cleaned up by some library
+        // improvements ....
+
+        for {
+          tgtTy <- checkI(rho, gma, t)
+          srcTr <- parseTree(s)
+          _ <- tgtTy match {
+            case Obj(tcat) => 
+              srcTr match {
+                case SNode(sc, SLeaf) => 
+                  for {
+                    srcTy <- checkI(rho, gma, t)
+                    _ <- srcTy match {
+                      case Obj(scat) => eqNf(lRho(rho), tcat, scat)
+                      case _ => fail("Source is not in a category object.")
+                    }
+                  } yield ()
+                case _ => fail("Source tree is not an object.")
+              }
+            case Cell(tcat, st, tt) => 
+              for {
+                srcFrm <- srcTr.traverse((se: Expr) => 
+                  for {
+                    srcTy <- checkI(rho, gma, se)
+                    frm <- srcTy match {
+                      case Cell(scat, ss, st) => 
+                        for {
+                          _ <- eqNf(lRho(rho), tcat, scat)
+                          sstr <- parseTree(ss)
+                        } yield (sstr, st)
+                      case _ => fail("Source cell is not a category cell.")
+                    }
+                  } yield frm
+                )
+                jn <- joinFrame(rho, srcFrm, tt)
+                sstr <- parseTree(st)
+                _ <- eqNfTr(lRho(rho), jn, sstr)
+              } yield ()
+            case _ => fail("Target cell has incorrect type.")
+          }
+        } yield ()
+      }
   //     case (EIsLeftExt(e), Type) => 
   //       for {
   //         _ <- inferCell(rho, gma, e)
