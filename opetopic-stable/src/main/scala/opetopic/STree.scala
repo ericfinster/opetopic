@@ -13,10 +13,7 @@ sealed trait STree[+A]
 case object SLeaf extends STree[Nothing]
 case class SNode[A](a: A, as: STree[STree[A]]) extends STree[A]
 
-case class SDir(val dir: List[SDir]) {
-  def :+:(d: SDir): SDir = SDir(d :: dir)
-  def +:+(ds: SAddr): SDir = SDir(dir ++ ds)
-}
+case class SDir(val dir: List[SDir]) 
 
 case class SDeriv[+A](sh: STree[STree[A]], gma: SCtxt[A] = SCtxt(Nil)) {
 
@@ -183,6 +180,17 @@ object STree {
           for {
             d <- f(a, b, SDeriv(bs.asShell, SCtxt(Nil)))
             ds <- as.matchTraverse(bs)({ case (r, s) => r.matchWithDeriv(s)(f) })
+          } yield SNode(d, ds)
+        case _ => None
+      }
+
+    def matchWithAddr[B, C](tt: STree[B])(f: (A, B, SAddr) => Option[C], addr: SAddr = Nil): Option[STree[C]] = 
+      (st, tt) match {
+        case (SLeaf, SLeaf) => Some(SLeaf)
+        case (SNode(a, as), SNode(b, bs)) => 
+          for {
+            d <- f(a, b, addr)
+            ds <- as.matchWithAddr(bs)({ case (r, s, dir) => r.matchWithAddr(s)(f, SDir(dir) :: addr) })
           } yield SNode(d, ds)
         case _ => None
       }

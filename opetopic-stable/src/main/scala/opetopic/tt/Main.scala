@@ -35,11 +35,12 @@ object Main {
         case Success(expr, _) => {
 
           println("Parsing successful.")
+          // println(expr.toString)
+
           check(RNil, Nil, expr, Unt) match {
             case Xor.Right(_) => println("Typechecking successful.")
             case Xor.Left(msg) => println("Failure: " + msg)
           }
-
 
         }
         case f @ Failure(_, _, e) => {

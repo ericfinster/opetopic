@@ -112,17 +112,17 @@ object TypeChecker {
       // Categories and Cells
       case ECat => Cat
       case EObj(c) => Obj(eval(c, rho))
-      case ECell(c, s, t) => Cell(eval(c, rho), eval(s, rho), eval(t, rho))
+      case ECell(c, frm) => Cell(eval(c, rho), frm.map(eval(_, rho)))
 
       // Propertes
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
 
       // Composition and identities
-      case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
-      case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
-      case EComp(c, pd) => Comp(eval(c, rho), eval(pd, rho))
-      case EFill(c, pd) => Fill(eval(c, rho), eval(pd, rho))
+      case ERefl(e) => Refl(eval(e, rho))
+      case EDrop(e) => Drop(eval(e, rho))
+      case EComp(pd) => Comp(pd.map(eval(_, rho)))
+      case EFill(pd) => Fill(pd.map(eval(_, rho)))
 
       // Liftings
       case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -139,13 +139,6 @@ object TypeChecker {
       case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillLeftIsRight(e, ev, c, t) => FillLeftIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRightIsRight(e, ev, c, t) => FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-
-      // Trees reduce ...
-      case ELf => VLf
-      case ENd(e, sh) => VNd(eval(e, rho), eval(sh, rho))
-
-      case EDot(e) => VDot(eval(e, rho))
-      case EBox(e, c) => VBox(eval(e, rho), eval(c, rho))
 
     }
 
@@ -173,15 +166,15 @@ object TypeChecker {
 
       case Cat => ECat
       case Obj(v) => EObj(rbV(i, v))
-      case Cell(c, s, t) => ECell(rbV(i, c), rbV(i, s), rbV(i, t))
+      case Cell(c, frm) => ECell(rbV(i, c), frm.map(rbV(i, _)))
 
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
 
-      case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
-      case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
-      case Comp(c, pd) => EComp(rbV(i, c), rbV(i, pd))
-      case Fill(c, pd) => EFill(rbV(i, c), rbV(i, pd))
+      case Refl(v) => ERefl(rbV(i, v))
+      case Drop(v) => EDrop(rbV(i, v))
+      case Comp(pd) => EComp(pd.map(rbV(i, _)))
+      case Fill(pd) => EFill(pd.map(rbV(i, _)))
 
       case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -196,12 +189,6 @@ object TypeChecker {
       case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeftIsRight(e, ev, c, t) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillRightIsRight(e, ev, c, t) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-
-      case VLf => ELf
-      case VNd(v, sh) => ENd(rbV(i, v), rbV(i, sh))
-
-      case VDot(v) => EDot(rbV(i, v))
-      case VBox(v, c) => EBox(rbV(i, v), rbV(i, c))
 
       case Nt(k) => rbN(i, k)
 
@@ -255,173 +242,60 @@ object TypeChecker {
   // TREE AND COMPLEX ROUTINES
   //
 
-  def parseTree(expr: Expr): G[STree[Expr]] = 
-    expr match {
-      case ELf => pure(SLeaf)
-      case ENd(e, s) => 
+  type Frame[A] = (STree[A], A)
+
+  def getFrame[A](c: SComplex[A]): G[Frame[A]] = 
+    c.head match {
+      case SBox(tgt, cn) => 
         for {
-          shParse <- parseTree(s)
-          shRes <- shParse.traverse(parseTree(_))
-        } yield SNode(e, shRes)
-      case _ => fail("Not a tree: " + expr.toString)
+          srcTr <- attempt(cn.traverse(_.dotOption), "Not a frame")
+        } yield (srcTr, tgt)
+      case _ => fail("Not a frame")
     }
 
-  def parseTree(v: Val): G[STree[Val]] = 
-    v match {
-      case VLf => pure(SLeaf)
-      case VNd(u, s) =>
+  def getSources[A](c: SComplex[A]): G[STree[A]] = 
+    for { f <- getFrame(c) } yield f._1
+
+  //============================================================================================
+  // COMPLEX INFERENCE
+  //
+
+  def checkCell(rho: Rho, gma: Gamma, cell: SComplex[Expr], cat: Val): G[Unit] = 
+    cell match {
+      case ||(SDot(e)) => check(rho, gma, e, Obj(cat))
+      case tl >> SDot(e) => 
         for {
-          shParse <- parseTree(s)
-          shRes <- shParse.traverse(parseTree(_))
-        } yield SNode(u, shRes)
-      case _ => fail("Not a tree: " + v.toString)
+          _ <- checkFrame(rho, gma, tl, cat)
+          _ <- check(rho, gma, e, Cell(cat, (tl : SComplex[Expr]).map(eval(_, rho))))
+        } yield ()
+      case _ => fail("Not a cell")
     }
 
-  def parseNesting(expr: Expr): G[SNesting[Expr]] = 
-    expr match {
-      case EDot(e) => pure(SDot(e))
-      case EBox(e, cn) => 
+  def checkFrame(rho: Rho, gma: Gamma, frm: SComplex[Expr], cat: Val): G[Unit] = 
+    frm match {
+      case ||(SBox(tgt, SNode(SDot(src), SLeaf))) => 
         for {
-          cnParse <- parseTree(cn)
-          cnRes <- cnParse.traverse(parseNesting(_))
-        } yield SBox(e, cnRes)
-      case _ => fail("Not a nesting: " + expr.toString)
+          _ <- check(rho, gma, src, Obj(cat))
+          _ <- check(rho, gma, tgt, Obj(cat))
+        } yield ()
+      case tl >> SBox(tgt, srcs) => 
+        for {
+          _ <- attempt(
+            tl.head.toTree.matchWithAddr(srcs)({
+              case (_, nst, addr) => 
+                for {
+                  _ <- nst.dotOption  // Make sure there are only dots
+                  face <- frm.sourceAt(addr)
+                  _ <- toOpt(checkCell(rho, gma, face, cat))
+                } yield ()
+            }),
+            "Source checking failed"
+          )
+          tc <- attempt(frm.sourceAt(Nil), "Target calculation failed")
+          _ <- checkCell(rho, gma, tc, cat)
+        } yield ()
+      case _ => fail("Malformed frame complex")
     }
-
-  // def parseComplex(expr: Expr): G[SComplex[Expr]] = 
-  //   expr match {
-  //     case EHd(n) =>
-  //       for {
-  //         nst <- parseNesting(n)
-  //       } yield ||(nst)
-  //     case ETl(tl, hd) => 
-  //       for {
-  //       }
-  //     case _ => fail("Not a complex: " + expr.toString)
-  //   }
-
-  // def parseComplex[N <: Nat](n: N)(e: Expr, s: Suite[ExprNesting, N]) : G[FiniteComplex[ConstExpr]] = 
-  //   e match {
-  //     case EHd(ne) => 
-  //       for {
-  //         nst <- parseNesting(n)(ne)
-  //       } yield Sigma[ExprComplex, N](n)(s >> nst)
-  //     case ETl(hd, tl) => 
-  //       for {
-  //         nst <- parseNesting(n)(hd)
-  //         res <- parseComplex(S(n))(tl, s >> nst)
-  //       } yield res
-  //     case _ => fail("Invalid complex")
-  //   }
-
-  // def parseComplex(e: Expr) : G[FiniteComplex[ConstExpr]] = 
-  //   parseComplex(Z)(e, SNil[ExprNesting]())
-
-  // @natElim
-  // def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
-  //   case (Z, AUnit) => pure(())
-  //   case (Z, _) => fail("parseAdress: only unit in dim 0")
-  //   case (S(p), ANil) => pure(Nil)
-  //   case (S(p), ACons(hd, tl)) => 
-  //     for {
-  //       hd0 <- parseAddress(p)(hd)
-  //       tl0 <- parseAddress(S(p))(tl)
-  //     } yield hd0 :: tl0
-  //   case (S(p), _) => fail("parseAdress: unexpected address expression")
-  // }
-
-  // @natElim
-  // def rbAddr[N <: Nat](n: N)(a: Address[N]) : Addr = {
-  //   case (Z, ()) => AUnit
-  //   case (S(p), Nil) => ANil
-  //   case (S(p), hd :: tl) => ACons(rbAddr(p)(hd), rbAddr(S(p))(tl))
-  // }
-
-  // @natElim
-  // def treeToExpr[N <: Nat](n: N)(t: Tree[Expr, N]) : Expr = {
-  //   case (Z, Pt(e)) => EPt(e)
-  //   case (S(p), Leaf(_)) => ELf
-  //   case (S(p), Node(e, sh)) => ENd(e, treeToExpr(p)(sh.map(treeToExpr(S(p))(_))))
-  // }
-
-  // def nestingToExpr[N <: Nat](n: N)(nst: Nesting[Expr, N]) : Expr = 
-  //   nst match {
-  //     case Objj(e) => EDot(e)
-  //     case Dot(e, _) => EDot(e)
-  //     case Box(e, cn) => EBox(e, treeToExpr(n)(cn.map(nestingToExpr(n)(_))))
-  //   }
-
-  // @natElim
-  // def complexToExpr[N <: Nat](n: N)(c: ExprComplex[N], tlOpt: Option[Expr] = None) : Expr = {
-  //   case (Z, Complex(_, hd), tlOpt) => {
-  //     val hde = nestingToExpr(Z)(hd)
-  //     tlOpt.map(ETl(hde, _)) getOrElse EHd(hde)
-  //   }
-  //   case (S(p), Complex(tl, hd), tlOpt) => {
-  //     val hde = nestingToExpr(S(p))(hd)
-  //     complexToExpr(p)(tl, Some(tlOpt.map(ETl(hde, _)).getOrElse(EHd(hde))))
-  //   }
-  // }
-
-  // def sourceTree[A[_ <: Nat], N <: Nat](c: Complex[A, N]) : G[Tree[A[N], N]] = 
-  //   c.head match {
-  //     case Box(_, cn) => 
-  //       for {
-  //         st <- cn.traverse[G, A[N]]((nst : Nesting[A[N], N]) => 
-  //           if (Nesting.isExternal(nst)) 
-  //             pure(nst.baseValue) 
-  //           else 
-  //             fail("Source tree contains non-external nesting")
-  //         )
-  //       } yield st
-  //     case _ => fail("Error extracting source tree")
-  //   }
-
-  // @natElim
-  // def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
-  //   case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Obj(cat))
-  //   case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
-  //   case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
-  //     for {
-  //       _ <- checkFrame(p)(rho, gma, tl, cat)
-  //       _ <- check(rho, gma, e, Cell(cat, tl.map(EvalMap(rho))))
-  //     } yield ()
-  //   }
-  //   case (S(p: P), rho, gma, Complex(tl, _), cat) => fail("checkCell: too many top cells!")
-  // }
-
-  // @natElim
-  // def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
-  //   case (Z, rho, gma, Complex(_, hd), cat) => {
-  //     hd match {
-  //       case Box(tgt, Pt(Obj(src))) => 
-  //         for {
-  //           _ <- check(rho, gma, src, Obj(cat))
-  //           _ <- check(rho, gma, tgt, Obj(cat))
-  //         } yield ()
-  //       case _ => fail("checkFrame: failed in dimension 0")
-  //     }
-  //   }
-  //   case (S(p: P), rho, gma, Complex(Complex(tl, web), frm @ Box(t, cn)), cat) => 
-  //     for {
-  //       _ <- fromShape( // The following match traverse should ensure that the complex is well-shaped
-  //         Tree.matchWithAddress(S(p))(web.toTree, cn)({
-  //           case (expr, nst, addr) => toShape(
-  //             if (! Nesting.isExternal(nst)) 
-  //               fail("Frame has non-external nesting in its canopy")
-  //             else 
-  //               for {
-  //                 face <- fromShape(cmplx.sourceAt(S(p))(addr :: Nil))
-  //                 _ <- checkCell(S(p))(rho, gma, face, cat)
-  //               } yield ()
-  //           )
-  //         })
-  //       )
-  //       tc <- fromShape(cmplx.sourceAt(S(p))(Nil))  // Now check the target
-  //       _ <- checkCell(S(p))(rho, gma, tc, cat)
-  //     } yield ()
-  //   case (S(p: P), rho, gma, _, cat) => fail("Malformed complex")
-  // }
 
   // def inferCell(rho: Rho, gma: Gamma, e: Expr) : G[(Val, ValComplex[Nat])] = 
   //   for {
@@ -518,71 +392,27 @@ object TypeChecker {
   //     )
   //   } yield res
 
-  //============================================================================================
-  // COMPLEX INFERENCE
-  //
+  // def joinFrame(rho: Rho, tr: STree[(Val, STree[Val], Val)], tv: Val, cat: Val, d: SDeriv[Val] = SDeriv(SLeaf)): G[STree[Val]] = 
+  //   tr match {
+  //     case SLeaf => pure(d.plug(tv))
+  //     case SNode((c, s, t), sh) => {
 
-  sealed trait Frame
-  case class ObjFrame(cat: Val) extends Frame
-  case class HomFrame(cat: Val, frm: SComplex[Val]) extends Frame
+  //       val l = lRho(rho)
 
-  def nfDisc(rho: Rho): (Val, Val) => Option[Val] = 
-    (v0: Val, v1: Val) => {
-      eqNf(lRho(rho), v0, v1) match {
-        case Xor.Right(_) => Some(v0)
-        case Xor.Left(_) => None
-      }
-    }
+  //       for {
+  //         _ <- eqNf(l, cat, c)
+  //         _ <- eqNf(l, tv, t)
+  //         toJn <- attempt(
+  //           sh.matchWithDeriv(s)({
+  //             case (b, bv, dr) => toOpt(joinFrame(rho, b, bv, c, dr))
+  //           }),
+  //           "Match failure in join frame"
+  //         )
+  //         res <- attempt(STree.join(toJn), "Join failed in joinFrame")
+  //       } yield res
 
-  def inferFrame(rho: Rho, gma: Gamma, expr: Expr) : G[Frame] = 
-    for {
-      t <- checkI(rho, gma, expr)
-      r <- t match {
-        case Obj(cat) => pure(ObjFrame(cat))
-        case Cell(cat, src, tgt) => {
-
-          // This is the interesting case.
-
-          ???
-
-        }
-        case _ => fail("inferFrame: " + expr.toString)
-      }
-    } yield r
-
-  // Evaluate and paste together a tree of expressions ...
-  def inferPdFrame(rho: Rho, gma: Gamma, tr: STree[Expr]): G[(SComplex[Val], STree[SNesting[Val]])] = 
-    for {
-      pd <- tr.traverse((e: Expr) => {
-        for {
-          frm <- inferFrame(rho, gma, e)
-          v = eval(e, rho)
-          r = frm match {
-            case ObjFrame(cat) => ||(SDot(v))
-            case HomFrame(cat, f) => f >> SDot(v)
-          }
-        } yield r
-      })
-      res <- attempt(graft(pd)(nfDisc(rho)), "Complex grafting failed")
-    } yield res
-
-  // Uh, yeah, you've gotta rewrite the tree library to be "monad agnostic" so that this kind
-  // of thing works better and doesn't smush the errors away ...
-  def joinFrame(rho: Rho, tr: STree[(STree[Val], Val)], tv: Val, d: SDeriv[Val] = SDeriv(SLeaf)): G[STree[Val]] = 
-    tr match {
-      case SLeaf => pure(d.plug(tv))
-      case SNode((s, t), sh) => 
-        for {
-          _ <- eqNf(lRho(rho), tv, t)
-          toJn <- attempt(
-            sh.matchWithDeriv(s)({
-              case (b, bv, dr) => toOpt(joinFrame(rho, b, bv, dr))
-            }),
-            "Match failure in join frame"
-          )
-          res <- attempt(STree.join(toJn), "Join failed in joinFrame")
-        } yield res
-    }
+  //     }
+  //   }
 
   //============================================================================================
   // TYPE ENVIRONMENT
@@ -625,6 +455,15 @@ object TypeChecker {
       }),
       "Tree mismatch!"
     ).flatMap(_ => pure(()))
+
+  def inferCell(rho: Rho, gma: Gamma, e: Expr): G[(Val, SComplex[Val])] = 
+    for {
+      ty <- checkI(rho, gma, e)
+      res <- ty match {
+        case Cell(v, f) => pure(v, f)
+        case _ => fail("inferCell: " + e.toString)
+      }
+    } yield res
 
   //============================================================================================
   // TYPE CHECKING RULES
@@ -710,63 +549,24 @@ object TypeChecker {
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()
-      case (ECell(c, s, t), Type) => {
-
-        // Yeah, well, this is basically what you want to do, but it's
-        // a bit rough and could be definitely cleaned up by some library
-        // improvements ....
-
+      case (ECell(c, f), Type) => 
         for {
-          tgtTy <- checkI(rho, gma, t)
-          srcTr <- parseTree(s)
-          _ <- tgtTy match {
-            case Obj(tcat) => 
-              srcTr match {
-                case SNode(sc, SLeaf) => 
-                  for {
-                    srcTy <- checkI(rho, gma, t)
-                    _ <- srcTy match {
-                      case Obj(scat) => eqNf(lRho(rho), tcat, scat)
-                      case _ => fail("Source is not in a category object.")
-                    }
-                  } yield ()
-                case _ => fail("Source tree is not an object.")
-              }
-            case Cell(tcat, st, tt) => 
-              for {
-                srcFrm <- srcTr.traverse((se: Expr) => 
-                  for {
-                    srcTy <- checkI(rho, gma, se)
-                    frm <- srcTy match {
-                      case Cell(scat, ss, st) => 
-                        for {
-                          _ <- eqNf(lRho(rho), tcat, scat)
-                          sstr <- parseTree(ss)
-                        } yield (sstr, st)
-                      case _ => fail("Source cell is not a category cell.")
-                    }
-                  } yield frm
-                )
-                jn <- joinFrame(rho, srcFrm, tt)
-                sstr <- parseTree(st)
-                _ <- eqNfTr(lRho(rho), jn, sstr)
-              } yield ()
-            case _ => fail("Target cell has incorrect type.")
-          }
+          _ <- check(rho, gma, c, Cat)
+          cv = eval(c, rho)
+          _ <- checkFrame(rho, gma, f, cv)
         } yield ()
-      }
-  //     case (EIsLeftExt(e), Type) => 
-  //       for {
-  //         _ <- inferCell(rho, gma, e)
-  //       } yield ()
-  //     case (EIsRightExt(e, a), Type) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         d = frm.dim
-  //         addr <- parseAddress(d)(a)
-  //         _ <- fromShape(frm.head.seekTo(addr :: Nil))
-  //       } yield ()
+      case (EIsLeftExt(e), Type) => 
+        for {
+          _ <- inferCell(rho, gma, e)
+        } yield ()
+      case (EIsRightExt(e, a), Type) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (c, f) = pr
+          st <- getFrame(f)
+          (srcs, tgt) = st
+          _ <- attempt(srcs.seekTo(a), "Invalid address")
+        } yield ()
       case (e, t) => 
         for {
           t1 <- checkI(rho, gma, e)
@@ -819,69 +619,63 @@ object TypeChecker {
       // Cell Construction
       // 
 
-  //     case ERefl(c, e) => 
-  //       for {
-  //         _ <- check(rho, gma, c, Cat)
-  //         cv = eval(c, rho)
-  //         ct <- checkI(rho, gma, e)
-  //         res <- ct match {
-  //           case Ob(ec) => 
-  //             for {
-  //               _ <- eqNf(lRho(rho), cv, ec)
-  //               ee = eval(e, rho)
-  //             } yield Cell(ec, Complex[ConstVal] >> Box(ee, Pt(Obj(ee))))
-  //           case Cell(ec, efrm) => 
-  //             for {
-  //               _ <- eqNf(lRho(rho), cv, ec)
-  //               ee = eval(e, rho)
-  //               d = efrm.dim
-  //               srcTr <- sourceTree(efrm)
-  //             } yield Cell(ec, efrm >> Box(ee, Node(Dot(ee, S(d)), srcTr.map(_ => Leaf(S(d))))))
-  //           case _ => fail("Expression " + e.toString + " is not a cell or object")
-  //         }
-  //       } yield res
+      case ERefl(e) => 
+        for {
+          ty <- checkI(rho, gma, e)
+          v = eval(e, rho)
+          res <- ty match {
+            case Obj(c) => pure(Cell(c, ||(SBox(v, STree.obj(SDot(v))))))
+            case Cell(c, f) => 
+              for {
+                st <- getFrame(f)
+              } yield Cell(c, f >> SBox(v, SNode(SDot(v), st._1.asShell)))
+            case _ => fail("Cannot apply reflexivity to non-cell: " + e.toString)
+          }
+        } yield res
 
-  //     case EDrop(c, e) => 
-  //       for {
-  //         _ <- check(rho, gma, c, Cat)
-  //         cv = eval(c, rho)
-  //         ct <- checkI(rho, gma, e)
-  //         res <- ct match {
-  //           case Ob(ec) => 
-  //             for {
-  //               _ <- eqNf(lRho(rho), cv, ec)
-  //               ee = eval(e, rho)
-  //             } yield Cell(ec, Complex[ConstVal] >> Obj(ee) >> Box(Refl(ec, ee), Leaf(S(Z)))) 
-  //           case Cell(ec, efrm) => 
-  //             for {
-  //               _ <- eqNf(lRho(rho), cv, ec)
-  //               ee = eval(e, rho)
-  //               d = efrm.dim
-  //               srcTr <- sourceTree(efrm)
-  //             } yield Cell(ec, efrm >> Dot(ee, S(d)) >> Box(Refl(ec, ee), Leaf(S(S(d)))))
-  //           case _ => fail("Expression " + e.toString + " is not a cell or object")
-  //         }
-  //       } yield res
+      case EDrop(e) => 
+        for {
+          ty <- checkI(rho, gma, e)
+          v = eval(e, rho)
+          res <- ty match {
+            case Obj(c) => pure(Cell(c, ||(SDot(v)) >> SBox(Refl(v), SLeaf)))
+            case Cell(c, f) => pure(Cell(c, f >> SBox(Refl(v), SLeaf)))
+            case _ => fail("Cannot apply drop to non-cell: " + e.toString)
+          }
+        } yield res
 
-  //     case EComp(c, d, pd) => 
-  //       for {
-  //         _ <- check(rho, gma, c, Cat)
-  //         cv = eval(c, rho)
-  //         dim = intToNat(d)
-  //         pdTr <- parseTree(dim)(pd)
-  //         res <- compositeType(dim)(rho, gma, cv, pdTr)
-  //       } yield res
+      // case EComp(pd) =>
+      //   for {
+      //     pdTr <- parseTree(pd)
+      //     pdV <- pdTr.traverse(inferCell(rho, gma, _))
+      //     tgtPr <- attempt(pdV.rootValue, "Cannot compose empty pasting diagram, use refl")
+      //     (c, _, tgt) = tgtPr
+      //     compSrc <- joinFrame(rho, pdV, tgt, c)
+      //   } yield Cell(c, compSrc, tgt)
 
-  //     case EFill(c, d, pd) => 
-  //       for {
-  //         _ <- check(rho, gma, c, Cat)
-  //         cv = eval(c, rho)
-  //         dim = intToNat(d)
-  //         pdTr <- parseTree(dim)(pd)
-  //         res <- fillType(dim)(rho, gma, cv, pdTr)
-  //       } yield res
+      // case EFill(pd) => 
+      //   for {
+      //     cty <- checkI(rho, gma, EComp(pd)) 
+      //     cat = cty match {
+      //       case Cell(c, _, _) => c
+      //       case _ => error("Internal error")
+      //     }
+      //     vtr = evalTr(pd, rho)
+      //   } yield Cell(cat, vtr, Comp(vtr))
 
-  //     case ELiftLeft(e, ev, c, t) => 
+      // case ELiftLeft(e, ev, c, t) => 
+      //   for {
+      //     trpl <- inferCell(rho, gma, e)
+      //     (cat, esrc, etgt) = trpl
+      //   } yield ???
+
+        // Fuck.  Here is where we get in trouble.  The reason is that
+        // we now need not just the value etgt but also *it's type*.
+        // And the trouble is, we cannot repass the expression through
+        // the inference now that it is reduced.
+
+        // Is this a nail in the coffin?
+
   //       for {
   //         pr <- inferCell(rho, gma, e)                             // Check e is a cell
   //         (cv, frm) = pr                                           // Store its frame and category
