@@ -36,12 +36,12 @@ let rTest : (X : Cat) -> (x : Obj X) -> Arrow X x x
 let dTest : (X : Cat) -> (x : Obj X) -> Drop X x (refl x)
     	  = \X. \x. drop x ;
 
--- let compTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
---     	       (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
--- 	     =  \X. \x. \y. \z. \f. \g. comp (nd g (nd (nd f (nd lf lf)) lf)) ;
+let cTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    	    (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
+	  =  \X. \x. \y. \z. \f. \g. comp (nd g (nd (nd f (nd lf lf)) lf)) ;
 
--- let fillTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
---     	       (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (compTest X x y z f g)
--- 	     =  \X. \x. \y. \z. \f. \g. fill (nd g (nd (nd f (nd lf lf)) lf)) ;
+let fTest : (X : Cat) -> (x : Obj X) -> (y : Obj X) -> (z : Obj X) -> 
+    	    (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (cTest X x y z f g)
+	  =  \X. \x. \y. \z. \f. \g. fill (nd g (nd (nd f (nd lf lf)) lf)) ;
 
 tt

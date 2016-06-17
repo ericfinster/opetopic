@@ -297,122 +297,86 @@ object TypeChecker {
       case _ => fail("Malformed frame complex")
     }
 
-  // def inferCell(rho: Rho, gma: Gamma, e: Expr) : G[(Val, ValComplex[Nat])] = 
-  //   for {
-  //     et <- checkI(rho, gma, e)
-  //     res <- et match {
-  //       case Cell(c, f) => pure((c, f))
-  //       case _ => fail("Expression is not a cell: " + e.toString)
-  //     }
-  //   } yield res
+  def inferCell(rho: Rho, gma: Gamma, e: Expr): G[(Val, SComplex[Val])] = 
+    for {
+      ty <- checkI(rho, gma, e)
+      res <- ty match {
+        case Cell(v, f) => pure(v, f)
+        case _ => fail("inferCell: " + e.toString)
+      }
+    } yield res
 
-  // def inferObject(rho: Rho, gma: Gamma, e: Expr) : G[Val] = 
-  //   for {
-  //     et <- checkI(rho, gma, e)
-  //     res <- et match {
-  //       case Obj(cv) => pure(cv)
-  //       case _ => fail("Expression is not an object: " + e.toString)
-  //     }
-  //   } yield res
+  def inferComplex(rho: Rho, gma: Gamma, pd: STree[Expr]): G[(Val, SComplex[Val], STree[SNesting[Val]])] = {
 
-  // def inferRightExt(rho: Rho, gma: Gamma, e: Expr) : G[Addr] = 
-  //   for {
-  //     rev <- checkI(rho, gma, e)
-  //     a <- rev match {
-  //       case IsRightExt(_, ra) => pure(ra)
-  //       case _ => fail("Evidence is not for a right extension")
-  //     }
-  //   } yield a
+    val l = lRho(rho)
 
-  // def nfDiscriminator(rho : Rho) : Discriminator[ConstVal] = 
-  //   new Discriminator[ConstVal] {
-  //     val l = lRho(rho)
-  //     def apply[N <: Nat](n: N)(u: Val, v: Val) = 
-  //       toShape(for { _ <- eqNf(l, u, v) } yield u)
-  //   }
+    for {
 
-  // @natElim 
-  // def cellType[N <: Nat](n: N)(cv: Val, c: ValComplex[N]) : G[Val] = {
-  //   case (Z, cv, Complex(_, Obj(_))) => pure(Obj(cv))
-  //   case (Z, cv, _) => fail("Not an object")
-  //   case (S(p), cv, Complex(tl, Dot(_, _))) => pure(Cell(cv, tl))
-  //   case (S(p), cv, _) => fail("Not a cell")
-  // }
+      // Check the root so that we have a category to check against
+      // You could be more efficient by then checking only the shell afterwards ...
+      re <- attempt(pd.rootValue, "Cannot compose a leaf, use refl")
+      rt <- inferCell(rho, gma, re)
+      (rcat, _) = rt
 
-  // @natElim
-  // def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
-  //   case (Z, rho, gma, cv, Pt(e)) => 
-  //     for {
-  //       et <- inferObject(rho, gma, e)
-  //       _ <- eqNf(lRho(rho), et, cv)
-  //     } yield Obj(cv)
-  //   case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
-  //   case (S(p: P), rho, gma, cv, tr) => 
-  //     for {
-  //       pr <- buildComplex(p)(rho, gma)(cv, tr)
-  //       (tl, pd) = pr
-  //       fc = tl >> Box(Empty, pd)
-  //       cc <- fromShape(fc.sourceAt(S(p))(Nil))
-  //       ct <- cellType(S(p))(cv, cc)
-  //     } yield ct
-  //   }
+      pdv <- pd.traverse[G, SComplex[Val]]((e: Expr) => {
+        for {
+          ty <- inferCell(rho, gma, e)
+          (cat, frm) = ty
+          v = eval(e, rho)
+          _ <- eqNf(lRho(rho), rcat, cat)
+        } yield frm >> SDot(v)
+      })
+      res <- attempt(
+        graft(pdv)((v0: Val, v1: Val) => {
+          for {
+            _ <- toOpt(eqNf(l, v0, v1))
+          } yield v0
+        }),
+        "Complex graft failed"
+      )
+    } yield { val (w, p) = res ; (rcat, w, p) }
 
-  // @natElim
-  // def fillType[N <: Nat](n: N)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, N]) : G[Val] = {
-  //   case (Z, rho, gma, cv, Pt(e)) => 
-  //     for {
-  //       et <- inferObject(rho, gma, e)
-  //       _ <- eqNf(lRho(rho), et, cv)
-  //       ee = eval(e, rho)
-  //     } yield Cell(cv, Complex[ConstVal] >> Box(Comp(cv, Z, Pt(ee)), Pt(Obj(ee))))
-  //   case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot fill leaf, use drop")
-  //   case (S(p: P), rho, gma, cv, tr) => 
-  //     for {
-  //       pr <- buildComplex(p)(rho, gma)(cv, tr)
-  //       (tl, pd) = pr
-  //     } yield Cell(cv, tl >> Box(Comp(cv, S(p), tr.map(eval(_, rho))), pd))
-  // }
+  }
 
-  // // I believe this assumes that the tree is not a leaf.
-  // def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
-  //     : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
-  //   for {
-  //     pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
-  //       for {
-  //         tp <- inferCell(rho, gma, e)
-  //         (ec, ef) = tp
-  //         ed = ef.dim
-  //         ee = eval(e, rho)
-  //         _ <- eqNf(lRho(rho), cv, ec)
-  //         eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
-  //       } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
-  //     })
-  //     res <- fromShape(
-  //       Complex.paste(p)(pd)(nfDiscriminator(rho))
-  //     )
-  //   } yield res
+  def inferObject(rho: Rho, gma: Gamma, e: Expr) : G[Val] = 
+    for {
+      et <- checkI(rho, gma, e)
+      res <- et match {
+        case Obj(cv) => pure(cv)
+        case _ => fail("Expression is not an object: " + e.toString)
+      }
+    } yield res
 
-  // def joinFrame(rho: Rho, tr: STree[(Val, STree[Val], Val)], tv: Val, cat: Val, d: SDeriv[Val] = SDeriv(SLeaf)): G[STree[Val]] = 
-  //   tr match {
-  //     case SLeaf => pure(d.plug(tv))
-  //     case SNode((c, s, t), sh) => {
+  def inferRightExt(rho: Rho, gma: Gamma, e: Expr) : G[SAddr] = 
+    for {
+      rev <- checkI(rho, gma, e)
+      a <- rev match {
+        case IsRightExt(_, addr) => pure(addr)
+        case _ => fail("Evidence is not for a right extension")
+      }
+    } yield a
 
-  //       val l = lRho(rho)
+  def cellType(cat: Val, c: SComplex[Val]): G[Val] = 
+    c match {
+      case ||(SDot(_)) => pure(Obj(cat))
+      case tl >> SDot(_) => pure(Cell(cat, tl))
+      case _ => fail("cellType: not a cell")
+    }
 
-  //       for {
-  //         _ <- eqNf(l, cat, c)
-  //         _ <- eqNf(l, tv, t)
-  //         toJn <- attempt(
-  //           sh.matchWithDeriv(s)({
-  //             case (b, bv, dr) => toOpt(joinFrame(rho, b, bv, c, dr))
-  //           }),
-  //           "Match failure in join frame"
-  //         )
-  //         res <- attempt(STree.join(toJn), "Join failed in joinFrame")
-  //       } yield res
+  // Right.  We don't check the object case here.  Probably should ...
+  def compositeType(rho: Rho, gma: Gamma, pd: STree[Expr]): G[Val] = 
+    for {
+      trpl <- inferComplex(rho, gma, pd)
+      (cat, web, pdv) = trpl
+      cc <- attempt((web >> SBox(Empty, pdv)).sourceAt(Nil), "Failed to calculate target")
+      ct <- cellType(cat, cc)
+    } yield ct
 
-  //     }
-  //   }
+  def fillType(rho: Rho, gma: Gamma, pd: STree[Expr]): G[Val] = 
+    for {
+      trpl <- inferComplex(rho, gma, pd)
+      (cat, web, pdv) = trpl
+    } yield Cell(cat, web >> SBox(Comp(pd.map(eval(_, rho))), pdv))
 
   //============================================================================================
   // TYPE ENVIRONMENT
@@ -447,23 +411,6 @@ object TypeChecker {
     else
       fail("eqNf: " ++ e1.toString ++ " =/= " ++ e2.toString)
   }
-
-  def eqNfTr(i: Int, t1: STree[Val], t2: STree[Val]): G[Unit] = 
-    attempt(
-      t1.matchTraverse(t2)({
-        case (v1, v2) => toOpt(eqNf(i, v1, v2))
-      }),
-      "Tree mismatch!"
-    ).flatMap(_ => pure(()))
-
-  def inferCell(rho: Rho, gma: Gamma, e: Expr): G[(Val, SComplex[Val])] = 
-    for {
-      ty <- checkI(rho, gma, e)
-      res <- ty match {
-        case Cell(v, f) => pure(v, f)
-        case _ => fail("inferCell: " + e.toString)
-      }
-    } yield res
 
   //============================================================================================
   // TYPE CHECKING RULES
@@ -644,38 +591,10 @@ object TypeChecker {
           }
         } yield res
 
-      // case EComp(pd) =>
-      //   for {
-      //     pdTr <- parseTree(pd)
-      //     pdV <- pdTr.traverse(inferCell(rho, gma, _))
-      //     tgtPr <- attempt(pdV.rootValue, "Cannot compose empty pasting diagram, use refl")
-      //     (c, _, tgt) = tgtPr
-      //     compSrc <- joinFrame(rho, pdV, tgt, c)
-      //   } yield Cell(c, compSrc, tgt)
-
-      // case EFill(pd) => 
-      //   for {
-      //     cty <- checkI(rho, gma, EComp(pd)) 
-      //     cat = cty match {
-      //       case Cell(c, _, _) => c
-      //       case _ => error("Internal error")
-      //     }
-      //     vtr = evalTr(pd, rho)
-      //   } yield Cell(cat, vtr, Comp(vtr))
+      case EComp(pd) => compositeType(rho, gma, pd)
+      case EFill(pd) => fillType(rho, gma, pd)
 
       // case ELiftLeft(e, ev, c, t) => 
-      //   for {
-      //     trpl <- inferCell(rho, gma, e)
-      //     (cat, esrc, etgt) = trpl
-      //   } yield ???
-
-        // Fuck.  Here is where we get in trouble.  The reason is that
-        // we now need not just the value etgt but also *it's type*.
-        // And the trouble is, we cannot repass the expression through
-        // the inference now that it is reduced.
-
-        // Is this a nail in the coffin?
-
   //       for {
   //         pr <- inferCell(rho, gma, e)                             // Check e is a cell
   //         (cv, frm) = pr                                           // Store its frame and category

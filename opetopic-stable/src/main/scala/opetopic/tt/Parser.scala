@@ -64,17 +64,17 @@ object Parser {
     P( constant | lambda | pi | sigma | fst | snd | letdec | expr2 )
 
   val lambda: Parser[Expr] = 
-    P( "\\" ~ pattern1 ~ "." ~ expr ).map({ 
+    P( "\\" ~/ pattern1 ~ "." ~ expr ).map({ 
       case (p, e) => ELam(p, e) 
     })
 
   val pi: Parser[Expr] = 
-    P( "(" ~ pattern1 ~ ":" ~ expr ~ ")" ~ "->" ~ expr ).map({ 
+    P( "(" ~ pattern1 ~ ":" ~ expr ~ ")" ~ "->" ~/ expr ).map({ 
       case (p, e, f) => EPi(p, e, f) 
     })
 
   val sigma: Parser[Expr] = 
-    P( "(" ~ pattern1 ~ ":" ~ expr ~ ")" ~ "*" ~ expr ).map({ 
+    P( "(" ~ pattern1 ~ ":" ~ expr ~ ")" ~ "*" ~/ expr ).map({ 
       case (p, e, f) => ESig(p, e, f) 
     })
 
@@ -191,7 +191,7 @@ object Parser {
   // TREES, NESTINGS AND COMPLEXES
   //
 
-  val exprTree: Parser[STree[Expr]] = stree(expr4)
+  val exprTree: Parser[STree[Expr]] = stree(atom)
     
   def stree[A](ap: Parser[A]): Parser[STree[A]] = 
     P( "lf".!.map(_ => SLeaf) | 
@@ -249,12 +249,12 @@ object Parser {
     P( simpleDecl | recursiveDecl )
 
   val simpleDecl: Parser[Decl] = 
-    P( "let" ~ pattern ~ ":" ~ expr ~ "=" ~ expr ).map({
+    P( "let" ~/ pattern ~ ":" ~ expr ~ "=" ~ expr ).map({
       case (p, e, f) => Def(p, e, f)
     })
 
   val recursiveDecl: Parser[Decl] = 
-    P( "letrec" ~ pattern ~ ":" ~ expr ~ "=" ~ expr ).map({
+    P( "letrec" ~/ pattern ~ ":" ~ expr ~ "=" ~ expr ).map({
       case (p, e, f) => Drec(p, e, f)
     })
 
