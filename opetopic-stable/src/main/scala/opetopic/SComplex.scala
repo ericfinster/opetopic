@@ -62,8 +62,11 @@ trait ComplexTypes {
           }
       }
 
+    def foreach(op: A => Unit): Unit = 
+      new Suite.SuiteOps(c).foreach((n: SNesting[A]) => n.foreach(op))
+
     def foreachWithAddr(op: (A, SAddr) => Unit): Unit = 
-      c.foreach((n: SNesting[A]) => 
+      new Suite.SuiteOps(c).foreach((n: SNesting[A]) => 
         n.foreachWithAddr(op)
       )
 

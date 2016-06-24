@@ -82,11 +82,32 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     // Events
     def onClick: Unit
     def onCtrlClick: Unit
-    def onMouseOver: Unit
-    def onMouseOut: Unit
 
-    def onHover: Unit
-    def onUnhover: Unit
+    def onMouseOver: Unit = {
+      boxFace.map(bc => {
+        bc.foreach(b => b.onHover)
+      })
+    }
+
+    def onMouseOut: Unit = {
+      boxFace.map(bc => {
+        bc.foreach(b => b.onUnhover)
+      })
+    }
+
+    var isHovered: Boolean = false
+
+    def onHover: Unit = {
+      isHovered = true
+      setFill
+      setStroke
+    }
+
+    def onUnhover: Unit = {
+      isHovered = false
+      setFill
+      setStroke
+    }
 
     // UI Elements
 
@@ -106,12 +127,15 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }
     boxRect.onMouseOut = { (e : UIMouseEvent) => onMouseOut }
 
+    def setFill: Unit = { boxRect.fill = colorSpec.fill }
+    def setStroke: Unit = { boxRect.stroke = colorSpec.stroke }
+
     def renderBox: Unit = {
 
       boxGroup.children = Seq(boxRect, labelElement)
 
-      boxRect.fill = colorSpec.fill
-      boxRect.stroke = colorSpec.stroke
+      setFill
+      setStroke
 
       boxRect.x = x ; boxRect.y = y ; boxRect.width = width ; boxRect.height = height
 

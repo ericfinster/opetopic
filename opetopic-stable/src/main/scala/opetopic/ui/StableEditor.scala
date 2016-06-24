@@ -347,10 +347,6 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
     def onClick: Unit = ()
     def onCtrlClick: Unit = ()
-    def onMouseOver: Unit = ()
-    def onMouseOut: Unit = ()
-    def onHover: Unit = ()
-    def onUnhover: Unit = ()
 
   }
 
@@ -381,19 +377,34 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
     override def onClick: Unit = {
       onCellClick(this)
+      selectAsRoot
+    }
+
+    override def onCtrlClick: Unit = {
       select
     }
 
-    override def onCtrlClick: Unit = ()
+    override def onSelected: Unit = { setFill ; setStroke }
+    override def onDeselected: Unit = { setFill ; setStroke }
 
-    override def onSelected: Unit = {
-      boxRect.fill = colorSpec.fillSelected
-      boxRect.stroke = colorSpec.strokeSelected
+    override def setFill: Unit = {
+      if (isSelected) {
+        boxRect.fill = colorSpec.fillSelected
+      } else if (isHovered) {
+        boxRect.fill = colorSpec.fillHovered
+      } else {
+        boxRect.fill = colorSpec.fill
+      }
     }
 
-    override def onDeselected: Unit = {
-      boxRect.fill = colorSpec.fill
-      boxRect.stroke = colorSpec.stroke
+    override def setStroke: Unit = {
+      if (isSelected) {
+        boxRect.stroke = colorSpec.strokeSelected
+      } else if (isHovered) {
+        boxRect.stroke = colorSpec.strokeHovered
+      } else {
+        boxRect.stroke = colorSpec.stroke
+      }
     }
 
     override def toString: String = 
@@ -404,6 +415,12 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   abstract class PolarizedCell extends EditorCell {
     val address: SAddr = Nil
     override def onClick: Unit = deselectAll
+
+    override def onMouseOver: Unit = ()
+    override def onMouseOut: Unit = ()
+    override def onHover: Unit = ()
+    override def onUnhover: Unit = ()
+
   }
 
   class NegativeCell(val dim: Int) extends PolarizedCell {

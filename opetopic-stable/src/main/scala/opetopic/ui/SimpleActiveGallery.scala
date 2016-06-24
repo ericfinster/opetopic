@@ -73,12 +73,6 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
     def onClick: Unit = onCellClick(this)
     def onCtrlClick: Unit = ()
 
-    def onMouseOver: Unit = ()
-    def onMouseOut: Unit = ()
-
-    def onHover: Unit = ()
-    def onUnhover: Unit = ()
-
   }
 
 }

@@ -99,6 +99,7 @@ object TypeChecker {
       case EEmpty => Empty
       case EUnit => Unt
       case ETt => Tt
+
       case EDec(d, e) => eval(e, UpDec(rho, d))
       case ELam(p, e) => Lam(Cl(p, e, rho))
       case EPi(p, a, b) => Pi(eval(a, rho), Cl(p, b, rho))
