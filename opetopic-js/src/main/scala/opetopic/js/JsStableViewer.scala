@@ -20,9 +20,12 @@ import JQuerySemanticUI._
 class JsStableViewer[A: Renderable] {
 
   type GalleryType = SimpleActiveGallery[A, JsDomFramework.type]
+  type CellType = GalleryType#SimpleActiveCell
 
   private var activeGallery: Option[GalleryType] = None
   private var activeComplex: Option[SComplex[A]] = None
+
+  var onSelectAsRoot: CellType => Unit = { _ => () }
 
   def complex: Option[SComplex[A]] = activeComplex
   def complex_=(oc: Option[SComplex[A]]): Unit = 
@@ -32,6 +35,9 @@ class JsStableViewer[A: Renderable] {
 
         val g: GalleryType =
           new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(cc)
+
+        g.onSelectAsRoot =
+          (c: CellType) => onSelectAsRoot(c)
 
         jQuery(uiElement).empty().append(g.element.uiElement)
 

@@ -8,34 +8,32 @@
 package opetopic.js.docs
 
 import opetopic._
+import STree.obj
 
 object Examples {
 
-  import opetopic._
+  val obj: SComplex[String] = ||(SDot("x"))
+  val arrow: SComplex[String] = ||(SBox("y",SNode(SDot("x"),SLeaf))) >> SDot("f")
+  val drop: SComplex[String] = ||(SDot("x")) >> SBox("f",SLeaf) >> SDot("α")
+  val twoglob: SComplex[String] = ||(SBox("y",SNode(SDot("x"),SLeaf))) >> SBox("g",SNode(SDot("f"),SNode(SLeaf,SLeaf))) >> SDot("α")
 
-  type OptStr[N <: Nat] = Option[String]
+  val simple: SComplex[String] = 
+    ||(SBox("z",SNode(SBox("y",SNode(SDot("x"),SLeaf)),SLeaf))) >>
+      SBox("h",SNode(SDot("g"),SNode(SNode(SDot("f"),SNode(SLeaf,SLeaf)),SLeaf))) >> SDot("α")
 
-  val obj : Complex[OptStr, _0] = Complex[OptStr] >> Obj(Some("x"))
+  val quad: SComplex[String] = 
+    ||(SBox("w",SNode(SBox("z",SNode(SBox("y",SNode(SDot("x"),SLeaf)),SLeaf)),SLeaf))) >> 
+      SBox("k",SNode(SDot("h"),SNode(SNode(SDot("g"),SNode(SNode(SDot("f"),SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))) >> 
+      SDot("α")
 
-  val arrow : Complex[OptStr, _1] = Complex[OptStr] >> Box(Some("y"), Pt(Obj(Some("x")))) >> Dot(Some("f"), S(Z))
-
-  val drop : Complex[OptStr, _2] = 
-    Complex[OptStr] >> Obj(Some("x")) >> 
-      Box(Some("f"), Leaf(S(Z))) >> Dot(Some("\u03b1"), S(S(Z)))
-
-  val twoglob : Complex[OptStr, _2] = 
-    Complex[OptStr] >> Box(Some("y"), Pt(Obj(Some("x")))) >> 
-      Box(Some("g"), Node(Dot(Some("f"), S(Z)), Pt(Leaf(S(Z))))) >> Dot(Some("\u03b1"), S(S(Z)))
-
-  val simplex : Complex[OptStr, _2] = 
-    Complex[OptStr] >> Box(Some("z"), Pt(Box(Some("y"), Pt(Obj(Some("x")))))) >> 
-      Box(Some("h"), Node(Dot(Some("g"), S(Z)), Pt(Node(Dot(Some("f"), S(Z)), Pt(Leaf(S(Z)))))) ) >> Dot(Some("\u03b1"), S(S(Z)))
-
-  val quad : Complex[OptStr, _2] = 
-    Complex[OptStr] >> Box(Some("w"), Pt(Box(Some("z"), Pt(Box(Some("y"), Pt(Obj(Some("x")))))))) >> 
-      Box(Some("k"), Node(Dot(Some("h"), S(Z)), Pt(Node(Dot(Some("g"), S(Z)), Pt(Node(Dot(Some("f"), S(Z)), Pt(Leaf(S(Z)))))) ))) >> Dot(Some("\u03b1"), S(S(Z)))
-
-  val threecell : Complex[OptStr, _3] = 
-    Complex[OptStr] >> Box( Some("e"), Pt(Box(Some("d"), Pt(Box(Some("c"), Pt(Box(Some("b"), Pt(Obj(Some("a"))))))))) ) >> Box( Some("n"), Node( Box( Some("m"), Node( Dot(Some("i"), S(Z)), Pt( Node( Box(Some("l"), Leaf(S(Z))), Pt( Node( Box( Some("k"), Node( Dot(Some("h"), S(Z)), Pt(Node(Dot(Some("g"), S(Z)), Pt(Leaf(S(Z))))) ) ), Pt( Node( Box(Some("j"), Node(Dot(Some("f"), S(Z)), Pt(Leaf(S(Z))))), Pt(Leaf(S(Z))) ) ) ) ) ) ) ) ), Pt(Leaf(S(Z))) ) ) >> Box( Some("\u03b6"), Node( Dot(Some("\u03b5"), S(S(Z))), Node( Node( Dot(Some("\u03b4"), S(S(Z))), Node( Leaf(S(S(Z))), Pt( Node( Node(Dot(Some("\u03b3"), S(S(Z))), Leaf(S(Z))), Pt( Node( Node( Dot(Some("\u03b2"), S(S(Z))), Node(Leaf(S(S(Z))), Pt(Node(Leaf(S(S(Z))), Pt(Leaf(S(Z)))))) ), Pt( Node( Node( Dot(Some("\u03b1"), S(S(Z))), Node(Leaf(S(S(Z))), Pt(Leaf(S(Z)))) ), Pt(Leaf(S(Z))) ) ) ) ) ) ) ) ), Pt(Leaf(S(Z))) ) ) ) >> Dot(Some("\u03a6"), S(S(S(Z))))
+  val threecell: SComplex[String] = 
+    ||(SBox("e",SNode(SBox("d",SNode(SBox("c",SNode(SBox("b",SNode(SDot("a"),SLeaf)),SLeaf)),SLeaf)),SLeaf))) >> 
+      SBox("n",SNode(SBox("m",SNode(SDot("i"),SNode(SNode(SBox("l",SLeaf),SNode(SNode(SBox("k",
+        SNode(SDot("h"),SNode(SNode(SDot("g"),SNode(SLeaf,SLeaf)),SLeaf))),SNode(SNode(SBox("j",
+          SNode(SDot("f"),SNode(SLeaf,SLeaf))),SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)),SLeaf))),SNode(SLeaf,SLeaf))) >>
+      SBox("ζ",SNode(SDot("ε"),SNode(SNode(SDot("δ"),SNode(SLeaf,SNode(SNode(SNode(SDot("γ"),SLeaf),
+        SNode(SNode(SNode(SDot("β"),SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),SNode(SNode(SNode(SDot("α"),
+          SNode(SLeaf,SNode(SLeaf,SLeaf))),SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)),SLeaf))),SNode(SLeaf,SLeaf)))) >>
+      SDot("Φ")
 
 }

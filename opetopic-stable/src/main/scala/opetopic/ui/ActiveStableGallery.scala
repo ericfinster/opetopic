@@ -132,6 +132,8 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
     def renderBox: Unit = {
 
+      makeMouseInvisible(labelElement)
+
       boxGroup.children = Seq(boxRect, labelElement)
 
       setFill

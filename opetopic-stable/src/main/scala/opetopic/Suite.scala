@@ -99,6 +99,9 @@ object Suite {
     def take(i: Int): Suite[A] = 
       drop(length - i)
 
+    def apply(i: Int): A = 
+      s.take(i + 1).head
+
     def grab(i: Int, l: List[A] = List()): (Suite[A], List[A]) = 
       s match {
         case ||(a) => (||(a), l)

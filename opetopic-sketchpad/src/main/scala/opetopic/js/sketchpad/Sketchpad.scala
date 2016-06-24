@@ -20,6 +20,8 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import opetopic._
 import opetopic.ui._
 import opetopic.js._
+import mtl._
+
 import JsDomFramework._
 import JQuerySemanticUI._
 
@@ -99,7 +101,7 @@ object Sketchpad extends JSApp {
     // jQuery("#view-btn").on("click", () => { loadSelectedSketch })
     // jQuery("#save-btn").on("click", () => { saveSketch })
     jQuery("#svg-btn").on("click", () => { renderSketch })
-    // jQuery("#export-btn").on("click", () => { exportSketch })
+    jQuery("#export-btn").on("click", () => { exportSketch })
 
   }
 
@@ -170,21 +172,21 @@ object Sketchpad extends JSApp {
 
   }
 
-  // def exportSketch: Unit = 
-  //   for {
-  //     c <- viewer.complex
-  //   } {
+  def exportSketch: Unit = 
+    for {
+      c <- viewer.complex
+    } {
 
-  //     val tc = c.value.map(new IndexedMap[OptMarker, ConstString] {
-  //       def apply[N <: Nat](n: N)(om: OptMarker[N]) : String = om.toString
-  //     })
+      def quotStr(str: String): String = "\"" + str + "\""
 
-  //     import opetopic.stable._
-  //     val sc = SComplex(tc)
+      val lc = c.map(om => om match {
+        case None => quotStr("empty")
+        case Some(mk) => quotStr(mk.lbl)
+      })
+      
+      println(lc.toString)
 
-  //     println(sc.toString)
-
-  //   }
+    }
 
   def renderSketch: Unit = 
     for {

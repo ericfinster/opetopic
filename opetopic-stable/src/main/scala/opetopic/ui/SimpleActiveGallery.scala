@@ -12,7 +12,7 @@ import scala.collection.mutable.Buffer
 import opetopic._
 
 class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val complex: SComplex[A]) 
-    extends ActiveStableGallery[F](frmwk) with ComplexGallery[F] {
+    extends ActiveStableGallery[F](frmwk) with ComplexGallery[F] with SelectableGallery {
 
   import framework._
   import isNumeric._
@@ -21,6 +21,9 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
 
   type PanelType = SimpleActivePanel
   type CellType = SimpleActiveCell
+
+  type AddressType = (Int, SAddr)
+  type SelectionType = SimpleActiveCell
 
   var onCellClick: ActiveBox => Unit = { _ => () }
 
@@ -46,6 +49,7 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
   var manageViewport : Boolean = false
 
   val panels : Suite[PanelType] = buildPanels(complex)
+  panels.foreach(p => p.refreshAddresses)
 
   def createPanel(bn: SNesting[CellType], ed: Either[PanelType, SNesting[CellType]]): PanelType = 
     new SimpleActivePanel(bn, ed)
@@ -53,25 +57,78 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
   def createCell(lbl: LabelType, dim: Int, addr: SAddr, isExternal: Boolean): CellType = 
     new SimpleActiveCell(lbl, dim, addr, isExternal)
 
+  def seekToCanopy(addr: AddressType): Option[SZipper[SNesting[SelectionType]]] = 
+    addr match {
+      case (dim, Nil) => Some(SZipper(STree.obj(panels(dim).boxNesting)))
+      case (dim, a :: as) => 
+        for {
+          bz <- panels(dim).boxNesting.seek(as)
+          res <- bz.focus match {
+            case SDot(_) => None
+            case SBox(_, cn) => cn.seekTo(a.dir)
+          }
+        } yield res
+    }
+
   class SimpleActivePanel(
     val boxNesting: SNesting[BoxType],
     val edgeData: Either[PanelType, SNesting[EdgeType]]
   ) extends ActiveStablePanel with ComplexPanel {
-    def dim: Int = boxNesting.baseValue.dim
+
+    val dim: Int = boxNesting.baseValue.dim
+
+    def refreshAddresses: Unit = {
+      boxNesting.foreachWithAddr({
+        case (box, addr) => { box.selectionAddress = (dim, addr) }
+      })
+      
+    }
+
   }
 
   class SimpleActiveCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean)
       extends ActiveBox 
-      with ActiveEdge {
+      with ActiveEdge with SelectableCell {
 
     val cellRendering: CellRendering = 
       implicitly[Renderable[A]].
         render(framework)(label)
 
-    makeMouseInvisible(labelElement)
+    val canSelect: Boolean = true
+    var isSelected: Boolean = false
+    var selectionAddress: AddressType = (0, Nil)
 
-    def onClick: Unit = onCellClick(this)
-    def onCtrlClick: Unit = ()
+    def onClick: Unit = {
+      selectAsRoot
+      onCellClick(this)
+    }
+
+    def onCtrlClick: Unit = {
+      select
+    }
+
+    override def onSelected: Unit = { setFill ; setStroke }
+    override def onDeselected: Unit = { setFill ; setStroke }
+
+    override def setFill: Unit = {
+      if (isSelected) {
+        boxRect.fill = colorSpec.fillSelected
+      } else if (isHovered) {
+        boxRect.fill = colorSpec.fillHovered
+      } else {
+        boxRect.fill = colorSpec.fill
+      }
+    }
+
+    override def setStroke: Unit = {
+      if (isSelected) {
+        boxRect.stroke = colorSpec.strokeSelected
+      } else if (isHovered) {
+        boxRect.stroke = colorSpec.strokeHovered
+      } else {
+        boxRect.stroke = colorSpec.stroke
+      }
+    }
 
   }
 

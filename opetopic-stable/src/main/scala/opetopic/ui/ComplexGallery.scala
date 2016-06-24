@@ -18,6 +18,7 @@ trait ComplexGallery[F <: UIFramework] { thisGallery: StableGallery[F] =>
   type BoxType = CellType
   type EdgeType = CellType
 
+
   trait ComplexPanel { thisPanel : PanelType => 
 
     val edgeData: Either[PanelType, SNesting[EdgeType]]
