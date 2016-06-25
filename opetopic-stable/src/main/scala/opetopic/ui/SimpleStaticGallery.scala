@@ -43,6 +43,9 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
   var spacing: Size = fromInt(2000)
   var manageViewport : Boolean = false
 
+  var firstPanel: Option[Int] = None
+  var lastPanel: Option[Int] = None
+
   val panels: Suite[SimpleStaticPanel] = buildPanels(complex)
 
   def createPanel(bn: SNesting[CellType], ed: Either[PanelType, SNesting[CellType]]): PanelType = 

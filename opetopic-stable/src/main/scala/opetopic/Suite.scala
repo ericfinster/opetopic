@@ -40,6 +40,13 @@ object Suite {
 
   }
 
+  def fromList[A](l: List[A]): Option[Suite[A]] = 
+    l match {
+      case Nil => None
+      case a :: Nil => Some(||(a))
+      case a :: as => for { s <- fromList(as) } yield s >> a
+    }
+
   implicit class SuiteOps[A](s: Suite[A]) {
 
     def head: A = 

@@ -52,10 +52,10 @@
       way on the shape of this tree.
     </p>
 
-    <h3 class="ui dividing header">Forward Extrusion</h3>
+    <h3 class="ui dividing header">Target Extrusion</h3>
 
     <p>
-      Our first construction is called a forward extrusion and is 
+      Our first construction is called a target extrusion and is 
       demonstrated in the interactive display below.
     </p>
 
@@ -78,12 +78,12 @@
       cell.
     </p>
 
-    <h3 class="ui dividing header">Backward Extrusions</h3>
+    <h3 class="ui dividing header">Source Extrusions</h3>
 
     <p>
-      Backward extrusions are similar, but work with respect to
+      Source extrusions are similar, but work with respect to
       a given source cell.  In the following demonstration,
-      we perform a "backward extrusion at x".  It should be clear
+      we perform a "source extrusion at x".  It should be clear
       that the same construction can be applied equally well
       to any other chosen source face.
     </p>
@@ -100,10 +100,11 @@
     </div>
 
     <p>
-      Observe that in the backward extrusion, we add a new
-      cell "above" the chosen source face, adding a new
-      cell as a descendant of our original, and then 
-      enclosing the structure with the appropriate shape.
+      Observe that in the source extrusion, we add a new
+      cell "above" the chosen source face, taking care
+      to maintain the bonding relationship, and then 
+      enclosing the resulting diagram with a target box,
+      resulting in a new opetopic diagram.
     </p>
 
     <div class="ui secondary menu">

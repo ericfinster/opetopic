@@ -29,12 +29,13 @@ object Sketchpad extends JSApp {
 
   val editor = new JsStableEditor[SimpleMarker]
   val viewer = new JsStableViewer[Option[SimpleMarker]]
+  val frameViewer = new JsStableViewer[Option[SimpleMarker]]
 
   import editor.StableCell
 
   editor.onSelectAsRoot = (c: StableCell) => {
     showRootFace
-    showProps(c.label)
+    showProps(c)
   }
 
   def main : Unit = {
@@ -46,6 +47,9 @@ object Sketchpad extends JSApp {
 
     jQuery("#viewer-div").append(viewer.uiElement)
     viewer.initialize
+
+    jQuery("#edge-props").append(frameViewer.uiElement)
+    frameViewer.initialize
 
     jQuery("#fill-color-btn").popup(lit(
       popup = jQuery(".color-select.popup"),
@@ -77,7 +81,7 @@ object Sketchpad extends JSApp {
 
     })
 
-    // jQuery("#edge-accordion").accordion()
+    jQuery("#edge-accordion").accordion()
 
     jQuery("#saved-sketches .item").each((e: dom.Element) => {
       for {
@@ -99,6 +103,7 @@ object Sketchpad extends JSApp {
     })
 
     jQuery("#view-btn").on("click", () => { loadSelectedSketch })
+    jQuery("#delete-btn").on("click", () => { deleteSelectedSketch })
     jQuery("#save-btn").on("click", () => { saveSketch })
     jQuery("#svg-btn").on("click", () => { renderSketch })
     jQuery("#export-btn").on("click", () => { exportSketch })
@@ -138,7 +143,9 @@ object Sketchpad extends JSApp {
     for {
       face <- editor.rootFace
     } {
+
       viewer.complex = Some(face)
+
     }
 
   def updateFillColor: Unit = {
@@ -200,6 +207,27 @@ object Sketchpad extends JSApp {
       jQuery("#sizing-mthd").value(sizingMethod)
       jQuery("#render-request-form").submit()
 
+    }
+
+  def deleteSelectedSketch: Unit = 
+    for { (id, _) <- selectedSketch } {
+
+      import upickle.default._
+      import opetopic.net.DeleteSketchRequest
+
+      val req = DeleteSketchRequest(id)
+
+      dom.ext.Ajax.post(
+        url = "/deleteSketch",
+        data = write(req),
+        headers = Map(
+          ("X-Requested-With" -> "*"),
+          ("CSRF-Token" -> "nocheck")
+        ),
+        withCredentials = true
+      ).map(_.responseText).foreach(text => {
+        println("Response: " + text)
+      })
     }
 
   def loadSelectedSketch: Unit = 
@@ -300,8 +328,24 @@ object Sketchpad extends JSApp {
       case _ => "white"
     }
 
-  def showProps(m: Option[SimpleMarker]): Unit = {
-    m match {
+  def showProps(c: StableCell): Unit = {
+
+    for { f <- c.face } {
+      if (f.length > 1) {
+
+        val dim = f.length - 1
+
+        if (dim > 0) {
+          frameViewer.firstPanel = Some(dim)
+          frameViewer.lastPanel = Some(dim)
+        }
+
+        frameViewer.complex = Some(f)
+
+      } 
+    }
+
+    c.label match {
       case None => {
         showFill("white")
         showStroke("black")

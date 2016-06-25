@@ -17,5 +17,6 @@ trait SketchDAO {
   def save(user: User, sketch: Sketch) : Future[Sketch] 
   def userSketches(user: User) : Future[Seq[Sketch]]
   def getSketch(sketchId: UUID) : Future[Option[Sketch]]
+  def deleteSketch(sketchId: UUID) : Future[Int]
 
 }

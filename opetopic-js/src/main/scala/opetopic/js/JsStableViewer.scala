@@ -22,12 +22,15 @@ class JsStableViewer[A: Renderable] {
   type GalleryType = SimpleActiveGallery[A, JsDomFramework.type]
   type CellType = GalleryType#SimpleActiveCell
 
-  private var activeGallery: Option[GalleryType] = None
-  private var activeComplex: Option[SComplex[A]] = None
+  var activeGallery: Option[GalleryType] = None
+  var activeComplex: Option[SComplex[A]] = None
 
   var onSelectAsRoot: CellType => Unit = { _ => () }
   var onHover: CellType => Unit = { _ => () }
   var onUnhover: CellType => Unit = { _ => () }
+
+  var firstPanel: Option[Int] = None
+  var lastPanel: Option[Int] = None
 
   def complex: Option[SComplex[A]] = activeComplex
   def complex_=(oc: Option[SComplex[A]]): Unit = 
@@ -37,6 +40,9 @@ class JsStableViewer[A: Renderable] {
 
         val g: GalleryType =
           new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(cc)
+
+        g.firstPanel = firstPanel
+        g.lastPanel = lastPanel
 
         g.onSelectAsRoot = (c: CellType) => onSelectAsRoot(c)
         g.onHover = (c: CellType) => onHover(c)

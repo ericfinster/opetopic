@@ -67,6 +67,19 @@ class SketchController @Inject() (
 
   }
 
+  def deleteSketch = SecuredAction.async { implicit request => 
+
+    request.body.asText.map { text => 
+
+      val req = read[DeleteSketchRequest](text)
+
+      sketchDAO.deleteSketch(UUID.fromString(req.id)).map {
+        (i: Int) => Ok("Deleted " + i.toString + " sketch")
+      }
+
+    } getOrElse Future.successful(BadRequest("Bad delete request"))
+
+  }
 
   def saveSketch = SecuredAction.async { implicit request => 
 

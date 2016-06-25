@@ -18,6 +18,10 @@ case class LoadSketchRequest(
   val id: String
 )
 
+case class DeleteSketchRequest(
+  val id: String
+)
+
 case class SaveModuleRequest(
   val moduleId: Option[String],
   val name: String,

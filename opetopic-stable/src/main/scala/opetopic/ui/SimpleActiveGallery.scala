@@ -46,6 +46,9 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
   var spacing: Size = fromInt(2000)
   var manageViewport : Boolean = false
 
+  var firstPanel: Option[Int] = None
+  var lastPanel: Option[Int] = None
+
   val panels : Suite[PanelType] = buildPanels(complex)
   panels.foreach(p => p.refreshAddresses)
 

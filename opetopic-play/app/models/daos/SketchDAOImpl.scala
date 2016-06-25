@@ -64,4 +64,13 @@ class SketchDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProv
 
   }
 
+  def deleteSketch(sketchId: UUID): Future[Int] = {
+
+    val action = 
+      slickSketches.filter(_.sketchId === sketchId).delete
+
+    db.run(action)
+
+  }
+
 }
