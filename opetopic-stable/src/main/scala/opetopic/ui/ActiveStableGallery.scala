@@ -90,14 +90,12 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     def onCtrlClick: Unit = { select }
 
     def onMouseOver: Unit = {
-      thisGallery.onHover(thisCell)
       boxFace.map(bc => {
         bc.foreach(b => b.onHover)
       })
     }
 
     def onMouseOut: Unit = {
-      thisGallery.onUnhover(thisCell)
       boxFace.map(bc => {
         bc.foreach(b => b.onUnhover)
       })
@@ -106,12 +104,14 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     var isHovered: Boolean = false
 
     def onHover: Unit = {
+      thisGallery.onHover(thisCell)
       isHovered = true
       setFill
       setStroke
     }
 
     def onUnhover: Unit = {
+      thisGallery.onUnhover(thisCell)
       isHovered = false
       setFill
       setStroke

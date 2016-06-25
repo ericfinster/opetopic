@@ -24,6 +24,14 @@ object Docs extends JSApp {
 
   import Examples._
 
+  type DocsViewer = JsStableViewer[String]
+  type DocsCell = DocsViewer#CellType
+
+  object TutorialRenderable extends Renderable[String] {
+    def render(f: UIFramework)(s: String): f.CellRendering = 
+      f.CellRendering(f.text(s), TutorialColorSpec)
+  }
+
   object TutorialColorSpec extends ColorSpec(
     fill = "#f5f5f5",
     fillHovered = "#f19091",
@@ -32,6 +40,9 @@ object Docs extends JSApp {
     strokeHovered = "#000000",
     strokeSelected = "#000000"
   )
+
+  def newViewer: DocsViewer = 
+    new JsStableViewer[String]()(TutorialRenderable)
 
   def main: Unit = {
 
@@ -56,18 +67,18 @@ object Docs extends JSApp {
 
   def doOpetopes: Unit = {
 
-    val viewer = new JsStableViewer[String]
+    val viewer = newViewer 
     jQuery("#gallery-pane").append(viewer.uiElement)
     viewer.viewerHeight = 320
     viewer.initialize
 
     viewer.complex = Some(threecell)
 
-    val faceViewer = new JsStableViewer[String]
+    val faceViewer = newViewer
     jQuery("#face-pane").append(faceViewer.uiElement)
     faceViewer.initialize
 
-    viewer.onSelectAsRoot = (c: viewer.CellType) => {
+    viewer.onSelectAsRoot = (c: DocsCell) => {
       for { lc <- c.face } { faceViewer.complex = Some(lc) }
     }
 
@@ -365,14 +376,14 @@ object Docs extends JSApp {
         case _ => str
       }
 
-    def installHandlers(viewer: JsStableViewer[String], el: SnapElement) : Unit = {
+    def installHandlers(viewer: DocsViewer, el: SnapElement) : Unit = {
 
-      viewer.onHover = (c: viewer.CellType) => {
+      viewer.onHover = (c: DocsCell) => {
         el.selectAll(".stroke-" + lblToClass(c.label)).attr(lit(stroke = hoveredStroke))
         el.selectAll(".fill-" + lblToClass(c.label)).attr(lit(fill = hoveredFill))
       }
 
-      viewer.onUnhover = (c: viewer.CellType) => {
+      viewer.onUnhover = (c: DocsCell) => {
         el.selectAll(".stroke-" + lblToClass(c.label)).attr(lit(stroke = unhoveredStroke))
         el.selectAll(".fill-" + lblToClass(c.label)).attr(lit(fill = unhoveredFill))
       }
@@ -383,7 +394,7 @@ object Docs extends JSApp {
     // THE OBJECT
     //
 
-    val objectViewer = new JsStableViewer[String]
+    val objectViewer = newViewer
     jQuery("#object-pane").append(objectViewer.uiElement)
     objectViewer.initialize
     objectViewer.complex = Some(obj)
@@ -399,7 +410,7 @@ object Docs extends JSApp {
     // THE ARROW
     //
 
-    val arrowViewer = new JsStableViewer[String]
+    val arrowViewer = newViewer
     jQuery("#arrow-pane").append(arrowViewer.uiElement)
     arrowViewer.initialize
     arrowViewer.complex = Some(arrow)
@@ -415,7 +426,7 @@ object Docs extends JSApp {
     // THE DROP
     //
 
-    val dropViewer = new JsStableViewer[String]
+    val dropViewer = newViewer
     jQuery("#drop-pane").append(dropViewer.uiElement)
     dropViewer.initialize
     dropViewer.complex = Some(drop)
@@ -431,7 +442,7 @@ object Docs extends JSApp {
     // THE TWOGLOB
     //
 
-    val twoglobViewer = new JsStableViewer[String]
+    val twoglobViewer = newViewer
     jQuery("#twoglob-pane").append(twoglobViewer.uiElement)
     twoglobViewer.initialize
     twoglobViewer.complex = Some(twoglob)
@@ -447,7 +458,7 @@ object Docs extends JSApp {
     // THE SIMPLEX
     //
 
-    val simplexViewer = new JsStableViewer[String]
+    val simplexViewer = newViewer
     jQuery("#simplex-pane").append(simplexViewer.uiElement)
     simplexViewer.initialize
     simplexViewer.complex = Some(simplex)
@@ -463,7 +474,7 @@ object Docs extends JSApp {
     // THE QUAD
     //
 
-    val quadViewer = new JsStableViewer[String]
+    val quadViewer = newViewer
     jQuery("#quad-pane").append(quadViewer.uiElement)
     quadViewer.initialize
     quadViewer.complex = Some(quad)
@@ -479,7 +490,7 @@ object Docs extends JSApp {
     // THE THREECELL
     //
 
-    val threecellViewer = new JsStableViewer[String]
+    val threecellViewer = newViewer
     jQuery("#threecell-pane").append(threecellViewer.uiElement)
     threecellViewer.viewerHeight = 320
     threecellViewer.initialize
