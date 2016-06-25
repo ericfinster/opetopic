@@ -11,33 +11,24 @@ import opetopic._
 import opetopic.mtl._
 
 class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])
-    extends ActiveStableGallery[F](frmwk) 
-    with SelectableGallery {
+    extends ActiveStableGallery[F](frmwk)  {
 
   import framework._
   import isNumeric._
 
   type LabelType = Option[A]
 
-  type BoxType = EditorCell
-  type EdgeType = EditorCell
-
   type PanelType = EditorPanel
+  type CellType = EditorCell
 
   type AddressType = SCardAddr
-  type SelectionType = NeutralCell
+  type SelectionType = EditorCell
 
   type OptA = Option[A]
   type PolOptA = Polarity[Option[A]]
 
   val renderer : Renderable[PolOptA] = 
     Renderable[PolOptA]
-
-  //  
-  //  Event Handlers
-  //
-
-  var onCellClick: EditorCell => Unit = { _ => () }
 
   //
   //  Visual Options
@@ -343,23 +334,25 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   // CELL IMPLEMENTATIONS
   //
 
-  abstract class EditorCell extends ActiveBox with ActiveEdge {
-
-    def onClick: Unit = ()
-    def onCtrlClick: Unit = ()
-
+  abstract class EditorCell extends ActiveCell {
+    def canExtrude: Boolean
+    def cardinalAddress: SCardAddr
+    def selectionAddress = cardinalAddress
+    def address = cardinalAddress.complexAddress
+    var isExternal: Boolean
+    var label: Option[A]
   }
 
   class NeutralCell(
     val dim: Int,
     initLabel: Option[A], 
     var isExternal: Boolean
-  ) extends EditorCell with SelectableCell {
+  ) extends EditorCell {
 
-    def address: SAddr = cardinalAddress.complexAddress
     var cardinalAddress: SCardAddr = SCardAddr()
 
     private var myLabel: Option[A] = initLabel
+
     def label: Option[A] = myLabel
     def label_=(opt: Option[A]): Unit = {
       myLabel = opt
@@ -371,41 +364,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
     // Selection stuff
     def canExtrude: Boolean = cardinalAddress.boxAddr == Nil
-    val canSelect: Boolean = true
-    var isSelected: Boolean = false
-    def selectionAddress = cardinalAddress
-
-    override def onClick: Unit = {
-      onCellClick(this)
-      selectAsRoot
-    }
-
-    override def onCtrlClick: Unit = {
-      select
-    }
-
-    override def onSelected: Unit = { setFill ; setStroke }
-    override def onDeselected: Unit = { setFill ; setStroke }
-
-    override def setFill: Unit = {
-      if (isSelected) {
-        boxRect.fill = colorSpec.fillSelected
-      } else if (isHovered) {
-        boxRect.fill = colorSpec.fillHovered
-      } else {
-        boxRect.fill = colorSpec.fill
-      }
-    }
-
-    override def setStroke: Unit = {
-      if (isSelected) {
-        boxRect.stroke = colorSpec.strokeSelected
-      } else if (isHovered) {
-        boxRect.stroke = colorSpec.strokeHovered
-      } else {
-        boxRect.stroke = colorSpec.stroke
-      }
-    }
+    def canSelect: Boolean = true
 
     override def toString: String = 
       label.toString
@@ -413,9 +372,10 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   }
 
   abstract class PolarizedCell extends EditorCell {
-    val address: SAddr = Nil
+    val cardinalAddress: SCardAddr = SCardAddr()
+    def canExtrude = false
+    def canSelect = false
     override def onClick: Unit = deselectAll
-
     override def onMouseOver: Unit = ()
     override def onMouseOut: Unit = ()
     override def onHover: Unit = ()
@@ -425,8 +385,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   class NegativeCell(val dim: Int) extends PolarizedCell {
 
-    val label: Option[A] = None
-    val isExternal: Boolean = true
+    var label: Option[A] = None
+    var isExternal: Boolean = true
 
     val cellRendering: CellRendering = 
       renderer.render(framework)(Negative())
@@ -437,8 +397,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   class PositiveCell(val dim: Int) extends PolarizedCell {
 
-    val label: Option[A] = None
-    val isExternal: Boolean = false
+    var label: Option[A] = None
+    var isExternal: Boolean = false
 
     val cellRendering: CellRendering = 
       renderer.render(framework)(Positive())

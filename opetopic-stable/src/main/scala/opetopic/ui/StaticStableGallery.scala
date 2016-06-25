@@ -16,17 +16,15 @@ abstract class StaticStableGallery[F <: UIFramework](frmwk: F)
   import framework._
   import isNumeric._
 
-  type BoxType <: StaticBox
-  type EdgeType <: StaticEdge
-
   type PanelType <: StaticPanel
+  type CellType <: StaticCell
 
   def element: Element = {
     val (gBounds, els) = panelElementsAndBounds
     viewport(width, height, gBounds, els.toList: _*)
   }
 
-  trait StaticBox extends GalleryBox { thisBox : BoxType => 
+  abstract class StaticCell extends GalleryCell { thisCell : CellType => 
 
     def boxElement: Element = {
 
@@ -43,10 +41,6 @@ abstract class StaticStableGallery[F <: UIFramework](frmwk: F)
       group(boxRect, tl)
 
     }
-
-  }
-
-  trait StaticEdge extends CellEdge { thisEdge : EdgeType => 
 
     def edgeElement: Element = 
       path(pathString, "black", strokeWidth, "none")

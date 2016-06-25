@@ -11,14 +11,12 @@ import opetopic._
 import opetopic.mtl._
 
 abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F) 
-    extends StableGallery[F](frmwk) {
+    extends StableGallery[F](frmwk) with SelectableGallery { thisGallery => 
 
   import framework._
   import isNumeric._
 
-  type BoxType <: ActiveBox
-  type EdgeType <: ActiveEdge
-
+  type CellType <: ActiveCell
   type PanelType <: ActiveStablePanel
 
   val galleryViewport = viewport
@@ -38,6 +36,14 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     galleryViewport.children = els.toList
 
   }
+
+  //============================================================================================
+  // EVENT HANDLERS
+  //
+
+  var onCellClick: SelectionType => Unit = { _ => () }
+  var onHover: SelectionType => Unit = { _ => () }
+  var onUnhover: SelectionType => Unit = { _ => () }
 
   //============================================================================================
   // ACTIVE PANELS
@@ -74,22 +80,24 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
   }
 
   //============================================================================================
-  // ACTIVE BOXES AND EDGES
+  // ACTIVE CELLS
   //
 
-  trait ActiveBox extends GalleryBox { thisBox: BoxType => 
+  abstract class ActiveCell extends GalleryCell with SelectableCell { thisCell: CellType with SelectionType => 
 
     // Events
-    def onClick: Unit
-    def onCtrlClick: Unit
+    def onClick: Unit = { selectAsRoot ; onCellClick(thisCell) }
+    def onCtrlClick: Unit = { select }
 
     def onMouseOver: Unit = {
+      thisGallery.onHover(thisCell)
       boxFace.map(bc => {
         bc.foreach(b => b.onHover)
       })
     }
 
     def onMouseOut: Unit = {
+      thisGallery.onUnhover(thisCell)
       boxFace.map(bc => {
         bc.foreach(b => b.onUnhover)
       })
@@ -105,6 +113,16 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
     def onUnhover: Unit = {
       isHovered = false
+      setFill
+      setStroke
+    }
+
+    def onSelected: Unit = {
+      setFill
+      setStroke
+    }
+
+    def onDeselected: Unit = {
       setFill
       setStroke
     }
@@ -127,8 +145,25 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }
     boxRect.onMouseOut = { (e : UIMouseEvent) => onMouseOut }
 
-    def setFill: Unit = { boxRect.fill = colorSpec.fill }
-    def setStroke: Unit = { boxRect.stroke = colorSpec.stroke }
+    def setFill: Unit = {
+      if (isSelected) {
+        boxRect.fill = colorSpec.fillSelected
+      } else if (isHovered) {
+        boxRect.fill = colorSpec.fillHovered
+      } else {
+        boxRect.fill = colorSpec.fill
+      }
+    }
+
+    def setStroke: Unit = {
+      if (isSelected) {
+        boxRect.stroke = colorSpec.strokeSelected
+      } else if (isHovered) {
+        boxRect.stroke = colorSpec.strokeHovered
+      } else {
+        boxRect.stroke = colorSpec.stroke
+      }
+    }
 
     def renderBox: Unit = {
 
@@ -148,9 +183,9 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
     }
 
-  }
-
-  trait ActiveEdge extends CellEdge { thisEdge: EdgeType => 
+    //============================================================================================
+    // EDGE ROTUINES
+    //
 
     val edgePath = {
       val p = path

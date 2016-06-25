@@ -13,11 +13,6 @@ import opetopic.mtl._
 trait ComplexGallery[F <: UIFramework] { thisGallery: StableGallery[F] => 
 
   type PanelType <: ComplexPanel
-  type CellType <: GalleryBox with CellEdge
-
-  type BoxType = CellType
-  type EdgeType = CellType
-
 
   trait ComplexPanel { thisPanel : PanelType => 
 

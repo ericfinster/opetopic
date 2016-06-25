@@ -26,6 +26,8 @@ class JsStableViewer[A: Renderable] {
   private var activeComplex: Option[SComplex[A]] = None
 
   var onSelectAsRoot: CellType => Unit = { _ => () }
+  var onHover: CellType => Unit = { _ => () }
+  var onUnhover: CellType => Unit = { _ => () }
 
   def complex: Option[SComplex[A]] = activeComplex
   def complex_=(oc: Option[SComplex[A]]): Unit = 
@@ -36,8 +38,9 @@ class JsStableViewer[A: Renderable] {
         val g: GalleryType =
           new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(cc)
 
-        g.onSelectAsRoot =
-          (c: CellType) => onSelectAsRoot(c)
+        // g.onSelectAsRoot = (c: CellType) => onSelectAsRoot(c)
+        // g.onHover = (c: CellType) => onHover(c)
+        // g.onUnhover = (c: CellType) => onUnhover(c)
 
         jQuery(uiElement).empty().append(g.element.uiElement)
 

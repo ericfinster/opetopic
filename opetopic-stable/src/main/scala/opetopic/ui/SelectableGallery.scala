@@ -27,18 +27,17 @@ trait SelectableGallery {
     selectionRoot = None
   }
 
-  // def seekToAddress(addr: AddressType): Option[SNstZipper[SelectionType]]
   def seekToCanopy(addr: AddressType): Option[SZipper[SNesting[SelectionType]]]
 
   trait SelectableCell { thisCell : SelectionType => 
 
     def selectionAddress: AddressType
 
-    def onSelected: Unit = ()
-    def onDeselected: Unit = ()
+    def onSelected: Unit
+    def onDeselected: Unit
 
     def canSelect: Boolean
-    var isSelected: Boolean
+    var isSelected: Boolean = false
 
     def selectAsRoot: Unit = 
       if (canSelect) {

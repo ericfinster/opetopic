@@ -20,6 +20,7 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
 
   type PanelType = SimpleStaticPanel
   type CellType = SimpleStaticCell
+  type SelectionType = SimpleStaticCell
 
   //
   //  Visual Options
@@ -50,8 +51,7 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
   def createCell(lbl: LabelType, dim: Int, addr: SAddr, isExternal: Boolean): CellType = 
     new SimpleStaticCell(lbl, dim, addr, isExternal)
 
-  class SimpleStaticCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) 
-      extends StaticBox with StaticEdge {
+  class SimpleStaticCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) extends StaticCell {
 
     val cellRendering: CellRendering = 
       implicitly[Renderable[A]].

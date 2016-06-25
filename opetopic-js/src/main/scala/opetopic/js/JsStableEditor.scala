@@ -21,7 +21,7 @@ import JQuerySemanticUI._
 
 class JsStableEditor[A: Renderable] {
 
-  type StableCell = StableEditor[A, JsDomFramework.type]#NeutralCell
+  type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
 
   var onSelectAsRoot: StableCell => Unit = { _ => () }
 

@@ -18,7 +18,10 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
 
   type LabelType
 
-  type BoxType <: GalleryBox
+  type CellType <: GalleryCell
+  type BoxType = CellType
+  type EdgeType = CellType
+
   type PanelType <: StablePanel
 
   def panels: Suite[PanelType]
@@ -147,7 +150,7 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
   // CELLS
   //
 
-  trait GalleryBox extends CellBox { thisBox : BoxType => 
+  abstract class GalleryCell extends CellBox with CellEdge { thisBox : BoxType => 
 
     def dim: Int
     def address: SAddr

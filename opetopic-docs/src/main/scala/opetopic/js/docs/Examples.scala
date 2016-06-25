@@ -17,7 +17,7 @@ object Examples {
   val drop: SComplex[String] = ||(SDot("x")) >> SBox("f",SLeaf) >> SDot("α")
   val twoglob: SComplex[String] = ||(SBox("y",SNode(SDot("x"),SLeaf))) >> SBox("g",SNode(SDot("f"),SNode(SLeaf,SLeaf))) >> SDot("α")
 
-  val simple: SComplex[String] = 
+  val simplex: SComplex[String] = 
     ||(SBox("z",SNode(SBox("y",SNode(SDot("x"),SLeaf)),SLeaf))) >>
       SBox("h",SNode(SDot("g"),SNode(SNode(SDot("f"),SNode(SLeaf,SLeaf)),SLeaf))) >> SDot("α")
 

@@ -67,11 +67,9 @@ object Docs extends JSApp {
     jQuery("#face-pane").append(faceViewer.uiElement)
     faceViewer.initialize
 
-    // viewer.activeGallery map (g => {
-    //   g.onSelectAsRoot = (bs: Sigma[g.GalleryBoxType]) => {
-    //     for { lc <- bs.value.labelComplex } { faceViewer.complex = Some(lc) }
-    //   }
-    // })
+    viewer.onSelectAsRoot = (c: viewer.CellType) => {
+      for { lc <- c.face } { println("got face") }
+    }
 
   }
     
@@ -367,7 +365,12 @@ object Docs extends JSApp {
         case _ => str
       }
 
-    // def installHandlers(viewer: DocsViewer, el: SnapElement) : Unit = 
+    // def installHandlers(el: SnapElement) : Unit = {
+
+
+    // }
+
+
     //   for {
     //     gallery <- viewer.activeGallery
     //   } {
@@ -410,10 +413,10 @@ object Docs extends JSApp {
     // THE ARROW
     //
 
-    // val arrowViewer = new DocsViewer(150)
-    // jQuery("#arrow-pane").append(arrowViewer.uiElement)
-    // arrowViewer.initialize
-    // arrowViewer.complex = Some(arrow)
+    val arrowViewer = new JsStableViewer[String]
+    jQuery("#arrow-pane").append(arrowViewer.uiElement)
+    arrowViewer.initialize
+    arrowViewer.complex = Some(arrow)
 
     val arrowEl = Snap("#arrow-svg")
     Snap.load("/assets/svgs/arrow.svg", (f: Fragment) => {
@@ -426,10 +429,10 @@ object Docs extends JSApp {
     // THE DROP
     //
 
-    // val dropViewer = new DocsViewer(150)
-    // jQuery("#drop-pane").append(dropViewer.uiElement)
-    // dropViewer.initialize
-    // dropViewer.complex = Some(drop)
+    val dropViewer = new JsStableViewer[String]
+    jQuery("#drop-pane").append(dropViewer.uiElement)
+    dropViewer.initialize
+    dropViewer.complex = Some(drop)
 
     val dropEl = Snap("#drop-svg")
     Snap.load("/assets/svgs/drop.svg", (f: Fragment) => {
@@ -442,10 +445,10 @@ object Docs extends JSApp {
     // THE TWOGLOB
     //
 
-    // val twoglobViewer = new DocsViewer(150)
-    // jQuery("#twoglob-pane").append(twoglobViewer.uiElement)
-    // twoglobViewer.initialize
-    // twoglobViewer.complex = Some(twoglob)
+    val twoglobViewer = new JsStableViewer[String]
+    jQuery("#twoglob-pane").append(twoglobViewer.uiElement)
+    twoglobViewer.initialize
+    twoglobViewer.complex = Some(twoglob)
 
     val twoglobEl = Snap("#twoglob-svg")
     Snap.load("/assets/svgs/twoglob.svg", (f: Fragment) => {
@@ -458,10 +461,10 @@ object Docs extends JSApp {
     // THE SIMPLEX
     //
 
-    // val simplexViewer = new DocsViewer(150)
-    // jQuery("#simplex-pane").append(simplexViewer.uiElement)
-    // simplexViewer.initialize
-    // simplexViewer.complex = Some(simplex)
+    val simplexViewer = new JsStableViewer[String]
+    jQuery("#simplex-pane").append(simplexViewer.uiElement)
+    simplexViewer.initialize
+    simplexViewer.complex = Some(simplex)
 
     val simplexEl = Snap("#simplex-svg")
     Snap.load("/assets/svgs/simplex.svg", (f: Fragment) => {
@@ -474,10 +477,10 @@ object Docs extends JSApp {
     // THE QUAD
     //
 
-    // val quadViewer = new DocsViewer(150)
-    // jQuery("#quad-pane").append(quadViewer.uiElement)
-    // quadViewer.initialize
-    // quadViewer.complex = Some(quad)
+    val quadViewer = new JsStableViewer[String]
+    jQuery("#quad-pane").append(quadViewer.uiElement)
+    quadViewer.initialize
+    quadViewer.complex = Some(quad)
 
     val quadEl = Snap("#quad-svg")
     Snap.load("/assets/svgs/quad.svg", (f: Fragment) => {
@@ -490,10 +493,11 @@ object Docs extends JSApp {
     // THE THREECELL
     //
 
-    // val threecellViewer = new DocsViewer(350)
-    // jQuery("#threecell-pane").append(threecellViewer.uiElement)
-    // threecellViewer.initialize
-    // threecellViewer.complex = Some(threecell)
+    val threecellViewer = new JsStableViewer[String]
+    jQuery("#threecell-pane").append(threecellViewer.uiElement)
+    threecellViewer.viewerHeight = 320
+    threecellViewer.initialize
+    threecellViewer.complex = Some(threecell)
 
     val threecellEl = Snap("#threecell-svg")
     Snap.load("/assets/svgs/threecell.svg", (f: Fragment) => {
