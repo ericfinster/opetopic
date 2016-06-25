@@ -7,7 +7,7 @@
 
 package opetopic.ui
 
-// import opetopic._
+import opetopic.SAddr
 
 abstract class UIFramework {
 
@@ -90,7 +90,9 @@ abstract class UIFramework {
 
   case class CellRendering(
     val boundedElement: BoundedElement,
-    val colorSpec: ColorSpec = DefaultColorSpec
+    val colorSpec: ColorSpec = DefaultColorSpec,
+    val targetDec: Option[BoundedElement] = None,
+    val sourceDec: Map[SAddr, BoundedElement] = Map()
   )
 
   //============================================================================================

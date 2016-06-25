@@ -28,6 +28,7 @@ trait LayoutContext[F <: UIFramework] {
 
   def internalPadding: Size 
   def externalPadding: Size
+  def decorationPadding: Size
   def leafWidth: Size
   def strokeWidth: Size
   def cornerRadius: Size
@@ -45,6 +46,9 @@ trait LayoutContext[F <: UIFramework] {
     def labelBounds : Bounds 
 
     def isExternal: Boolean
+
+    def targetDecoration: Option[BoundedElement]
+    def sourceDecorations: Map[SAddr, BoundedElement]
 
     //
     // Mutable Values
@@ -136,6 +140,12 @@ trait LayoutContext[F <: UIFramework] {
 
     var edgeEndX : Size = zero
     var edgeEndY : Size = zero
+
+    //
+    //  Decorations
+    //
+
+    val edgeDecorations : Buffer[DecorationMarker] = Buffer.empty
 
     //
     //  Path String Rendering
@@ -372,36 +382,38 @@ trait LayoutContext[F <: UIFramework] {
                 localLayout <- layout(snst, layoutTree)
               } yield {
                   
+                val tgtDec = snst.baseValue.targetDecoration
+                val srcDecs = snst.baseValue.sourceDecorations
+
                 // Zip together the incoming markers and any decoration information
                 val descendantMarkers : List[(LayoutMarker, Option[BoundedElement])] =
-                  layoutTree.map((_, None)).toList
+                  layoutTree.mapWithAddr((mk, addr) => {
+                    val decOpt = 
+                      if (srcDecs.isDefinedAt(addr))
+                        Some(srcDecs(addr))
+                      else None
 
-                // ((for {
-                //   lds <- leafDecorations
-                //   ztr <- layoutTree.matchTraverse(lds)({
-                //     case (l, o) => Some((l, o))
-                //   })
-                // } yield ztr) getOrElse layoutTree.map((_, None)).toList
-
+                    (mk, decOpt)
+                  }).toList
 
                 val (leftMostChild, rightMostChild, heightOfChildren, topShim) =
                   (descendantMarkers foldLeft (localLayout, localLayout, zero, externalPadding))({
                     case ((lcMarker, rcMarker, ht, ts), (thisMarker, thisDecOpt)) => {
 
-                      val thisShim = externalPadding
-                      // thisDecOpt match {
-                      //   case None => externalPadding
-                      //   case Some(be) => {
+                      val thisShim = 
+                        thisDecOpt match {
+                          case None => externalPadding
+                          case Some(be) => {
 
-                      //     val re = thisMarker.rootEdge
-                      //     val decMkr = new re.DecorationMarker(be, re.edgeStartX, - localLayout.height - decorationPadding)
-                      //     localLayout.element.horizontalDependants += decMkr
-                      //     localLayout.element.verticalDependants += decMkr
+                            val re = thisMarker.rootEdge
+                            val dec = re.addDecoration(be, -localLayout.height - decorationPadding)
+                            localLayout.element.horizontalDependents += dec
+                            localLayout.element.verticalDependents += dec
 
-                      //     be.bounds.height + decorationPadding + strokeWidth
+                            be.bounds.height + decorationPadding + strokeWidth
 
-                      //   }
-                      // }
+                          }
+                        }
 
                       if (! thisMarker.wasExternal) {
                         thisMarker.element.shiftUp(localLayout.height + thisShim)
@@ -417,20 +429,20 @@ trait LayoutContext[F <: UIFramework] {
                   })
 
                 // Calculate the bottom shim necessary to clear any outgoing edge marker
-                val bottomShim = zero
-                // localVis.rootEdgeElement match {
-                //   case None => zero
-                //   case Some(be) => {
+                val bottomShim = 
+                  tgtDec match {
+                    case None => zero
+                    case Some(be) => {
 
-                //     val re = localLayout.rootEdge
-                //     val decMkr = new re.DecorationMarker(be, re.edgeStartX, decorationPadding)
-                //     localLayout.element.horizontalDependants += decMkr
-                //     localLayout.element.verticalDependants += decMkr
+                      val re = localLayout.rootEdge
+                      val dec = re.addDecoration(be, decorationPadding)
+                      localLayout.element.horizontalDependents += dec
+                      localLayout.element.verticalDependents += dec
 
-                //     be.bounds.height + decorationPadding
+                      be.bounds.height + decorationPadding
 
-                //   }
-                // }
+                    }
+                  }
 
                 // Shift up the local layout to make room
                 localLayout.element.shiftUp(bottomShim)
@@ -569,10 +581,17 @@ trait LayoutContext[F <: UIFramework] {
   }
 
   trait EdgeMarker extends Rooted {
+    def addDecoration(b: BoundedElement, ry: Size): DecorationMarker
     def endMarker: EdgeMarker
   }
 
   case class EdgeStartMarker(edge: EdgeType) extends EdgeMarker {
+
+    def addDecoration(b: BoundedElement, ry: Size) = {
+      val dec = new DecorationMarker(b, edge.edgeStartX, ry)
+      edge.edgeDecorations += dec
+      dec
+    }
 
     def rootX : Size = edge.edgeStartX
     def rootX_=(u : Size) : Unit =
@@ -587,6 +606,12 @@ trait LayoutContext[F <: UIFramework] {
   }
 
   case class EdgeEndMarker(edge : EdgeType) extends EdgeMarker {
+
+    def addDecoration(b: BoundedElement, ry: Size) = {
+      val dec = new DecorationMarker(b, edge.edgeStartX, ry)
+      edge.edgeDecorations += dec
+      dec
+    }
 
     def rootX : Size = edge.edgeEndX
     def rootX_=(u : Size) : Unit =
@@ -604,6 +629,15 @@ trait LayoutContext[F <: UIFramework] {
     var rootX: Size = zero
     var rootY: Size = zero
     def endMarker = this
+    def addDecoration(b: BoundedElement, ry: Size) = 
+      new DecorationMarker(b, rootX, ry)
   }
+
+  class DecorationMarker(
+    val be: BoundedElement,
+    var rootX: Size,
+    var rootY: Size
+  ) extends Rooted 
+
 
 }

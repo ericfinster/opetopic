@@ -117,6 +117,9 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
     def labelBounds: Bounds = cellRendering.boundedElement.bounds
     def labelElement: Element = cellRendering.boundedElement.element
 
+    def targetDecoration: Option[BoundedElement] = cellRendering.targetDec
+    def sourceDecorations: Map[SAddr, BoundedElement] = cellRendering.sourceDec
+
     def colorSpec: ColorSpec = 
       cellRendering.colorSpec
 

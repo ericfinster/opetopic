@@ -31,6 +31,7 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
 
   var internalPadding : Size = fromInt(400)
   var externalPadding : Size = fromInt(600)
+  var decorationPadding : Size = fromInt(400)
   var leafWidth : Size = fromInt(200)
   var strokeWidth : Size = fromInt(100)
   var cornerRadius : Size = fromInt(200)
