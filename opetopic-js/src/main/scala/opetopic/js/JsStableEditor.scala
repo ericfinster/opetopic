@@ -29,9 +29,9 @@ class JsStableEditor[A: Renderable] {
   // TAB CLASS
   //
 
-  class EditorTab {
+  class EditorTab(c: SComplex[Option[A]]) {
 
-    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(SCardinal[A]())
+    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(SCardinal[Option[A]](c))
 
     editor.onCellClick = 
       (c: editor.EditorCell) => { }
@@ -101,9 +101,10 @@ class JsStableEditor[A: Renderable] {
   var tabCount: Int = 0
   var activeTab: Option[EditorTab] = None
 
-  def newEditor : Unit = {
+  def newEditor: Unit = newEditor(||(SDot(None)))
+  def newEditor(c: SComplex[Option[A]]) : Unit = {
 
-    val editorTab = new EditorTab
+    val editorTab = new EditorTab(c)
     tabs += editorTab
     tabCount += 1
 

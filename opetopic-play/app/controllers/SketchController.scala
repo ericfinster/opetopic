@@ -120,7 +120,7 @@ class SketchController @Inject() (
 
         val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(data.renderData))
 
-        println("Rendering complex: " ++ c.toString)
+        // println("Rendering complex: " ++ c.toString)
 
         val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(c)
         val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"

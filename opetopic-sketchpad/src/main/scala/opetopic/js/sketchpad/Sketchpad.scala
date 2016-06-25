@@ -79,39 +79,36 @@ object Sketchpad extends JSApp {
 
     // jQuery("#edge-accordion").accordion()
 
-    // jQuery("#saved-sketches .item").each((e: dom.Element) => {
-    //   for {
-    //     suuid <- jQuery(e).attr("data-id").toOption
-    //   } {
+    jQuery("#saved-sketches .item").each((e: dom.Element) => {
+      for {
+        suuid <- jQuery(e).attr("data-id").toOption
+      } {
 
-    //     jQuery(e).on("click", () => {
+        jQuery(e).on("click", () => {
 
-    //       for { (_, old) <- selectedSketch } { 
-    //         jQuery(old).removeClass("active") 
-    //       }
+          for { (_, old) <- selectedSketch } { 
+            jQuery(old).removeClass("active") 
+          }
 
-    //       jQuery(e).addClass("active")
-    //       selectedSketch = Some(suuid, e)
+          jQuery(e).addClass("active")
+          selectedSketch = Some(suuid, e)
 
-    //     })
+        })
         
-    //   }
-    // })
+      }
+    })
 
-    // jQuery("#view-btn").on("click", () => { loadSelectedSketch })
-    // jQuery("#save-btn").on("click", () => { saveSketch })
+    jQuery("#view-btn").on("click", () => { loadSelectedSketch })
+    jQuery("#save-btn").on("click", () => { saveSketch })
     jQuery("#svg-btn").on("click", () => { renderSketch })
     jQuery("#export-btn").on("click", () => { exportSketch })
 
   }
 
-  //   jQuery("#snapshot-btn").on("click", () => { takeSnapshot })
-  //   jQuery("#code-btn").on("click", () => { showScalaCode })
-
   var isFill: Boolean = true
   var fillColor: String = "white"
   var strokeColor: String = "black"
-  // var selectedSketch: Option[(String, dom.Element)] = None
+  var selectedSketch: Option[(String, dom.Element)] = None
 
   def updateLabel: Unit = {
 
@@ -205,66 +202,66 @@ object Sketchpad extends JSApp {
 
     }
 
-  // def loadSelectedSketch: Unit = 
-  //   for { (id, _) <- selectedSketch } {
+  def loadSelectedSketch: Unit = 
+    for { (id, _) <- selectedSketch } {
 
-  //     import upickle.default._
-  //     import opetopic.net.LoadSketchRequest
+      import upickle.default._
+      import opetopic.net.LoadSketchRequest
 
-  //     val req = LoadSketchRequest(id)
+      val req = LoadSketchRequest(id)
 
-  //     dom.ext.Ajax.post(
-  //       url = "/getSketch",
-  //       data = write(req),
-  //       headers = Map(
-  //         ("X-Requested-With" -> "*"),
-  //         ("CSRF-Token" -> "nocheck")
-  //       ),
-  //       withCredentials = true
-  //     ).map(_.responseText).foreach(json => {
+      dom.ext.Ajax.post(
+        url = "/getSketch",
+        data = write(req),
+        headers = Map(
+          ("X-Requested-With" -> "*"),
+          ("CSRF-Token" -> "nocheck")
+        ),
+        withCredentials = true
+      ).map(_.responseText).foreach(json => {
 
-  //       val fc : FiniteComplex[OptMarker] =
-  //         Complex.fromJson[OptMarker](upickle.json.read(json))
+        val c : SComplex[Option[SimpleMarker]] =
+          complexFromJson[Option[SimpleMarker]](upickle.json.read(json))
 
-  //       editor.newEditor(Some(fc))
+        editor.newEditor(c)
 
-  //     })
-  //   }
+      })
+    }
 
-  // def saveSketch: Unit = 
-  //   for {
-  //     c <- viewer.complex
-  //   } {
+  def saveSketch: Unit = 
+    for {
+      c <- viewer.complex
+    } {
 
-  //     import org.scalajs.dom
-  //     import upickle.default._
-  //     import opetopic.net.SaveSketchRequest
+      import org.scalajs.dom
+      import upickle.default._
+      import opetopic.net.SaveSketchRequest
 
-  //     jQuery("#save-modal").modal(lit(
-  //       onApprove = () => {
+      jQuery("#save-modal").modal(lit(
+        onApprove = () => {
 
-  //         val req =
-  //           SaveSketchRequest(
-  //             jQuery("#sketch-name-input").value.asInstanceOf[String],
-  //             jQuery("#sketch-path-input").value.asInstanceOf[String],
-  //             jQuery("#sketch-desc-input").value.asInstanceOf[String],
-  //             Complex.toJson(c.value)
-  //           )
+          val req =
+            SaveSketchRequest(
+              jQuery("#sketch-name-input").value.asInstanceOf[String],
+              jQuery("#sketch-path-input").value.asInstanceOf[String],
+              jQuery("#sketch-desc-input").value.asInstanceOf[String],
+              complexToJson(c)
+            )
 
-  //         dom.ext.Ajax.post(
-  //           url = "/saveSketch",
-  //           data = write(req),
-  //           headers = Map(
-  //             ("X-Requested-With" -> "*"),
-  //             ("CSRF-Token" -> "nocheck")
-  //           ),
-  //           withCredentials = true
-  //         ).map(_.responseText).foreach(println)
+          dom.ext.Ajax.post(
+            url = "/saveSketch",
+            data = write(req),
+            headers = Map(
+              ("X-Requested-With" -> "*"),
+              ("CSRF-Token" -> "nocheck")
+            ),
+            withCredentials = true
+          ) // .map(_.responseText).foreach(println)
 
-  //       }
-  //     )).modal("show")
+        }
+      )).modal("show")
 
-  //   }
+    }
 
   def colorTripleGen(color: String) : (String, String, String) = 
     color match {
