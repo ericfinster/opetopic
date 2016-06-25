@@ -68,7 +68,7 @@ object Docs extends JSApp {
     faceViewer.initialize
 
     viewer.onSelectAsRoot = (c: viewer.CellType) => {
-      for { lc <- c.face } { println("got face") }
+      for { lc <- c.face } { faceViewer.complex = Some(lc) }
     }
 
   }
@@ -365,33 +365,19 @@ object Docs extends JSApp {
         case _ => str
       }
 
-    // def installHandlers(el: SnapElement) : Unit = {
+    def installHandlers(viewer: JsStableViewer[String], el: SnapElement) : Unit = {
 
+      viewer.onHover = (c: viewer.CellType) => {
+        el.selectAll(".stroke-" + lblToClass(c.label)).attr(lit(stroke = hoveredStroke))
+        el.selectAll(".fill-" + lblToClass(c.label)).attr(lit(fill = hoveredFill))
+      }
 
-    // }
+      viewer.onUnhover = (c: viewer.CellType) => {
+        el.selectAll(".stroke-" + lblToClass(c.label)).attr(lit(stroke = unhoveredStroke))
+        el.selectAll(".fill-" + lblToClass(c.label)).attr(lit(fill = unhoveredFill))
+      }
 
-
-    //   for {
-    //     gallery <- viewer.activeGallery
-    //   } {
-    //     gallery.onHover = (bs : Sigma[gallery.GalleryBoxType]) => {
-    //       for {
-    //         lbl <- bs.value.label
-    //       } {
-    //         el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = hoveredStroke))
-    //         el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = hoveredFill))
-    //       }
-    //     }
-
-    //     gallery.onUnhover = (bs : Sigma[gallery.GalleryBoxType]) => {
-    //       for {
-    //         lbl <- bs.value.label
-    //       } {
-    //         el.selectAll(".stroke-" + lblToClass(lbl)).attr(lit(stroke = unhoveredStroke))
-    //         el.selectAll(".fill-" + lblToClass(lbl)).attr(lit(fill = unhoveredFill))
-    //       }
-    //     }
-    //   }
+    }
 
     //============================================================================================
     // THE OBJECT
@@ -407,7 +393,7 @@ object Docs extends JSApp {
       objectEl.append(f)
     })
 
-    // installHandlers(objectViewer, objectEl)
+    installHandlers(objectViewer, objectEl)
 
     //============================================================================================
     // THE ARROW
@@ -423,7 +409,7 @@ object Docs extends JSApp {
       arrowEl.append(f)
     })
 
-    // installHandlers(arrowViewer, arrowEl)
+    installHandlers(arrowViewer, arrowEl)
 
     //============================================================================================
     // THE DROP
@@ -439,7 +425,7 @@ object Docs extends JSApp {
       dropEl.append(f)
     })
 
-    // installHandlers(dropViewer, dropEl)
+    installHandlers(dropViewer, dropEl)
 
     //============================================================================================
     // THE TWOGLOB
@@ -455,7 +441,7 @@ object Docs extends JSApp {
       twoglobEl.append(f)
     })
 
-    // installHandlers(twoglobViewer, twoglobEl)
+    installHandlers(twoglobViewer, twoglobEl)
 
     //============================================================================================
     // THE SIMPLEX
@@ -471,7 +457,7 @@ object Docs extends JSApp {
       simplexEl.append(f)
     })
 
-    // installHandlers(simplexViewer, simplexEl)
+    installHandlers(simplexViewer, simplexEl)
 
     //============================================================================================
     // THE QUAD
@@ -487,7 +473,7 @@ object Docs extends JSApp {
       quadEl.append(f)
     })
 
-    // installHandlers(quadViewer, quadEl)
+    installHandlers(quadViewer, quadEl)
 
     //============================================================================================
     // THE THREECELL
@@ -504,8 +490,7 @@ object Docs extends JSApp {
       threecellEl.append(f)
     })
 
-    // installHandlers(threecellViewer, threecellEl)
-
+    installHandlers(threecellViewer, threecellEl)
 
   }
 

@@ -38,9 +38,9 @@ class JsStableViewer[A: Renderable] {
         val g: GalleryType =
           new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(cc)
 
-        // g.onSelectAsRoot = (c: CellType) => onSelectAsRoot(c)
-        // g.onHover = (c: CellType) => onHover(c)
-        // g.onUnhover = (c: CellType) => onUnhover(c)
+        g.onSelectAsRoot = (c: CellType) => onSelectAsRoot(c)
+        g.onHover = (c: CellType) => onHover(c)
+        g.onUnhover = (c: CellType) => onUnhover(c)
 
         jQuery(uiElement).empty().append(g.element.uiElement)
 
