@@ -6,8 +6,70 @@
     <h2 class="ui dividing header">Universal Properties</h2>
 
     <p>
-      We discuss universal properties.
+      One of the attractive features of working with opetopic categories
+      is that the very definition of an opetopic category is given in 
+      terms of what is possibly the most important concept of category
+      theory: universal properties.
     </p>
+
+    <p>
+      In this section, we are going to describe to universal properties
+      that a cell in an opetopic set might have.  The definitions are 
+      mutually coinductive, but we hope this will not scare away too 
+      many readers.
+    </p>
+
+    <p>
+      Let's begin with a cell f as in the previous section.
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/cellctxt.svg"></object>
+    </div>
+
+    <p>
+      Our first definition makes use of the target extrusion of f and
+      is meant to capture the idea that the cell w is the composite
+      of x, y and z with f as a witness to this fact.  It proceeds as
+      follows:
+    </p>
+
+    <div class="ui top attached inverted grey segment">
+      <div class="ui header">Target Universal</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/luniv1.svg"></object>
+    </div>
+    <div class="ui bottom attached segment">
+      <p>
+	Definition: a cell f is said to be <em>target universal</em>
+	if for all s and t filling the cells depicted in green, there
+	exist u and v completing the diagram such that v both is target
+	universal and source universal at u.
+      </p>
+    </div>
+
+    <p>
+      Not surprisingly, the definition of source universal will now
+      make use of the source extrusion, which recall takes place with
+      respect to a selected source cell.
+    </p>
+
+    <div class="ui top attached inverted grey segment">
+      <div class="ui header">Source Universal</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/runiv1.svg"></object>
+    </div>
+    <div class="ui bottom attached segment">
+      <p>
+	Definition: a cell f is said to be <em>source universal</em>
+	at a given source cell x if for all s and t filling the cells
+	depicted in green, there exist u and v completing the diagram
+	such that v is both target universal and source universal at
+	u.
+      </p>
+    </div>
 
     <div class="ui secondary menu">
       <div class="item">
