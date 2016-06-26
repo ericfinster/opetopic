@@ -224,7 +224,7 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
           case (mk, Some(be)) => {
 
             val re = mk.rootEdge
-            val dec = re.addDecoration(be, -baseLayout.height - decorationPadding)
+            val dec = re.addDecoration(be, -baseLayout.height - decorationPadding - be.bounds.height)
             re.rootY = baseBox.y - (fromInt(2) * externalPadding)
 
           }
