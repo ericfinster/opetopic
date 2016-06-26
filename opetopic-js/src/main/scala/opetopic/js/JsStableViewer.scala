@@ -80,4 +80,7 @@ class JsStableViewer[A: Renderable] {
 
   }
 
+  def refreshViewer: Unit = 
+    activeGallery.foreach(_.renderAll)
+
 }

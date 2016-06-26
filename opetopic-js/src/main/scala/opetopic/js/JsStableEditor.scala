@@ -218,6 +218,4 @@ class JsStableEditor[A: Renderable] {
 
   }
 
-
-
 }

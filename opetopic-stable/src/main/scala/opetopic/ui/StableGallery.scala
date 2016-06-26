@@ -204,6 +204,8 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
         baseLayout <- thisGallery.layout(boxNesting, lvs)
       } yield {
 
+        // Put in the edge decoration code for the base cell here!!!
+
         // println("Finished layout in dimension: " + dim)
 
         val baseBox = boxNesting.baseValue

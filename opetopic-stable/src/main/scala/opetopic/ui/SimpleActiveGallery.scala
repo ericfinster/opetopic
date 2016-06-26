@@ -92,10 +92,18 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
 
   }
 
-  class SimpleActiveCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) 
+  class SimpleActiveCell(il: A, val dim: Int, val address: SAddr, val isExternal: Boolean) 
       extends ActiveCell {
 
-    val cellRendering: CellRendering = 
+    private var myLabel: A = il
+
+    def label: A = myLabel
+    def label_=(l: A): Unit = {
+      myLabel = l
+      cellRendering = implicitly[Renderable[A]].render(framework)(label)
+    }
+
+    var cellRendering: CellRendering = 
       implicitly[Renderable[A]].
         render(framework)(label)
 

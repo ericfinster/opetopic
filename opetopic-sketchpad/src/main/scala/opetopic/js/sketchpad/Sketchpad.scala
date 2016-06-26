@@ -31,11 +31,16 @@ object Sketchpad extends JSApp {
   val viewer = new JsStableViewer[Option[SimpleMarker]]
   val frameViewer = new JsStableViewer[Option[SimpleMarker]]
 
-  import editor.StableCell
+  type EditorCell = editor.StableCell
+  type FrameCell = frameViewer.CellType
 
-  editor.onSelectAsRoot = (c: StableCell) => {
+  editor.onSelectAsRoot = (c: EditorCell) => {
     showRootFace
     showProps(c)
+  }
+
+  frameViewer.onSelectAsRoot = (c: FrameCell) => {
+    updateDecoration(c)
   }
 
   def main : Unit = {
@@ -132,21 +137,46 @@ object Sketchpad extends JSApp {
 
     editor.updateLabel({
       case None => Some(SimpleMarker(labelVal))
-      case Some(SimpleMarker(l, s)) => Some(SimpleMarker(labelVal, s))
+      case Some(SimpleMarker(l, s, td, sd)) => Some(SimpleMarker(labelVal, s, td, sd))
     })
 
     showRootFace
 
   }
 
+  def updateDecoration(c: FrameCell): Unit = {
+    println("Updating decoration...")
+
+
+    for {
+      _ <- editor.withRoot(sc => {
+        sc.label match {
+          case None => {
+            sc.label = Some(SimpleMarker("", DefaultColorSpec, Some(TriangleDec("black")), Map()))
+            editor.refreshEditor
+            viewer.refreshViewer
+          }
+          case Some(mk) => {
+            if (c.isExternal) {
+              println("Source ...")
+            } else {
+              println("Target ...")
+              val nmk = mk.copy(targetDec = Some(TriangleDec("black")))
+              sc.label = Some(nmk)
+              editor.refreshEditor
+              viewer.refreshViewer
+            }
+          }
+        }
+        Some(())
+      })
+    } yield ()
+  }
+
   def showRootFace: Unit = 
     for {
       face <- editor.rootFace
-    } {
-
-      viewer.complex = Some(face)
-
-    }
+    } { viewer.complex = Some(face) }
 
   def updateFillColor: Unit = {
     
@@ -154,8 +184,8 @@ object Sketchpad extends JSApp {
 
     editor.updateLabel({
       case None => Some(SimpleMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-      case Some(SimpleMarker(l, s)) =>
-        Some(SimpleMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs)))
+      case Some(SimpleMarker(l, s, td, sd)) =>
+        Some(SimpleMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs), td, sd))
     })
 
     showRootFace
@@ -168,8 +198,8 @@ object Sketchpad extends JSApp {
 
     editor.updateLabel({
       case None => Some(SimpleMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-      case Some(SimpleMarker(l, s)) => 
-        Some(SimpleMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
+      case Some(SimpleMarker(l, s, td, sd)) => 
+        Some(SimpleMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), td, sd))
     })
 
     showRootFace
@@ -328,7 +358,7 @@ object Sketchpad extends JSApp {
       case _ => "white"
     }
 
-  def showProps(c: StableCell): Unit = {
+  def showProps(c: EditorCell): Unit = {
 
     for { f <- c.face } {
       if (f.length > 1) {

@@ -72,7 +72,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
       panelGroup.children =
         intCells.map(_.boxGroup) ++
-          edges.map(_.edgePath) ++
+          edges.map(_.edgeGroup) ++
           extCells.map(_.boxGroup)
 
     }
@@ -196,7 +196,21 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
       p
     }
 
-    def renderEdge: Unit = edgePath.d = pathString
+    val edgeGroup = group
+
+    def renderEdge: Unit = {
+
+      edgePath.d = pathString
+
+      val decs = 
+        edgeDecorations.map((dm: DecorationMarker) => {
+          translate(dm.be.element, dm.rootX - half(dm.be.bounds.width), dm.rootY)
+          dm.be.element
+        })
+
+      edgeGroup.children = edgePath +: decs.toSeq
+
+    }
 
   }
 
