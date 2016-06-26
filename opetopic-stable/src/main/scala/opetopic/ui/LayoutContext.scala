@@ -407,11 +407,11 @@ trait LayoutContext[F <: UIFramework] {
                           case Some(be) => {
 
                             val re = thisMarker.rootEdge
-                            val dec = re.addDecoration(be, -localLayout.height - decorationPadding)
+                            val dec = re.addDecoration(be, -localLayout.height - decorationPadding - be.bounds.height)
                             localLayout.element.horizontalDependents += dec
                             localLayout.element.verticalDependents += dec
 
-                            be.bounds.height + decorationPadding + strokeWidth
+                            be.bounds.height + decorationPadding + (fromInt(3) * strokeWidth)
 
                           }
                         }

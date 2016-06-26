@@ -28,7 +28,7 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
 
   var internalPadding : Size = fromInt(400)
   var externalPadding : Size = fromInt(600)
-  var decorationPadding : Size = fromInt(400)
+  var decorationPadding : Size = fromInt(300)
   var leafWidth : Size = fromInt(200)
   var strokeWidth : Size = fromInt(100)
   var cornerRadius : Size = fromInt(200)
