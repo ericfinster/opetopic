@@ -82,6 +82,12 @@ class JsStableEditor[A: Renderable] {
       // root.selectAsRoot
     }
 
+  def rootAction(f: StableCell => Unit): Unit = 
+    for {
+      tab <- activeTab
+      root <- tab.editor.selectionRoot
+    } { f(root) }
+
   def withRoot[B](f: StableCell => Option[B]): Option[B] = 
     for {
       tab <- activeTab

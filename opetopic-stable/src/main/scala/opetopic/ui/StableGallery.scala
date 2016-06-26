@@ -204,19 +204,46 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
         baseLayout <- thisGallery.layout(boxNesting, lvs)
       } yield {
 
-        // Put in the edge decoration code for the base cell here!!!
-
-        // println("Finished layout in dimension: " + dim)
-
         val baseBox = boxNesting.baseValue
 
-        for { l <- lvs } {
-          l.rootEdge.rootY = baseBox.y - (fromInt(2) * externalPadding)
-        }
+        val tgtDec = baseBox.targetDecoration
+        val srcDecs = baseBox.sourceDecorations
 
-        // Set the position of the outgoing edge
-        baseLayout.rootEdge.endMarker.rootY =
-          baseBox.rootY + (fromInt(2) * externalPadding)
+        val srcMks : List[(LayoutMarker, Option[BoundedElement])] =
+          lvs.mapWithAddr((mk, addr) => {
+            val decOpt =
+              if (srcDecs.isDefinedAt(addr))
+                Some(srcDecs(addr))
+              else None
+
+            (mk, decOpt)
+          }).toList
+
+        srcMks.foreach({
+          case (mk, None) => mk.rootEdge.rootY = baseBox.y - (fromInt(2) * externalPadding)
+          case (mk, Some(be)) => {
+
+            val re = mk.rootEdge
+            val dec = re.addDecoration(be, -baseLayout.height - decorationPadding)
+            re.rootY = baseBox.y - (fromInt(2) * externalPadding)
+
+          }
+        })
+
+        tgtDec match {
+          case None => {
+            baseLayout.rootEdge.endMarker.rootY =
+              baseBox.rootY + (fromInt(2) * externalPadding)
+          }
+          case Some(be) => {
+
+            val re = baseLayout.rootEdge
+            val dec = re.addDecoration(be, decorationPadding)
+            re.endMarker.rootY =
+              baseBox.rootY + (fromInt(2) * externalPadding)
+
+          }
+        }
 
         bounds
 

@@ -175,6 +175,7 @@ trait LayoutContext[F <: UIFramework] {
       edgeStartY = zero
       edgeEndX = zero
       edgeEndY = zero
+      edgeDecorations.clear
     }
 
   }

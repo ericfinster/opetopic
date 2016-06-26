@@ -33,8 +33,25 @@
 	      <div class="content field">
 		<div class="ui center aligned plain segment" id="edge-props"></div>
 		<div class="ui fluid buttons">
-		  <button type="button" class="ui button">Shape</button>
-		  <button type="button" class="ui button">Color</button>
+		  <div id="dec-shape-btn" class="ui labeled dropdown icon button">
+		    <i class="dropdown icon"></i>
+		    <span class="text">Shape</span>
+		    <div class="menu">
+		      <div class="item" data-value="triangle">Triangle</div>
+		      <div class="item" data-value="square">Square</div>
+		      <div class="item" data-value="circle">Circle</div>
+		    </div>
+		  </div>
+		  <div id="dec-color-btn" class="ui black right labeled dropdown icon button">
+		    <span class="text">Color</span>
+		    <i class="dropdown icon"></i>
+		    <div class="menu">
+		      <div class="item" data-value="black"><div class="ui black empty circular label"></div>Black</div>
+		      <div class="item" data-value="red"><div class="ui red empty circular label"></div>Red</div>
+		      <div class="item" data-value="green"><div class="ui green empty circular label"></div>Green</div>
+		      <div class="item" data-value="blue"><div class="ui blue empty circular label"></div>Blue</div>
+		    </div>
+		  </div>
 		</div>
 	      </div>
 	    </div>

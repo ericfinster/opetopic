@@ -39,8 +39,8 @@ object Sketchpad extends JSApp {
     showProps(c)
   }
 
-  frameViewer.onSelectAsRoot = (c: FrameCell) => {
-    updateDecoration(c)
+  frameViewer.onSelectAsRoot = (c: FrameCell) => { 
+    showDecoration
   }
 
   def main : Unit = {
@@ -68,6 +68,23 @@ object Sketchpad extends JSApp {
       movePopup = false,
       on = "click",
       onShow = () => { isFill = false }
+    ))
+
+    jQuery("#dec-shape-btn").dropdown(lit(
+      action = "hide",
+      onChange = (shape: String) => {
+        decShape = shape
+        updateDecoration
+      }
+    ))
+
+    jQuery("#dec-color-btn").dropdown(lit(
+      action = "hide",
+      onChange = (color: String) => {
+        jQuery("#dec-color-btn").removeClass(decColor).addClass(color)
+        decColor = color
+        updateDecoration
+      }
     ))
 
     jQuery("#label-input").on("input", () => { updateLabel })
@@ -120,6 +137,9 @@ object Sketchpad extends JSApp {
   var strokeColor: String = "black"
   var selectedSketch: Option[(String, dom.Element)] = None
 
+  var decColor: String = "black"
+  var decShape: String = "none"
+
   def updateLabel: Unit = {
 
     import latex.LatexParser
@@ -144,33 +164,37 @@ object Sketchpad extends JSApp {
 
   }
 
-  def updateDecoration(c: FrameCell): Unit = {
-    println("Updating decoration...")
+  def showDecoration: Unit = {
+    println("Showing decoration ...")
+  }
 
+  def updateDecoration: Unit = {
 
-    for {
-      _ <- editor.withRoot(sc => {
-        sc.label match {
-          case None => {
-            sc.label = Some(SimpleMarker("", DefaultColorSpec, Some(TriangleDec("black")), Map()))
-            editor.refreshEditor
-            viewer.refreshViewer
+    frameViewer.rootAction(fc => {
+      editor.rootAction(ec => {
+        println("Updating decoration...")
+
+        if (fc.isExternal) {
+          val dec = EdgeDecoration(decShape, decColor, false)
+          val addr = fc.address.head.dir
+          ec.label match {
+            case None => ec.label = Some(SimpleMarker("").addSourceDec(addr, dec))
+            case Some(mk) => ec.label = Some(mk.addSourceDec(addr, dec))
           }
-          case Some(mk) => {
-            if (c.isExternal) {
-              println("Source ...")
-            } else {
-              println("Target ...")
-              val nmk = mk.copy(targetDec = Some(TriangleDec("black")))
-              sc.label = Some(nmk)
-              editor.refreshEditor
-              viewer.refreshViewer
-            }
+        } else {
+          val dec = EdgeDecoration(decShape, decColor, true)
+          ec.label match {
+            case None => ec.label = Some(SimpleMarker("").withTargetDec(Some(dec)))
+            case Some(mk) => ec.label = Some(mk.withTargetDec(Some(dec)))
           }
         }
-        Some(())
+
+        editor.refreshEditor
+        showRootFace
+
       })
-    } yield ()
+    })
+
   }
 
   def showRootFace: Unit = 
@@ -179,13 +203,10 @@ object Sketchpad extends JSApp {
     } { viewer.complex = Some(face) }
 
   def updateFillColor: Unit = {
-    
-    val (f, fh, fs) = colorTripleGen(fillColor)
 
     editor.updateLabel({
-      case None => Some(SimpleMarker("", DefaultColorSpec.copy(fill = f, fillHovered = fh, fillSelected = fs)))
-      case Some(SimpleMarker(l, s, td, sd)) =>
-        Some(SimpleMarker(l, s.copy(fill = f, fillHovered = fs, fillSelected = fs), td, sd))
+      case None => Some(SimpleMarker("").withFill(fillColor))
+      case Some(mk) => Some(mk.withFill(fillColor))
     })
 
     showRootFace
@@ -194,12 +215,9 @@ object Sketchpad extends JSApp {
 
   def updateStrokeColor: Unit = {
 
-    val (st, sh, ss) = colorTripleGen(strokeColor)
-
     editor.updateLabel({
-      case None => Some(SimpleMarker("", DefaultColorSpec.copy(stroke = st, strokeHovered = sh, strokeSelected = ss)))
-      case Some(SimpleMarker(l, s, td, sd)) => 
-        Some(SimpleMarker(l, s.copy(stroke = st, strokeHovered = sh, strokeSelected = ss), td, sd))
+      case None => Some(SimpleMarker("").withStroke(strokeColor))
+      case Some(mk) => Some(mk.withStroke(strokeColor))
     })
 
     showRootFace
@@ -321,43 +339,6 @@ object Sketchpad extends JSApp {
 
     }
 
-  def colorTripleGen(color: String) : (String, String, String) = 
-    color match {
-      case "red"    => ("#DB2828", "#DB2828", "#DB2828")
-      case "orange" => ("#F2711C", "#F2711C", "#F2711C")
-      case "yellow" => ("#FBBD08", "#FBBD08", "#FBBD08")
-      case "olive"  => ("#B5CC18", "#B5CC18", "#B5CC18")
-      case "green"  => ("#21BA45", "#21BA45", "#21BA45")
-      case "teal"   => ("#00B5AD", "#00B5AD", "#00B5AD")
-      case "blue"   => ("#2185D0", "#2185D0", "#2185D0")
-      case "violet" => ("#6435C9", "#6435C9", "#6435C9")
-      case "purple" => ("#A333C8", "#A333C8", "#A333C8")
-      case "pink"   => ("#E03997", "#E03997", "#E03997")
-      case "brown"  => ("#A5673F", "#A5673F", "#A5673F")
-      case "grey"   => ("lightgrey", "darkgrey", "grey")
-      case "black"  => ("#1B1C1D", "#1B1C1D", "#1B1C1D")
-      case _ => ("#FFFFFF", "#F3F4F5", "#DCDDDE")
-    }
-
-  def colorReverseLookup(str: String) : String = 
-    str match {
-      case "#DB2828" => "red"
-      case "#F2711C" => "orange"
-      case "#FBBD08" => "yellow"
-      case "#B5CC18" => "olive"
-      case "#21BA45" => "green"
-      case "#00B5AD" => "teal"
-      case "#2185D0" => "blue"
-      case "#6435C9" => "violet"
-      case "#A333C8" => "purple"
-      case "#E03997" => "pink"
-      case "#A5673F" => "brown"
-      case "lightgrey" => "grey"
-      case "#1B1C1D" => "black"
-      case "#000000" => "black"
-      case _ => "white"
-    }
-
   def showProps(c: EditorCell): Unit = {
 
     for { f <- c.face } {
@@ -382,8 +363,8 @@ object Sketchpad extends JSApp {
         jQuery("#label-input").value("")
       }
       case Some(mk) => {
-        showFill(colorReverseLookup(mk.colorSpec.fill))
-        showStroke(colorReverseLookup(mk.colorSpec.stroke))
+        showFill(mk.colorSpec.fillColor)
+        showStroke(mk.colorSpec.strokeColor)
         jQuery("#label-input").value(mk.lbl)
       }
     }

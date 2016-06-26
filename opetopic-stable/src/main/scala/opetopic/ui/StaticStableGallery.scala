@@ -42,8 +42,18 @@ abstract class StaticStableGallery[F <: UIFramework](frmwk: F)
 
     }
 
-    def edgeElement: Element = 
-      path(pathString, "black", strokeWidth, "none")
+    def edgeElement: Element = {
+
+      val p = path(pathString, "black", strokeWidth, "none")
+
+      val decs = 
+        edgeDecorations.map((dm: DecorationMarker) => {
+          translate(dm.be.element, dm.rootX - half(dm.be.bounds.width), dm.rootY)
+        })
+
+      group(p +: decs.toSeq : _*)
+
+    }
 
   }
 

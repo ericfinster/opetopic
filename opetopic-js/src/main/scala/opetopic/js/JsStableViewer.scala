@@ -83,4 +83,10 @@ class JsStableViewer[A: Renderable] {
   def refreshViewer: Unit = 
     activeGallery.foreach(_.renderAll)
 
+  def rootAction(f: CellType => Unit): Unit = 
+    for {
+      g <- activeGallery
+      r <- g.selectionRoot
+    } { f(r) }
+
 }
