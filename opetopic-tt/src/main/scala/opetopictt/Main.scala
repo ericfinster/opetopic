@@ -9,9 +9,8 @@ package opetopictt
 
 import scala.io.Source._
 
-import scalaz.\/
-import scalaz.-\/
-import scalaz.\/-
+import opetopic.mtl._
+import Xor._
 
 import fastparse.core.Parsed.Success
 import fastparse.core.Parsed.Failure
@@ -41,8 +40,8 @@ object Main {
           // println(expr.toString)
 
           check(RNil, Nil, expr, Unt) match {
-            case \/-(_) => println("Typechecking successful.")
-            case -\/(msg) => println("Failure: " + msg)
+            case Right(_) => println("Typechecking successful.")
+            case Left(msg) => println("Failure: " + msg)
           }
 
         }

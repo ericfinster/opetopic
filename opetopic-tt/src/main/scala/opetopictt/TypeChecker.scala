@@ -385,20 +385,17 @@ object TypeChecker {
   // AN ERROR MONAD
   //
 
-  import scalaz.\/
-  import scalaz.-\/
-  import scalaz.\/-
-  import scalaz.Monad
-  import scalaz.std.list._
+  import opetopic.mtl._
+  import Xor._
 
   type ErrorMessage = String
-  type G[A] = \/[ErrorMessage, A]
+  type G[A] = Xor[ErrorMessage, A]
 
   val M = Monad[G]
   import M._
 
   def fail[A](str: String) : G[A] = 
-    -\/(str)
+    Left(str)
 
   //============================================================================================
   // TYPE ENVIRONMENT

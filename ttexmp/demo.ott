@@ -1,0 +1,55 @@
+--
+--  demo.ott - do comments work?
+--
+
+--
+--  Testing the major constants ...
+--
+
+let monad : Type = Mnd;
+let indexOf : (M : Mnd) -> Type = \M. IndexOf M ;
+let consOf : (M : Mnd) -> (i : IndexOf M) -> Type = \M. \i. ConsOf M i ;
+
+let et : (M : Mnd) -> (i : IndexOf M) -> ConsOf M i
+       = \M. \i. eta M i ;
+
+let mt : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> (d : (p :> M i c) -> ConsOf M [p]) -> ConsOf M i
+       = \M. \i. \c. \d. mu M i c d ;
+
+let etI : (M : Mnd) -> (P : (IndexOf M) -> Type) -> (i : IndexOf M) -> (x : P i) -> (p :> M i (eta M i)) -> P [p]
+    	= \M. \P. \i. \x. <_> x ;
+
+let corolla : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> (p :> M i c) -> ConsOf M [p]
+    	    = \M. \i. \c. <p> eta M [p] ;
+
+let unitRight : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> ConsOf M i
+    	      = \M. \i. \c. mu M i c (<p> eta M [p]) ;
+
+normalize unitRight ;
+
+let unitLeft : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> ConsOf M i
+    	     = \M. \i. \c. mu M i (eta M i) (<_> c) ;
+
+normalize unitLeft ; 
+
+-- 
+--  Here are some more geometrically motivated definitions ...
+--
+
+let target : (M : Mnd) -> (f : IndexOf (Sl M)) -> IndexOf M
+    	   = \M. \f. fst f ;
+
+let source : (M : Mnd) -> (f : IndexOf (Sl M)) -> ConsOf M (target M f)
+    	   = \M. \f. snd f ;
+
+let glob : (M : Mnd) -> (i : IndexOf M) -> IndexOf (Sl M)
+    	 = \M. \i. (i, eta M i) ;
+
+let drop : (M : Mnd) -> (i : IndexOf M) -> IndexOf (Sl (Sl M))
+    	 = \M. \i. ((i, eta M i), dot M i) ;
+
+-- Fuck yeah!! Left extensions, bitches!
+-- let lext : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> IndexOf (Sl (Sl M))
+--     	 = \M. \i. \c. ((i, c), unitLeft (Sl M) (i , c) (corollaBox M i c)) ;
+
+tt
