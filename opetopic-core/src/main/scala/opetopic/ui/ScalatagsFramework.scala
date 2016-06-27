@@ -13,7 +13,7 @@ import scalatags.generic._
 import opetopic._
 
 class ScalatagsFramework[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) 
-    extends UIFramework with HasGalleries with HasStaticGalleries {
+    extends UIFramework {
 
   import bundle._
 

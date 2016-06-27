@@ -9,12 +9,14 @@ package opetopic.tt
 
 import scala.io.Source._
 
-import scalaz.\/
-import scalaz.-\/
-import scalaz.\/-
+import fastparse.core.Parsed.Success
+import fastparse.core.Parsed.Failure
 
-import OTTParser._
-import OTTTypeChecker._
+import opetopic.mtl._
+
+import Parser._
+import Lexer._
+import TypeChecker._
 
 object Main {
 
@@ -29,18 +31,24 @@ object Main {
       val lines : String = 
         fromFile(args(0)).mkString
 
-      parseAll(phrase(expr), lines) match {
-        case Success(e, _) => {
+      program.parse(lines) match {
+        case Success(expr, _) => {
 
-          println("Parsing succesful, now typechecking ...")
+          println("Parsing successful.")
+          // println(expr.toString)
 
-          check(RNil, Nil, e, Unt) match {
-            case -\/(msg) => println("Typechecking error: " + msg)
-            case \/-(()) => println("Success")
+          check(RNil, Nil, expr, Unt) match {
+            case Xor.Right(_) => println("Typechecking successful.")
+            case Xor.Left(msg) => println("Failure: " + msg)
           }
+
         }
-        case err => println(err.toString)
+        case f @ Failure(_, _, e) => {
+          println("Failure: " + f.msg)
+          println(e.traced.trace)
+        }
       }
+
     }
 
   }

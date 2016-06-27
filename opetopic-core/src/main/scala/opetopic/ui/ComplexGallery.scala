@@ -1,5 +1,5 @@
 /**
-  * ComplexGallery.scala - A Gallery for Displaying a complex
+  * ComplexGallery.scala - A Trait for a gallery containing a complex
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -8,56 +8,82 @@
 package opetopic.ui
 
 import opetopic._
-import syntax.suite._
-import syntax.complex._
-import syntax.nesting._
+import opetopic.mtl._
 
-trait HasComplexGalleries { self: UIFramework with HasPanels with HasGalleries => 
+trait ComplexGallery[F <: UIFramework] { thisGallery: StableGallery[F] => 
 
-  import isNumeric._
+  type PanelType <: ComplexPanel
 
-  trait ComplexGallery[A[_ <: Nat]] extends Gallery[A] {
+  trait ComplexPanel { thisPanel : PanelType => 
 
-    def complex: FiniteComplex[A]
+    val edgeData: Either[PanelType, SNesting[EdgeType]]
 
-    type AComplex[N <: Nat] = Complex[A, N]
+    def edgeNesting: SNesting[CellType] = 
+      edgeData match {
+        case Left(pp) => pp.boxNesting
+        case Right(en) => en
+      }
 
-    type GalleryPanelType[N <: Nat] <: ComplexPanel[N]
-    type GalleryAddressType[N <: Nat] = Address[S[N]]
+    def refreshEdges: Unit = 
+      edgeData match {
+        case Left(pp) => {
 
-    def createObjectPanel(nst: Nesting[A[_0], _0]) : GalleryPanelType[_0]
-    def createNestingPanel[P <: Nat](p: P)(bn: Nesting[A[S[P]], S[P]], en: Nesting[A[P], P]) : GalleryPanelType[S[P]]
-
-    @natElim
-    def createPanels[N <: Nat](n: N)(cmplx: Complex[A, N]) : Suite[GalleryPanelType, S[N]] = {
-      case (Z, Complex(_, objNst)) => SNil[GalleryPanelType] >> createObjectPanel(objNst)
-      case (S(p), Complex(tl, hd)) => createPanels(p)(tl) >> createNestingPanel(p)(hd, tl.head)
-    }
-
-    trait ComplexPanel[N <: Nat] extends GalleryPanel[N] { 
-
-      def seekToAddress(addr: Address[S[N]]) : ShapeM[NestingZipper[BoxType, N]] = 
-        boxNesting.seekTo(addr)
-
-    }
-
-    def boxComplex : FiniteComplex[GalleryBoxType] = {
-
-      type NestingType[N <: Nat] = Nesting[GalleryBoxType[N], N]
-
-      val ps = panels
-
-      val res : Suite[NestingType, S[ps.P]] = ps.map(
-        new IndexedMap[GalleryPanelType, NestingType] {
-          def apply[N <: Nat](n: N)(p: GalleryPanelType[N]) : NestingType[N] = 
-            p.boxNesting
+          boxNesting match {
+            case SDot(c) => c.outgoingEdge = Some(pp.boxNesting.baseValue)
+            case SBox(_, cn) => 
+              for {
+                sp <- cn.spine
+                _ <- sp.matchTraverse[EdgeType, Unit](pp.boxNesting.toTree)({
+                  case (c, e) => Some({ c.outgoingEdge = Some(e) })
+                })
+              } { }
+          }
+          
         }
-      )
+        case Right(en) => {
+          boxNesting.map(c => c.outgoingEdge = Some(en.baseValue))
+        }
+      }
 
-      complexToFiniteComplex[GalleryBoxType, ps.P](res)
-
-    }
+    // Refresh upon initialization
+    refreshEdges
 
   }
+
+  def createCell(lbl: LabelType, dim: Int, addr: SAddr, isExternal: Boolean): CellType
+  def createPanel(bn: SNesting[CellType], en: Either[PanelType, SNesting[CellType]]): PanelType
+
+  def buildCells(dim: Int, n: SNesting[LabelType]): SNesting[CellType] =
+    n.foldNestingWithAddr[SNesting[BoxType]]()({
+      case (a, addr) => SDot(createCell(a, dim, addr, true))
+    })({
+      case (a, addr, cn) => SBox(createCell(a, dim, addr, false), cn)
+    })
+
+  def buildPanels(c: SComplex[LabelType]) : Suite[PanelType] =
+    c match {
+      case ||(n) => {
+
+        val objNesting = buildCells(0, n)
+        val inEdge = createCell(n.baseValue, -1, Nil, true)
+        val outEdge = createCell(n.baseValue, -1, Nil, false)
+        val panel = createPanel(objNesting, Right(SBox(outEdge, STree.obj(SDot(inEdge)))))
+
+        ||(panel)
+
+      }
+      case tl >> hd => {
+
+        val tailPanels = buildPanels(tl)
+        val prevPanel = tailPanels.head
+
+        val panelCells = buildCells(prevPanel.dim + 1, hd)
+        val panel = createPanel(panelCells, Left(prevPanel))
+
+        tailPanels >> panel
+
+      }
+    }
+
 
 }

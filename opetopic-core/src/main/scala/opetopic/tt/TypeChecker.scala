@@ -8,12 +8,9 @@
 package opetopic.tt
 
 import opetopic._
-import syntax.tree._
-import syntax.nesting._
-import syntax.complex._
-import TypeLemmas._
+import opetopic.mtl._
 
-object OTTTypeChecker {
+object TypeChecker {
 
   def error(msg: String) : Null = 
     throw new IllegalArgumentException(msg)
@@ -102,6 +99,7 @@ object OTTTypeChecker {
       case EEmpty => Empty
       case EUnit => Unt
       case ETt => Tt
+
       case EDec(d, e) => eval(e, UpDec(rho, d))
       case ELam(p, e) => Lam(Cl(p, e, rho))
       case EPi(p, a, b) => Pi(eval(a, rho), Cl(p, b, rho))
@@ -114,29 +112,18 @@ object OTTTypeChecker {
 
       // Categories and Cells
       case ECat => Cat
-      case EOb(c) => Ob(eval(c, rho))
-      case ECell(c, e) => {
-        val fc = getOrError(parseComplex(e))
-        Cell(eval(c, rho), fc.value.map(EvalMap(rho)))
-      }
+      case EObj(c) => Obj(eval(c, rho))
+      case ECell(c, frm) => Cell(eval(c, rho), frm.map(eval(_, rho)))
 
       // Propertes
       case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
       case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
 
       // Composition and identities
-      case ERefl(c, e) => Refl(eval(c, rho), eval(e, rho))
-      case EDrop(c, e) => Drop(eval(c, rho), eval(e, rho))
-      case EComp(c, d, pd) => {
-        val dim = intToNat(d)
-        val pdTr = getOrError(parseTree(dim)(pd))
-        Comp(eval(c, rho), dim, pdTr.map(eval(_, rho)))
-      }
-      case EFill(c, d, pd) => {
-        val dim = intToNat(d)
-        val pdTr = getOrError(parseTree(dim)(pd))
-        Fill(eval(c, rho), dim, pdTr.map(eval(_, rho)))
-      }
+      case ERefl(e) => Refl(eval(e, rho))
+      case EDrop(e) => Drop(eval(e, rho))
+      case EComp(pd) => Comp(pd.map(eval(_, rho)))
+      case EFill(pd) => Fill(pd.map(eval(_, rho)))
 
       // Liftings
       case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -144,38 +131,17 @@ object OTTTypeChecker {
       case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
-      // Base properties
-      case EFillIsLeft(c, d, pd) => {
-        val dim = intToNat(d)
-        val pdTr = getOrError(parseTree(dim)(pd))
-        FillIsLeft(eval(c, rho), dim, pdTr.map(eval(_, rho)))
-      }
       case EDropIsLeft(c, e) => DropIsLeft(eval(c, rho), eval(e, rho))
+      case EFillIsLeft(c, pd) => FillIsLeft(eval(c, rho), eval(pd, rho))
       case EShellIsLeft(e, ev, s, t) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
 
       // Derived properties
       case EFillLeftIsLeft(e, ev, c, t) => FillLeftIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
-        FillLeftIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
-      case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
-        FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho), eval(l, rho), eval(f, rho), eval(fev, rho))
+      case EFillLeftIsRight(e, ev, c, t) => FillLeftIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillRightIsRight(e, ev, c, t) => FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
-      // Trees reduce ...
-      case ELf => VLf
-      case EPt(e) => VPt(eval(e, rho)) 
-      case ENd(e, sh) => VNd(eval(e, rho), eval(sh, rho))
-
-      // ... Nestings and complexes don't.
-      case EDot(_) => error("Unreduced dot")
-      case EBox(_, _) => error("Unreduced box")
-      case EHd(_) => error("Unreduced head")
-      case ETl(_, _) => error("Unreduced tail")
     }
-
-  case class EvalMap(rho: Rho) extends IndexedMap[ConstExpr, ConstVal] {
-    def apply[N <: Nat](n: N)(e: Expr) = eval(e, rho)
-  }
 
   //============================================================================================
   // READBACK FUNCTIONS
@@ -200,16 +166,16 @@ object OTTTypeChecker {
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
 
       case Cat => ECat
-      case Ob(v) => EOb(rbV(i, v))
-      case Cell(c, frm) => ECell(rbV(i, c), complexToExpr(frm.dim)(frm.map(RbMap(i))))
+      case Obj(v) => EObj(rbV(i, v))
+      case Cell(c, frm) => ECell(rbV(i, c), frm.map(rbV(i, _)))
 
       case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
       case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
 
-      case Refl(c, v) => ERefl(rbV(i, c), rbV(i, v))
-      case Drop(c, v) => EDrop(rbV(i, c), rbV(i, v))
-      case Comp(c, d, pd) => EComp(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
-      case Fill(c, d, pd) => EFill(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
+      case Refl(v) => ERefl(rbV(i, v))
+      case Drop(v) => EDrop(rbV(i, v))
+      case Comp(pd) => EComp(pd.map(rbV(i, _)))
+      case Fill(pd) => EFill(pd.map(rbV(i, _)))
 
       case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -217,19 +183,16 @@ object OTTTypeChecker {
       case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case DropIsLeft(c, v) => EDropIsLeft(rbV(i, c), rbV(i, v))
-      case FillIsLeft(c, d, pd) => EFillIsLeft(rbV(i, c), natToInt(d), treeToExpr(d)(pd.map(rbV(i, _))))
+      case FillIsLeft(c, pd) => EFillIsLeft(rbV(i, c), rbV(i, pd))
       case ShellIsLeft(e, ev, s, t) => EShellIsLeft(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
 
       case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillLeftIsRight(e, ev, c, t, l, f, fev) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
-      case FillRightIsRight(e, ev, c, t, l, f, fev) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t), rbV(i, l), rbV(i, f), rbV(i, fev))
-
-      case VLf => ELf
-      case VPt(v) => EPt(rbV(i, v))
-      case VNd(v, sh) => ENd(rbV(i, v), rbV(i, sh))
+      case FillLeftIsRight(e, ev, c, t) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillRightIsRight(e, ev, c, t) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case Nt(k) => rbN(i, k)
+
     }
   }
 
@@ -248,305 +211,173 @@ object OTTTypeChecker {
       case UpDec(rho, _) => rbRho(i, rho)
     }
 
-  case class RbMap(i: Int) extends IndexedMap[ConstVal, ConstExpr] {
-    def apply[N <: Nat](n: N)(v: Val) = rbV(i, v)
-  }
-
   //============================================================================================
   // AN ERROR MONAD
   //
 
-  import scalaz.\/
-  import scalaz.-\/
-  import scalaz.\/-
-  import scalaz.Monad
-  import scalaz.std.list._
-
   type ErrorMessage = String
-  type G[A] = \/[ErrorMessage, A]
+  type G[A] = Xor[ErrorMessage, A]
 
   val M = Monad[G]
   import M._
 
-  def getOrError[A](m : G[A]) : A = 
-    m match {
-      case -\/(msg) => throw new IllegalStateException(msg)
-      case \/-(a) => a
-    }
+  def succeed[A](a: A): G[A] = 
+    Xor.Right(a)
 
   def fail[A](str: String) : G[A] = 
-    -\/(str)
+    Xor.Left(str)
 
-  def toShape[A](m: G[A]) : ShapeM[A] = 
-    m match {
-      case -\/(msg) => -\/(ShapeError(msg))
-      case \/-(a) => \/-(a)
-    }
-
-  def fromShape[A](m: ShapeM[A]) : G[A] = 
-    m match {
-      case -\/(ShapeError(msg)) => -\/(msg)
-      case \/-(a) => \/-(a)
-    }
-
-  def fromOpt[A](o: Option[A], msg: String) : G[A] = 
-    o match {
+  def attempt[A](opt: Option[A], msg: String): G[A] = 
+    opt match {
       case None => fail(msg)
-      case Some(a) => \/-(a)
+      case Some(a) => Xor.Right(a)
+    }
+
+  def toOpt[A](m: G[A]): Option[A] = 
+    m match {
+      case Xor.Left(_) => None
+      case Xor.Right(a) => Some(a)
     }
 
   //============================================================================================
   // TREE AND COMPLEX ROUTINES
   //
 
-  @natElim
-  def parseTree[N <: Nat](n: N)(e: Expr) : G[Tree[Expr, N]] = {
-    case (Z, EPt(e)) => pure(Pt(e))
-    case (Z, e) => fail("Not a tree expression in dim 0: " + e.toString)
-    case (S(p: P), ELf) => pure(Leaf(S(p)))
-    case (S(p: P), ENd(e, sh)) => 
-      for {
-        shParse <- parseTree(p)(sh)
-        shRes <- shParse.traverse(parseTree(S(p))(_))
-      } yield Node(e, shRes)
-    case (S(p: P), e) => fail("Not a tree expression: " + e.toString)
-  }
+  type Frame[A] = (STree[A], A)
 
-  @natElim
-  def parseNesting[N <: Nat](n: N)(e: Expr) : G[Nesting[Expr, N]] = {
-    case (Z, EDot(e)) => pure(Obj(e))
-    case (Z, EBox(e, ec)) => 
-      for {
-        t <- parseTree(Z)(ec)
-        cn <- t.traverse[G, Nesting[Expr, _0]](parseNesting(Z)(_))
-      } yield Box(e, cn)
-    case (Z, _) => fail("Invalid nesting")
-    case (S(p: P), EDot(e)) => pure(Dot(e, S(p)))
-    case (S(p: P), EBox(e, ec)) => 
-      for {
-        t <- parseTree(S(p))(ec)
-        cn <- t.traverse[G, Nesting[Expr, S[P]]](parseNesting(S(p))(_))
-      } yield Box(e, cn)
-    case (S(p: P), _) => fail("Invalid nesting")
-  }
-
-  def parseComplex[N <: Nat](n: N)(e: Expr, s: Suite[ExprNesting, N]) : G[FiniteComplex[ConstExpr]] = 
-    e match {
-      case EHd(ne) => 
-        for {
-          nst <- parseNesting(n)(ne)
-        } yield Sigma[ExprComplex, N](n)(s >> nst)
-      case ETl(hd, tl) => 
-        for {
-          nst <- parseNesting(n)(hd)
-          res <- parseComplex(S(n))(tl, s >> nst)
-        } yield res
-      case _ => fail("Invalid complex")
-    }
-
-  def parseComplex(e: Expr) : G[FiniteComplex[ConstExpr]] = 
-    parseComplex(Z)(e, SNil[ExprNesting]())
-
-  @natElim
-  def parseAddress[N <: Nat](n: N)(a: Addr) : G[Address[N]] = {
-    case (Z, AUnit) => pure(())
-    case (Z, _) => fail("parseAdress: only unit in dim 0")
-    case (S(p), ANil) => pure(Nil)
-    case (S(p), ACons(hd, tl)) => 
-      for {
-        hd0 <- parseAddress(p)(hd)
-        tl0 <- parseAddress(S(p))(tl)
-      } yield hd0 :: tl0
-    case (S(p), _) => fail("parseAdress: unexpected address expression")
-  }
-
-  @natElim
-  def rbAddr[N <: Nat](n: N)(a: Address[N]) : Addr = {
-    case (Z, ()) => AUnit
-    case (S(p), Nil) => ANil
-    case (S(p), hd :: tl) => ACons(rbAddr(p)(hd), rbAddr(S(p))(tl))
-  }
-
-  @natElim
-  def treeToExpr[N <: Nat](n: N)(t: Tree[Expr, N]) : Expr = {
-    case (Z, Pt(e)) => EPt(e)
-    case (S(p), Leaf(_)) => ELf
-    case (S(p), Node(e, sh)) => ENd(e, treeToExpr(p)(sh.map(treeToExpr(S(p))(_))))
-  }
-
-  def nestingToExpr[N <: Nat](n: N)(nst: Nesting[Expr, N]) : Expr = 
-    nst match {
-      case Obj(e) => EDot(e)
-      case Dot(e, _) => EDot(e)
-      case Box(e, cn) => EBox(e, treeToExpr(n)(cn.map(nestingToExpr(n)(_))))
-    }
-
-  @natElim
-  def complexToExpr[N <: Nat](n: N)(c: ExprComplex[N], tlOpt: Option[Expr] = None) : Expr = {
-    case (Z, Complex(_, hd), tlOpt) => {
-      val hde = nestingToExpr(Z)(hd)
-      tlOpt.map(ETl(hde, _)) getOrElse EHd(hde)
-    }
-    case (S(p), Complex(tl, hd), tlOpt) => {
-      val hde = nestingToExpr(S(p))(hd)
-      complexToExpr(p)(tl, Some(tlOpt.map(ETl(hde, _)).getOrElse(EHd(hde))))
-    }
-  }
-
-  def sourceTree[A[_ <: Nat], N <: Nat](c: Complex[A, N]) : G[Tree[A[N], N]] = 
+  def getFrame[A](c: SComplex[A]): G[Frame[A]] = 
     c.head match {
-      case Box(_, cn) => 
+      case SBox(tgt, cn) => 
         for {
-          st <- cn.traverse[G, A[N]]((nst : Nesting[A[N], N]) => 
-            if (Nesting.isExternal(nst)) 
-              pure(nst.baseValue) 
-            else 
-              fail("Source tree contains non-external nesting")
-          )
-        } yield st
-      case _ => fail("Error extracting source tree")
+          srcTr <- attempt(cn.traverse(_.dotOption), "Not a frame")
+        } yield (srcTr, tgt)
+      case _ => fail("Not a frame")
     }
 
-  @natElim
-  def checkCell[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
-    case (Z, rho, gma, Complex(_, Obj(e)), cat) => check(rho, gma, e, Ob(cat))
-    case (Z, rho, gma, Complex(_, _), cat) => fail("checkCell: too many objects!")
-    case (S(p: P), rho, gma, Complex(tl, Dot(e, _)), cat) => {
-      for {
-        _ <- checkFrame(p)(rho, gma, tl, cat)
-        _ <- check(rho, gma, e, Cell(cat, tl.map(EvalMap(rho))))
-      } yield ()
-    }
-    case (S(p: P), rho, gma, Complex(tl, _), cat) => fail("checkCell: too many top cells!")
-  }
+  def getSources[A](c: SComplex[A]): G[STree[A]] = 
+    for { f <- getFrame(c) } yield f._1
 
-  @natElim
-  def checkFrame[N <: Nat](n: N)(rho: Rho, gma: Gamma, cmplx: ExprComplex[N], cat: Val) : G[Unit] = {
-    case (Z, rho, gma, Complex(_, hd), cat) => {
-      hd match {
-        case Box(tgt, Pt(Obj(src))) => 
-          for {
-            _ <- check(rho, gma, src, Ob(cat))
-            _ <- check(rho, gma, tgt, Ob(cat))
-          } yield ()
-        case _ => fail("checkFrame: failed in dimension 0")
-      }
+  //============================================================================================
+  // COMPLEX INFERENCE
+  //
+
+  def checkCell(rho: Rho, gma: Gamma, cell: SComplex[Expr], cat: Val): G[Unit] = 
+    cell match {
+      case ||(SDot(e)) => check(rho, gma, e, Obj(cat))
+      case tl >> SDot(e) => 
+        for {
+          _ <- checkFrame(rho, gma, tl, cat)
+          _ <- check(rho, gma, e, Cell(cat, (tl : SComplex[Expr]).map(eval(_, rho))))
+        } yield ()
+      case _ => fail("Not a cell")
     }
-    case (S(p: P), rho, gma, Complex(Complex(tl, web), frm @ Box(t, cn)), cat) => 
-      for {
-        _ <- fromShape( // The following match traverse should ensure that the complex is well-shaped
-          Tree.matchWithAddress(S(p))(web.toTree, cn)({
-            case (expr, nst, addr) => toShape(
-              if (! Nesting.isExternal(nst)) 
-                fail("Frame has non-external nesting in its canopy")
-              else 
+
+  def checkFrame(rho: Rho, gma: Gamma, frm: SComplex[Expr], cat: Val): G[Unit] = 
+    frm match {
+      case ||(SBox(tgt, SNode(SDot(src), SLeaf))) => 
+        for {
+          _ <- check(rho, gma, src, Obj(cat))
+          _ <- check(rho, gma, tgt, Obj(cat))
+        } yield ()
+      case tl >> SBox(tgt, srcs) => 
+        for {
+          _ <- attempt(
+            tl.head.toTree.matchWithAddr(srcs)({
+              case (_, nst, addr) => 
                 for {
-                  face <- fromShape(cmplx.sourceAt(S(p))(addr :: Nil))
-                  _ <- checkCell(S(p))(rho, gma, face, cat)
+                  _ <- nst.dotOption  // Make sure there are only dots
+                  face <- frm.sourceAt(addr)
+                  _ <- toOpt(checkCell(rho, gma, face, cat))
                 } yield ()
-            )
-          })
-        )
-        tc <- fromShape(cmplx.sourceAt(S(p))(Nil))  // Now check the target
-        _ <- checkCell(S(p))(rho, gma, tc, cat)
-      } yield ()
-    case (S(p: P), rho, gma, _, cat) => fail("Malformed complex")
-  }
+            }),
+            "Source checking failed"
+          )
+          tc <- attempt(frm.sourceAt(Nil), "Target calculation failed")
+          _ <- checkCell(rho, gma, tc, cat)
+        } yield ()
+      case _ => fail("Malformed frame complex")
+    }
 
-  def inferCell(rho: Rho, gma: Gamma, e: Expr) : G[(Val, ValComplex[Nat])] = 
+  def inferCell(rho: Rho, gma: Gamma, e: Expr): G[(Val, SComplex[Val])] = 
     for {
-      et <- checkI(rho, gma, e)
-      res <- et match {
-        case Cell(c, f) => pure((c, f))
-        case _ => fail("Expression is not a cell: " + e.toString)
+      ty <- checkI(rho, gma, e)
+      res <- ty match {
+        case Cell(v, f) => pure(v, f)
+        case _ => fail("inferCell: " + e.toString)
       }
     } yield res
+
+  def inferComplex(rho: Rho, gma: Gamma, pd: STree[Expr]): G[(Val, SComplex[Val], STree[SNesting[Val]])] = {
+
+    val l = lRho(rho)
+
+    for {
+
+      // Check the root so that we have a category to check against
+      // You could be more efficient by then checking only the shell afterwards ...
+      re <- attempt(pd.rootValue, "Cannot compose a leaf, use refl")
+      rt <- inferCell(rho, gma, re)
+      (rcat, _) = rt
+
+      pdv <- pd.traverse[G, SComplex[Val]]((e: Expr) => {
+        for {
+          ty <- inferCell(rho, gma, e)
+          (cat, frm) = ty
+          v = eval(e, rho)
+          _ <- eqNf(lRho(rho), rcat, cat)
+        } yield frm >> SDot(v)
+      })
+      res <- attempt(
+        graft(pdv)((v0: Val, v1: Val) => {
+          for {
+            _ <- toOpt(eqNf(l, v0, v1))
+          } yield v0
+        }),
+        "Complex graft failed"
+      )
+    } yield { val (w, p) = res ; (rcat, w, p) }
+
+  }
 
   def inferObject(rho: Rho, gma: Gamma, e: Expr) : G[Val] = 
     for {
       et <- checkI(rho, gma, e)
       res <- et match {
-        case Ob(cv) => pure(cv)
+        case Obj(cv) => pure(cv)
         case _ => fail("Expression is not an object: " + e.toString)
       }
     } yield res
 
-  def inferRightExt(rho: Rho, gma: Gamma, e: Expr) : G[Addr] = 
+  def inferRightExt(rho: Rho, gma: Gamma, e: Expr) : G[SAddr] = 
     for {
       rev <- checkI(rho, gma, e)
       a <- rev match {
-        case IsRightExt(_, ra) => pure(ra)
+        case IsRightExt(_, addr) => pure(addr)
         case _ => fail("Evidence is not for a right extension")
       }
     } yield a
 
-  def nfDiscriminator(rho : Rho) : Discriminator[ConstVal] = 
-    new Discriminator[ConstVal] {
-      val l = lRho(rho)
-      def apply[N <: Nat](n: N)(u: Val, v: Val) = 
-        toShape(for { _ <- eqNf(l, u, v) } yield u)
+  def cellType(cat: Val, c: SComplex[Val]): G[Val] = 
+    c match {
+      case ||(SDot(_)) => pure(Obj(cat))
+      case tl >> SDot(_) => pure(Cell(cat, tl))
+      case _ => fail("cellType: not a cell")
     }
 
-  @natElim 
-  def cellType[N <: Nat](n: N)(cv: Val, c: ValComplex[N]) : G[Val] = {
-    case (Z, cv, Complex(_, Obj(_))) => pure(Ob(cv))
-    case (Z, cv, _) => fail("Not an object")
-    case (S(p), cv, Complex(tl, Dot(_, _))) => pure(Cell(cv, tl))
-    case (S(p), cv, _) => fail("Not a cell")
-  }
-
-  @natElim
-  def compositeType[D <: Nat](d: D)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, D]) : G[Val] = {
-    case (Z, rho, gma, cv, Pt(e)) => 
-      for {
-        et <- inferObject(rho, gma, e)
-        _ <- eqNf(lRho(rho), et, cv)
-      } yield Ob(cv)
-    case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot compose leaf, use refl")
-    case (S(p: P), rho, gma, cv, tr) => 
-      for {
-        pr <- buildComplex(p)(rho, gma)(cv, tr)
-        (tl, pd) = pr
-        fc = tl >> Box(Empty, pd)
-        cc <- fromShape(fc.sourceAt(S(p))(Nil))
-        ct <- cellType(S(p))(cv, cc)
-      } yield ct
-    }
-
-  @natElim
-  def fillType[N <: Nat](n: N)(rho: Rho, gma: Gamma, cv: Val, tr: Tree[Expr, N]) : G[Val] = {
-    case (Z, rho, gma, cv, Pt(e)) => 
-      for {
-        et <- inferObject(rho, gma, e)
-        _ <- eqNf(lRho(rho), et, cv)
-        ee = eval(e, rho)
-      } yield Cell(cv, Complex[ConstVal] >> Box(Comp(cv, Z, Pt(ee)), Pt(Obj(ee))))
-    case (S(p: P), rho, gma, cv, Leaf(_)) => fail("Cannot fill leaf, use drop")
-    case (S(p: P), rho, gma, cv, tr) => 
-      for {
-        pr <- buildComplex(p)(rho, gma)(cv, tr)
-        (tl, pd) = pr
-      } yield Cell(cv, tl >> Box(Comp(cv, S(p), tr.map(eval(_, rho))), pd))
-  }
-
-  // I believe this assumes that the tree is not a leaf.
-  def buildComplex[P <: Nat](p: P)(rho: Rho, gma: Gamma)(cv: Val, tr: Tree[Expr, S[P]]) 
-      : G[(ValComplex[P], Tree[Nesting[Val, S[P]], S[P]])] = 
+  // Right.  We don't check the object case here.  Probably should ...
+  def compositeType(rho: Rho, gma: Gamma, pd: STree[Expr]): G[Val] = 
     for {
-      pd <- tr.traverse[G, ValComplex[S[P]]]((e: Expr) => {
-        for {
-          tp <- inferCell(rho, gma, e)
-          (ec, ef) = tp
-          ed = ef.dim
-          ee = eval(e, rho)
-          _ <- eqNf(lRho(rho), cv, ec)
-          eqEv <- fromOpt(matchNatPair(ed, p), "Wrong dimension")
-        } yield rewriteNatIn[ValComplex, Nat, P](eqEv)(ef) >> Dot(ee, S(p))
-      })
-      res <- fromShape(
-        Complex.paste(p)(pd)(nfDiscriminator(rho))
-      )
-    } yield res
+      trpl <- inferComplex(rho, gma, pd)
+      (cat, web, pdv) = trpl
+      cc <- attempt((web >> SBox(Empty, pdv)).sourceAt(Nil), "Failed to calculate target")
+      ct <- cellType(cat, cc)
+    } yield ct
+
+  def fillType(rho: Rho, gma: Gamma, pd: STree[Expr]): G[Val] = 
+    for {
+      trpl <- inferComplex(rho, gma, pd)
+      (cat, web, pdv) = trpl
+    } yield Cell(cat, web >> SBox(Comp(pd.map(eval(_, rho))), pdv))
 
   //============================================================================================
   // TYPE ENVIRONMENT
@@ -591,13 +422,17 @@ object OTTTypeChecker {
 
   def checkD(rho: Rho, gma: Gamma, decl: Decl) : G[Gamma] = 
     decl match {
-      case d@(Def(p, a, e)) => 
+      case d@(Def(p, a, e)) => {
+        // println("Checking def with type: " + a.toString)
+        // println("Checking def: " + e.toString)
         for {
           _ <- checkT(rho, gma, a)
           t = eval(a, rho)
           _ <- check(rho, gma, e, t)
           gma1 <- upG(gma, p, t, eval(e, rho))
+          _ = println("Checked definition: " + p.toString)
         } yield gma1
+      }
       case d@(Drec(p, a, e)) => 
         for {
           _ <- checkT(rho, gma, a)
@@ -658,16 +493,15 @@ object OTTTypeChecker {
           _ <- check(UpDec(rho, d), gma1, e, t)
         } yield ()
       case (ECat, Type) => pure(())
-      case (EOb(c), Type) =>
+      case (EObj(c), Type) =>
         for {
           _ <- check(rho, gma, c, Cat)
         } yield ()
-      case (ECell(c, e), Type) => 
+      case (ECell(c, f), Type) => 
         for {
           _ <- check(rho, gma, c, Cat)
           cv = eval(c, rho)
-          fc <- parseComplex(e)
-          _ <- checkFrame(fc.n)(rho, gma, fc.value, cv) 
+          _ <- checkFrame(rho, gma, f, cv)
         } yield ()
       case (EIsLeftExt(e), Type) => 
         for {
@@ -676,10 +510,10 @@ object OTTTypeChecker {
       case (EIsRightExt(e, a), Type) => 
         for {
           pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          d = frm.dim
-          addr <- parseAddress(d)(a)
-          _ <- fromShape(frm.head.seekTo(addr :: Nil))
+          (c, f) = pr
+          st <- getFrame(f)
+          (srcs, tgt) = st
+          _ <- attempt(srcs.seekTo(a), "Invalid address")
         } yield ()
       case (e, t) => 
         for {
@@ -733,280 +567,246 @@ object OTTTypeChecker {
       // Cell Construction
       // 
 
-      case ERefl(c, e) => 
+      case ERefl(e) => 
         for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          ct <- checkI(rho, gma, e)
-          res <- ct match {
-            case Ob(ec) => 
+          ty <- checkI(rho, gma, e)
+          v = eval(e, rho)
+          res <- ty match {
+            case Obj(c) => pure(Cell(c, ||(SBox(v, STree.obj(SDot(v))))))
+            case Cell(c, f) => 
               for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-              } yield Cell(ec, Complex[ConstVal] >> Box(ee, Pt(Obj(ee))))
-            case Cell(ec, efrm) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-                d = efrm.dim
-                srcTr <- sourceTree(efrm)
-              } yield Cell(ec, efrm >> Box(ee, Node(Dot(ee, S(d)), srcTr.map(_ => Leaf(S(d))))))
-            case _ => fail("Expression " + e.toString + " is not a cell or object")
+                st <- getFrame(f)
+              } yield Cell(c, f >> SBox(v, SNode(SDot(v), st._1.asShell)))
+            case _ => fail("Cannot apply reflexivity to non-cell: " + e.toString)
           }
         } yield res
 
-      case EDrop(c, e) => 
+      case EDrop(e) => 
         for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          ct <- checkI(rho, gma, e)
-          res <- ct match {
-            case Ob(ec) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-              } yield Cell(ec, Complex[ConstVal] >> Obj(ee) >> Box(Refl(ec, ee), Leaf(S(Z)))) 
-            case Cell(ec, efrm) => 
-              for {
-                _ <- eqNf(lRho(rho), cv, ec)
-                ee = eval(e, rho)
-                d = efrm.dim
-                srcTr <- sourceTree(efrm)
-              } yield Cell(ec, efrm >> Dot(ee, S(d)) >> Box(Refl(ec, ee), Leaf(S(S(d)))))
-            case _ => fail("Expression " + e.toString + " is not a cell or object")
+          ty <- checkI(rho, gma, e)
+          v = eval(e, rho)
+          res <- ty match {
+            case Obj(c) => pure(Cell(c, ||(SDot(v)) >> SBox(Refl(v), SLeaf)))
+            case Cell(c, f) => pure(Cell(c, f >> SBox(Refl(v), SLeaf)))
+            case _ => fail("Cannot apply drop to non-cell: " + e.toString)
           }
         } yield res
 
-      case EComp(c, d, pd) => 
-        for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          dim = intToNat(d)
-          pdTr <- parseTree(dim)(pd)
-          res <- compositeType(dim)(rho, gma, cv, pdTr)
-        } yield res
+      case EComp(pd) => compositeType(rho, gma, pd)
+      case EFill(pd) => fillType(rho, gma, pd)
 
-      case EFill(c, d, pd) => 
-        for {
-          _ <- check(rho, gma, c, Cat)
-          cv = eval(c, rho)
-          dim = intToNat(d)
-          pdTr <- parseTree(dim)(pd)
-          res <- fillType(dim)(rho, gma, cv, pdTr)
-        } yield res
+      // case ELiftLeft(e, ev, c, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)                             // Check e is a cell
+  //         (cv, frm) = pr                                           // Store its frame and category
+  //         ed = frm.dim                                             // Get the dimension
+  //         ee = eval(e, rho)                                        // Evaluate it
+  //         _ <- check(rho, gma, ev, IsLeftExt(ee))                  // Check the evidence
+  //         cell = frm >> Dot(ee, S(ed))                             // Create the full cell
+  //         cCell <- fromShape(cell.target)                          // Get its target
+  //         cTy <- cellType(ed)(cv, cCell)                           // Extract the target type
+  //         _ <- check(rho, gma, c, cTy)                             // Check c is a in that frame
+  //         cVal = eval(c, rho)                                      // Evaluate c
+  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))         // Put c in the base
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))    // Check t lives in that frame
+  //         tVal = eval(t, rho)                                      // Evaluate it
+  //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Left extend the complex
+  //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
+  //         lTy <- cellType(S(ed))(cv, lCell)                        // Extract its type and we're done!
+  //       } yield lTy
 
-      case ELiftLeft(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)                             // Check e is a cell
-          (cv, frm) = pr                                           // Store its frame and category
-          ed = frm.dim                                             // Get the dimension
-          ee = eval(e, rho)                                        // Evaluate it
-          _ <- check(rho, gma, ev, IsLeftExt(ee))                  // Check the evidence
-          cell = frm >> Dot(ee, S(ed))                             // Create the full cell
-          cCell <- fromShape(cell.target)                          // Get its target
-          cTy <- cellType(ed)(cv, cCell)                           // Extract the target type
-          _ <- check(rho, gma, c, cTy)                             // Check c is a in that frame
-          cVal = eval(c, rho)                                      // Evaluate c
-          tNst <- fromShape(frm.head.replaceAt(Nil, cVal))         // Put c in the base
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))    // Check t lives in that frame
-          tVal = eval(t, rho)                                      // Evaluate it
-          lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Left extend the complex
-          lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
-          lTy <- cellType(S(ed))(cv, lCell)                        // Extract its type and we're done!
-        } yield lTy
+  //     case EFillLeft(e, ev, c, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ed = frm.dim
+  //         ee = eval(e, rho)
+  //         _ <- check(rho, gma, ev, IsLeftExt(ee))
+  //         cell = frm >> Dot(ee, S(ed))
+  //         cCell <- fromShape(cell.target)
+  //         cTy <- cellType(ed)(cv, cCell)
+  //         _ <- check(rho, gma, c, cTy)
+  //         cVal = eval(c, rho)
+  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+  //         tVal = eval(t, rho)
+  //         lext <- fromShape(cell.leftExtend(cVal, LiftLeft(ee, eval(ev, rho), cVal, tVal), tVal))
+  //       } yield Cell(cv, lext)
 
-      case EFillLeft(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ed = frm.dim
-          ee = eval(e, rho)
-          _ <- check(rho, gma, ev, IsLeftExt(ee))
-          cell = frm >> Dot(ee, S(ed))
-          cCell <- fromShape(cell.target)
-          cTy <- cellType(ed)(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-          lext <- fromShape(cell.leftExtend(cVal, LiftLeft(ee, eval(ev, rho), cVal, tVal), tVal))
-        } yield Cell(cv, lext)
+  //     case ELiftRight(e, ev, c, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ed = frm.dim
+  //         ee = eval(e, rho)
+  //         a <- inferRightExt(rho, gma, ev)
+  //         addr <- parseAddress(ed)(a)
+  //         cell = frm >> Dot(ee, S(ed))
+  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
+  //         cTy <- cellType(ed)(cv, cCell)
+  //         _ <- check(rho, gma, c, cTy)
+  //         cVal = eval(c, rho)
+  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+  //         tVal = eval(t, rho)
+  //         rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
+  //         lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+  //         lTy <- cellType(S(ed))(cv, lCell)
+  //       } yield lTy
 
-      case ELiftRight(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ed = frm.dim
-          ee = eval(e, rho)
-          a <- inferRightExt(rho, gma, ev)
-          addr <- parseAddress(ed)(a)
-          cell = frm >> Dot(ee, S(ed))
-          cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-          cTy <- cellType(ed)(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-          rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
-          lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-          lTy <- cellType(S(ed))(cv, lCell)
-        } yield lTy
+  //     case EFillRight(e, ev, c, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ed = frm.dim
+  //         ee = eval(e, rho)
+  //         a <- inferRightExt(rho, gma, ev)
+  //         addr <- parseAddress(ed)(a)
+  //         cell = frm >> Dot(ee, S(ed))
+  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
+  //         cTy <- cellType(ed)(cv, cCell)
+  //         _ <- check(rho, gma, c, cTy)
+  //         cVal = eval(c, rho)
+  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+  //         tVal = eval(t, rho)
+  //         rext <- fromShape(cell.rightExtend(addr)(cVal, LiftRight(ee, eval(ev, rho), cVal, tVal), tVal))
+  //       } yield Cell(cv, rext)
 
-      case EFillRight(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ed = frm.dim
-          ee = eval(e, rho)
-          a <- inferRightExt(rho, gma, ev)
-          addr <- parseAddress(ed)(a)
-          cell = frm >> Dot(ee, S(ed))
-          cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-          cTy <- cellType(ed)(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-          rext <- fromShape(cell.rightExtend(addr)(cVal, LiftRight(ee, eval(ev, rho), cVal, tVal), tVal))
-        } yield Cell(cv, rext)
+  //     //
+  //     //  Property Inferences
+  //     //
 
-      //
-      //  Property Inferences
-      //
+  //     case EDropIsLeft(c, e) => 
+  //       for {
+  //         _ <- checkI(rho, gma, EDrop(c, e))
+  //         ef = eval(EDrop(c, e), rho)
+  //       } yield IsLeftExt(ef)
 
-      case EDropIsLeft(c, e) => 
-        for {
-          _ <- checkI(rho, gma, EDrop(c, e))
-          ef = eval(EDrop(c, e), rho)
-        } yield IsLeftExt(ef)
+  //     case EFillIsLeft(c, d, pd) => 
+  //       for {
+  //         _ <- checkI(rho, gma, EFill(c, d, pd))     // Infer that the fill is well-formed
+  //         ef = eval(EFill(c, d, pd), rho)            // Evaluate it ...
+  //       } yield IsLeftExt(ef)                        // and we know the type!
 
-      case EFillIsLeft(c, d, pd) => 
-        for {
-          _ <- checkI(rho, gma, EFill(c, d, pd))     // Infer that the fill is well-formed
-          ef = eval(EFill(c, d, pd), rho)            // Evaluate it ...
-        } yield IsLeftExt(ef)                        // and we know the type!
+  //     case EShellIsLeft(e, ev, s, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ee = eval(e, rho)
+  //         ed = frm.dim
+  //         _ <- check(rho, gma, ev, IsLeftExt(ee))
+  //         eTgt = frm.head.baseValue
+  //         eSrc <- sourceTree(frm)
+  //         srcTr <- parseTree(ed)(s)
+  //         oTr <- fromShape(
+  //           Tree.matchTraverse[Val, Expr, Option[Val], Nat](eSrc, srcTr)({
+  //             case (u, EEmpty) => succeed(Some(u))
+  //             case (u, v) => 
+  //               for { 
+  //                 _ <- toShape(check(rho, gma, v, IsLeftExt(u))) 
+  //               } yield None
+  //           })
+  //         )
+  //         ty <- (
+  //           (oTr.nodes.filter(_.isDefined), t) match {
+  //             case (Nil, EEmpty) => pure(IsLeftExt(eTgt))
+  //             case (Some(u) :: Nil, tev) => 
+  //               for {
+  //                 _ <- check(rho, gma, tev, IsLeftExt(eTgt))
+  //               } yield IsLeftExt(u)
+  //             case _ => fail("Malformed shell evidence")
+  //           }
+  //         )
+  //       } yield ty
 
-      case EShellIsLeft(e, ev, s, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ee = eval(e, rho)
-          ed = frm.dim
-          _ <- check(rho, gma, ev, IsLeftExt(ee))
-          eTgt = frm.head.baseValue
-          eSrc <- sourceTree(frm)
-          srcTr <- parseTree(ed)(s)
-          oTr <- fromShape(
-            Tree.matchTraverse[Val, Expr, Option[Val], Nat](eSrc, srcTr)({
-              case (u, EEmpty) => succeed(Some(u))
-              case (u, v) => 
-                for { 
-                  _ <- toShape(check(rho, gma, v, IsLeftExt(u))) 
-                } yield None
-            })
-          )
-          ty <- (
-            (oTr.nodes.filter(_.isDefined), t) match {
-              case (Nil, EEmpty) => pure(IsLeftExt(eTgt))
-              case (Some(u) :: Nil, tev) => 
-                for {
-                  _ <- check(rho, gma, tev, IsLeftExt(eTgt))
-                } yield IsLeftExt(u)
-              case _ => fail("Malformed shell evidence")
-            }
-          )
-        } yield ty
+  //     case EFillLeftIsLeft(e, ev, c, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ee = eval(e, rho)
+  //         ed = frm.dim
+  //         _ <- check(rho, gma, ev, IsLeftExt(ee))
+  //         cell = frm >> Dot(ee, S(ed))
+  //         cCell <- fromShape(cell.target)
+  //         cTy <- cellType(ed)(cv, cCell)
+  //         _ <- check(rho, gma, c, cTy)
+  //         cVal = eval(c, rho)
+  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+  //         tVal = eval(t, rho)
+  //       } yield IsLeftExt(FillLeft(ee, eval(ev, rho), cVal, tVal))
 
-      case EFillLeftIsLeft(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ee = eval(e, rho)
-          ed = frm.dim
-          _ <- check(rho, gma, ev, IsLeftExt(ee))
-          cell = frm >> Dot(ee, S(ed))
-          cCell <- fromShape(cell.target)
-          cTy <- cellType(ed)(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-        } yield IsLeftExt(FillLeft(ee, eval(ev, rho), cVal, tVal))
+  //     case EFillRightIsLeft(e, ev, c, t) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ed = frm.dim
+  //         ee = eval(e, rho)
+  //         a <- inferRightExt(rho, gma, ev)
+  //         addr <- parseAddress(ed)(a)
+  //         cell = frm >> Dot(ee, S(ed))
+  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
+  //         cTy <- cellType(ed)(cv, cCell)
+  //         _ <- check(rho, gma, c, cTy)
+  //         cVal = eval(c, rho)
+  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+  //         tVal = eval(t, rho)
+  //       } yield IsLeftExt(FillRight(ee, eval(ev, rho), cVal, tVal))
 
-      case EFillRightIsLeft(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ed = frm.dim
-          ee = eval(e, rho)
-          a <- inferRightExt(rho, gma, ev)
-          addr <- parseAddress(ed)(a)
-          cell = frm >> Dot(ee, S(ed))
-          cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-          cTy <- cellType(ed)(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-        } yield IsLeftExt(FillRight(ee, eval(ev, rho), cVal, tVal))
+  //     case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)                           
+  //         (cv, frm) = pr                                         
+  //         ed = frm.dim                                           
+  //         ee = eval(e, rho)                                      
+  //         _ <- check(rho, gma, ev, IsLeftExt(ee))                
+  //         cell = frm >> Dot(ee, S(ed))                           
+  //         cCell <- fromShape(cell.target)                        
+  //         cTy <- cellType(ed)(cv, cCell)                         
+  //         _ <- check(rho, gma, c, cTy)                           
+  //         cVal = eval(c, rho)                                    
+  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))       
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))  
+  //         tVal = eval(t, rho)                                    
+  //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))  
+  //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))          
+  //         lTy <- cellType(S(ed))(cv, lCell)                      
+  //         _ <- check(rho, gma, l, lTy)
+  //         lVal = eval(l, rho)
+  //         lNst <- fromShape(lext.head.replaceAt(Nil :: Nil, lVal))
+  //         _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
+  //         fVal = eval(f, rho)
+  //         _ <- check(rho, gma, fev, IsLeftExt(fVal))
+  //       } yield IsRightExt(fVal, ANil)
 
-      case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
-        for {
-          pr <- inferCell(rho, gma, e)                           
-          (cv, frm) = pr                                         
-          ed = frm.dim                                           
-          ee = eval(e, rho)                                      
-          _ <- check(rho, gma, ev, IsLeftExt(ee))                
-          cell = frm >> Dot(ee, S(ed))                           
-          cCell <- fromShape(cell.target)                        
-          cTy <- cellType(ed)(cv, cCell)                         
-          _ <- check(rho, gma, c, cTy)                           
-          cVal = eval(c, rho)                                    
-          tNst <- fromShape(frm.head.replaceAt(Nil, cVal))       
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))  
-          tVal = eval(t, rho)                                    
-          lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))  
-          lCell <- fromShape(lext.sourceAt(Nil :: Nil))          
-          lTy <- cellType(S(ed))(cv, lCell)                      
-          _ <- check(rho, gma, l, lTy)
-          lVal = eval(l, rho)
-          lNst <- fromShape(lext.head.replaceAt(Nil :: Nil, lVal))
-          _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
-          fVal = eval(f, rho)
-          _ <- check(rho, gma, fev, IsLeftExt(fVal))
-        } yield IsRightExt(fVal, ANil)
-
-      case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ed = frm.dim
-          ee = eval(e, rho)
-          a <- inferRightExt(rho, gma, ev)
-          addr <- parseAddress(ed)(a)
-          cell = frm >> Dot(ee, S(ed))
-          cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-          cTy <- cellType(ed)(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-          rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
-          lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-          lTy <- cellType(S(ed))(cv, lCell)
-          _ <- check(rho, gma, l, lTy)
-          lVal = eval(l, rho)
-          lNst <- fromShape(rext.head.replaceAt((addr :: Nil) :: Nil, lVal))
-          _ <- check(rho, gma, f, Cell(cv, rext.withHead(lNst)))
-          fVal = eval(f, rho)
-          _ <- check(rho, gma, fev, IsLeftExt(fVal))
-        } yield IsRightExt(fVal, rbAddr(S(ed))(addr :: Nil))
+  //     case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
+  //       for {
+  //         pr <- inferCell(rho, gma, e)
+  //         (cv, frm) = pr
+  //         ed = frm.dim
+  //         ee = eval(e, rho)
+  //         a <- inferRightExt(rho, gma, ev)
+  //         addr <- parseAddress(ed)(a)
+  //         cell = frm >> Dot(ee, S(ed))
+  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
+  //         cTy <- cellType(ed)(cv, cCell)
+  //         _ <- check(rho, gma, c, cTy)
+  //         cVal = eval(c, rho)
+  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
+  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+  //         tVal = eval(t, rho)
+  //         rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
+  //         lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
+  //         lTy <- cellType(S(ed))(cv, lCell)
+  //         _ <- check(rho, gma, l, lTy)
+  //         lVal = eval(l, rho)
+  //         lNst <- fromShape(rext.head.replaceAt((addr :: Nil) :: Nil, lVal))
+  //         _ <- check(rho, gma, f, Cell(cv, rext.withHead(lNst)))
+  //         fVal = eval(f, rho)
+  //         _ <- check(rho, gma, fev, IsLeftExt(fVal))
+  //       } yield IsRightExt(fVal, rbAddr(S(ed))(addr :: Nil))
 
       // Oh crap ....
       case e => fail("checkI: " ++ e.toString)

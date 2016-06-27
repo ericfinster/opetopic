@@ -52,7 +52,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     herokuSkipSubProjects in Compile := false
   ).enablePlugins(PlayScala).
   aggregate(clients.map(projectToRef): _*).
-  dependsOn(opetopicStableJvm)
+  dependsOn(opetopicCoreJvm)
 
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
@@ -108,9 +108,9 @@ lazy val opetopicJs = (project in file("opetopic-js")).
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicStableJs)
+  dependsOn(opetopicCoreJs)
 
-lazy val opetopicStable = (crossProject.crossType(CrossType.Pure) in file("opetopic-stable")).
+lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopic-core")).
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
@@ -120,41 +120,8 @@ lazy val opetopicStable = (crossProject.crossType(CrossType.Pure) in file("opeto
     )
   )
 
-lazy val opetopicStableJvm = opetopicStable.jvm
-lazy val opetopicStableJs = opetopicStable.js
-
-lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopic-core")).
-  settings(commonSettings: _*).
-  settings(
-    libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9"
-    )
-  ).
-  jsSettings(
-    libraryDependencies ++= Seq(
-      "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % "7.1.3",
-      "org.scala-js" %%% "scala-parser-combinators" % "1.0.2"
-    )
-  ).jvmSettings(
-    libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2",
-      "org.scalaz" %% "scalaz-core" % "7.1.3"
-    )
-  ).dependsOn(opetopicMacros)
-
 lazy val opetopicCoreJvm = opetopicCore.jvm
 lazy val opetopicCoreJs = opetopicCore.js
 
-lazy val opetopicMacros = (crossProject.crossType(CrossType.Pure) in file("opetopic-macros")).
-  settings(commonSettings: _*).
-  settings(
-    libraryDependencies ++= Seq(
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value
-    )
-  )
-
-lazy val opetopicMacrosJvm = opetopicMacros.jvm
-lazy val opetopicMacrosJs = opetopicMacros.js
 
 

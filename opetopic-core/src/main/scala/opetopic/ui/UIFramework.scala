@@ -7,7 +7,7 @@
 
 package opetopic.ui
 
-import opetopic._
+import opetopic.SAddr
 
 abstract class UIFramework {
 
@@ -88,89 +88,12 @@ abstract class UIFramework {
 
   }
 
-  //============================================================================================
-  // VISUALIZABLE TYPECLASS
-  //
-
-  sealed trait Visualization[N <: Nat] {
-    def colorSpec: ColorSpec
-    def labelElement: BoundedElement
-  }
-
-  object Visualization {
-
-    @natElim
-    def apply[N <: Nat](n: N)(c: ColorSpec, le: BoundedElement) : Visualization[N] = {
-      case (Z, c, le) => ObjectVisualization(c, le)
-      case (S(p), c, le) => CellVisualization(c, le)
-    }
-
-  }
-
-  case class ObjectVisualization(
-    val colorSpec: ColorSpec,
-    val labelElement: BoundedElement
-  ) extends Visualization[_0]
-
-  case class CellVisualization[P <: Nat](
-    val colorSpec: ColorSpec,
-    val labelElement: BoundedElement,
-    val rootEdgeElement: Option[BoundedElement] = None,
-    val leafEdgeElements: Option[Tree[Option[BoundedElement], P]] = None
-  ) extends Visualization[S[P]]
-
-  trait Visualizable[A, N <: Nat] {
-    def visualize(a: A) : Visualization[N]
-  }
-
-  trait VisualizableFamily[A[_ <: Nat]] {
-    def visualize[N <: Nat](n: N)(a: A[N]) : Visualization[N]
-  }
-
-  object VisualizableFamily {
-
-    implicit def optionVisualizableFamily[A[_ <: Nat]](implicit bnds : Bounds, av: VisualizableFamily[A])
-        : VisualizableFamily[Lambda[`N <: Nat` => Option[A[N]]]] =
-      new VisualizableFamily[Lambda[`N <: Nat` => Option[A[N]]]] {
-        def visualize[N <: Nat](n: N)(o: Option[A[N]]) : Visualization[N] = 
-          o match {
-            case None => Visualization(n)(DefaultColorSpec, spacer(bnds))
-            case Some(a) => av.visualize(n)(a)
-          }
-      }
-
-    implicit def polarityVisualizableFamily[A[_ <: Nat]](implicit av: VisualizableFamily[A])
-        : VisualizableFamily[Lambda[`N <: Nat` => Polarity[A[N]]]] =
-      new VisualizableFamily[Lambda[`N <: Nat` => Polarity[A[N]]]] {
-        def visualize[N <: Nat](n: N)(p: Polarity[A[N]]) : Visualization[N] = 
-          p match {
-            case Positive() => Visualization(n)(PolarityColorSpec, text("+"))
-            case Negative() => Visualization(n)(PolarityColorSpec, text("-"))
-            case Neutral(a) => av.visualize(n)(a)
-          }
-      }
-
-    implicit def poloptVisualizableFamily[A[_ <: Nat]](implicit bnds: Bounds, av: VisualizableFamily[A])
-        : VisualizableFamily[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] =
-      new VisualizableFamily[Lambda[`N <: Nat` => Polarity[Option[A[N]]]]] {
-        def visualize[N <: Nat](n: N)(p: Polarity[Option[A[N]]]) : Visualization[N] = 
-          polarityVisualizableFamily[Lambda[`K <: Nat` => Option[A[K]]]](
-            optionVisualizableFamily[A](bnds, av)
-          ).visualize(n)(p)
-      }
-
-    implicit val constStringVisualizable : VisualizableFamily[ConstString] = 
-      new VisualizableFamily[ConstString] {
-        def visualize[N <: Nat](n: N)(str: String) : Visualization[N] = 
-          Visualization(n)(DefaultColorSpec, text(str))
-      }
-
-    implicit val visVisualizableFamily : VisualizableFamily[Visualization] = 
-      new VisualizableFamily[Visualization] {
-        def visualize[N <: Nat](n: N)(v: Visualization[N]) = v
-      }
-
-  }
+  case class CellRendering(
+    val boundedElement: BoundedElement,
+    val colorSpec: ColorSpec = DefaultColorSpec,
+    val targetDec: Option[BoundedElement] = None,
+    val sourceDec: Map[SAddr, BoundedElement] = Map()
+  )
 
   //============================================================================================
   // TEXT RENDERING

@@ -1,5 +1,5 @@
 /**
-  * SelectableGallery.scala - Galleries which keep a collection of selected cells
+  * SelectableGallery.scala - Galleries with selectable cells
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -7,137 +7,82 @@
 
 package opetopic.ui
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Buffer
 
 import opetopic._
-import syntax.suite._
-import syntax.nesting._
 
-trait HasSelectablePanels extends HasPanels { self: UIFramework =>
+trait SelectableGallery {
 
-  trait SelectablePanel[A, N <: Nat] { self : Panel[A, N] =>
+  type AddressType
+  type SelectionType <: SelectableCell
 
-    type BoxType <: SelectableBox[A, N] { type BoxAddressType = PanelAddressType }
+  var onSelectAsRoot: SelectionType => Unit = { _ => () }
 
+  val selectedCells: Buffer[SelectionType] = Buffer.empty
+  var selectionRoot: Option[SelectionType] = None
+
+  def deselectAll: Unit = {
+    selectedCells.foreach(_.deselect)
+    selectedCells.clear
+    selectionRoot = None
   }
 
-  trait SelectableBox[A, N <: Nat] extends CellBox[A, N] {
+  def seekToCanopy(addr: AddressType): Option[SZipper[SNesting[SelectionType]]]
 
-    def canSelect: Boolean = true
+  trait SelectableCell { thisCell : SelectionType => 
+
+    def selectionAddress: AddressType
+
+    def onSelected: Unit
+    def onDeselected: Unit
+
+    def canSelect: Boolean
     var isSelected: Boolean = false
 
-    def select: Unit = ()
-    def deselect: Unit = ()
-
-  }
-
-
-}
-
-
-trait HasSelectableGalleries extends HasGalleries { self: UIFramework with HasSelectablePanels =>
-
-  trait SelectableGallery[A[_ <: Nat]] extends Gallery[A] {
-
-    type GalleryPanelType[N <: Nat] <: SelectablePanel[A[N], N] with GalleryPanel[N]
-    type GalleryBoxType[N <: Nat] <: SelectableBox[A[N], N] { type BoxAddressType = GalleryAddressType[N] }
-
-    var selection: Option[Selection]
-
-    var onSelect : Sigma[GalleryBoxType] => Unit = { _ => () }
-    var onSelectAsRoot : Sigma[GalleryBoxType] => Unit = { _ => () }
-    var onDeselectAll : () => Unit = { () => () }
-
-    trait Selection {
-
-      type Dim <: Nat
-
-      val dim: Dim
-      val root: GalleryBoxType[Dim]
-      val companions: ListBuffer[GalleryBoxType[Dim]]
-
-    }
-
-    object Selection {
-
-      def apply[N <: Nat](box: GalleryBoxType[N]) : Selection =
-        new Selection {
-          type Dim = N
-          val dim = box.boxDim
-          val root = box
-          val companions = ListBuffer[GalleryBoxType[Dim]]()
-        }
-
-    }
-
-    def deselectAll : Unit = {
-      for {
-        sel <- selection
-        _ = sel.root.deselect
-        box <- sel.companions
-      } {
-        box.deselect
-      }
-
-      onDeselectAll()
-      selection = None
-    }
-    
-    def selectAsRoot[N <: Nat](box : GalleryBoxType[N]) : Unit =
-      if (box.canSelect) {
+    def selectAsRoot: Unit = 
+      if (canSelect) {
         deselectAll
-        box.select
-        onSelectAsRoot(Sigma(box.boxDim)(box))
-        selection = Some(Selection(box))
+        isSelected = true
+        selectionRoot = Some(thisCell)
+        selectedCells += thisCell
+        onSelectAsRoot(thisCell)
+        onSelected
       }
 
-    def select[N <: Nat](box: GalleryBoxType[N]) : Unit = 
-      if (box.canSelect) {
-        selection match {
-          case None => selectAsRoot(box)
-          case Some(sel) => {
+    def select: Unit = 
+      if (canSelect && ! isSelected) {
 
-            import TypeLemmas._
+        val buf: Buffer[SelectionType] = Buffer(thisCell)
+        var found: Boolean = false
 
-            matchNatPair(box.boxDim, sel.dim) match {
-              case None => selectAsRoot(box)
-              case Some(ev) => {
+        for {
+          zp <- seekToCanopy(selectionAddress)
+          r <- zp.predecessorWhich(n => {
+            buf += n.baseValue
+            n.baseValue.isSelected
+          })
+        } { 
 
-                val candidates: ListBuffer[GalleryBoxType[N]] = 
-                  ListBuffer()
-
-                val thePanels = panels
-
-                for {
-                  diff <- fromOpt(diffOpt(box.boxDim, thePanels.value.length.pred))
-                  thePanel = thePanels.get(box.boxDim)(diff)
-                  zipper <- thePanel.boxNesting.seekTo(box.nestingAddress)
-                } yield {
-
-                  import scalaz.-\/
-                  import scalaz.\/-
-
-                  Nesting.predecessorWhich(zipper)(b => {
-                    candidates += b
-                    b.isSelected
-                  }) match {
-                    case -\/(_) => selectAsRoot(box)
-                    case \/-((fcs, _)) => {
-                      for {
-                        b <- candidates.init
-                      } {
-                        b.select
-                        onSelect(Sigma(b.boxDim)(b))
-                        sel.companions += rewriteNatIn(ev)(b)
-                      }
-                    }
-                  }
-                }
-              }
-            }
+          for { b <- buf } {
+            b.isSelected = true
+            b.onSelected
+            selectedCells += b
           }
+
+          found = true 
+
         }
+
+        if (! found) {
+          selectAsRoot
+        }
+
       }
+
+    def deselect: Unit = {
+      isSelected = false
+      onDeselected
+    }
 
   }
 

@@ -7,149 +7,255 @@
 
 package opetopic.tt
 
-import scala.util.parsing.combinator._
-import scala.util.parsing.input._
+import fastparse.WhitespaceApi
 
 import opetopic._
 
-object OTTParser extends RegexParsers with PackratParsers {
+object Lexer {
 
-  lazy val ident: Parser[String] = 
-    """[a-zA-Z]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
+  import fastparse.all._
 
-  lazy val intLit: Parser[String] = 
-    """([0-9])+""".r
+  val comment = P( "--" ~ CharsWhile(_ != '\n', min = 0) )
+  val wscomment = P( (CharsWhile(" \t\n".toSet, min = 1) | comment ).rep )
 
-  lazy val expr: PackratParser[Expr] = (
-      expr1 ~ "," ~ expr ^^
-        { case e ~ "," ~ f => EPair(e, f) }
-    | expr1
+  val letter     = P( lowercase | uppercase )
+  val lowercase  = P( CharIn('a' to 'z') )
+  val uppercase  = P( CharIn('A' to 'Z') )
+  val digit      = P( CharIn('0' to '9') )
+
+  // Right, well, you can do better ...
+  val ident: Parser[String] = 
+    P( CharsWhile(_.isLetterOrDigit) ).!
+
+}
+
+object WsApi extends WhitespaceApi.Wrapper(Lexer.wscomment)
+
+object Parser {
+
+  import fastparse.noApi._
+  import WsApi._
+
+  // Testing
+
+  val program: P[Expr] = 
+    P( Lexer.wscomment.? ~ expr ~ End )
+
+  //============================================================================================
+  // EXPRESSIONS
+  //
+
+  // Constants
+
+  val constants: Map[String, Expr] = Map(
+    "Unit" -> EUnit,
+    "Type" -> EType,
+    "tt" -> ETt,
+    "empty" -> EEmpty,
+    "Cat" -> ECat
   )
 
-  lazy val expr1: PackratParser[Expr] = (
-      "\\" ~ pattern1 ~ "." ~ expr1 ^^
-        { case "\\" ~ p ~ "." ~ e => ELam(p, e) }
-    | "(" ~ pattern1 ~ ":" ~ expr1 ~ ") -> " ~ expr1 ^^
-        { case "(" ~ p ~ ":" ~ e ~ ") -> " ~ f => EPi(p, e, f) }
-    | "(" ~ pattern1 ~ ":" ~ expr1 ~ ") * " ~ expr1 ^^
-        { case "(" ~ p ~ ":" ~ e ~ ") * " ~ f => ESig(p, e, f) }
-    | decl ~ ";" ~ expr1 ^^ 
-        { case d ~ ";" ~ e => EDec(d, e) }
-    | expr2 ~ "->" ~ expr1 ^^ 
-        { case e ~ "->" ~ f => EPi(Punit, e, f) }
-    | expr2 ~ "*" ~ expr1 ^^
-        { case e ~ "*" ~ f => ESig(Punit, e, f) }
-    | expr2
-  )
+  val constant: Parser[Expr] = 
+    P( StringIn(constants.keys.toList : _*).!.map(constants(_)) )
 
-  lazy val expr2 : PackratParser[Expr] = (
-      "Ob" ~ expr4 ^^ 
-        { case "Ob" ~ c => EOb(c) }
-    | "Cell" ~ expr4 ~ complexExpr ^^ 
-        { case "Cell" ~ c ~ e => ECell(c, e) }
-    | "isLeftExt" ~ expr4 ^^
-        { case "isLeftExt" ~ e => EIsLeftExt(e) }
-    | "isRightExt" ~ expr4 ~ addrExpr ^^
-        { case "isRightExt" ~ e ~ ae => EIsRightExt(e, ae) }
-    | "refl" ~ expr4 ~ expr4 ^^
-        { case "refl" ~ c ~ e => ERefl(c, e) }
-    | "drop" ~ expr4 ~ expr4 ^^
-        { case "drop" ~ c ~ e => EDrop(c, e) }
-    | "comp" ~ expr4 ~ intLit ~ expr4 ^^
-        { case "comp" ~ c ~ d ~ pd => EComp(c, d.toInt, pd) }
-    | "fill" ~ expr4 ~ intLit ~ expr4 ^^
-        { case "fill" ~ c ~ d ~ pd => EFill(c, d.toInt, pd) }
-    | "liftLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
-        { case "liftLeft" ~ e ~ ev ~ c ~ t => ELiftLeft(e, ev, c, t) }
-    | "fillLeft" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
-        { case "fillLeft" ~ e ~ ev ~ c ~ t => EFillLeft(e, ev, c, t) }
-    | "liftRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
-        { case "liftRight" ~ e ~ ev ~ c ~ t => ELiftRight(e, ev, c, t) }
-    | "fillRight" ~ expr3 ~ expr3 ~ expr3 ~ expr3 ^^
-        { case "fillRight" ~ e ~ ev ~ c ~ t => EFillRight(e, ev, c, t) }
-    | expr3
-  )
+  // Expr
 
-  lazy val expr3: PackratParser[Expr] = (
-      expr3 ~ expr4 ^^
-        { case e ~ f => EApp(e, f) }
-    | expr4
-  )
+  val expr: Parser[Expr] = 
+    P( constant | lambda | pi | sigma | fst | snd | letdec | expr2 )
 
-  lazy val expr4: PackratParser[Expr] = (
-      "Unit" ^^^ EUnit
-    | "Type" ^^^ EType
-    | "empty" ^^^ EEmpty
-    | "tt" ^^^ ETt
-    | "Cat" ^^^ ECat
-    | trExpr
-    | nstExpr
-    | expr4 ~ ".1" ^^ 
-        { case e ~ ".1" => EFst(e) }
-    | expr4 ~ ".2" ^^ 
-        { case e ~ ".2" => ESnd(e) }
-    | ident ^^ { EVar(_) }
-    | "(" ~ expr ~ ")" ^^
-        { case "(" ~ e ~ ")" => e }
-  )
+  val lambda: Parser[Expr] = 
+    P( "\\" ~/ pattern1 ~ "." ~ expr ).map({ 
+      case (p, e) => ELam(p, e) 
+    })
 
-  lazy val trExpr: PackratParser[Expr] = (
-      "pt" ~ expr4 ^^
-        { case "pt" ~ e => EPt(e) }
-    | "lf" ^^^ ELf
-    | "nd" ~ expr4 ~ trExpr ^^
-        { case "nd" ~ e ~ sh => ENd(e, sh) }
-    | "(" ~ trExpr ~ ")" ^^
-        { case "(" ~ te ~ ")" => te }
-  )
+  val pi: Parser[Expr] = 
+    P( "(" ~ pattern1 ~ ":" ~ expr ~ ")" ~ "->" ~/ expr ).map({ 
+      case (p, e, f) => EPi(p, e, f) 
+    })
 
-  lazy val nstExpr : PackratParser[Expr] = (
-      "dot" ~ expr4 ^^
-        { case "dot" ~ e => EDot(e) }
-    | "box" ~ expr4 ~ trExpr ^^
-        { case "box" ~ e ~ cn => EBox(e, cn) }
-  )
+  val sigma: Parser[Expr] = 
+    P( "(" ~ pattern1 ~ ":" ~ expr ~ ")" ~ "*" ~/ expr ).map({ 
+      case (p, e, f) => ESig(p, e, f) 
+    })
 
-  lazy val complexExpr: PackratParser[Expr] = (
-      "[" ~ nstExpr ~ "]>>" ~ complexExpr ^^
-        { case "[" ~ n ~ "]>>" ~ c => ETl(n, c) }
-    | "[" ~ nstExpr ~ "]" ^^
-        { case "[" ~ n ~ "]" => EHd(n) }
-  )
+  val fst: Parser[Expr] = 
+    P( "fst" ~/ expr ).map(EFst(_))
 
-  lazy val addrExpr : PackratParser[Addr] = (
-      addrExpr1 ~ "::" ~ addrExpr ^^
-        { case a ~ "::" ~ b => ACons(a, b) }
-    | addrExpr1
-  )
+  val snd: Parser[Expr] = 
+    P( "snd" ~/ expr ).map(ESnd(_))
 
-  lazy val addrExpr1 : PackratParser[Addr] = (
-      "#" ^^^ AUnit
-    | "nil" ^^^ ANil
-    | "(" ~ addrExpr ~ ")" ^^ 
-        { case "(" ~ a ~ ")" => a }
-  )
+  val letdec: Parser[Expr] = 
+    P( decl ~ ";" ~ expr ).map({
+      case (d, e) => EDec(d, e)
+    })
 
-  lazy val pattern: PackratParser[Patt] = (
-      pattern1 ~ "," ~ pattern ^^
-        { case p ~ "," ~ q => PPair(p, q) }
-    | pattern1
-  )
+  // Expr2
 
-  lazy val pattern1: PackratParser[Patt] = (
-      "_" ^^^ Punit
-    | ident ^^ { PVar(_) }
-    | "(" ~ pattern ~ ")" ^^ 
-        { case "(" ~ p ~ ")" => p }
-  )
+  val expr2: Parser[Expr] = 
+    P( obj | cell |
+      isLeftExt | isRightExt |
+      refl | drop | comp | fill |
+      liftLeft | liftRight | fillLeft | fillRight |
+      expr3 )
 
-  lazy val decl: PackratParser[Decl] = (
-      "let" ~ pattern ~ ":" ~ expr ~ "=" ~ expr ^^ 
-        { case "let" ~ p ~ ":" ~ e ~ "=" ~ f => Def(p, e, f) }
-    | "letrec" ~ pattern ~ ":" ~ expr ~ "=" ~ expr ^^ 
-        { case "letrec" ~ p ~ ":" ~ e ~ "=" ~ f => Drec(p, e, f) }
-  )
+  val obj: Parser[Expr] = 
+    P( "Obj" ~/ expr ).map(EObj(_))
 
-  override protected val whiteSpace = """(\s|--.*)+""".r
+  val cell: Parser[Expr] = 
+    P( "Cell" ~/ expr ~ complex ).map({
+      case (c, frm) => ECell(c, frm)
+    })
+
+  val isLeftExt: Parser[Expr] = 
+    P( "isLeftExt" ~/ expr ).map(EIsLeftExt(_))
+
+  val isRightExt: Parser[Expr] = 
+    P( "isRightExt" ~/ expr ~ address ).map({
+      case (e, a) => EIsRightExt(e, a)
+    })
+
+  val refl: Parser[Expr] = 
+    P( "refl" ~/ expr ).map(ERefl(_))
+
+  val drop: Parser[Expr] = 
+    P( "drop" ~/ expr ).map(EDrop(_))
+
+  val comp: Parser[Expr] = 
+    P( "comp" ~/ exprTree ).map(EComp(_))
+
+  val fill: Parser[Expr] = 
+    P( "fill" ~/ exprTree ).map(EFill(_))
+
+  val liftLeft: Parser[Expr] = 
+    P( "liftLeft" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => ELiftLeft(e, ev, cl, tgt)
+    })
+
+  val liftRight: Parser[Expr] = 
+    P( "liftRight" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => ELiftRight(e, ev, cl, tgt)
+    })
+
+  val fillLeft: Parser[Expr] = 
+    P( "fillLeft" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => EFillLeft(e, ev, cl, tgt)
+    })
+
+  val fillRight: Parser[Expr] = 
+    P( "fillRight" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => EFillRight(e, ev, cl, tgt)
+    })
+
+  // Expr3
+
+  val expr3: Parser[Expr] = 
+    P( NoCut(pairing) | NoCut(arrow) | NoCut(product) | expr4 )
+
+  val pairing: Parser[Expr] = 
+    P( atom ~ "," ~ expr ).map({
+      case (e, f) => EPair(e, f)
+    })
+
+  val arrow: Parser[Expr] = 
+    P( atom ~ "->" ~ expr ).map({
+      case (e, f) => EPi(Punit, e, f)
+    })
+
+  val product: Parser[Expr] = 
+    P( atom ~ "*" ~ expr ).map({
+      case (e, f) => EPi(Punit, e, f)
+    })
+
+  val atom: Parser[Expr] = 
+    P( Lexer.ident.map(EVar(_)) | "(" ~ expr ~ ")" )
+
+  // Expr4 - (Applications)
+
+  val expr4: Parser[Expr] =
+    P( atom.rep(min = 1) ).map({
+      case exprs => {
+
+        def mkApp(ex: Expr, seq: Seq[Expr]): Expr = 
+          if (seq.length > 0) 
+            mkApp(EApp(ex, seq.head), seq.tail)
+          else ex
+
+        if (exprs.length > 1) {
+          mkApp(exprs.head, exprs.tail)
+        } else exprs.head
+
+      }
+    })
+
+  //============================================================================================
+  // TREES, NESTINGS AND COMPLEXES
+  //
+
+  val exprTree: Parser[STree[Expr]] = stree(atom)
+    
+  def stree[A](ap: Parser[A]): Parser[STree[A]] = 
+    P( "lf".!.map(_ => SLeaf) | 
+       ("nd" ~ ap ~ stree[STree[A]](stree(ap)) ).map({
+         case (a, sh) => SNode(a, sh)
+       }) |
+      "(" ~ stree(ap) ~ ")"
+    )
+
+  val nesting: Parser[SNesting[Expr]] = 
+    P( ("dot" ~ atom).map(SDot(_)) | 
+       ("box" ~ atom ~ stree(nesting)).map({
+         case (e, cn) => SBox(e, cn)
+       }) | 
+       ( "(" ~ nesting ~ ")" )
+    )
+
+  val complex: Parser[SComplex[Expr]] = 
+    P( "[" ~ nesting.rep(min = 1, sep = "||") ~ "]" ).map({
+      case seq => {
+        seq.tail.foldLeft(||(seq.head) : SComplex[Expr])(_ >> _)
+      }
+    })
+
+  //============================================================================================
+  // ADDRESSES
+  //
+
+  val address: Parser[SAddr] = 
+    P( "{" ~ address.rep(sep = "|") ~ "}" ).map({
+      case s => s.toList.map(SDir(_))
+    })
+
+  //============================================================================================
+  // PATTERNS
+  //
+
+  val pattern: Parser[Patt] = 
+    P( pattern1 ~ ( "," ~ pattern ).? ).map({ 
+      case (p, None) => p
+      case (p, Some(q)) => PPair(p, q)
+    })
+
+  val pattern1: Parser[Patt] = 
+    P(  "_".!.map(_ => Punit) 
+      | Lexer.ident.!.map(PVar(_))
+      | "(" ~ pattern ~ ")"
+    )
+
+  //============================================================================================
+  // DECLARATIONS
+  //
+
+  val decl: Parser[Decl] = 
+    P( simpleDecl | recursiveDecl )
+
+  val simpleDecl: Parser[Decl] = 
+    P( "let" ~/ pattern ~ ":" ~ expr ~ "=" ~ expr ).map({
+      case (p, e, f) => Def(p, e, f)
+    })
+
+  val recursiveDecl: Parser[Decl] = 
+    P( "letrec" ~/ pattern ~ ":" ~ expr ~ "=" ~ expr ).map({
+      case (p, e, f) => Drec(p, e, f)
+    })
 
 }
