@@ -22,37 +22,56 @@ object Main {
 
   def main(args: Array[String]) : Unit = {
 
-    if (args.length != 1) {
+    import Examples._
+    import ExprGen._
 
-      println("Usage: opetopictt <filename>")
+    for {
+      t <- exprGen(threecell)
+    } { 
 
-    } else {
+      import opetopictt.pprint._
+      import Tokenizer._
 
-      val lines : String = 
-        fromFile(args(0)).mkString
-
-      println("OpetopicTT")
-      
-      program.parse(lines) match {
-        case Success(expr, _) => {
-
-          println("Parsing successful.")
-          // println(expr.toString)
-
-          check(RNil, Nil, expr, Unt) match {
-            case Right(_) => println("Typechecking successful.")
-            case Left(msg) => println("Failure: " + msg)
-          }
-
-        }
-        case f @ Failure(_, _, e) => {
-          println("Failure: " + f.msg)
-          println(e.traced.trace)
-        }
-      }
+      println("\nResult: \n\n" + t.pprint + "\n")
 
     }
 
   }
+
+
+  // def main(args: Array[String]) : Unit = {
+
+  //   if (args.length != 1) {
+
+  //     println("Usage: opetopictt <filename>")
+
+  //   } else {
+
+  //     val lines : String = 
+  //       fromFile(args(0)).mkString
+
+  //     println("OpetopicTT")
+      
+  //     program.parse(lines) match {
+  //       case Success(expr, _) => {
+
+  //         println("Parsing successful.")
+  //         // println(expr.toString)
+
+  //         check(RNil, Nil, expr, Unt) match {
+  //           case Right(_) => println("Typechecking successful.")
+  //           case Left(msg) => println("Failure: " + msg)
+  //         }
+
+  //       }
+  //       case f @ Failure(_, _, e) => {
+  //         println("Failure: " + f.msg)
+  //         println(e.traced.trace)
+  //       }
+  //     }
+
+  //   }
+
+  // }
 
 }
