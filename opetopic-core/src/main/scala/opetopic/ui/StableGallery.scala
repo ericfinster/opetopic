@@ -34,12 +34,11 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
   //  Gallery Options
   //
 
-  def width: Size
-  def height: Size
-  def minViewX: Option[Size]
-  def minViewY: Option[Size]
-  def spacing: Size
-  def manageViewport : Boolean
+  def panelSpacing: Size
+
+  def layoutWidth: Bounds => Size
+  def layoutHeight: Bounds => Size
+  def layoutViewport: Bounds => Bounds
 
   def firstPanel: Option[Int]
   def lastPanel: Option[Int]
@@ -78,7 +77,7 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
       })
 
     val (xPos, els): (Size, Suite[Element]) = 
-      pbnds.mapAccumL[Size, Element](spacing)({
+      pbnds.mapAccumL[Size, Element](panelSpacing)({
         case (xPos, (p, bnds)) => {
 
           val xTrans = (-bnds.x) + xPos
@@ -86,7 +85,7 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
 
           val tEl = translate(p.element, xTrans, yTrans)
 
-          (xPos + bnds.width + spacing, tEl)
+          (xPos + bnds.width + panelSpacing, tEl)
 
         }
       })

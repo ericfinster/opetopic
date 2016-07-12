@@ -1,0 +1,185 @@
+@()(implicit userOpt: Option[User])
+
+@doc("theory/eqvs") {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Equivalences</h2>
+
+    <p>
+      Let us say that an opetope is <em>unary</em> if its source
+      tree consists of a single face.  With our convention for
+      depicting arbitrary cells, a general unary cell looks 
+      as follows:
+    </p>
+
+    @svg("eqvs/unary-ex.svg")
+
+    <p>
+      Of course, the number of input edges of x (and y) depends on the
+      lower dimensional structure, and is here chosen, arbitrarily, to
+      be three.
+    </p>
+
+    <p>
+      As in the case for universal cells, we will use a small
+      decoration to indicate that a cell is an equivalence, in
+      this case, a small circle decorating its target edge like so
+    </p>
+    
+    @svg("eqvs/eqv-notation.svg")
+
+    <p>
+      With these conventions in mind, the following coinductive definition of
+      an equivalence in a higher category is 
+      <a href="https://golem.ph.utexas.edu/category/2011/07/coinductive_definitions.html">standard</a>:
+    </p>
+
+    <div class="ui top attached inverted grey segment">
+      <div class="ui header">Equivalences</div>
+    </div>
+    <div class="ui middle attached center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/eqvs/equiv-def.svg"></object>
+    </div>
+    <div class="ui bottom attached segment">
+      <p>
+	Definition: a unary cell f : x → y is said to be an equivalence if there
+	exists g : y → x as well as higher cells η : g ∘ f → id-x and ε : f ∘ g → id-y
+	such that η and ε are equivalences.
+      </p>
+    </div>
+
+    <p>
+      Notice how the hypothesis that f be unary assures that it makes
+      sense to speak of a cell g "in the other direction", that is,
+      between the target of f and the source of f, since this diagram
+      remains well formed.  It is also readily checked, by symmetry,
+      that g is also an equivalence, though we have not denoted it as
+      such since it is not needed in the definition.
+    </p>
+
+    <p>
+      Our goal now is to prove the following:
+    </p>
+
+    <div class="ui top attached inverted grey segment">
+      <div class="ui header">Proposition</div>
+    </div>
+    <div class="ui bottom attached segment">
+      <p>
+	A unary cell is target universal if and only if it
+	is an equivalence.
+      </p>
+    </div>
+
+    <p>
+      We think of this proposition as justifying the fact that we
+      can think of target universal cells as the opetopic analog
+      of equivalences or isomorphisms.  In the case of a non-unary
+      cell, however, it does not make sense to speak of an inverse.
+      Rather, we must use the universal property as it is given.
+    </p>
+
+    <h3 class="ui dividing header">Proof: ⇒</h3>
+
+    <p>
+      By <a href="#">stability</a>, it suffices to consider that we
+      are given a target universal <em>arrow</em> f.
+    </p>
+
+    @svg("eqvs/f-tu.svg")
+
+    <p>
+      By the definition of target universality, we obtain a lift 
+      in the following diagram:
+    </p>
+
+    @svg("eqvs/g-tu.svg")
+
+    <p>
+      And we see that, moreover, g is target universal by closure,
+      since <a href="/docs/theory/units">id-x is</a> and f is by
+      hypothesis.  We pause to note that we have just shown that
+      any target universal unary cell admits an "inverse" which is
+      also target universal.  Hence we will freely apply this 
+      observation to other unary, target universal cells which
+      we will encounter in the proof.
+    </p>
+
+    <p>
+      Continuing with our proof, we can now obtain the desired cell η
+      using the lift
+    </p>
+
+    @svg("eqvs/eta-tu.svg")
+
+    <p>
+      Futhermore, since η is a unary, target universal cell, we conclude
+      that it is an equivalence by the coinductive hypothesis.
+    </p>
+
+    @svg("eqvs/eta-eqv-tu.svg")
+
+    <p>
+      The construction of ε is more involved, and proceeds as follows.  First,
+      recall that we have already constructed a left unit law for any arrow
+      which, applied to f, has the form.
+    </p>
+
+    @svg("eqvs/unit-l.svg")
+
+    <p>
+      Similarly, we have the right unit, unit-r.  From the first step of 
+      the proof, each of these unary, target universal cells has an inverse
+      which we will denote unit-l-inv and unit-r-inv respectively in what
+      follows.
+    </p>
+
+    <p>
+      Our first step is to lift f along itself, creating the cell α as shown
+    </p>
+
+    @svg("eqvs/alpha-def.svg")
+
+    <p>
+      Next, we define β as
+    </p>
+
+    @svg("eqvs/beta-def.svg")
+
+    <p>
+      And φ as
+    </p>
+
+    @svg("eqvs/phi-def.svg")
+
+    <p>
+      Next use the source lifting property obtained from the
+      definition of α twice, once for φ and once for β, obtaining
+      the cells φ and γ as follows:
+    </p>
+
+    @svg("eqvs/psi-def.svg")
+
+    @svg("eqvs/gamma-def.svg")
+
+    <p>
+      We now define ε as the composite
+    </p>
+    
+    @svg("eqvs/epsilon-def.svg")
+
+    <p>
+      And finally, since ε is a unary, target universal cell,
+      we conclude that it is an equivalence by the coinductive
+      hypothesis.
+    </p>
+
+    @svg("eqvs/epsilon-eqv.svg")
+    
+    <p>
+      This completes the proof.
+    </p>
+
+  </div>
+
+}

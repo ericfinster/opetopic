@@ -23,7 +23,7 @@ let corolla : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> (p :> M i c) -
     	    = \M. \i. \c. <p> eta M [p] ;
 
 let unitRight : (M : Mnd) -> (i : IndexOf M) -> (c : ConsOf M i) -> ConsOf M i
-    	      = \M. \i. \c. mu M i c (<p> eta M [p]) ;
+    	      = \M. \i. \c. mu M i c (<p> eta M [p]) ;  -- ~~~~> c
 
 normalize unitRight ;
 

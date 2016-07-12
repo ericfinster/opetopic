@@ -242,6 +242,20 @@ object STree {
     def graftWith(brs: STree[STree[A]]): Option[STree[A]] = 
       graft(st, brs)
 
+    // The Kleisli version of join from below ...
+    def bind[B](f : (A, SAddr) => Option[STree[B]], addr: SAddr = Nil) : Option[STree[B]] = 
+      st match {
+        case SLeaf => Some(SLeaf)
+        case SNode(a, sh) => 
+          for {
+            here <- f(a, addr) 
+            there <- sh.traverseWithAddr((b, dir) => {
+              b.bind(f, SDir(dir) :: addr)
+            })
+            res <- graft(here, there)
+          } yield res
+      }
+
     // Fix for laziness ...
     def flattenWith[B](d: SDeriv[B], addr: SAddr = Nil)(f: SAddr => B): Option[STree[B]] = 
       st match {

@@ -27,12 +27,9 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     val (gbnds, els) = panelElementsAndBounds
     panels.foreach(_.renderAll)
 
-    if (manageViewport) {
-      galleryViewport.width = width
-      galleryViewport.height = height
-    }
-
-    galleryViewport.setBounds(gbnds)
+    galleryViewport.width = layoutWidth(gbnds)
+    galleryViewport.height = layoutHeight(gbnds)
+    galleryViewport.setBounds(layoutViewport(gbnds))
     galleryViewport.children = els.toList
 
   }

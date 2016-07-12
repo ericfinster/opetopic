@@ -28,10 +28,38 @@
     </div>
 
     <p>
-      Our first definition makes use of the target extrusion of f and
-      is meant to capture the idea that the cell w is the composite
-      of x, y and z with f as a witness to this fact.  It proceeds as
-      follows:
+      We will first introduce notation for the properties we are interested
+      in, and then explain what that notation means.  The first property
+      is called <em>target universality</em>, and a cell which is target
+      universal will be denoted with a small triangle decorating the
+      output edge corresponding to its target as follows:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/tgtctxt.svg"></object>
+    </div>
+
+    <p>
+      The second universal property we will be interested in is called
+      <em>source universality</em> and depends on the choice of a particular
+      source cell of f.  It will similarly be denoted by a small triangle,
+      this time decorating the appropriate input edge:
+    </p>
+
+    <div class="ui basic center aligned segment">
+      <object type="image/svg+xml" data="/assets/svgs/srcctxt.svg"></object>
+    </div>
+
+    <p>
+      In the above diagram, we have labelled the input edges with the
+      faces they correspond in order to aid the reader in seeing what
+      assertion is being made about f by the decoration: by decorating
+      the edge corresponding to the cell x, we mean to assert that
+      f is source universal at x.
+    </p>
+
+    <p>
+      We now proceed to the definitions.
     </p>
 
     <div class="ui top attached inverted grey segment">
@@ -50,9 +78,21 @@
     </div>
 
     <p>
-      Not surprisingly, the definition of source universal will now
-      make use of the source extrusion, which recall takes place with
-      respect to a selected source cell.
+      Let us pause to make a couple remarks before moving on to the
+      definition of source universal.  First of all, the observant
+      reader will notice that the shape depicted in the diagram above
+      is exactly the left extrusion of f as discussed in the previous
+      section.  We have colored the cells in the diagram simply as a
+      means to aid the reader in recognizing what are the
+      hypotheses of the definition (in green), and what are its
+      conclusions (in red).
+    </p>
+
+    <p>
+      We now finish the definition be explaining what it is for a cell
+      f to be source universal at a chosen source cell x.  Not
+      surprisingly this definition will make use of the source
+      extrusion at x.
     </p>
 
     <div class="ui top attached inverted grey segment">

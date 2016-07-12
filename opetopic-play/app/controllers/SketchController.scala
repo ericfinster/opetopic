@@ -113,29 +113,19 @@ class SketchController @Inject() (
       form => Future.successful(BadRequest("Bad render reqeust")),
       data => {
 
-        // val sm : SizingMethod = read[SizingMethod](data.sizingMethod)
-
-        // val sf : Bounds => (Int, Int) = 
-        //   sm match {
-        //     case Sized(w, h) => (b: Bounds) => (w, h)
-        //     case FixedWidth(w) => (b: Bounds) => {
-        //       val fct : Double = (w.toDouble) / b.width
-        //       (w, (b.height * fct).toInt)
-        //     }
-        //     case FixedHeight(h) => (b: Bounds) => {
-        //       val fct : Double = (h.toDouble) / b.height
-        //       ((b.width * fct).toInt, h)
-        //     }
-        //     case Percentage(pct) => (b: Bounds) => {
-        //       ((b.width * pct).toInt, (b.height * pct).toInt)
-        //     }
-        //   }
+        import ScalatagsTextFramework._
 
         val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(data.renderData))
 
-        // println("Rendering complex: " ++ c.toString)
-
         val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(c)
+
+        val maxWidth = 725
+        val maxHeight = 260
+
+        val fct = 0.02
+        staticGallery.layoutWidth = (b: Bounds) => { val fw = (b.width * fct).toInt ; if (fw > maxWidth) maxWidth else fw }
+        staticGallery.layoutHeight = (b: Bounds) => { val fh = (b.height * fct).toInt ; if (fh > maxHeight) maxHeight else fh }
+
         val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
         Future.successful(Ok(xmlHeader + "\n" + staticGallery.element.toString).as("image/svg+xml"))
 

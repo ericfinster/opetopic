@@ -20,8 +20,15 @@ abstract class StaticStableGallery[F <: UIFramework](frmwk: F)
   type CellType <: StaticCell
 
   def element: Element = {
-    val (gBounds, els) = panelElementsAndBounds
-    viewport(width, height, gBounds, els.toList: _*)
+
+    val (bnds, els) = panelElementsAndBounds
+
+    val w = layoutWidth(bnds)
+    val h = layoutHeight(bnds)
+    val vp = layoutViewport(bnds)
+
+    viewport(w, h, vp, els.toList: _*)
+
   }
 
   abstract class StaticCell extends GalleryCell { thisCell : CellType => 

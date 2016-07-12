@@ -42,10 +42,16 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
 
   var width: Size = fromInt(900)
   var height: Size = fromInt(300)
-  var minViewX: Option[Size] = None
-  var minViewY: Option[Size] = None
-  var spacing: Size = fromInt(2000)
-  var manageViewport : Boolean = false
+  var panelSpacing: Size = fromInt(2000)
+
+  var layoutWidth: Bounds => Size = 
+    (pb: Bounds) => width
+
+  var layoutHeight: Bounds => Size = 
+    (pb: Bounds) => height
+
+  var layoutViewport: Bounds => Bounds = 
+    (pb: Bounds) => pb
 
   var firstPanel: Option[Int] = None
   var lastPanel: Option[Int] = None
