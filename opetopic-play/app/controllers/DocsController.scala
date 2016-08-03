@@ -43,6 +43,7 @@ class DocsController @Inject() (
       case "categories/categories" => Future.successful(Ok(views.html.docs.categories()))
       case "theory/units" => Future.successful(Ok(views.html.docs.units()))
       case "theory/eqvs" => Future.successful(Ok(views.html.docs.eqvs()))
+      case "theory/srccoh" => Future.successful(Ok(views.html.docs.srccoh()))
       case "basicediting" => Future.successful(Ok(views.html.docs.basicediting()))
       case _ => Future.successful(Ok("No doc found"))
     }
