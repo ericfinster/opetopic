@@ -1,0 +1,88 @@
+@()(implicit userOpt: Option[User])
+
+@doc("theory/rightcoh") {
+
+  <div class="ui raised segment">
+    <h2 class="ui dividing header">Source Universality Coherence</h2>
+
+    <p>
+      Our goal in this section is to prove the following:
+    </p>
+
+    <div class="ui top attached inverted grey segment">
+      <div class="ui header">Proposition</div>
+    </div>
+    <div class="ui bottom attached segment">
+      <p>
+	Consider a cell f which is both target universal and
+	source universal at a face x.
+      </p>
+
+      @svg("srccoh/f-def.svg")
+
+      <p>
+	Then for any competitor u of x and g a target
+	target universal cell, as in the diagram
+      </p>
+
+      @svg("srccoh/g-univ.svg")
+
+      <p>
+	Then in fact, g is source universal at u.
+      </p>
+
+    </div>
+    
+    <h3 class="ui dividing header">Proof</h3>
+    
+    <p>
+      First construct the cell α using the source lifting
+      property of f:
+    </p>
+    
+    @svg("srccoh/alpha-def.svg")
+
+    <p>
+      Observe that α is target universal by closure.  Now, suppose we
+      are given s and t, a lifting problem as shown in the following
+      diagram:
+    </p>
+
+    @svg("srccoh/goal.svg")
+
+    <p>
+      Our goal is to fill the orange boxes and show the appropriate
+      universal properties.  We first use the universal property of
+      f to obtain the cell β as depicted.
+    </p>
+
+    @svg("srccoh/beta-def.svg")
+
+    <p>
+      Composing β and α-inv we obtain the cell γ.
+    </p>
+
+    @svg("srccoh/gamma-def.svg")
+
+    <p>
+      All I can see to do now is compose everything to obtain δ:
+    </p>
+
+    @svg("srccoh/delta-def.svg")
+
+    <p>
+      Actually, maybe the following is better:
+    </p>
+
+    @svg("srccoh/epsilon-def.svg")
+
+    <p>
+      From here, you have a bit of work, but it seems pretty likely
+      that α and α-inv can be cancelled, resulting in just f and
+      β as the exterior.  The result should now be that t, being
+      universal for this configuation admits a map to/from g ∘ γ.
+    </p>
+
+  </div>
+
+}
