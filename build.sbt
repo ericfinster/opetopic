@@ -70,7 +70,7 @@ lazy val opetopicDocs = (project in file("opetopic-docs")).
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+      "com.lihaoyi" %%% "scalatags" % "0.6.0"
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -84,7 +84,7 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
       "org.scalaz" %%% "scalaz-core" % "7.2.5",
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "scalatags" % "0.6.0",
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
@@ -99,7 +99,7 @@ lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "scalatags" % "0.6.0",
       "com.lihaoyi" %%% "upickle" % "0.3.9",
       "com.lihaoyi" %%% "fastparse" % "0.3.7"
     )
@@ -114,7 +114,7 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "scalatags" % "0.6.0",
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
@@ -124,7 +124,7 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "scalatags" % "0.6.0",
       "com.lihaoyi" %%% "upickle" % "0.3.9",
       "com.lihaoyi" %%% "fastparse" % "0.3.7"
     )
