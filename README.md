@@ -1,3 +1,5 @@
+![CircleCI](https://circleci.com/gh/ggreif/opetopic.svg?style=shield)
+
 # Opetopic
 
 Opetopic is a collection of web based tools for working with 
