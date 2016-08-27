@@ -1,4 +1,4 @@
-![CircleCI](https://circleci.com/gh/ggreif/opetopic.svg?style=shield)
+[![Build Status CircleCI](https://circleci.com/gh/ggreif/opetopic.svg?&style=shield)](https://circleci.com/gh/ggreif/opetopic)
 
 # Opetopic
 
