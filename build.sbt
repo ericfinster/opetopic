@@ -59,7 +59,8 @@ lazy val opetopicTt = (project in file("opetopic-tt")).
   settings(
     libraryDependencies ++= Seq(
       "com.lihaoyi" %% "fastparse" % "0.3.7"
-    )
+    ),
+    exportJars := true
   ).dependsOn(opetopicCoreJvm)
 
 lazy val opetopicDocs = (project in file("opetopic-docs")).
