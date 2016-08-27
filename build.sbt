@@ -88,7 +88,8 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
+  dependsOn(opetopicJs).
+  dependsOn(opetopicTt)
 
 lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
   settings(commonSettings: _*).
