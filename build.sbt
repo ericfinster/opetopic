@@ -81,6 +81,7 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
+      "org.scalaz" %%% "scalaz-core" % "7.2.5",
       "org.scala-js" %%% "scalajs-dom" % "0.9.0",
       "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
       "com.lihaoyi" %%% "scalatags" % "0.5.3",
