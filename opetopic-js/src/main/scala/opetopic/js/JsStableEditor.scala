@@ -117,8 +117,8 @@ class JsStableEditor[A: Renderable] {
     val cntStr = tabCount.toString
     val tabName = "tab-" ++ cntStr
 
-    val tabItem = a(cls := "item", "data-tab".attr := tabName)(cntStr).render
-    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
+    val tabItem = a(cls := "item", attr("data-tab") := tabName)(cntStr).render
+    val tab = div(cls := "ui tab", attr("data-tab") := tabName)(
       editorTab.editor.element.uiElement
     ).render
 
