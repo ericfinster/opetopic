@@ -373,26 +373,39 @@ trait CardinalTypes {
 
       }
 
-    def sproutFillerAt(addr: SCardAddr, a: A): Option[SCardNst[A]] = 
+    // Right.  I see the bug.  The box address is that of the internal
+    // edge tree.  That is, you would have to get the spine of all the
+    // boxes on this branch in order to be at the right address.  You
+    // have to somehow calculate the address which would result from
+    // collapsing all of these ...
+
+    // I'm sure I have some something like this before.  How does it
+    // work?  Basically, you have a canopy, and an address in the
+    // spine which the canopy determines.  You want to convert that
+    // to an address in the canopy itself.  Have to think about how
+    // to do this.  But at least I understand the problem.
+
+    def sproutFillerAt(addr: SCardAddr, a: A): Option[(SCardNst[A], SAddr)] =
       for {
         t <- cnst.unfold
         pr <- t.mSeek(addr.branchAddr)
         (canopy, cd) = pr
         zp <- canopy.seekTo(addr.canopyAddr)
         ttsh <- zp.focus.nodeOption
-        (t, tsh) = ttsh
-        cz <- t.seekTo(addr.boxAddr)
+        (tr, trsh) = ttsh
+        na <- tr.spineToCanopyAddr(addr.boxAddr)
+        cz <- tr.seekTo(na)
         _ <- cz.focus.leafOption
       } yield {
 
         val sproutShell : TShell[SNesting[A]] = 
           cz.ctxt.g match {
-            case Nil => tsh.asShell
+            case Nil => trsh.asShell
             case (_, SDeriv(sh, _)) :: _ => sh.asShell
           }
 
         val sproutExtrusion = SNode(SDot(a), SNode(SLeaf, sproutShell)) 
-        MFix(cd.plug(zp.closeWith(SNode(cz.closeWith(sproutExtrusion), tsh))))
+        (MFix(cd.plug(zp.closeWith(SNode(cz.closeWith(sproutExtrusion), trsh)))), na)
 
       }
 
@@ -499,12 +512,13 @@ trait CardinalTypes {
         extNst = tl.head
         fillNst = p.head
         sn <- extNst.sproutAt(addr, src)
-        fn <- fillNst.sproutFillerAt(addr, fill)
+        pr <- fillNst.sproutFillerAt(addr, fill)
+        (fn, na) = pr
         lns <- l.zipWithIndex.traverse({
           case (lfNst, i) => {
 
             val lfAddr = SLeafAddr(i, addr.branchAddr)
-            lfNst.sproutLeafAt(addr.canopyAddr, addr.boxAddr, lfAddr)
+            lfNst.sproutLeafAt(addr.canopyAddr, na, lfAddr)
 
           }
         })

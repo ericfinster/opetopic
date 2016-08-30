@@ -149,16 +149,15 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
-  def extrudeSelection: Unit = {
-
+  def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Unit =
     selectionRoot match {
       case None => ()
       case Some(root) => {
 
         if (root.canExtrude) {
 
-          val tgtCell = new NeutralCell(root.dim, None, false)
-          val fillCell = new NeutralCell(root.dim + 1, None, true)
+          val tgtCell = new NeutralCell(root.dim, tgtVal, false)
+          val fillCell = new NeutralCell(root.dim + 1, fillVal, true)
 
           val extPanels : Suite[PanelType] =
             if (root.dim == panels.head.dim)
@@ -191,18 +190,18 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
       }
     }
 
-  }
+  def extrudeSelection: Unit =
+    extrudeSelectionWith(None, None)
 
-  def loopAtSelection: Unit = {
-
+  def loopAtSelectionWith(tgtVal: OptA, fillVal: OptA) : Unit = 
     selectionRoot match {
       case None => ()
       case Some(root) => {
 
         if (root.canExtrude) {
 
-          val tgtCell = new NeutralCell(root.dim + 1, None, false)
-          val fillCell = new NeutralCell(root.dim + 2, None, true)
+          val tgtCell = new NeutralCell(root.dim + 1, tgtVal, false)
+          val fillCell = new NeutralCell(root.dim + 2, fillVal, true)
 
           val extPanels : Suite[PanelType] =
             if (root.dim == panels.head.dim)
@@ -237,27 +236,25 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
       }
     }
 
-  }
+  def loopAtSelection : Unit = 
+    loopAtSelectionWith(None, None)
 
   //
   //  BUG!  You still have a sprout bug somewhere.  Have to track it down ...
   //  
-  def sproutAtSelection: Unit = {
-
+  def sproutAtSelectionWith(srcVal: OptA, fillVal: OptA): Unit = 
     selectionRoot match {
       case None => ()
       case Some(root) => {
-
         if (root.isExternal) {
 
-          val srcCell = new NeutralCell(root.dim, None, true)
-          val fillCell = new NeutralCell(root.dim + 1, None, true)
+          val srcCell = new NeutralCell(root.dim, srcVal, true)
+          val fillCell = new NeutralCell(root.dim + 1, fillVal, true)
 
           val extPanels : Suite[PanelType] =
             if (root.dim == panels.head.dim)
               extendPanels(panels)
             else panels
-
 
           val extCardinal : SCardinal[NeutralCell] =
             Traverse[Suite].map(extPanels)(_.cardinalNesting)
@@ -285,7 +282,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
       }
     }
 
-  }
+  def sproutAtSelection: Unit =
+    sproutAtSelectionWith(None, None)
 
   //============================================================================================
   // PANEL IMPLEMENTATION

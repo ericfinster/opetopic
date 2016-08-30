@@ -239,7 +239,7 @@ object STree {
     def treeFold[B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
       STree.treeFold(st)(lr)(nr)
 
-    def graftWith(brs: STree[STree[A]]): Option[STree[A]] = 
+    def graftWith(brs: STree[STree[A]]): Option[STree[A]] =
       graft(st, brs)
 
     // The Kleisli version of join from below ...
@@ -405,16 +405,29 @@ object STree {
 
   }
 
-  def treeFold[A, B](t: STree[A])(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] = 
+  // A fold with leaves called with the horizontal address 
+  def treeFold[A, B](t: STree[A])(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
     t match {
       case SLeaf => lr(Nil)
       case SNode(a, SLeaf) => nr(a, SLeaf)
       case SNode(a, SNode(v, hs)) => STreeFold(lr)(nr).initVertical(a, v, hs).map(_._1)
     }
 
-  def graft[A](st: STree[A], bs: STree[STree[A]]): Option[STree[A]] = 
-    treeFold(st)(bs.elementAt(_))({ case (a, as) => Some(SNode(a, as)) })
+  // The same as above, but use the vertical leaf address...
+  def treeFoldVertical[A, B](t: STree[A], addr: SAddr = Nil)(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
+    t match {
+      case SLeaf => lr(addr)
+      case SNode(a, sh) => 
+        for {
+          shRes <- sh.traverseWithAddr[Option, B](
+            (b, dir) => treeFoldVertical(b, SDir(dir) :: addr)(lr)(nr)
+          )
+          res <- nr(a, shRes)
+        } yield res
+    }
 
+  def graft[A](st: STree[A], bs: STree[STree[A]]): Option[STree[A]] =
+    treeFold(st)(bs.elementAt(_))({ case (a, as) => Some(SNode(a, as)) })
 
   def join[A](st: STree[STree[A]]): Option[STree[A]] = 
     st match {
