@@ -17,33 +17,6 @@ sealed trait MDeriv[+A]
 case object MUnit extends MDeriv[Nothing]
 case class MSucc[+A](md: MDeriv[STree[A]], sd: SDeriv[STree[A]]) extends MDeriv[A]
 
-// sealed trait NList[+A] 
-// case class NNil(i: Int) extends NList[Nothing]
-// case class NCons[+A](i: Int)(a: A, as: NList[A]) extends NList[A] {
-//   override def toString = 
-//     "NCons(" + i.toString + ")(" + a.toString + ", " + as.toString + ")"
-// }
-
-// case class NDir(val d: NList[NDir])
-
-// object NList {
-
-//   def apply(addr: SAddr) : NAddr = 
-//     translate(addr)._1
-
-//   def translate(addr: SAddr, i: Int = 1): (NAddr, Int) = 
-//     addr match {
-//       case Nil => (NNil(i), i + 1)
-//       case SDir(d) :: ds => {
-//         val (ns, j) = translate(ds, i)
-//         val (nd, k) = translate(d, j)
-//         (NCons(k)(NDir(nd), ns), k + 1)
-//       }
-
-//     }
-
-// }
-
 trait CardinalTypes {
 
   type MAddr = List[SAddr]

@@ -28,6 +28,9 @@ trait ComplexTypes {
 
   implicit class SComplexOps[A](c: SComplex[A]) {
 
+    def dim: Int = c.length - 1
+    def topCell: A = c.head.baseValue
+
     //
     //  Source Calculation
     //
