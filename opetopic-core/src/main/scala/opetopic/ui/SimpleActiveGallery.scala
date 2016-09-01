@@ -56,10 +56,15 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
   var firstPanel: Option[Int] = None
   var lastPanel: Option[Int] = None
 
-  val panels : Suite[PanelType] = buildPanels(complex)
+  var panels : Suite[PanelType] = buildPanels(complex)
   panels.foreach(p => p.refreshAddresses)
 
-  def createPanel(bn: SNesting[CellType], ed: Either[PanelType, SNesting[CellType]]): PanelType = 
+  def setComplex(c: SComplex[A]) = {
+    panels = buildPanels(c)
+    panels.foreach(p => p.refreshAddresses)
+  }
+
+  def createPanel(bn: SNesting[CellType], ed: Either[PanelType, SNesting[CellType]]): PanelType =
     new SimpleActivePanel(bn, ed)
 
   def createCell(lbl: LabelType, dim: Int, addr: SAddr, isExternal: Boolean): CellType = 

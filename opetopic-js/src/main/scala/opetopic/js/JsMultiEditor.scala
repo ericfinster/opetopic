@@ -49,9 +49,6 @@ class JsMultiEditor[A: Renderable] {
 
         l.viewer.renderAll
 
-        l.viewer.galleryViewport.width = 200
-        l.viewer.galleryViewport.height = 100
-
         val layerItem = a(cls := "item", onclick := { () => onEditLayer(l) })(
           l.viewer.element.uiElement
         ).render
@@ -74,6 +71,11 @@ class JsMultiEditor[A: Renderable] {
       showLayerEditor
       jQuery(footer).empty().append(layerFooter)
     }
+  }
+
+  def onLayerFinish: Unit = {
+    editor.closeLayer
+    showValueEditor
   }
 
   def showValueEditor: Unit = {
@@ -135,7 +137,7 @@ class JsMultiEditor[A: Renderable] {
 
   val layerFooter =
     div(
-      div(cls := "ui button")("Finish")
+      div(cls := "ui button", onclick := { () => onLayerFinish })("Finish")
     ).render
 
   val footer =

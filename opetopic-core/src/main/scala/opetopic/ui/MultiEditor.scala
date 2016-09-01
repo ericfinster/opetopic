@@ -91,7 +91,7 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
         } { multicard = mc }
 
       }
-      case LayerEdit(model, splitting) => {
+      case LayerEdit(layer, model, splitting) => {
 
         // The model is a blanked out copy of what is attached to lower
         // dimensions.  We will always extrude new faces with a copy of
@@ -106,10 +106,8 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
           })
         } {
 
-          println("Layer extrusion was successful.")
-
           // Right, but now we have to update the state
-          state = LayerEdit(model, mc)
+          state = LayerEdit(layer, model, mc)
 
         }
 
@@ -134,8 +132,6 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
       msplit <- splitLevel(multicard, splitIndex)
     } {
 
-      println("Split succeeded ...")
-
       def extractLayerModel(m: Multicard[Multicard[OptA]]): Option[(SCardinal[Multicard[OptA]], Multicard[OptA])] =
         m match {
           case Root(card) =>
@@ -151,33 +147,98 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
       } {
 
         layerEditor.cardinal = card.map(Some(_))
-        state = LayerEdit(model, msplit)
+        state = LayerEdit(layer, model, msplit)
 
       }
 
     }
 
+  }
 
+  def closeLayer: Unit = {
 
+    def closeWithFaces(m: Multicard[Multicard[OptA]],
+      ps: Suite[(Multicard[OptA], Multicard[OptA])],
+      dim: Int, addr: SAddr
+    ): Option[Multicard[OptA]] =
+      m match {
+        case Root(card) =>
+          for {
+            cmplx <- card.toComplex(ps)
+            f <- cmplx.face(dim)(addr)
+          } yield Level(f)
+        case Level(cmplx) =>
+          for {
+            m <- cmplx.traverse(closeWithFaces(_, ps, dim, addr))
+          } yield Level(m)
+      }
+
+    state match {
+      case LayerEdit(layer, model, splitting) => {
+        layerEditor.selectionRoot match {
+          case None => ()
+          case Some(cell) => {
+            for {
+              face <- cell.face
+              caddr = cell.cardinalAddress
+              dummy = Root(SCardinal(||(SDot(None))))
+              ps = layerEditor.panels.map(_ => (dummy, dummy))
+              mc <- closeWithFaces(splitting, ps, caddr.dim, caddr.complexAddress)
+            } {
+
+              layer.viewer.setComplex(face.map(_ => None))
+              layer.viewer.renderAll
+              layer.selectInitial
+
+              // Somehow we have to close the guy as well.
+              // Right.  We want to use this routine.  So we have to
+              // restrict to this address on all of the cardinals in
+              // the splitting.
+
+              multicard = mc
+
+              // def stack[A](m: Multitope[Multicard[A]]): Multicard[A] =
+              //   m match {
+              //     case Base(c) => Level(c)
+              //     case Up(c) => Level(c.map(stack(_)))
+              //   }
+
+              state = ValueEdit
+
+            }
+          }
+        }
+      }
+      case _ => ()
+    }
   }
 
   case class Layer(val index: Int) {
 
-    var model: SComplex[OptA] = ||(SDot(None))
+    var layerComplex: SComplex[OptA] = ||(SDot(None))
 
     val viewer: SimpleActiveGallery[OptA, F] =
-      new SimpleActiveGallery[OptA, F](frmwk)(model)
+      new SimpleActiveGallery[OptA, F](frmwk)(layerComplex)
 
-    // Select the initial element
-    for {
-      el <- viewer.panels.initial.boxNesting.firstDotValue
-    } { el.selectAsRoot }
+    import viewer.framework.isNumeric._
+
+    viewer.layoutWidth = bnds => fromInt(200)
+    viewer.layoutHeight = bnds => fromInt(100)
+
+    selectInitial
+
+    def selectInitial: Unit = {
+      for {
+        el <- viewer.panels.initial.boxNesting.firstDotValue
+      } { el.selectAsRoot }
+    }
 
   }
 
   sealed trait EditorState
   case object ValueEdit extends EditorState
   case class LayerEdit(
+    val layer: Layer,
     val model: Multicard[OptA],
     val splitting: Multicard[Multicard[OptA]]
   ) extends EditorState
