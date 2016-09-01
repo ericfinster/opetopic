@@ -21,11 +21,102 @@ class JsMultiEditor[A: Renderable] {
 
   val editor = new MultiEditor[A, JsDomFramework.type](JsDomFramework)
 
+  def initialize: Unit = {
+
+    // Install the key handler
+    jQuery(uiElement).keypress((e : JQueryEventObject) => {
+      e.which match {
+        case 101 => doExtrude
+        case 100 => doDrop
+        case 115 => doSprout
+        case _ => ()
+      }
+    })
+
+    showValueEditor
+    refreshLayers
+
+  }
+
+  def refreshLayers: Unit = {
+
+    jQuery(layerMenu).empty()
+
+    if (editor.layers.length > 0) {
+      for {
+        l <- editor.layers
+      } {
+
+        l.viewer.renderAll
+
+        l.viewer.galleryViewport.width = 200
+        l.viewer.galleryViewport.height = 100
+
+        val layerItem = a(cls := "item", onclick := { () => onEditLayer(l) })(
+          l.viewer.element.uiElement
+        ).render
+
+        jQuery(layerMenu).append(layerItem)
+
+      }
+    }
+
+  }
+
+  def onNewLayer: Unit = {
+    editor.addLayer
+    refreshLayers
+  }
+
+  def onEditLayer(l: editor.Layer): Unit = {
+    if (editor.state != editor.LayerEdit) {
+      editor.editLayer(l)
+      showLayerEditor
+      jQuery(footer).empty().append(layerFooter)
+    }
+  }
+
+  def showValueEditor: Unit = {
+    editor.valueEditor.renderAll
+    jQuery(editorPane).empty().append(editor.valueEditor.element.uiElement)
+  }
+
+  def showLayerEditor: Unit = {
+    editor.layerEditor.renderAll
+    jQuery(editorPane).empty().append(editor.layerEditor.element.uiElement)
+  }
+
+  def doExtrude: Unit = {
+    editor.extrude
+  }
+
+  def doDrop: Unit = {
+  }
+
+  def doSprout: Unit = {
+  }
+
   //============================================================================================
   // UI ELEMENTS
   //
 
-  val midPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 500px").render
+  val editorPane = div(cls := "twelve wide center aligned column").render
+  val layerMenu = div(cls := "ui vertical fluid menu").render
+
+  val midPane = div(cls := "ui middle attached nofocus segment", tabindex := 0)(
+    div(cls := "ui divided grid", style := "min-height: 500px")(
+      editorPane,
+      div(cls := "four wide column")(
+        div(cls := "ui grid")(
+          div(cls := "eight wide column")(h3(cls := "ui header")("Layers")),
+          div(cls := "eight wide right aligned column")(
+            div(cls := "ui icon button", onclick := { () => onNewLayer })(i(cls := "ui plus icon"))
+          )
+        ),
+        layerMenu
+      )
+    )
+  ).render
   
   val topMenu =
     div(cls := "ui top attached menu")(
@@ -39,11 +130,18 @@ class JsMultiEditor[A: Renderable] {
       )
     ).render
 
-  val bottomMenu =
-    div(cls := "ui bottom attached segment").render
+  val valueFooter =
+    div(p("Value pane.")).render
+
+  val layerFooter =
+    div(
+      div(cls := "ui button")("Finish")
+    ).render
+
+  val footer =
+    div(cls := "ui bottom attached segment")(valueFooter).render
 
   val uiElement =
-    div(topMenu, midPane, bottomMenu).render
-
+    div(topMenu, midPane, footer).render
 
 }

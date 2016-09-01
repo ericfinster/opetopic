@@ -199,7 +199,17 @@ object SNesting {
         case SBox(a, _) => a
       }
 
-    def withBase(a: A): SNesting[A] = 
+    def firstDotValue: Option[A] =
+      nst match {
+        case SDot(a) => Some(a)
+        case SBox(_, cn) =>
+          cn match {
+            case SLeaf => None
+            case SNode(n, _) => n.firstDotValue
+          }
+      }
+
+    def withBase(a: A): SNesting[A] =
       nst match {
         case SDot(_) => SDot(a)
         case SBox(_, cn) => SBox(a, cn)

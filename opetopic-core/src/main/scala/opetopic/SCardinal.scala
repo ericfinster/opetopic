@@ -100,7 +100,17 @@ trait CardinalTypes {
 
   implicit class MTreeOps[A](mt: MTree[A]) {
 
-    def unfold: Option[MTree[STree[A]]] = 
+    def rootValue: Option[A] =
+      mt match {
+        case MObj(tr) => tr.rootValue
+        case MFix(t) =>
+          for {
+            m <- t.rootValue
+            a <- m.rootValue
+          } yield a
+      }
+
+    def unfold: Option[MTree[STree[A]]] =
       mt match {
         case MFix(t) => Some(t)
         case _ => None
@@ -433,6 +443,8 @@ trait CardinalTypes {
 
   implicit class CardinalOps[A](card: SCardinal[A]) {
 
+    def dim: Int = card.length - 1
+
     def toComplex(ps: Suite[(A, A)]): Option[SComplex[A]] = 
       (card, ps) match {
         case (||(MObj(cn)), ||((p, _))) => Some(||(SBox(p, cn)))
@@ -450,7 +462,12 @@ trait CardinalTypes {
     def seekCanopy(addr: SCardAddr): Option[SZipper[SNesting[A]]] = 
       card.take(addr.dim + 1).head.canopySeek(addr)
 
-    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[(SCardinal[A], STree[Unit])] = {
+    def extend(a: A): SCardinal[A] = {
+      val newHead = Traverse[MTree].map(card.head)(nst => nst.toTreeWith(_ => SDot(a)))
+      card >> MFix(newHead)
+    }
+
+    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[(SCardinal[A], STree[Int])] = {
 
       val extDim = addr.dim
       val (p, l) = card.splitAt(extDim + 2)
@@ -470,7 +487,7 @@ trait CardinalTypes {
 
           }
         })
-      } yield ((tl.withHead(en) >> fn) ++ lns, msk.map(_ => ()))
+      } yield ((tl.withHead(en) >> fn) ++ lns, msk.map(_ => 0))
 
     }
 

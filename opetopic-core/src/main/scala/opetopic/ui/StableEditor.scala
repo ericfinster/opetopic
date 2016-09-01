@@ -67,8 +67,12 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   var panels : Suite[PanelType] = buildPanels(c)._1
 
-  def cardinal: SCardinal[NeutralCell] = 
+  def cardinal: SCardinal[NeutralCell] =
     Traverse[Suite].map(panels)(_.cardinalNesting)
+
+  def cardinal_=(c: SCardinal[OptA]): Unit = {
+    panels = buildPanels(c)._1
+  }
 
   def complex: SComplex[EditorCell] = 
     Traverse[Suite].map(panels)(_.boxNesting)
@@ -149,7 +153,7 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
-  def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Option[(SCardAddr, STree[Unit])] =
+  def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Option[(SCardAddr, STree[Int])] =
     selectionRoot match {
       case None => None
       case Some(root) => {

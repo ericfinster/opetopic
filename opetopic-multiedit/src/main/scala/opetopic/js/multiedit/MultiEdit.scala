@@ -33,7 +33,8 @@ object MultiEdit extends JSApp {
 
     println("Started MultiEdit...")
     jQuery("#editor-div").append(editor.uiElement)
-
+    editor.initialize
+    
   }
 
 }
