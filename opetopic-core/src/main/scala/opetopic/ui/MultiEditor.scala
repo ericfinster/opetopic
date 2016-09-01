@@ -14,35 +14,37 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
 
   type OptA = Option[A]
 
-  val levelEditor: StableEditor[A, F] = new StableEditor(frmwk)(SCardinal(||(SDot(None))))
-  val valueEditor: StableEditor[A, F] = new StableEditor(frmwk)(SCardinal(||(SDot(None))))
+  sealed trait Multicard[+A]
+  case class Root[+A](card: SCardinal[A]) extends Multicard[A]
+  case class Level[+A](cmpl: SComplex[Multicard[A]]) extends Multicard[A]
 
-  // Start with a trivial multitope
-  var multitope: Multitope[Option[A]] = Base(||(SDot(None)))
-  var levels: Seq[SComplex[Option[A]]] = Seq(||(SDot(None)))
+  // Great, so if we have a multitope of these guys, we can collapse
+  // it down.  This should be what happens when we finish a level edit.
+  def stack(m: Multitope[Multicard[A]]): Multicard[A] =
+    m match {
+      case Base(c) => Level(c)
+      case Up(c) => Level(c.map(stack(_)))
+    }
 
-  def newLevel: Unit = {
-    // Also add a new level model ...
-    multitope = Up(||(SDot(multitope)))
-  }
+  // Great, so this lifts the multicardinal structure up.
+  def splitLevel(m: Multicard[A], i: Int): Option[Multicard[Multicard[A]]] =
+    m match {
+      case Root(card) => None
+      case Level(cmplx) =>
+        if (i == 0) Some(Root(SCardinal(cmplx))) else {
+          for {
+            childCmplx <- cmplx.traverse(splitLevel(_, i-1))
+          } yield Level(childCmplx)
+        }
+    }
 
-  def openLevel(i: Int): Unit = {
-    val editor = new StableEditor(frmwk)(SCardinal(levels(i)))
-  }
-
-  // Right.  How are you going to make contact between the the extrusion functionality
-  // of the editor and the multitope that is being edited?
-
-  // So, the idea of the next definition is that you are in one of two editing modes:
-  // either the values, or else the levels, in which case the extrusion function will
-  // if fact produce different effects.
-
-  var editor: Either[StableEditor[A, F], StableEditor[Multitope[Option[A]], F]] = ???
-
-  // Okay, but just the editor is not really enough.  You should have a kind of
-  // "context" class which saves the the path travelled to the current level as well.
-  // Possibly here you can save a model of what exactly should be tagged onto the
-  // new extended elements.
+  // This means we can apply, say, an extrusion to each of the cardinals
+  // at the leaves of our multicardinal.
+  def traverseRoots(m: Multicard[A])(f: SCardinal[A] => Option[SCardinal[A]]): Option[Multicard[A]] =
+    m match {
+      case Root(card) => f(card).map(Root(_))
+      case Level(cmplx) => cmplx.traverse(traverseRoots(_)(f)).map(Level(_))
+    }
 
 }
 

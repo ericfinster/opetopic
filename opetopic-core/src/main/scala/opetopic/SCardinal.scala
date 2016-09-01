@@ -260,7 +260,16 @@ trait CardinalTypes {
         (et, es) = cut
       } yield (cd.plug(zp.ctxt.close(SNode(SBox(a, et), es))), et)
 
-    def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] = 
+    def extrudeAtWithMask[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] =
+      for {
+        pr <- cnst.mSeek(addr.branchAddr)
+        (canopy, cd) = pr
+        zp <- canopy.seekTo(addr.canopyAddr)
+        cut <- zp.focus.takeWithMask(msk)
+        (et, es) = cut
+      } yield cd.plug(zp.ctxt.close(SNode(SBox(a, et), es)))
+
+    def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] =
       for {
         t <- cnst.unfold
         sd <- t.mSeek(addr.branchAddr)
@@ -373,18 +382,6 @@ trait CardinalTypes {
 
       }
 
-    // Right.  I see the bug.  The box address is that of the internal
-    // edge tree.  That is, you would have to get the spine of all the
-    // boxes on this branch in order to be at the right address.  You
-    // have to somehow calculate the address which would result from
-    // collapsing all of these ...
-
-    // I'm sure I have some something like this before.  How does it
-    // work?  Basically, you have a canopy, and an address in the
-    // spine which the canopy determines.  You want to convert that
-    // to an address in the canopy itself.  Have to think about how
-    // to do this.  But at least I understand the problem.
-
     def sproutFillerAt(addr: SCardAddr, a: A): Option[(SCardNst[A], SAddr)] =
       for {
         t <- cnst.unfold
@@ -453,7 +450,7 @@ trait CardinalTypes {
     def seekCanopy(addr: SCardAddr): Option[SZipper[SNesting[A]]] = 
       card.take(addr.dim + 1).head.canopySeek(addr)
 
-    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[SCardinal[A]] = {
+    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[(SCardinal[A], STree[Unit])] = {
 
       val extDim = addr.dim
       val (p, l) = card.splitAt(extDim + 2)
@@ -473,7 +470,30 @@ trait CardinalTypes {
 
           }
         })
-      } yield (tl.withHead(en) >> fn) ++ lns
+      } yield ((tl.withHead(en) >> fn) ++ lns, msk.map(_ => ()))
+
+    }
+
+    def extrudeWithMask[B](addr: SCardAddr, tgt: A, fill: A)(msk: STree[B]): Option[SCardinal[A]] = {
+
+      val extDim = addr.dim
+      val (p, l) = card.splitAt(extDim + 2)
+
+      for {
+        tl <- p.tail
+        extNst = tl.head
+        fillNst = p.head
+        nn <- extNst.extrudeAtWithMask(addr, tgt)(msk)
+        fn <- fillNst.extrudeFillerAt(addr, fill)(msk)
+        lns <- l.zipWithIndex.traverse({
+          case (lfNst, i) => {
+
+            val lfAddr = SLeafAddr(i, addr.branchAddr)
+            lfNst.extrudeLeafAt(addr.canopyAddr, lfAddr, msk)
+
+          }
+        })
+      } yield (tl.withHead(nn) >> fn) ++ lns
 
     }
 

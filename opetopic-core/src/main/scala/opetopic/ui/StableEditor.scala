@@ -149,9 +149,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
-  def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Unit =
+  def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Option[(SCardAddr, STree[Unit])] =
     selectionRoot match {
-      case None => ()
+      case None => None
       case Some(root) => {
 
         if (root.canExtrude) {
@@ -164,13 +164,16 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
               extendPanels(panels)
             else panels
 
-
           val extCardinal : SCardinal[NeutralCell] =
             Traverse[Suite].map(extPanels)(_.cardinalNesting)
 
+          val extAddr = root.cardinalAddress
+
           for {
-            c <- extCardinal.extrude(root.cardinalAddress, tgtCell, fillCell)(_.isSelected)
-          } {
+            pr <- extCardinal.extrude(extAddr, tgtCell, fillCell)(_.isSelected)
+          } yield {
+
+            val (c, msk) = pr
 
             deselectAll
 
@@ -183,9 +186,11 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
             renderAll
             tgtCell.selectAsRoot
 
+            (extAddr, msk)
+
           }
 
-        } else println("Can't extrude here")
+        } else None
 
       }
     }
@@ -193,9 +198,9 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   def extrudeSelection: Unit =
     extrudeSelectionWith(None, None)
 
-  def loopAtSelectionWith(tgtVal: OptA, fillVal: OptA) : Unit = 
+  def loopAtSelectionWith(tgtVal: OptA, fillVal: OptA) : Option[SCardAddr] = 
     selectionRoot match {
-      case None => ()
+      case None => None
       case Some(root) => {
 
         if (root.canExtrude) {
@@ -213,10 +218,11 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
           val extCardinal : SCardinal[NeutralCell] =
             Traverse[Suite].map(extPanels)(_.cardinalNesting)
 
+          val extAddr = root.cardinalAddress
 
           for {
-            c <- extCardinal.extrudeLoop(root.cardinalAddress, tgtCell, fillCell)
-          } {
+            c <- extCardinal.extrudeLoop(extAddr, tgtCell, fillCell)
+          } yield {
 
             deselectAll
 
@@ -229,22 +235,22 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
             renderAll
             root.selectAsRoot
 
+            extAddr
+
           }
 
-        } else println("Can't extrude a loop here")
+        } else None
 
       }
     }
 
-  def loopAtSelection : Unit = 
+  def loopAtSelection : Unit = {
     loopAtSelectionWith(None, None)
+  }
 
-  //
-  //  BUG!  You still have a sprout bug somewhere.  Have to track it down ...
-  //  
-  def sproutAtSelectionWith(srcVal: OptA, fillVal: OptA): Unit = 
+  def sproutAtSelectionWith(srcVal: OptA, fillVal: OptA): Option[SCardAddr] = 
     selectionRoot match {
-      case None => ()
+      case None => None
       case Some(root) => {
         if (root.isExternal) {
 
@@ -259,9 +265,11 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
           val extCardinal : SCardinal[NeutralCell] =
             Traverse[Suite].map(extPanels)(_.cardinalNesting)
 
+          val extAddr = root.cardinalAddress
+
           for {
-            c <- extCardinal.sprout(root.cardinalAddress, srcCell, fillCell)
-          } {
+            c <- extCardinal.sprout(extAddr, srcCell, fillCell)
+          } yield {
 
             deselectAll
 
@@ -275,15 +283,18 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
             renderAll
             srcCell.selectAsRoot
 
+            extAddr
+
           }
 
-        } else println("Can't sprout here")
+        } else None
 
       }
     }
 
-  def sproutAtSelection: Unit =
+  def sproutAtSelection: Unit = {
     sproutAtSelectionWith(None, None)
+  }
 
   //============================================================================================
   // PANEL IMPLEMENTATION
