@@ -138,7 +138,13 @@ object SNesting {
         }
       }
 
-    def foldNesting[B](dot: A => B)(box: (A, STree[B]) => B) : B = 
+    def mapWithAddr[B](f: (A, => SAddr) => B): SNesting[B] = 
+      lazyTraverse(funcAddrToLt[Id, A, B](f))
+
+    def traverseWithAddr[G[_], B](f: (A, => SAddr) => G[B])(implicit isAp: Applicative[G]): G[SNesting[B]] = 
+      lazyTraverse(funcAddrToLt[G, A, B](f))
+
+    def foldNesting[B](dot: A => B)(box: (A, STree[B]) => B) : B =
       nst match {
         case SDot(a) => dot(a)
         case SBox(a, cn) => box(a, cn.map(_.foldNesting(dot)(box)))

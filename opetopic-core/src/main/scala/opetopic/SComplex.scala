@@ -41,6 +41,34 @@ trait ComplexTypes {
     def topCell: A = c.head.baseValue
 
     //
+    //  Traversals and maps
+    //
+
+    def traverseWithAddr[G[_], B](f: (A, FaceAddr) => G[B], codim: Int = 0)(implicit isAp: Applicative[G]): G[SComplex[B]] = {
+
+      import isAp._
+
+      c match {
+        case ||(nst) => ap(nst.traverseWithAddr((a, addr) => f(a, FaceAddr(codim, addr))))(pure(||(_)))
+        case tl >> hd => {
+
+          val newTl : G[SComplex[B]] = tl.traverseWithAddr(f, codim + 1)
+          val newHd : G[SNesting[B]] = hd.traverseWithAddr((a, addr) => f(a, FaceAddr(codim, addr)))
+
+          ap2(newTl, newHd)(pure(_ >> _))
+
+        }
+      }
+    }
+
+    def mapWithAddr[B](f: (A, FaceAddr) => B, codim: Int = 0): SComplex[B] =
+      c match {
+        case ||(hd) => hd.mapWithAddr((a, addr) => f(a, FaceAddr(codim, addr)))
+        case tl >> hd => tl.mapWithAddr(f, codim + 1) >>
+          hd.mapWithAddr((a, addr) => f(a, FaceAddr(codim, addr)))
+      }
+
+    //
     //  Source Calculation
     //
 
@@ -60,7 +88,13 @@ trait ComplexTypes {
     def face(d: Int)(addr: SAddr): Option[SComplex[A]] =
       c.face(FaceAddr(dim - d, addr))
 
-    def target: Option[SComplex[A]] = 
+    def comultiply: Option[SComplex[SComplex[A]]] =
+      c.traverseWithAddr((_, fa) => c.face(fa))
+
+    def addrComplex: SComplex[FaceAddr] =
+      c.mapWithAddr((_, fa) => fa)
+
+    def target: Option[SComplex[A]] =
       c match {
         case ||(_) => None
         case tl >> _ => tl.sourceAt(Nil)
