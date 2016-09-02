@@ -395,7 +395,25 @@ trait ComplexTypes {
     val coloringDim = c.dim
     val coloredDim = cc.dim
 
-    if (coloringDim < coloredDim) {
+    if (coloredDim == 0) {
+
+      // In the base case, we need to make sure an object is colored
+      // by an object (and that this object exists ...)  All other
+      // relationships should be taken care of by the induction.
+
+      cc match {
+        case ||(SDot(objColor)) => {
+          if (objColor.codim == coloringDim) {
+            for {
+              el <- c.elementAt(objColor)
+            } yield true
+          } else Some(false)
+        }
+        case _ => None
+      }
+
+
+    } else if (coloringDim < coloredDim) {
 
       // In this case, the top cell must be colored by the
       // identity of the coloring complex, which is detected
