@@ -40,7 +40,7 @@ class JsMultiEditor[A: Renderable] {
 
   def refreshLayers: Unit = {
 
-    jQuery(layerMenu).empty()
+    jQuery(layerSegments).empty()
 
     if (editor.layers.length > 0) {
       for {
@@ -49,11 +49,12 @@ class JsMultiEditor[A: Renderable] {
 
         l.viewer.renderAll
 
-        val layerItem = a(cls := "item", onclick := { () => onEditLayer(l) })(
-          l.viewer.element.uiElement
+        val layerSegment = div(cls := "ui segment")(
+          l.viewer.element.uiElement,
+          div(cls := "ui icon button", onclick := { () => onEditLayer(l) })(i(cls := "ui pencil icon"))
         ).render
 
-        jQuery(layerMenu).append(layerItem)
+        jQuery(layerSegments).append(layerSegment)
 
       }
     }
@@ -76,6 +77,7 @@ class JsMultiEditor[A: Renderable] {
   def onLayerFinish: Unit = {
     editor.closeLayer
     showValueEditor
+    jQuery(footer).empty().append(valueFooter)
   }
 
   def showValueEditor: Unit = {
@@ -98,12 +100,17 @@ class JsMultiEditor[A: Renderable] {
   def doSprout: Unit = {
   }
 
+  def doFullRender: Unit = {
+    val viewer = editor.fullRender
+    jQuery(editorPane).empty().append(viewer.element.uiElement)
+  }
+
   //============================================================================================
   // UI ELEMENTS
   //
 
   val editorPane = div(cls := "twelve wide center aligned column").render
-  val layerMenu = div(cls := "ui vertical fluid menu").render
+  val layerSegments = div(cls := "ui segments").render
 
   val midPane = div(cls := "ui middle attached nofocus segment", tabindex := 0)(
     div(cls := "ui divided grid", style := "min-height: 500px")(
@@ -115,7 +122,7 @@ class JsMultiEditor[A: Renderable] {
             div(cls := "ui icon button", onclick := { () => onNewLayer })(i(cls := "ui plus icon"))
           )
         ),
-        layerMenu
+        layerSegments
       )
     )
   ).render
@@ -133,7 +140,9 @@ class JsMultiEditor[A: Renderable] {
     ).render
 
   val valueFooter =
-    div(p("Value pane.")).render
+    div(
+      div(cls := "ui button", onclick := { () => doFullRender })("Render")
+    ).render
 
   val layerFooter =
     div(

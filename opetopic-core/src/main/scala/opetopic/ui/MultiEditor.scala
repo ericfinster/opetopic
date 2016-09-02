@@ -55,6 +55,22 @@ object Multicard {
       }
     }
 
+  def fullRenderable[A](implicit r: Renderable[A]): Renderable[Multicard[A]] =
+    new Renderable[Multicard[A]] {
+      def render(f: UIFramework)(m: Multicard[A]): f.CellRendering = {
+        m match {
+          case Root(card) => {
+            val viewer = new SimpleStaticGallery[Polarity[A], f.type](f)(card.cardinalComplex)
+            f.CellRendering(viewer.boundedElement)
+          }
+          case Level(cmplx) => {
+            val viewer = new SimpleStaticGallery[Multicard[A], f.type](f)(cmplx)(fullRenderable(r))
+            f.CellRendering(viewer.boundedElement)
+          }
+        }
+      }
+    }
+
 }
 
 class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
@@ -190,18 +206,7 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
               layer.viewer.renderAll
               layer.selectInitial
 
-              // Somehow we have to close the guy as well.
-              // Right.  We want to use this routine.  So we have to
-              // restrict to this address on all of the cardinals in
-              // the splitting.
-
               multicard = mc
-
-              // def stack[A](m: Multitope[Multicard[A]]): Multicard[A] =
-              //   m match {
-              //     case Base(c) => Level(c)
-              //     case Up(c) => Level(c.map(stack(_)))
-              //   }
 
               state = ValueEdit
 
@@ -244,6 +249,9 @@ class MultiEditor[A: Renderable, F <: ActiveFramework](frmwk: F) {
   ) extends EditorState
 
   var state: EditorState = ValueEdit
+
+  def fullRender: SimpleStaticGallery[Multicard[OptA], F] =
+    new SimpleStaticGallery[Multicard[OptA], F](frmwk)(||(SDot(multicard)))(fullRenderable)
 
 }
 

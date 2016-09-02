@@ -11,6 +11,15 @@ import mtl._
 
 trait ComplexTypes {
 
+  sealed trait FaceAddr
+  case class ThisDim(addr: SAddr) extends FaceAddr
+  case class PrevDim(faddr: FaceAddr) extends FaceAddr
+
+  object FaceAddr {
+    def apply(i: Int, addr: SAddr): FaceAddr =
+      if (i <= 0) ThisDim(addr) else PrevDim(FaceAddr(i-1, addr))
+  }
+
   type SComplex[+A] = Suite[SNesting[A]]
   type SCmplxZipper[+A] = Suite[SNstZipper[A]]
 
@@ -41,8 +50,15 @@ trait ComplexTypes {
         f <- z.focusFace
       } yield f
 
-    def face(i: Int)(addr: SAddr): Option[SComplex[A]] = 
-      c.take(i+1).sourceAt(addr)
+    def face(fa: FaceAddr): Option[SComplex[A]] =
+      fa match {
+        case ThisDim(addr) => c.sourceAt(addr)
+        case PrevDim(pa) => c.tail.flatMap(_.face(pa))
+      }
+
+    // Get a face in a given dimension
+    def face(d: Int)(addr: SAddr): Option[SComplex[A]] =
+      c.face(FaceAddr(dim - d, addr))
 
     def target: Option[SComplex[A]] = 
       c match {

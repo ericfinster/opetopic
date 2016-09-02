@@ -19,7 +19,10 @@ abstract class StaticStableGallery[F <: UIFramework](frmwk: F)
   type PanelType <: StaticPanel
   type CellType <: StaticCell
 
-  def element: Element = {
+  def element: Element = 
+    boundedElement.element
+
+  def boundedElement: BoundedElement = {
 
     val (bnds, els) = panelElementsAndBounds
 
@@ -27,11 +30,11 @@ abstract class StaticStableGallery[F <: UIFramework](frmwk: F)
     val h = layoutHeight(bnds)
     val vp = layoutViewport(bnds)
 
-    viewport(w, h, vp, els.toList: _*)
+    BoundedElement(viewport(w, h, vp, els.toList: _*), bnds)
 
   }
 
-  abstract class StaticCell extends GalleryCell { thisCell : CellType => 
+  abstract class StaticCell extends GalleryCell { thisCell : CellType =>
 
     def boxElement: Element = {
 

@@ -456,7 +456,10 @@ trait CardinalTypes {
         case _ => None
       }
 
-    def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] = 
+    def cardinalComplex: SComplex[Polarity[A]] =
+      Traverse[Suite].map(card)(_.toPolarityNesting)
+
+    def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] =
       card.take(addr.dim + 1).head.seek(addr)
 
     def seekCanopy(addr: SCardAddr): Option[SZipper[SNesting[A]]] = 
