@@ -199,7 +199,12 @@ object SNesting {
     def seek(addr: SAddr) : Option[SNstZipper[A]] = 
       SNstZipper(nst).seek(addr)
 
-    def baseValue: A = 
+    def elementAt(addr: SAddr): Option[A] =
+      for {
+        zp <- nst.seek(addr)
+      } yield zp.focus.baseValue
+    
+    def baseValue: A =
       nst match {
         case SDot(a) => a
         case SBox(a, _) => a

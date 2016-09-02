@@ -16,8 +16,26 @@ trait ComplexTypes {
   case class PrevDim(faddr: FaceAddr) extends FaceAddr
 
   object FaceAddr {
+
     def apply(i: Int, addr: SAddr): FaceAddr =
       if (i <= 0) ThisDim(addr) else PrevDim(FaceAddr(i-1, addr))
+
+    implicit class FaceAddrOps(fa: FaceAddr) {
+
+      def codim: Int =
+        fa match {
+          case ThisDim(_) => 0
+          case PrevDim(p) => p.codim + 1
+        }
+
+      def address: SAddr =
+        fa match {
+          case ThisDim(a) => a
+          case PrevDim(p) => p.address
+        }
+
+    }
+
   }
 
   type SComplex[+A] = Suite[SNesting[A]]
@@ -72,7 +90,13 @@ trait ComplexTypes {
     //  Source Calculation
     //
 
-    def sourceAt(addr: SAddr): Option[SComplex[A]] = 
+    def elementAt(fa: FaceAddr): Option[A] =
+      fa match {
+        case ThisDim(addr) => c.head.elementAt(addr)
+        case PrevDim(pa) => c.tail.flatMap(_.elementAt(pa))
+      }
+
+    def sourceAt(addr: SAddr): Option[SComplex[A]] =
       for {
         z <- SCmplxZipper(c).seek(addr)
         f <- z.focusFace
@@ -119,6 +143,28 @@ trait ComplexTypes {
       new Suite.SuiteOps(c).foreach((n: SNesting[A]) => 
         n.foreachWithAddr(op)
       )
+
+    //
+    //  Extracting frames from complexes
+    //
+
+    def asFrame: Option[(STree[A], A)] = {
+      for {
+        (a, cn) <- c.head.boxOption
+        srcTr <- cn.traverse(n => n.dotOption)
+      } yield (srcTr, a)
+    }
+
+    def cellFrame: Option[(STree[A], A)] = 
+      for {
+        tl <- c.tail
+        frm <- tl.asFrame
+      } yield frm
+
+    // Colorings
+
+    def isColoredBy(cc: SComplex[FaceAddr]): Option[Boolean] =
+      validColoring(c, cc)
 
   }
 
@@ -339,5 +385,122 @@ trait ComplexTypes {
 
   def complexFromJson[A](c: Js.Value)(implicit r: Reader[A]): SComplex[A] = 
     Suite.suiteReader(SNesting.nestingReader(r)).read(c)
+
+  //============================================================================================
+  // COLOR CHECKING
+  //
+
+  def validColoring[A](c: SComplex[A], cc: SComplex[FaceAddr]): Option[Boolean] = {
+
+    val coloringDim = c.dim
+    val coloredDim = cc.dim
+
+    if (coloringDim < coloredDim) {
+
+      // In this case, the top cell must be colored by the
+      // identity of the coloring complex, which is detected
+      // by the following match:
+      cc match {
+        case frm >> SDot(ThisDim(Nil)) =>
+          for {
+            frmData <- frm.asFrame
+            (srcs, tgtColor) = frmData
+          } yield {
+
+            // We kill the computation immediately on failure.  This avoids
+            // having to repass through the resulting nesting of booleans in
+            // the case where one of the sources failed.
+            val srcCheck =
+              srcs.traverseWithAddr((srcColor, addr) => {
+                for {
+                  coloringFace <- c.face(srcColor)
+                  coloredFace <- cc.face(coloredDim - 1)(addr)
+                  valid <- validColoring(coloringFace, coloredFace)
+                  _ <- if (valid) Some(true) else None  
+                } yield true
+              })
+
+            val tgtCheck =
+              for {
+                coloringTgt <- c.face(tgtColor)
+                coloredTgt <- cc.target
+                valid <- validColoring(coloringTgt, coloredTgt)
+                _ <- if (valid) Some(true) else None
+              } yield true
+
+            // Return true if both computations above succeed
+            srcCheck != None && tgtCheck != None
+
+          }
+        case _ => Some(false)
+      }
+
+    } else if (coloringDim == coloredDim) {
+
+      // In this case, the top cell should be the identity and the face
+      // should be colored by the codomain.  We check this directly with
+      // the following match:
+      cc match {
+        case _ >> SBox(PrevDim(ThisDim(Nil)), srcs) >> SDot(ThisDim(Nil)) => {
+
+          // Okay, this time, check that all sources are well colored as before,
+          // but in addition check that they are *not* colored by the target of
+          // the coloring opetope.
+
+          val srcCheck =
+            srcs.traverseWithAddr((srcDot, addr) => {
+              srcDot match {
+                case SDot(PrevDim(ThisDim(Nil))) => None
+                case SDot(srcColor) => 
+                  for {
+                    coloringFace <- c.face(srcColor)
+                    coloredFace <- cc.face(coloredDim - 1)(addr)
+                    valid <- validColoring(coloringFace, coloredFace)
+                    _ <- if (valid) Some(true) else None
+                  } yield true
+                case _ => None
+              }
+            })
+
+          val tgtCheck =
+            for {
+              coloringTgt <- c.target
+              coloredTgt <- cc.target
+              valid <- validColoring(coloringTgt, coloredTgt)
+              _ <- if (valid) Some(true) else None
+            } yield true
+
+            // Return true if both computations above succeed
+            Some(srcCheck != None && tgtCheck != None)
+
+        }
+        case _ => Some(false)
+      }
+
+    } else {
+
+      // In this case, our job is to "recolor" the colored complex with the
+      // colors which would correspond to these when the head face is extracted.
+
+      for {
+        headColor <- cc.head.dotOption
+        coloringFace <- c.addrComplex.face(headColor)
+        addrMap = Map(coloringFace.mapWithAddr((g, l) => (g, Right(l))).toList : _*)
+        cmplxMap = c.mapWithAddr((_, addr) => addrMap getOrElse (addr, Left(0)))
+        recolored <- cc.traverse(fa => {
+          for {
+            entry <- cmplxMap.elementAt(fa)
+            newColor <- entry match {
+              case Right(l) => Some(l)
+              case Left(_) => None
+            }
+          } yield newColor
+        })
+        valid <- validColoring(coloringFace, recolored)
+      } yield valid
+
+    }
+
+  }
 
 }
