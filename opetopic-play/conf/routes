@@ -16,8 +16,9 @@ GET         /prover                          controllers.ProverController.prover
 POST        /saveModule                      controllers.ProverController.saveModule
 POST        /getModule                       controllers.ProverController.getModule
 
-# MultiEditor
+# Auxillary
 GET         /multiedit                       controllers.ApplicationController.multiedit
+GET         /coloredit                       controllers.ApplicationController.coloredit
 
 # Sketchpad 
 GET         /sketchpad                       controllers.SketchController.sketchpad

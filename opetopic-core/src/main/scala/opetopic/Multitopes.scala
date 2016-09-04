@@ -18,13 +18,13 @@ object Multitope {
   def level[A](m: Multitope[A]): Int =
     m match {
       case Base(c) => 1
-      case Up(c) => level(c.topCell) + 1
+      case Up(c) => level(c.topValue) + 1
     }
 
   def dim[A](m: Multitope[A]): Int =
     m match {
       case Base(c) => c.dim
-      case Up(c) => c.dim * dim(c.topCell)
+      case Up(c) => c.dim * dim(c.topValue)
     }
 
   // What now?  I guess the point is that you're going to need multi-cardinals

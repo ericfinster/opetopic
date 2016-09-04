@@ -56,7 +56,7 @@ trait ComplexTypes {
   implicit class SComplexOps[A](c: SComplex[A]) {
 
     def dim: Int = c.length - 1
-    def topCell: A = c.head.baseValue
+    def topValue: A = c.head.baseValue
 
     //
     //  Traversals and maps
@@ -163,8 +163,8 @@ trait ComplexTypes {
 
     // Colorings
 
-    def isColoredBy(cc: SComplex[FaceAddr]): Option[Boolean] =
-      validColoring(c, cc)
+    def isColoredBy(cc: SComplex[FaceAddr]): Except[Unit] =
+      isValidColoring(c, cc)
 
   }
 
@@ -390,132 +390,103 @@ trait ComplexTypes {
   // COLOR CHECKING
   //
 
-  def validColoring[A](c: SComplex[A], cc: SComplex[FaceAddr]): Option[Boolean] = {
+  def isValidColoring[A](c: SComplex[A], cc: SComplex[FaceAddr]): Except[Unit] = {
 
     val coloringDim = c.dim
     val coloredDim = cc.dim
 
-    if (coloredDim == 0) {
+    // println("Coloring dim: " + coloringDim)
+    // println("Colored dim: " + coloredDim)
 
-      // In the base case, we need to make sure an object is colored
-      // by an object (and that this object exists ...)  All other
-      // relationships should be taken care of by the induction.
+    def ok: Except[Unit] = Xor.Right(())
 
-      cc match {
-        case ||(SDot(objColor)) => {
-          if (objColor.codim == coloringDim) {
-            for {
-              el <- c.elementAt(objColor)
-            } yield true
-          } else Some(false)
-        }
-        case _ => None
-      }
+    if (cc.topValue.codim > 0) {
 
+      // First, if the top color has positive codimension, we are colored
+      // not by the coloring complex, but by one of its faces.  Recolor with
+      // respect to that face and check there.
 
-    } else if (coloringDim < coloredDim) {
+      println("Recoloring!")
 
-      // In this case, the top cell must be colored by the
-      // identity of the coloring complex, which is detected
-      // by the following match:
-      cc match {
-        case frm >> SDot(ThisDim(Nil)) =>
+      for {
+        headColor <- attempt(cc.head.dotOption, "Complex is not a cell!")
+        coloringFace <- attempt(c.addrComplex.face(headColor), "Failed to calculate coloring face in recoloring!")
+        addrMap = Map(coloringFace.mapWithAddr((g, l) => (g, Right(l))).toList : _*)
+        cmplxMap = c.mapWithAddr((_, addr) => addrMap getOrElse (addr, Left(0)))
+        recolored <- cc.traverse[Except, FaceAddr](fa => {
           for {
-            frmData <- frm.asFrame
-            (srcs, tgtColor) = frmData
-          } yield {
-
-            // We kill the computation immediately on failure.  This avoids
-            // having to repass through the resulting nesting of booleans in
-            // the case where one of the sources failed.
-            val srcCheck =
-              srcs.traverseWithAddr((srcColor, addr) => {
-                for {
-                  coloringFace <- c.face(srcColor)
-                  coloredFace <- cc.face(coloredDim - 1)(addr)
-                  valid <- validColoring(coloringFace, coloredFace)
-                  _ <- if (valid) Some(true) else None  
-                } yield true
-              })
-
-            val tgtCheck =
-              for {
-                coloringTgt <- c.face(tgtColor)
-                coloredTgt <- cc.target
-                valid <- validColoring(coloringTgt, coloredTgt)
-                _ <- if (valid) Some(true) else None
-              } yield true
-
-            // Return true if both computations above succeed
-            srcCheck != None && tgtCheck != None
-
-          }
-        case _ => Some(false)
-      }
-
-    } else if (coloringDim == coloredDim) {
-
-      // In this case, the top cell should be the identity and the face
-      // should be colored by the codomain.  We check this directly with
-      // the following match:
-      cc match {
-        case _ >> SBox(PrevDim(ThisDim(Nil)), srcs) >> SDot(ThisDim(Nil)) => {
-
-          // Okay, this time, check that all sources are well colored as before,
-          // but in addition check that they are *not* colored by the target of
-          // the coloring opetope.
-
-          val srcCheck =
-            srcs.traverseWithAddr((srcDot, addr) => {
-              srcDot match {
-                case SDot(PrevDim(ThisDim(Nil))) => None
-                case SDot(srcColor) => 
-                  for {
-                    coloringFace <- c.face(srcColor)
-                    coloredFace <- cc.face(coloredDim - 1)(addr)
-                    valid <- validColoring(coloringFace, coloredFace)
-                    _ <- if (valid) Some(true) else None
-                  } yield true
-                case _ => None
-              }
-            })
-
-          val tgtCheck =
-            for {
-              coloringTgt <- c.target
-              coloredTgt <- cc.target
-              valid <- validColoring(coloringTgt, coloredTgt)
-              _ <- if (valid) Some(true) else None
-            } yield true
-
-            // Return true if both computations above succeed
-            Some(srcCheck != None && tgtCheck != None)
-
-        }
-        case _ => Some(false)
-      }
+            entry <- attempt(cmplxMap.elementAt(fa), "Invalid address in coloring!")
+            newColor <- (entry match {
+              case Right(l) => Xor.Right(l)
+              case Left(_) => Xor.Left("Entry missing in recoloring!")
+            }) : Except[FaceAddr]
+          } yield newColor
+        })
+        valid <- isValidColoring(coloringFace, recolored)
+      } yield valid
 
     } else {
 
-      // In this case, our job is to "recolor" the colored complex with the
-      // colors which would correspond to these when the head face is extracted.
+      if (coloredDim == 0) {
 
-      for {
-        headColor <- cc.head.dotOption
-        coloringFace <- c.addrComplex.face(headColor)
-        addrMap = Map(coloringFace.mapWithAddr((g, l) => (g, Right(l))).toList : _*)
-        cmplxMap = c.mapWithAddr((_, addr) => addrMap getOrElse (addr, Left(0)))
-        recolored <- cc.traverse(fa => {
-          for {
-            entry <- cmplxMap.elementAt(fa)
-            newColor <- entry match {
-              case Right(l) => Some(l)
-              case Left(_) => None
-            }
-          } yield newColor
-        })
-        valid <- validColoring(coloringFace, recolored)
-      } yield valid
+        println("Object case.")
+
+        cc match {
+          case ||(SDot(objColor)) => {
+            if (objColor.codim == coloringDim) {
+              for {
+                el <- attempt(c.elementAt(objColor), "Invalid object coloring.")
+              } yield ()
+            } else throwError("Object is not colored by an object.")
+          }
+          case _ => throwError("Object is malformed.")
+        }
+
+      } else if (coloringDim == coloredDim) {
+
+        println("Equality case.")
+
+        for {
+          frmData <- attempt(cc.cellFrame, "Failed to extract equidimensional frame.")
+          (srcs, tgtColor) = frmData
+          headColor <- attempt(cc.head.dotOption, "Complex is not a cell!")
+          _ <- if (headColor == ThisDim(Nil)) ok else throwError("Top cell not colored by an identity") 
+          _ <- if (tgtColor == PrevDim(ThisDim(Nil))) ok else throwError("Target cell not colored by codomain")
+          _ <- srcs.traverseWithAddr((srcColor, addr) =>
+            for {
+              _ <- if (srcColor != PrevDim(ThisDim(Nil))) ok else throwError("Source was decorated by a codomain") 
+              coloredFace <- attempt(cc.face(coloredDim - 1)(SDir(addr) :: Nil), "Failed to get equidimensional colored source face")
+              valid <- isValidColoring(c, coloredFace)
+            } yield valid
+          )
+          coloredTgt <- attempt(cc.target, "Failed to get equidimensional colored target")
+          valid <- isValidColoring(c, coloredTgt)
+        } yield valid
+
+      } else if (coloringDim < coloredDim) {
+
+        println("Degenerate case.")
+
+        println("Coloring complex: " + c.toString)
+        println("Colored complex: " + cc.toString)
+
+        for {
+          headColor <- attempt(cc.head.dotOption, "Complex is not a cell!")
+          _ <- if (headColor != ThisDim(Nil)) throwError("Top cell not colored by an identity") else ok
+          frmData <- attempt(cc.cellFrame, "Failed to extract degenerate frame.")
+          (srcs, tgtColor) = frmData
+          _ <- srcs.traverseWithAddr((srcColor, addr) => {
+            for {
+              coloredFace <- attempt(cc.face(coloredDim - 1)(SDir(addr) :: Nil), "Failed to get degenerate colored source face")
+              valid <- isValidColoring(c, coloredFace)
+            } yield valid
+          })
+          coloredTgt <- attempt(cc.target, "Failed to get degenerate colored target")
+          _ <- if (tgtColor == ThisDim(Nil)) ok else throwError("Degenerate target is not colored by id")
+          valid <- isValidColoring(c, coloredTgt)
+        } yield valid
+
+      } else throwError("Coloring dimension is too high!")
 
     }
 

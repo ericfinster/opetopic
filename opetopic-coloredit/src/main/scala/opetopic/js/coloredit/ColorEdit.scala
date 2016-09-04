@@ -1,11 +1,11 @@
 /**
-  * MultiEdit.scala - A multitopic editor implementation
+  * ColorEdit.scala - A colored opetope editor
   * 
   * @author Eric Finster
   * @version 0.1 
   */
 
-package opetopic.js.multiedit
+package opetopic.js.coloredit
 
 import scala.scalajs.{js => sjs}
 import sjs.Dynamic.{literal => lit}
@@ -25,13 +25,13 @@ import mtl._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-object MultiEdit extends JSApp {
+object ColorEdit extends JSApp {
 
-  val editor = new JsMultiEditor[SimpleMarker]
+  val editor = new JsColorEditor
 
   def main: Unit = {
 
-    println("Started MultiEdit...")
+    println("Started ColorEdit...")
     jQuery("#editor-div").append(editor.uiElement)
     editor.initialize
 
