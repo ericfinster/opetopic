@@ -99,7 +99,7 @@ object Parser {
       expr3 )
 
   val obj: Parser[Expr] = 
-    P( "Obj" ~/ expr ).map(EObj(_))
+    P( "Ob" ~/ expr ).map(EObj(_))
 
   val cell: Parser[Expr] = 
     P( "Cell" ~/ expr ~ complex ).map({

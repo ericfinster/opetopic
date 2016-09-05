@@ -240,24 +240,6 @@ object TypeChecker {
     }
 
   //============================================================================================
-  // TREE AND COMPLEX ROUTINES
-  //
-
-  type Frame[A] = (STree[A], A)
-
-  def getFrame[A](c: SComplex[A]): G[Frame[A]] = 
-    c.head match {
-      case SBox(tgt, cn) => 
-        for {
-          srcTr <- attempt(cn.traverse(_.dotOption), "Not a frame")
-        } yield (srcTr, tgt)
-      case _ => fail("Not a frame")
-    }
-
-  def getSources[A](c: SComplex[A]): G[STree[A]] = 
-    for { f <- getFrame(c) } yield f._1
-
-  //============================================================================================
   // COMPLEX INFERENCE
   //
 
@@ -511,7 +493,7 @@ object TypeChecker {
         for {
           pr <- inferCell(rho, gma, e)
           (c, f) = pr
-          st <- getFrame(f)
+          st <- attempt(f.asFrame, "Malformed frame")
           (srcs, tgt) = st
           _ <- attempt(srcs.seekTo(a), "Invalid address")
         } yield ()
@@ -575,7 +557,7 @@ object TypeChecker {
             case Obj(c) => pure(Cell(c, ||(SBox(v, STree.obj(SDot(v))))))
             case Cell(c, f) => 
               for {
-                st <- getFrame(f)
+                st <- attempt(f.asFrame, "Malformed frame")
               } yield Cell(c, f >> SBox(v, SNode(SDot(v), st._1.asShell)))
             case _ => fail("Cannot apply reflexivity to non-cell: " + e.toString)
           }
