@@ -23,23 +23,16 @@ let TwoGlob : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (f : Arrow X x y) -> (g :
 let Simplex : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> Type
             = \X. \x. \y. \z. \f. \g. \h. Cell X [ box z (nd (box y (nd (dot x) lf)) lf) || box h (nd (dot g) (nd (nd (dot f) (nd lf lf)) lf)) ] ;
 
--- let Tube : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (f : Arrow X x y) -> (a : TwoGlob X x y f f) -> Type
---     	 = \X. \x. \y. \f. \a. Cell X [ box y (pt (dot x)) ]>> [ dot f ]>> [ box a lf ] ;
+let rTest : (X : Cat) -> (x : Ob X) -> Arrow X x x
+          = \X. \x. refl x ;
 
--- -- Yikes!  The following should not typecheck because the complex is malformed!
--- -- let BadTube : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (f : Arrow X x y) -> (a : TwoGlob X x y f f) -> Type
--- --     	 = \X. \x. \y. \f. \a. Cell X [ box y (pt (dot x)) ]>> [ box f (nd (dot f) (pt lf)) ]>> [ box a lf ] ;
+let dTest : (X : Cat) -> (x : Ob X) -> Drop X x (rTest X x)
+          = \X. \x. drop x ;
 
--- let rTest : (X : Cat) -> (x : Ob X) -> Arrow X x x
---           = \X. \x. refl X x ;
+let cTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
+    	  = \X. \x. \y. \z. \f. \g. comp (nd g (nd (nd f (nd lf lf)) lf)) ;
 
--- let dTest : (X : Cat) -> (x : Ob X) -> Drop X x (rTest X x)
---           = \X. \x. drop X x ;
-
--- let cTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
---     	  = \X. \x. \y. \z. \f. \g. comp X 1 (nd g (pt (nd f (pt lf)))) ;
-
--- let fTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (cTest X x y z f g)
---     	  = \X. \x. \y. \z. \f. \g. fill X 1 (nd g (pt (nd f (pt lf)))) ;
+let fTest : (X : Cat) -> (x : Ob X) -> (y : Ob X) -> (z : Ob X) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (cTest X x y z f g)
+    	  = \X. \x. \y. \z. \f. \g. fill (nd g (nd (nd f (nd lf lf)) lf)) ;
 
 tt

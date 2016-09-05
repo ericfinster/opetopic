@@ -443,6 +443,8 @@ object TypeChecker {
 
   def check(rho: Rho, gma: Gamma, e0: Expr, t0: TVal) : G[Unit] = {
 
+    // println("Checking " + e0.toString + " has type " + t0.toString)
+
     (e0, t0) match {
       case (ELam(p, e), Pi(t, g)) => {
         val gen = genV(rho)
@@ -549,7 +551,7 @@ object TypeChecker {
       // Cell Construction
       // 
 
-      case ERefl(e) => 
+      case ERefl(e) => {
         for {
           ty <- checkI(rho, gma, e)
           v = eval(e, rho)
@@ -562,6 +564,7 @@ object TypeChecker {
             case _ => fail("Cannot apply reflexivity to non-cell: " + e.toString)
           }
         } yield res
+      }
 
       case EDrop(e) => 
         for {
