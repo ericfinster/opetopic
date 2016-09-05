@@ -116,8 +116,8 @@ object TypeChecker {
       case ECell(c, frm) => Cell(eval(c, rho), frm.map(eval(_, rho)))
 
       // Propertes
-      case EIsLeftExt(e) => IsLeftExt(eval(e, rho))
-      case EIsRightExt(e, a) => IsRightExt(eval(e, rho), a)
+      case EIsTgtUniv(e) => IsTgtUniv(eval(e, rho))
+      case EIsSrcUniv(e, a) => IsSrcUniv(eval(e, rho), a)
 
       // Composition and identities
       case ERefl(e) => Refl(eval(e, rho))
@@ -126,20 +126,20 @@ object TypeChecker {
       case EFill(pd) => Fill(pd.map(eval(_, rho)))
 
       // Liftings
-      case ELiftLeft(e, ev, c, t) => LiftLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillLeft(e, ev, c, t) => FillLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case ELiftRight(e, ev, c, t) => LiftRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillRight(e, ev, c, t) => FillRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case ELiftTgt(e, ev, c, t) => LiftTgt(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillTgt(e, ev, c, t) => FillTgt(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case ELiftSrc(e, ev, c, t) => LiftSrc(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillSrc(e, ev, c, t) => FillSrc(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
-      case EDropIsLeft(c, e) => DropIsLeft(eval(c, rho), eval(e, rho))
-      case EFillIsLeft(c, pd) => FillIsLeft(eval(c, rho), eval(pd, rho))
-      case EShellIsLeft(e, ev, s, t) => ShellIsLeft(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
+      case EDropIsTgt(c, e) => DropIsTgt(eval(c, rho), eval(e, rho))
+      case EFillIsTgt(c, pd) => FillIsTgt(eval(c, rho), eval(pd, rho))
+      case EShellIsTgt(e, ev, s, t) => ShellIsTgt(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
 
       // Derived properties
-      case EFillLeftIsLeft(e, ev, c, t) => FillLeftIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillRightIsLeft(e, ev, c, t) => FillRightIsLeft(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillLeftIsRight(e, ev, c, t) => FillLeftIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
-      case EFillRightIsRight(e, ev, c, t) => FillRightIsRight(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillTgtIsTgt(e, ev, c, t) => FillTgtIsTgt(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillSrcIsTgt(e, ev, c, t) => FillSrcIsTgt(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillTgtIsSrc(e, ev, c, t) => FillTgtIsSrc(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
+      case EFillSrcIsSrc(e, ev, c, t) => FillSrcIsSrc(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
     }
 
@@ -169,27 +169,27 @@ object TypeChecker {
       case Obj(v) => EObj(rbV(i, v))
       case Cell(c, frm) => ECell(rbV(i, c), frm.map(rbV(i, _)))
 
-      case IsLeftExt(v) => EIsLeftExt(rbV(i, v))
-      case IsRightExt(v, a) => EIsRightExt(rbV(i, v), a)
+      case IsTgtUniv(v) => EIsTgtUniv(rbV(i, v))
+      case IsSrcUniv(v, a) => EIsSrcUniv(rbV(i, v), a)
 
       case Refl(v) => ERefl(rbV(i, v))
       case Drop(v) => EDrop(rbV(i, v))
       case Comp(pd) => EComp(pd.map(rbV(i, _)))
       case Fill(pd) => EFill(pd.map(rbV(i, _)))
 
-      case LiftLeft(e, ev, c, t) => ELiftLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillLeft(e, ev, c, t) => EFillLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case LiftRight(e, ev, c, t) => ELiftRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillRight(e, ev, c, t) => EFillRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case LiftTgt(e, ev, c, t) => ELiftTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillTgt(e, ev, c, t) => EFillTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case LiftSrc(e, ev, c, t) => ELiftSrc(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillSrc(e, ev, c, t) => EFillSrc(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
-      case DropIsLeft(c, v) => EDropIsLeft(rbV(i, c), rbV(i, v))
-      case FillIsLeft(c, pd) => EFillIsLeft(rbV(i, c), rbV(i, pd))
-      case ShellIsLeft(e, ev, s, t) => EShellIsLeft(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
+      case DropIsTgt(c, v) => EDropIsTgt(rbV(i, c), rbV(i, v))
+      case FillIsTgt(c, pd) => EFillIsTgt(rbV(i, c), rbV(i, pd))
+      case ShellIsTgt(e, ev, s, t) => EShellIsTgt(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
 
-      case FillLeftIsLeft(e, ev, c, t) => EFillLeftIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillRightIsLeft(e, ev, c, t) => EFillRightIsLeft(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillLeftIsRight(e, ev, c, t) => EFillLeftIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
-      case FillRightIsRight(e, ev, c, t) => EFillRightIsRight(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillTgtIsTgt(e, ev, c, t) => EFillTgtIsTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillSrcIsTgt(e, ev, c, t) => EFillSrcIsTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillTgtIsSrc(e, ev, c, t) => EFillTgtIsSrc(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
+      case FillSrcIsSrc(e, ev, c, t) => EFillSrcIsSrc(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case Nt(k) => rbN(i, k)
 
@@ -330,11 +330,11 @@ object TypeChecker {
       }
     } yield res
 
-  def inferRightExt(rho: Rho, gma: Gamma, e: Expr) : G[SAddr] = 
+  def inferSrcUniv(rho: Rho, gma: Gamma, e: Expr) : G[SAddr] = 
     for {
       rev <- checkI(rho, gma, e)
       a <- rev match {
-        case IsRightExt(_, addr) => pure(addr)
+        case IsSrcUniv(_, addr) => pure(addr)
         case _ => fail("Evidence is not for a right extension")
       }
     } yield a
@@ -487,11 +487,11 @@ object TypeChecker {
           cv = eval(c, rho)
           _ <- checkFrame(rho, gma, f, cv)
         } yield ()
-      case (EIsLeftExt(e), Type) => 
+      case (EIsTgtUniv(e), Type) => 
         for {
           _ <- inferCell(rho, gma, e)
         } yield ()
-      case (EIsRightExt(e, a), Type) => 
+      case (EIsSrcUniv(e, a), Type) => 
         for {
           pr <- inferCell(rho, gma, e)
           (c, f) = pr
@@ -580,13 +580,13 @@ object TypeChecker {
       case EComp(pd) => compositeType(rho, gma, pd)
       case EFill(pd) => fillType(rho, gma, pd)
 
-      // case ELiftLeft(e, ev, c, t) => 
+      // case ELiftTgt(e, ev, c, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)                             // Check e is a cell
   //         (cv, frm) = pr                                           // Store its frame and category
   //         ed = frm.dim                                             // Get the dimension
   //         ee = eval(e, rho)                                        // Evaluate it
-  //         _ <- check(rho, gma, ev, IsLeftExt(ee))                  // Check the evidence
+  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))                  // Check the evidence
   //         cell = frm >> Dot(ee, S(ed))                             // Create the full cell
   //         cCell <- fromShape(cell.target)                          // Get its target
   //         cTy <- cellType(ed)(cv, cCell)                           // Extract the target type
@@ -595,18 +595,18 @@ object TypeChecker {
   //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))         // Put c in the base
   //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))    // Check t lives in that frame
   //         tVal = eval(t, rho)                                      // Evaluate it
-  //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Left extend the complex
+  //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Tgt extend the complex
   //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
   //         lTy <- cellType(S(ed))(cv, lCell)                        // Extract its type and we're done!
   //       } yield lTy
 
-  //     case EFillLeft(e, ev, c, t) => 
+  //     case EFillTgt(e, ev, c, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ed = frm.dim
   //         ee = eval(e, rho)
-  //         _ <- check(rho, gma, ev, IsLeftExt(ee))
+  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))
   //         cell = frm >> Dot(ee, S(ed))
   //         cCell <- fromShape(cell.target)
   //         cTy <- cellType(ed)(cv, cCell)
@@ -615,16 +615,16 @@ object TypeChecker {
   //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
   //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
   //         tVal = eval(t, rho)
-  //         lext <- fromShape(cell.leftExtend(cVal, LiftLeft(ee, eval(ev, rho), cVal, tVal), tVal))
+  //         lext <- fromShape(cell.leftExtend(cVal, LiftTgt(ee, eval(ev, rho), cVal, tVal), tVal))
   //       } yield Cell(cv, lext)
 
-  //     case ELiftRight(e, ev, c, t) => 
+  //     case ELiftSrc(e, ev, c, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ed = frm.dim
   //         ee = eval(e, rho)
-  //         a <- inferRightExt(rho, gma, ev)
+  //         a <- inferSrcUniv(rho, gma, ev)
   //         addr <- parseAddress(ed)(a)
   //         cell = frm >> Dot(ee, S(ed))
   //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
@@ -639,13 +639,13 @@ object TypeChecker {
   //         lTy <- cellType(S(ed))(cv, lCell)
   //       } yield lTy
 
-  //     case EFillRight(e, ev, c, t) => 
+  //     case EFillSrc(e, ev, c, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ed = frm.dim
   //         ee = eval(e, rho)
-  //         a <- inferRightExt(rho, gma, ev)
+  //         a <- inferSrcUniv(rho, gma, ev)
   //         addr <- parseAddress(ed)(a)
   //         cell = frm >> Dot(ee, S(ed))
   //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
@@ -655,32 +655,32 @@ object TypeChecker {
   //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
   //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
   //         tVal = eval(t, rho)
-  //         rext <- fromShape(cell.rightExtend(addr)(cVal, LiftRight(ee, eval(ev, rho), cVal, tVal), tVal))
+  //         rext <- fromShape(cell.rightExtend(addr)(cVal, LiftSrc(ee, eval(ev, rho), cVal, tVal), tVal))
   //       } yield Cell(cv, rext)
 
   //     //
   //     //  Property Inferences
   //     //
 
-  //     case EDropIsLeft(c, e) => 
+  //     case EDropIsTgt(c, e) => 
   //       for {
   //         _ <- checkI(rho, gma, EDrop(c, e))
   //         ef = eval(EDrop(c, e), rho)
-  //       } yield IsLeftExt(ef)
+  //       } yield IsTgtUniv(ef)
 
-  //     case EFillIsLeft(c, d, pd) => 
+  //     case EFillIsTgt(c, d, pd) => 
   //       for {
   //         _ <- checkI(rho, gma, EFill(c, d, pd))     // Infer that the fill is well-formed
   //         ef = eval(EFill(c, d, pd), rho)            // Evaluate it ...
-  //       } yield IsLeftExt(ef)                        // and we know the type!
+  //       } yield IsTgtUniv(ef)                        // and we know the type!
 
-  //     case EShellIsLeft(e, ev, s, t) => 
+  //     case EShellIsTgt(e, ev, s, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ee = eval(e, rho)
   //         ed = frm.dim
-  //         _ <- check(rho, gma, ev, IsLeftExt(ee))
+  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))
   //         eTgt = frm.head.baseValue
   //         eSrc <- sourceTree(frm)
   //         srcTr <- parseTree(ed)(s)
@@ -689,29 +689,29 @@ object TypeChecker {
   //             case (u, EEmpty) => succeed(Some(u))
   //             case (u, v) => 
   //               for { 
-  //                 _ <- toShape(check(rho, gma, v, IsLeftExt(u))) 
+  //                 _ <- toShape(check(rho, gma, v, IsTgtUniv(u))) 
   //               } yield None
   //           })
   //         )
   //         ty <- (
   //           (oTr.nodes.filter(_.isDefined), t) match {
-  //             case (Nil, EEmpty) => pure(IsLeftExt(eTgt))
+  //             case (Nil, EEmpty) => pure(IsTgtUniv(eTgt))
   //             case (Some(u) :: Nil, tev) => 
   //               for {
-  //                 _ <- check(rho, gma, tev, IsLeftExt(eTgt))
-  //               } yield IsLeftExt(u)
+  //                 _ <- check(rho, gma, tev, IsTgtUniv(eTgt))
+  //               } yield IsTgtUniv(u)
   //             case _ => fail("Malformed shell evidence")
   //           }
   //         )
   //       } yield ty
 
-  //     case EFillLeftIsLeft(e, ev, c, t) => 
+  //     case EFillTgtIsTgt(e, ev, c, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ee = eval(e, rho)
   //         ed = frm.dim
-  //         _ <- check(rho, gma, ev, IsLeftExt(ee))
+  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))
   //         cell = frm >> Dot(ee, S(ed))
   //         cCell <- fromShape(cell.target)
   //         cTy <- cellType(ed)(cv, cCell)
@@ -720,15 +720,15 @@ object TypeChecker {
   //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
   //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
   //         tVal = eval(t, rho)
-  //       } yield IsLeftExt(FillLeft(ee, eval(ev, rho), cVal, tVal))
+  //       } yield IsTgtUniv(FillTgt(ee, eval(ev, rho), cVal, tVal))
 
-  //     case EFillRightIsLeft(e, ev, c, t) => 
+  //     case EFillSrcIsTgt(e, ev, c, t) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ed = frm.dim
   //         ee = eval(e, rho)
-  //         a <- inferRightExt(rho, gma, ev)
+  //         a <- inferSrcUniv(rho, gma, ev)
   //         addr <- parseAddress(ed)(a)
   //         cell = frm >> Dot(ee, S(ed))
   //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
@@ -738,15 +738,15 @@ object TypeChecker {
   //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
   //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
   //         tVal = eval(t, rho)
-  //       } yield IsLeftExt(FillRight(ee, eval(ev, rho), cVal, tVal))
+  //       } yield IsTgtUniv(FillSrc(ee, eval(ev, rho), cVal, tVal))
 
-  //     case EFillLeftIsRight(e, ev, c, t, l, f, fev) => 
+  //     case EFillTgtIsSrc(e, ev, c, t, l, f, fev) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)                           
   //         (cv, frm) = pr                                         
   //         ed = frm.dim                                           
   //         ee = eval(e, rho)                                      
-  //         _ <- check(rho, gma, ev, IsLeftExt(ee))                
+  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))                
   //         cell = frm >> Dot(ee, S(ed))                           
   //         cCell <- fromShape(cell.target)                        
   //         cTy <- cellType(ed)(cv, cCell)                         
@@ -763,16 +763,16 @@ object TypeChecker {
   //         lNst <- fromShape(lext.head.replaceAt(Nil :: Nil, lVal))
   //         _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
   //         fVal = eval(f, rho)
-  //         _ <- check(rho, gma, fev, IsLeftExt(fVal))
-  //       } yield IsRightExt(fVal, ANil)
+  //         _ <- check(rho, gma, fev, IsTgtUniv(fVal))
+  //       } yield IsSrcUniv(fVal, ANil)
 
-  //     case EFillRightIsRight(e, ev, c, t, l, f, fev) => 
+  //     case EFillSrcIsSrc(e, ev, c, t, l, f, fev) => 
   //       for {
   //         pr <- inferCell(rho, gma, e)
   //         (cv, frm) = pr
   //         ed = frm.dim
   //         ee = eval(e, rho)
-  //         a <- inferRightExt(rho, gma, ev)
+  //         a <- inferSrcUniv(rho, gma, ev)
   //         addr <- parseAddress(ed)(a)
   //         cell = frm >> Dot(ee, S(ed))
   //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
@@ -790,8 +790,8 @@ object TypeChecker {
   //         lNst <- fromShape(rext.head.replaceAt((addr :: Nil) :: Nil, lVal))
   //         _ <- check(rho, gma, f, Cell(cv, rext.withHead(lNst)))
   //         fVal = eval(f, rho)
-  //         _ <- check(rho, gma, fev, IsLeftExt(fVal))
-  //       } yield IsRightExt(fVal, rbAddr(S(ed))(addr :: Nil))
+  //         _ <- check(rho, gma, fev, IsTgtUniv(fVal))
+  //       } yield IsSrcUniv(fVal, rbAddr(S(ed))(addr :: Nil))
 
       // Oh crap ....
       case e => fail("checkI: " ++ e.toString)
