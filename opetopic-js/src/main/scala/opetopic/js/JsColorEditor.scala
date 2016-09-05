@@ -162,7 +162,7 @@ class JsColorEditor {
             }
           } {
 
-            isValidColoring(coloringCmplx, coloredFace) match {
+            validColoring(coloringCmplx, coloredFace) match {
               case Xor.Right(_) => {
                 println("===== Coloring is valid! =====")
                 coloredRoot.label = Some(color)

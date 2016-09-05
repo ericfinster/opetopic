@@ -170,7 +170,14 @@ object SNesting {
         case _ => None
       }
 
-    def toTree: STree[A] = 
+    def isLoop: Boolean =
+      nst match {
+        case SDot(_) => false
+        case SBox(_, SLeaf) => true
+        case SBox(_, cn) => cn.toList.forall(_.isLoop)
+      }
+
+    def toTree: STree[A] =
       foldNesting[STree[A]](a => SLeaf)((a, sh) => SNode(a, sh))
 
     def toTreeWith[B](f: A => B): STree[B] = 
