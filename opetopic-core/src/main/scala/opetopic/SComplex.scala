@@ -120,6 +120,20 @@ trait ComplexTypes {
         case _ => false
       }
 
+    def headSpine: Option[STree[A]] =
+      c match {
+        case ||(hd) =>
+          for {
+            a <- hd.firstDotValue
+          } yield SNode(a, SLeaf)
+        case tl >> SDot(a) =>
+          for {
+            sp <- tl.headSpine
+          } yield SNode(a, sp.map(_ => SLeaf))
+        case tl >> SBox(_, cn) => cn.spine
+      }
+
+
     // This seems horribly inefficient
     def drops: List[FaceAddr] =
       comultiply.map(_.withFaceAddresses.toList.filter(_._1.isDrop).map(_._2)).getOrElse(List())
@@ -212,6 +226,55 @@ trait ComplexTypes {
 
     def isColoredBy(cc: SComplex[FaceAddr]): Except[Unit] =
       validColoring(c, cc)
+
+    // Target and source extensions
+
+    def targetExtension(ext: A, glob: A, back: A, fill: A): Option[SComplex[A]] =
+      c match {
+        case ||(SBox(t, SNode(SDot(s), SLeaf))) >> SDot(a) => {
+          // Target extension of an arrow is a simplex
+          val objs = SBox(ext, SNode(SBox(t, SNode(SDot(s), SLeaf)), SLeaf))
+          val arrs = SBox(back, SNode(SDot(glob), SNode(SNode(SDot(a), SNode(SLeaf, SLeaf)), SLeaf)))
+          Some(||(objs) >> arrs >> SDot(fill))
+        }
+        case tl >> frm >> SDot(a) =>
+          for {
+            // Higher case
+            tlSp <- tl.headSpine
+            newFrm = SBox(ext, SNode(frm, tlSp.map(_ => SLeaf)))
+            newCanopy = newFrm.toTree.mapWithAddr((_, addr) =>
+              if (addr == Nil) SDot(glob) else SDot(a)
+            )
+            newHd = SBox(back, newCanopy)
+          } yield tl >> newFrm >> newHd >> SDot(fill)
+        case _ => None
+      }
+
+    def sourceExtension(addr: SAddr)(ext: A, glob: A, back: A, fill: A): Option[SComplex[A]] =
+      c match {
+        case ||(SBox(t, SNode(SDot(s), SLeaf))) >> SDot(a) => {
+          if (addr == Nil) {
+            // Target extension of an arrow is a simplex
+            val objs = SBox(ext, SNode(SBox(t, SNode(SDot(s), SLeaf)), SLeaf))
+            val arrs = SBox(back, SNode(SDot(glob), SNode(SNode(SDot(a), SNode(SLeaf, SLeaf)), SLeaf)))
+            Some(||(objs) >> arrs >> SDot(fill))
+          } else None
+        }
+        case tl >> frm >> SDot(a) => {
+          for {
+            zp <- frm.seek(SDir(addr) :: Nil)
+            s <- zp.focus.dotOption
+            pr <- zp.ctxt.g.headOption
+            newFcs = SBox(s, SNode(SDot(ext), pr._2.sh))
+            newFrm = zp.withFocus(newFcs).close
+            newCanopy = newFrm.toTree.mapWithAddr((_, addr) =>
+              if (addr == Nil) SDot(a) else SDot(glob)
+            )
+            newHd = SBox(back, newCanopy)
+          } yield tl >> newFrm >> newHd >> SDot(fill)
+        }
+        case _ => None
+      }
 
   }
 

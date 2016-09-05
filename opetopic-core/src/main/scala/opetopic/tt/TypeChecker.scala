@@ -156,16 +156,17 @@ object TypeChecker {
       Nt(Gen(i, "G#"))
 
     v0 match {
-      case Unt => EUnit
       case Type => EType
+      case Cat => ECat
+      case Unt => EUnit
       case Tt => ETt
       case Empty => EEmpty
+
       case Lam(f) => ELam(pat(i), rbV(i + 1, f * gen(i)))
       case Pair(u, v) => EPair(rbV(i, u), rbV(i, v))
       case Pi(t, g) => EPi(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
       case Sig(t, g) => ESig(pat(i), rbV(i, t), rbV(i+1, g * gen(i)))
 
-      case Cat => ECat
       case Obj(v) => EObj(rbV(i, v))
       case Cell(c, frm) => ECell(rbV(i, c), frm.map(rbV(i, _)))
 
@@ -580,25 +581,24 @@ object TypeChecker {
       case EComp(pd) => compositeType(rho, gma, pd)
       case EFill(pd) => fillType(rho, gma, pd)
 
-      // case ELiftTgt(e, ev, c, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)                             // Check e is a cell
-  //         (cv, frm) = pr                                           // Store its frame and category
-  //         ed = frm.dim                                             // Get the dimension
-  //         ee = eval(e, rho)                                        // Evaluate it
-  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))                  // Check the evidence
-  //         cell = frm >> Dot(ee, S(ed))                             // Create the full cell
-  //         cCell <- fromShape(cell.target)                          // Get its target
-  //         cTy <- cellType(ed)(cv, cCell)                           // Extract the target type
-  //         _ <- check(rho, gma, c, cTy)                             // Check c is a in that frame
-  //         cVal = eval(c, rho)                                      // Evaluate c
-  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))         // Put c in the base
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))    // Check t lives in that frame
-  //         tVal = eval(t, rho)                                      // Evaluate it
+      case ELiftTgt(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)                             // Check e is a cell
+          (cv, frm) = pr                                           // Store its frame and category
+          ee = eval(e, rho)                                        // Evaluate it
+          _ <- check(rho, gma, ev, IsTgtUniv(ee))                  // Check the evidence
+          cell = frm >> SDot(ee)                                   // Create the full cell
+          cCell <- attempt(cell.target, "Target failed")           // Get its target
+          cTy <- cellType(cv, cCell)                               // Extract the target type
+          _ <- check(rho, gma, c, cTy)                             // Check c is a in that frame
+          cVal = eval(c, rho)                                      // Evaluate c
+          tFrm = frm.withTopValue(cVal)                            // Create t's frame
+          _ <- check(rho, gma, t, Cell(cv, tFrm))                  // Check t lives in that frame
+          tVal = eval(t, rho)                                      // Evaluate it
   //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Tgt extend the complex
   //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
-  //         lTy <- cellType(S(ed))(cv, lCell)                        // Extract its type and we're done!
-  //       } yield lTy
+  //         lTy <- cellType(cv, lCell)                               // Extract its type and we're done!
+        } yield ??? // lTy
 
   //     case EFillTgt(e, ev, c, t) => 
   //       for {

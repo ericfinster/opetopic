@@ -15,7 +15,7 @@ case class SNode[A](a: A, as: STree[STree[A]]) extends STree[A]
 
 case class SDir(val dir: List[SDir]) 
 
-case class SDeriv[+A](sh: STree[STree[A]], gma: SCtxt[A] = SCtxt(Nil)) {
+case class SDeriv[+A](val sh: STree[STree[A]], gma: SCtxt[A] = SCtxt(Nil)) {
 
   def plug[B >: A](b: B) : STree[B] = 
     gma.close(SNode(b, sh))
