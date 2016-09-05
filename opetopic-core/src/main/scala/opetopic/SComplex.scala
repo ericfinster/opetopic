@@ -229,13 +229,13 @@ trait ComplexTypes {
 
     // Target and source extensions
 
-    def targetExtension(ext: A, glob: A, back: A, fill: A): Option[SComplex[A]] =
+    def targetExtension(ext: A, glob: A, back: A): Option[SComplex[A]] =
       c match {
         case ||(SBox(t, SNode(SDot(s), SLeaf))) >> SDot(a) => {
           // Target extension of an arrow is a simplex
           val objs = SBox(ext, SNode(SBox(t, SNode(SDot(s), SLeaf)), SLeaf))
           val arrs = SBox(back, SNode(SDot(glob), SNode(SNode(SDot(a), SNode(SLeaf, SLeaf)), SLeaf)))
-          Some(||(objs) >> arrs >> SDot(fill))
+          Some(||(objs) >> arrs)
         }
         case tl >> frm >> SDot(a) =>
           for {
@@ -246,18 +246,18 @@ trait ComplexTypes {
               if (addr == Nil) SDot(glob) else SDot(a)
             )
             newHd = SBox(back, newCanopy)
-          } yield tl >> newFrm >> newHd >> SDot(fill)
+          } yield tl >> newFrm >> newHd 
         case _ => None
       }
 
-    def sourceExtension(addr: SAddr)(ext: A, glob: A, back: A, fill: A): Option[SComplex[A]] =
+    def sourceExtension(addr: SAddr)(ext: A, glob: A, back: A): Option[SComplex[A]] =
       c match {
         case ||(SBox(t, SNode(SDot(s), SLeaf))) >> SDot(a) => {
           if (addr == Nil) {
             // Target extension of an arrow is a simplex
             val objs = SBox(ext, SNode(SBox(t, SNode(SDot(s), SLeaf)), SLeaf))
             val arrs = SBox(back, SNode(SDot(glob), SNode(SNode(SDot(a), SNode(SLeaf, SLeaf)), SLeaf)))
-            Some(||(objs) >> arrs >> SDot(fill))
+            Some(||(objs) >> arrs)
           } else None
         }
         case tl >> frm >> SDot(a) => {
@@ -271,7 +271,7 @@ trait ComplexTypes {
               if (addr == Nil) SDot(a) else SDot(glob)
             )
             newHd = SBox(back, newCanopy)
-          } yield tl >> newFrm >> newHd >> SDot(fill)
+          } yield tl >> newFrm >> newHd 
         }
         case _ => None
       }

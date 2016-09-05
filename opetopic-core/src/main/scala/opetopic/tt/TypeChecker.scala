@@ -595,10 +595,16 @@ object TypeChecker {
           tFrm = frm.withTopValue(cVal)                            // Create t's frame
           _ <- check(rho, gma, t, Cell(cv, tFrm))                  // Check t lives in that frame
           tVal = eval(t, rho)                                      // Evaluate it
-  //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))    // Tgt extend the complex
-  //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))            // Find the empty lifting cell
-  //         lTy <- cellType(cv, lCell)                               // Extract its type and we're done!
-        } yield ??? // lTy
+          lext <- attempt(
+            cell.targetExtension(cVal, Empty, tVal),
+            "Target extension failed"
+          )                                                        // Tgt extend the complex
+          lCell <- attempt(
+            lext.sourceAt(SDir(Nil) :: Nil),
+            "Failed to extract lift face"
+          )                                                        // Find the empty lifting cell
+          lTy <- cellType(cv, lCell)                               // Extract its type and we're done!
+        } yield lTy
 
   //     case EFillTgt(e, ev, c, t) => 
   //       for {
@@ -658,21 +664,21 @@ object TypeChecker {
   //         rext <- fromShape(cell.rightExtend(addr)(cVal, LiftSrc(ee, eval(ev, rho), cVal, tVal), tVal))
   //       } yield Cell(cv, rext)
 
-  //     //
-  //     //  Property Inferences
-  //     //
+      //
+      //  Property Inferences
+      //
 
-  //     case EDropIsTgt(c, e) => 
-  //       for {
-  //         _ <- checkI(rho, gma, EDrop(c, e))
-  //         ef = eval(EDrop(c, e), rho)
-  //       } yield IsTgtUniv(ef)
+      case EDropIsTgt(c, e) =>
+        for {
+          _ <- checkI(rho, gma, EDrop(e))
+          ef = eval(EDrop(e), rho)
+        } yield IsTgtUniv(ef)
 
-  //     case EFillIsTgt(c, d, pd) => 
-  //       for {
-  //         _ <- checkI(rho, gma, EFill(c, d, pd))     // Infer that the fill is well-formed
-  //         ef = eval(EFill(c, d, pd), rho)            // Evaluate it ...
-  //       } yield IsTgtUniv(ef)                        // and we know the type!
+      // case EFillIsTgt(c, pd) => 
+      //   for {
+      //     _ <- checkI(rho, gma, EFill(pd))           // Infer that the fill is well-formed
+      //     ef = eval(EFill(pd), rho)                  // Evaluate it ...
+      //   } yield IsTgtUniv(ef)                        // and we know the type!
 
   //     case EShellIsTgt(e, ev, s, t) => 
   //       for {
