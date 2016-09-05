@@ -54,14 +54,6 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
 
-lazy val opetopicTt = (project in file("opetopic-tt")).
-  settings(commonSettings: _*).
-  settings(
-    libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "fastparse" % "0.3.7"
-    )
-  ).dependsOn(opetopicCoreJvm)
-
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
   settings(
