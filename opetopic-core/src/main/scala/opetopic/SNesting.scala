@@ -206,6 +206,11 @@ object SNesting {
     def seek(addr: SAddr) : Option[SNstZipper[A]] = 
       SNstZipper(nst).seek(addr)
 
+    def replaceAt(addr: SAddr, a: A): Option[SNesting[A]] =
+      for {
+        zp <- nst.seek(addr)
+      } yield zp.withFocus(zp.focus.withBase(a)).close
+
     def elementAt(addr: SAddr): Option[A] =
       for {
         zp <- nst.seek(addr)

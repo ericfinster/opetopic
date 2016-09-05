@@ -606,63 +606,69 @@ object TypeChecker {
           lTy <- cellType(cv, lCell)                               // Extract its type and we're done!
         } yield lTy
 
-  //     case EFillTgt(e, ev, c, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ed = frm.dim
-  //         ee = eval(e, rho)
-  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))
-  //         cell = frm >> Dot(ee, S(ed))
-  //         cCell <- fromShape(cell.target)
-  //         cTy <- cellType(ed)(cv, cCell)
-  //         _ <- check(rho, gma, c, cTy)
-  //         cVal = eval(c, rho)
-  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-  //         tVal = eval(t, rho)
-  //         lext <- fromShape(cell.leftExtend(cVal, LiftTgt(ee, eval(ev, rho), cVal, tVal), tVal))
-  //       } yield Cell(cv, lext)
+      case EFillTgt(e, ev, c, t) =>
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ee = eval(e, rho)
+          _ <- check(rho, gma, ev, IsTgtUniv(ee))
+          cell = frm >> SDot(ee)
+          cCell <- attempt(cell.target, "Target failed")
+          cTy <- cellType(cv, cCell)
+          _ <- check(rho, gma, c, cTy)
+          cVal = eval(c, rho)
+          tFrm = frm.withTopValue(cVal)
+          _ <- check(rho, gma, t, Cell(cv, tFrm))
+          tVal = eval(t, rho)
+          lext <- attempt(
+            cell.targetExtension(cVal, LiftTgt(ee, eval(ev, rho), cVal, tVal), tVal),
+            "Target extension failed"
+          )
+        } yield Cell(cv, lext)
 
-  //     case ELiftSrc(e, ev, c, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ed = frm.dim
-  //         ee = eval(e, rho)
-  //         a <- inferSrcUniv(rho, gma, ev)
-  //         addr <- parseAddress(ed)(a)
-  //         cell = frm >> Dot(ee, S(ed))
-  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-  //         cTy <- cellType(ed)(cv, cCell)
-  //         _ <- check(rho, gma, c, cTy)
-  //         cVal = eval(c, rho)
-  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-  //         tVal = eval(t, rho)
-  //         rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
-  //         lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-  //         lTy <- cellType(S(ed))(cv, lCell)
-  //       } yield lTy
+      case ELiftSrc(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ee = eval(e, rho)
+          addr <- inferSrcUniv(rho, gma, ev)
+          naddr = SDir(addr) :: Nil
+          cell = frm >> SDot(ee)
+          cCell <- attempt(frm.sourceAt(naddr), "Source calculation failed")
+          cTy <- cellType(cv, cCell)
+          _ <- check(rho, gma, c, cTy)
+          cVal = eval(c, rho)
+          tNst <- attempt(frm.head.replaceAt(naddr, cVal), "Replacement failed")
+          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+          tVal = eval(t, rho)
+          rext <- attempt(
+            cell.sourceExtension(addr)(cVal, Empty, tVal),
+            "Source extension failed"
+          )
+          lCell <- attempt(rext.sourceAt(SDir(naddr) :: Nil), "Source calculation failed")
+          lTy <- cellType(cv, lCell)
+        } yield lTy
 
-  //     case EFillSrc(e, ev, c, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ed = frm.dim
-  //         ee = eval(e, rho)
-  //         a <- inferSrcUniv(rho, gma, ev)
-  //         addr <- parseAddress(ed)(a)
-  //         cell = frm >> Dot(ee, S(ed))
-  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-  //         cTy <- cellType(ed)(cv, cCell)
-  //         _ <- check(rho, gma, c, cTy)
-  //         cVal = eval(c, rho)
-  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-  //         tVal = eval(t, rho)
-  //         rext <- fromShape(cell.rightExtend(addr)(cVal, LiftSrc(ee, eval(ev, rho), cVal, tVal), tVal))
-  //       } yield Cell(cv, rext)
+      case EFillSrc(e, ev, c, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ee = eval(e, rho)
+          addr <- inferSrcUniv(rho, gma, ev)
+          naddr = SDir(addr) :: Nil
+          cell = frm >> SDot(ee)
+          cCell <- attempt(frm.sourceAt(naddr), "Source calculation failed")
+          cTy <- cellType(cv, cCell)
+          _ <- check(rho, gma, c, cTy)
+          cVal = eval(c, rho)
+          tNst <- attempt(frm.head.replaceAt(naddr, cVal), "Replacement failed")
+          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+          tVal = eval(t, rho)
+          rext <- attempt(
+            cell.sourceExtension(addr)(cVal, LiftSrc(ee, eval(ev, rho), cVal, tVal), tVal),
+            "Source extension failed"
+          )
+        } yield Cell(cv, rext)
 
       //
       //  Property Inferences
