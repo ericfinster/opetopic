@@ -132,7 +132,7 @@ object TypeChecker {
       case EFillSrc(e, ev, c, t) => FillSrc(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
 
       case EDropIsTgt(c, e) => DropIsTgt(eval(c, rho), eval(e, rho))
-      case EFillIsTgt(c, pd) => FillIsTgt(eval(c, rho), eval(pd, rho))
+      case EFillIsTgt(c, pd) => FillIsTgt(eval(c, rho), pd.map(eval(_, rho)))
       case EShellIsTgt(e, ev, s, t) => ShellIsTgt(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
 
       // Derived properties
@@ -184,7 +184,7 @@ object TypeChecker {
       case FillSrc(e, ev, c, t) => EFillSrc(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
 
       case DropIsTgt(c, v) => EDropIsTgt(rbV(i, c), rbV(i, v))
-      case FillIsTgt(c, pd) => EFillIsTgt(rbV(i, c), rbV(i, pd))
+      case FillIsTgt(c, pd) => EFillIsTgt(rbV(i, c), pd.map(rbV(i, _)))
       case ShellIsTgt(e, ev, s, t) => EShellIsTgt(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
 
       case FillTgtIsTgt(e, ev, c, t) => EFillTgtIsTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -281,7 +281,43 @@ object TypeChecker {
       case _ => fail("Malformed frame complex")
     }
 
-  def inferCell(rho: Rho, gma: Gamma, e: Expr): G[(Val, SComplex[Val])] = 
+  case class TgtLiftData(eV: Val, evV: Val, cV: Val, tV: Val, catV: Val, cellV: SComplex[Val])
+  case class SrcLiftData(eV: Val, evV: Val, cV: Val, tV: Val, catV: Val, cellV: SComplex[Val], addr: SAddr)
+
+  def checkTgtLiftData(rho: Rho, gma: Gamma, e: Expr, ev: Expr, c: Expr, t: Expr): G[TgtLiftData] =
+    for {
+      pr <- inferCell(rho, gma, e)
+      (cv, frm) = pr
+      ee = eval(e, rho)
+      _ <- check(rho, gma, ev, IsTgtUniv(ee))
+      cell = frm >> SDot(ee)
+      cCell <- attempt(cell.target, "Target failed")
+      cTy <- cellType(cv, cCell)
+      _ <- check(rho, gma, c, cTy)
+      cVal = eval(c, rho)
+      tFrm = frm.withTopValue(cVal)
+      _ <- check(rho, gma, t, Cell(cv, tFrm))
+      tVal = eval(t, rho)
+    } yield TgtLiftData(ee, eval(ev, rho), cVal, tVal, cv, cell)
+
+  def checkSrcLiftData(rho: Rho, gma: Gamma, e: Expr, ev: Expr, c: Expr, t: Expr): G[SrcLiftData] =
+    for {
+      pr <- inferCell(rho, gma, e)
+      (cv, frm) = pr
+      ee = eval(e, rho)
+      addr <- inferSrcUniv(rho, gma, ev)
+      naddr = SDir(addr) :: Nil
+      cell = frm >> SDot(ee)
+      cCell <- attempt(frm.sourceAt(naddr), "Source calculation failed")
+      cTy <- cellType(cv, cCell)
+      _ <- check(rho, gma, c, cTy)
+      cVal = eval(c, rho)
+      tNst <- attempt(frm.head.replaceAt(naddr, cVal), "Replacement failed")
+      _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
+      tVal = eval(t, rho)
+    } yield SrcLiftData(ee, eval(ev, rho), cVal, tVal, cv, cell, addr)
+
+  def inferCell(rho: Rho, gma: Gamma, e: Expr): G[(Val, SComplex[Val])] =
     for {
       ty <- checkI(rho, gma, e)
       res <- ty match {
@@ -582,93 +618,46 @@ object TypeChecker {
       case EFill(pd) => fillType(rho, gma, pd)
 
       case ELiftTgt(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)                             // Check e is a cell
-          (cv, frm) = pr                                           // Store its frame and category
-          ee = eval(e, rho)                                        // Evaluate it
-          _ <- check(rho, gma, ev, IsTgtUniv(ee))                  // Check the evidence
-          cell = frm >> SDot(ee)                                   // Create the full cell
-          cCell <- attempt(cell.target, "Target failed")           // Get its target
-          cTy <- cellType(cv, cCell)                               // Extract the target type
-          _ <- check(rho, gma, c, cTy)                             // Check c is a in that frame
-          cVal = eval(c, rho)                                      // Evaluate c
-          tFrm = frm.withTopValue(cVal)                            // Create t's frame
-          _ <- check(rho, gma, t, Cell(cv, tFrm))                  // Check t lives in that frame
-          tVal = eval(t, rho)                                      // Evaluate it
-          lext <- attempt(
-            cell.targetExtension(cVal, Empty, tVal),
-            "Target extension failed"
-          )                                                        // Tgt extend the complex
-          lCell <- attempt(
-            lext.sourceAt(SDir(Nil) :: Nil),
-            "Failed to extract lift face"
-          )                                                        // Find the empty lifting cell
-          lTy <- cellType(cv, lCell)                               // Extract its type and we're done!
-        } yield lTy
+        checkTgtLiftData(rho, gma, e, ev, c, t).flatMap({
+          case TgtLiftData(eV, evV, cV, tV, catV, cellV) =>
+            for {
+              lext <- attempt(cellV.targetExtension(cV, Empty, tV), "Target extension failed")
+              lCell <- attempt(lext.sourceAt(SDir(Nil) :: Nil), "Failed to extract lift face")
+              lTy <- cellType(catV, lCell)
+            } yield lTy
+        })
 
       case EFillTgt(e, ev, c, t) =>
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ee = eval(e, rho)
-          _ <- check(rho, gma, ev, IsTgtUniv(ee))
-          cell = frm >> SDot(ee)
-          cCell <- attempt(cell.target, "Target failed")
-          cTy <- cellType(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tFrm = frm.withTopValue(cVal)
-          _ <- check(rho, gma, t, Cell(cv, tFrm))
-          tVal = eval(t, rho)
-          lext <- attempt(
-            cell.targetExtension(cVal, LiftTgt(ee, eval(ev, rho), cVal, tVal), tVal),
-            "Target extension failed"
-          )
-        } yield Cell(cv, lext)
+        checkTgtLiftData(rho, gma, e, ev, c, t).flatMap({
+          case TgtLiftData(eV, evV, cV, tV, catV, cellV) =>
+            for {
+              lext <- attempt(
+                cellV.targetExtension(cV, LiftTgt(eV, evV, cV, tV), tV),
+                "Target extension failed"
+              )
+            } yield Cell(catV, lext)
+        })
 
       case ELiftSrc(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ee = eval(e, rho)
-          addr <- inferSrcUniv(rho, gma, ev)
-          naddr = SDir(addr) :: Nil
-          cell = frm >> SDot(ee)
-          cCell <- attempt(frm.sourceAt(naddr), "Source calculation failed")
-          cTy <- cellType(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- attempt(frm.head.replaceAt(naddr, cVal), "Replacement failed")
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-          rext <- attempt(
-            cell.sourceExtension(addr)(cVal, Empty, tVal),
-            "Source extension failed"
-          )
-          lCell <- attempt(rext.sourceAt(SDir(naddr) :: Nil), "Source calculation failed")
-          lTy <- cellType(cv, lCell)
-        } yield lTy
+        checkSrcLiftData(rho, gma, e, ev, c, t).flatMap({
+          case SrcLiftData(eV, evV, cV, tV, catV, cellV, addr) =>
+            for {
+              rext <- attempt(cellV.sourceExtension(addr)(cV, Empty, tV), "Source extension failed")
+              lCell <- attempt(rext.sourceAt(SDir(SDir(addr) :: Nil) :: Nil), "Source calculation failed")
+              lTy <- cellType(catV, lCell)
+            } yield lTy
+        })
 
       case EFillSrc(e, ev, c, t) => 
-        for {
-          pr <- inferCell(rho, gma, e)
-          (cv, frm) = pr
-          ee = eval(e, rho)
-          addr <- inferSrcUniv(rho, gma, ev)
-          naddr = SDir(addr) :: Nil
-          cell = frm >> SDot(ee)
-          cCell <- attempt(frm.sourceAt(naddr), "Source calculation failed")
-          cTy <- cellType(cv, cCell)
-          _ <- check(rho, gma, c, cTy)
-          cVal = eval(c, rho)
-          tNst <- attempt(frm.head.replaceAt(naddr, cVal), "Replacement failed")
-          _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-          tVal = eval(t, rho)
-          rext <- attempt(
-            cell.sourceExtension(addr)(cVal, LiftSrc(ee, eval(ev, rho), cVal, tVal), tVal),
-            "Source extension failed"
-          )
-        } yield Cell(cv, rext)
+        checkSrcLiftData(rho, gma, e, ev, c, t).flatMap({
+          case SrcLiftData(eV, evV, cV, tV, catV, cellV, addr) =>
+            for {
+              rext <- attempt(
+                cellV.sourceExtension(addr)(cV, LiftSrc(eV, evV, cV, tV), tV),
+                "Source extension failed"
+              )
+            } yield Cell(catV, rext)
+        })
 
       //
       //  Property Inferences
@@ -680,11 +669,11 @@ object TypeChecker {
           ef = eval(EDrop(e), rho)
         } yield IsTgtUniv(ef)
 
-      // case EFillIsTgt(c, pd) => 
-      //   for {
-      //     _ <- checkI(rho, gma, EFill(pd))           // Infer that the fill is well-formed
-      //     ef = eval(EFill(pd), rho)                  // Evaluate it ...
-      //   } yield IsTgtUniv(ef)                        // and we know the type!
+      case EFillIsTgt(c, pd) => 
+        for {
+          _ <- checkI(rho, gma, EFill(pd))           // Infer that the fill is well-formed
+          ef = eval(EFill(pd), rho)                  // Evaluate it ...
+        } yield IsTgtUniv(ef)                        // and we know the type!
 
   //     case EShellIsTgt(e, ev, s, t) => 
   //       for {
@@ -717,93 +706,29 @@ object TypeChecker {
   //         )
   //       } yield ty
 
-  //     case EFillTgtIsTgt(e, ev, c, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ee = eval(e, rho)
-  //         ed = frm.dim
-  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))
-  //         cell = frm >> Dot(ee, S(ed))
-  //         cCell <- fromShape(cell.target)
-  //         cTy <- cellType(ed)(cv, cCell)
-  //         _ <- check(rho, gma, c, cTy)
-  //         cVal = eval(c, rho)
-  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-  //         tVal = eval(t, rho)
-  //       } yield IsTgtUniv(FillTgt(ee, eval(ev, rho), cVal, tVal))
+      case EFillTgtIsTgt(e, ev, c, t) => 
+        checkTgtLiftData(rho, gma, e, ev, c, t).map({
+          case TgtLiftData(eV, evV, cV, tV, catV, cellV) =>
+            IsTgtUniv(FillTgt(eV, evV, cV, tV))
+        })
 
-  //     case EFillSrcIsTgt(e, ev, c, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ed = frm.dim
-  //         ee = eval(e, rho)
-  //         a <- inferSrcUniv(rho, gma, ev)
-  //         addr <- parseAddress(ed)(a)
-  //         cell = frm >> Dot(ee, S(ed))
-  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-  //         cTy <- cellType(ed)(cv, cCell)
-  //         _ <- check(rho, gma, c, cTy)
-  //         cVal = eval(c, rho)
-  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-  //         tVal = eval(t, rho)
-  //       } yield IsTgtUniv(FillSrc(ee, eval(ev, rho), cVal, tVal))
+      case EFillSrcIsTgt(e, ev, c, t) => 
+        checkSrcLiftData(rho, gma, e, ev, c, t).map({
+          case SrcLiftData(eV, evV, cV, tV, catV, cellV, addr) =>
+            IsTgtUniv(FillSrc(eV, evV, cV, tV))
+        })
 
-  //     case EFillTgtIsSrc(e, ev, c, t, l, f, fev) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)                           
-  //         (cv, frm) = pr                                         
-  //         ed = frm.dim                                           
-  //         ee = eval(e, rho)                                      
-  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))                
-  //         cell = frm >> Dot(ee, S(ed))                           
-  //         cCell <- fromShape(cell.target)                        
-  //         cTy <- cellType(ed)(cv, cCell)                         
-  //         _ <- check(rho, gma, c, cTy)                           
-  //         cVal = eval(c, rho)                                    
-  //         tNst <- fromShape(frm.head.replaceAt(Nil, cVal))       
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))  
-  //         tVal = eval(t, rho)                                    
-  //         lext <- fromShape(cell.leftExtend(cVal, Empty, tVal))  
-  //         lCell <- fromShape(lext.sourceAt(Nil :: Nil))          
-  //         lTy <- cellType(S(ed))(cv, lCell)                      
-  //         _ <- check(rho, gma, l, lTy)
-  //         lVal = eval(l, rho)
-  //         lNst <- fromShape(lext.head.replaceAt(Nil :: Nil, lVal))
-  //         _ <- check(rho, gma, f, Cell(cv, lext.withHead(lNst)))
-  //         fVal = eval(f, rho)
-  //         _ <- check(rho, gma, fev, IsTgtUniv(fVal))
-  //       } yield IsSrcUniv(fVal, ANil)
+      case EFillTgtIsSrc(e, ev, c, t) => 
+        checkTgtLiftData(rho, gma, e, ev, c, t).map({
+          case TgtLiftData(eV, evV, cV, tV, catV, cellV) =>
+            IsSrcUniv(FillTgt(eV, evV, cV, tV), Nil)
+        })
 
-  //     case EFillSrcIsSrc(e, ev, c, t, l, f, fev) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ed = frm.dim
-  //         ee = eval(e, rho)
-  //         a <- inferSrcUniv(rho, gma, ev)
-  //         addr <- parseAddress(ed)(a)
-  //         cell = frm >> Dot(ee, S(ed))
-  //         cCell <- fromShape(frm.sourceAt(ed)(addr :: Nil))
-  //         cTy <- cellType(ed)(cv, cCell)
-  //         _ <- check(rho, gma, c, cTy)
-  //         cVal = eval(c, rho)
-  //         tNst <- fromShape(frm.head.replaceAt(addr :: Nil, cVal))
-  //         _ <- check(rho, gma, t, Cell(cv, frm.withHead(tNst)))
-  //         tVal = eval(t, rho)
-  //         rext <- fromShape(cell.rightExtend(addr)(cVal, Empty, tVal))
-  //         lCell <- fromShape(rext.sourceAt((addr :: Nil) :: Nil))
-  //         lTy <- cellType(S(ed))(cv, lCell)
-  //         _ <- check(rho, gma, l, lTy)
-  //         lVal = eval(l, rho)
-  //         lNst <- fromShape(rext.head.replaceAt((addr :: Nil) :: Nil, lVal))
-  //         _ <- check(rho, gma, f, Cell(cv, rext.withHead(lNst)))
-  //         fVal = eval(f, rho)
-  //         _ <- check(rho, gma, fev, IsTgtUniv(fVal))
-  //       } yield IsSrcUniv(fVal, rbAddr(S(ed))(addr :: Nil))
+      case EFillSrcIsSrc(e, ev, c, t) => 
+        checkSrcLiftData(rho, gma, e, ev, c, t).map({
+          case SrcLiftData(eV, evV, cV, tV, catV, cellV, addr) =>
+            IsSrcUniv(FillSrc(eV, evV, cV, tV), SDir(SDir(addr) :: Nil) :: Nil)
+        })
 
       // Oh crap ....
       case e => fail("checkI: " ++ e.toString)

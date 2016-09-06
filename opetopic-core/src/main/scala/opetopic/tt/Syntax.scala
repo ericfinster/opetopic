@@ -13,6 +13,7 @@ import opetopic._
 sealed trait Expr
 case object EType extends Expr
 case object EUnit extends Expr
+case object ECat extends Expr
 case object ETt extends Expr
 case object EEmpty extends Expr
 
@@ -28,7 +29,6 @@ case class EVar(id: Ident) extends Expr
 case class EDec(d: Decl, e: Expr) extends Expr
 
 // Categories and Cells
-case object ECat extends Expr
 case class EObj(c: Expr) extends Expr
 case class ECell(c: Expr, frm: SComplex[Expr]) extends Expr
 
@@ -48,7 +48,7 @@ case class EFillSrc(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Property constructors
 case class EDropIsTgt(c: Expr, e: Expr) extends Expr
-case class EFillIsTgt(c: Expr, pd: Expr) extends Expr
+case class EFillIsTgt(c: Expr, pd: STree[Expr]) extends Expr
 case class EShellIsTgt(e: Expr, ev: Expr, s: Expr, t: Expr) extends Expr
 case class EFillTgtIsTgt(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillSrcIsTgt(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
@@ -57,6 +57,7 @@ case class EFillSrcIsSrc(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 
 // Values
 sealed trait Val
+case object Cat extends Val
 case object Type extends Val
 case object Unt extends Val
 case object Tt extends Val
@@ -70,7 +71,6 @@ case class Sig(v: Val, c: Clos) extends Val
 case class Nt(n: Neut) extends Val
 
 // Category and Cell Values
-case object Cat extends Val
 case class Obj(cv: Val) extends Val
 case class Cell(c: Val, frm: SComplex[Val]) extends Val
 
@@ -90,7 +90,7 @@ case class FillSrc(e: Val, ev: Val, c: Val, t: Val) extends Val
 
 // Property Constructor Values
 case class DropIsTgt(c: Val, e: Val) extends Val
-case class FillIsTgt(c: Val, pd: Val) extends Val
+case class FillIsTgt(c: Val, pd: STree[Val]) extends Val
 case class ShellIsTgt(e: Val, ev: Val, s: Val, t: Val) extends Val
 case class FillTgtIsTgt(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillSrcIsTgt(e: Val, ev: Val, c: Val, t: Val) extends Val
