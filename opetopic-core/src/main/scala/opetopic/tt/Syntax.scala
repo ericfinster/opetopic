@@ -49,7 +49,7 @@ case class EFillSrc(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 // Property constructors
 case class EDropIsTgt(c: Expr, e: Expr) extends Expr
 case class EFillIsTgt(c: Expr, pd: STree[Expr]) extends Expr
-case class EShellIsTgt(e: Expr, ev: Expr, s: Expr, t: Expr) extends Expr
+case class EShellIsTgt(e: Expr, ev: Expr, s: STree[Expr], t: Expr) extends Expr
 case class EFillTgtIsTgt(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillSrcIsTgt(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
 case class EFillTgtIsSrc(e: Expr, ev: Expr, c: Expr, t: Expr) extends Expr
@@ -91,7 +91,7 @@ case class FillSrc(e: Val, ev: Val, c: Val, t: Val) extends Val
 // Property Constructor Values
 case class DropIsTgt(c: Val, e: Val) extends Val
 case class FillIsTgt(c: Val, pd: STree[Val]) extends Val
-case class ShellIsTgt(e: Val, ev: Val, s: Val, t: Val) extends Val
+case class ShellIsTgt(e: Val, ev: Val, s: STree[Val], t: Val) extends Val
 case class FillTgtIsTgt(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillSrcIsTgt(e: Val, ev: Val, c: Val, t: Val) extends Val
 case class FillTgtIsSrc(e: Val, ev: Val, c: Val, t: Val) extends Val

@@ -133,7 +133,7 @@ object TypeChecker {
 
       case EDropIsTgt(c, e) => DropIsTgt(eval(c, rho), eval(e, rho))
       case EFillIsTgt(c, pd) => FillIsTgt(eval(c, rho), pd.map(eval(_, rho)))
-      case EShellIsTgt(e, ev, s, t) => ShellIsTgt(eval(e, rho), eval(ev, rho), eval(s, rho), eval(t, rho))
+      case EShellIsTgt(e, ev, s, t) => ShellIsTgt(eval(e, rho), eval(ev, rho), s.map(eval(_, rho)), eval(t, rho))
 
       // Derived properties
       case EFillTgtIsTgt(e, ev, c, t) => FillTgtIsTgt(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -185,7 +185,7 @@ object TypeChecker {
 
       case DropIsTgt(c, v) => EDropIsTgt(rbV(i, c), rbV(i, v))
       case FillIsTgt(c, pd) => EFillIsTgt(rbV(i, c), pd.map(rbV(i, _)))
-      case ShellIsTgt(e, ev, s, t) => EShellIsTgt(rbV(i, e), rbV(i, ev), rbV(i, s), rbV(i, t))
+      case ShellIsTgt(e, ev, s, t) => EShellIsTgt(rbV(i, e), rbV(i, ev), s.map(rbV(i, _)), rbV(i, t))
 
       case FillTgtIsTgt(e, ev, c, t) => EFillTgtIsTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
       case FillSrcIsTgt(e, ev, c, t) => EFillSrcIsTgt(rbV(i, e), rbV(i, ev), rbV(i, c), rbV(i, t))
@@ -675,36 +675,27 @@ object TypeChecker {
           ef = eval(EFill(pd), rho)                  // Evaluate it ...
         } yield IsTgtUniv(ef)                        // and we know the type!
 
-  //     case EShellIsTgt(e, ev, s, t) => 
-  //       for {
-  //         pr <- inferCell(rho, gma, e)
-  //         (cv, frm) = pr
-  //         ee = eval(e, rho)
-  //         ed = frm.dim
-  //         _ <- check(rho, gma, ev, IsTgtUniv(ee))
-  //         eTgt = frm.head.baseValue
-  //         eSrc <- sourceTree(frm)
-  //         srcTr <- parseTree(ed)(s)
-  //         oTr <- fromShape(
-  //           Tree.matchTraverse[Val, Expr, Option[Val], Nat](eSrc, srcTr)({
-  //             case (u, EEmpty) => succeed(Some(u))
-  //             case (u, v) => 
-  //               for { 
-  //                 _ <- toShape(check(rho, gma, v, IsTgtUniv(u))) 
-  //               } yield None
-  //           })
-  //         )
-  //         ty <- (
-  //           (oTr.nodes.filter(_.isDefined), t) match {
-  //             case (Nil, EEmpty) => pure(IsTgtUniv(eTgt))
-  //             case (Some(u) :: Nil, tev) => 
-  //               for {
-  //                 _ <- check(rho, gma, tev, IsTgtUniv(eTgt))
-  //               } yield IsTgtUniv(u)
-  //             case _ => fail("Malformed shell evidence")
-  //           }
-  //         )
-  //       } yield ty
+      case EShellIsTgt(e, ev, s, t) => 
+        for {
+          pr <- inferCell(rho, gma, e)
+          (cv, frm) = pr
+          ee = eval(e, rho)
+          _ <- check(rho, gma, ev, IsTgtUniv(ee))
+          frmData <- attempt(frm.asFrame, "Malformed frame")
+          (eSrcs, eTgt) = frmData
+          optTr <- attempt(
+            eSrcs.matchTraverse[Expr, Option[Val]](s)({
+              case (u, EEmpty) => Some(Some(u))
+              case (u, v) => toOpt(check(rho, gma, v, IsTgtUniv(u))).map(_ => None)
+            }),
+            "Source evidence match failure"
+          )
+          ty <- (optTr.toList.filter(_.isDefined), t) match {
+            case (Nil, EEmpty) => pure(IsTgtUniv(eTgt))
+            case (Some(u) :: Nil, tev) => check(rho, gma, tev, IsTgtUniv(eTgt)).map(_ => IsTgtUniv(u))
+            case _ => fail("Malformed shell evidence")
+          }
+        } yield ty
 
       case EFillTgtIsTgt(e, ev, c, t) => 
         checkTgtLiftData(rho, gma, e, ev, c, t).map({
