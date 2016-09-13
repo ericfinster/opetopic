@@ -2,13 +2,13 @@ import sbt.Project.projectToRef
 
 val commonSettings = Seq(
   organization := "opetopic",
-  homepage := Some(url("http://ericfinster.github.io")),
+  homepage := Some(url("http://opetopic.net")),
   scalaVersion := "2.11.8",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
     "-feature",
-    "-deprecation",
+    // "-deprecation",
     "-unchecked"
   ),
   resolvers += Resolver.sonatypeRepo("releases"),
@@ -52,6 +52,13 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
     herokuSkipSubProjects in Compile := false
   ).enablePlugins(PlayScala).
   aggregate(clients.map(projectToRef): _*).
+  dependsOn(opetopicCoreJvm)
+
+lazy val opetopicTt = (project in file("opetopic-tt")).
+  settings(commonSettings: _*).
+  settings(
+    bnfcBasePackage := Some("opetopic")
+  ).
   dependsOn(opetopicCoreJvm)
 
 lazy val opetopicDocs = (project in file("opetopic-docs")).

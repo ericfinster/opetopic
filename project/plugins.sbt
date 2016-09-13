@@ -20,3 +20,5 @@ addSbtPlugin("com.heroku" % "sbt-heroku" % "0.5.3.1")
 // Sbt-Less for building less files
 addSbtPlugin("com.typesafe.sbt" % "sbt-less" % "1.1.0")
 
+// For compiling bnfc grammars
+addSbtPlugin("net.opetopic" % "sbt-bnfc" % "0.1-SNAPSHOT")

@@ -1,0 +1,49 @@
+--- Input file to BNF Converter
+---   This describes the labelled BNF Grammar of
+---   OpetopicTT concrete syntax
+
+entrypoints Prog ;
+
+-- Programs
+Prog.     Prog   ::= [Decl] ;
+
+-- Expressions
+
+EPair.    Exp    ::= Exp1 "," Exp ;
+
+ELam.     Exp1   ::= "\\" Patt "." Exp1 ;
+EPi.      Exp1   ::= [PTele] "->" Exp1 ;
+ESig.     Exp1   ::= [PTele] "*" Exp1 ;
+EArrow.   Exp1   ::= Exp2 "->" Exp1 ;
+ETimes.   Exp1   ::= Exp2 "*"  Exp1 ;
+
+EApp.     Exp2   ::= Exp2 Exp3 ;
+
+EUnit.    Exp3   ::= "Unit";
+ETt.      Exp3   ::= "tt";
+EFst.     Exp3   ::= Exp3 ".1" ;
+ESnd.     Exp3   ::= Exp3 ".2" ;
+EType.    Exp3   ::= "U" ;
+EVar.     Exp3   ::= Ident ;
+
+coercions Exp 3 ;
+
+-- Telescopes
+Tele.     Tele ::= "(" Patt ":" Exp ")" ;
+terminator Tele "" ;
+
+-- Nonempty telescopes with Exp:s, this is hack to avoid ambiguities
+-- in the grammar when parsing Pi
+PTele.    PTele ::= "(" Patt ":" Exp ")" ;
+terminator nonempty PTele "" ;
+
+-- declarations
+Def.      Decl ::= "let" Ident [Tele] ":" Exp1 "=" Exp1 ;
+separator Decl ";" ;
+
+-- patterns
+PUnit.    Patt   ::= "_" ;
+PVar.     Patt   ::= Ident ;
+
+comment "--" ;
+comment "{-" "-}" ;
