@@ -47,7 +47,20 @@ package object mtl {
         }
     }
 
-  implicit def toTraverseOps[F[_], A](fa: F[A])(implicit t: Traverse[F]): TraverseOps[F, A] = 
+  type Except[+A] = Xor[String, A]
+
+  implicit val exceptIsMonad: Monad[Except] = Xor.xorIsMonad
+
+  def attempt[A](o: Option[A], msg: String) : Except[A] =
+    o match {
+      case None => Xor.Left(msg)
+      case Some(a) => Xor.Right(a)
+    }
+
+  def throwError[A](msg: => String) : Except[A] =
+    Xor.Left(msg)
+
+  implicit def toTraverseOps[F[_], A](fa: F[A])(implicit t: Traverse[F]): TraverseOps[F, A] =
     new TraverseOps[F, A](fa) { val T = t }
 
   implicit def toMonadOps[F[_], A](fa: F[A])(implicit m: Monad[F]): MonadOps[F, A] = 

@@ -17,33 +17,6 @@ sealed trait MDeriv[+A]
 case object MUnit extends MDeriv[Nothing]
 case class MSucc[+A](md: MDeriv[STree[A]], sd: SDeriv[STree[A]]) extends MDeriv[A]
 
-// sealed trait NList[+A] 
-// case class NNil(i: Int) extends NList[Nothing]
-// case class NCons[+A](i: Int)(a: A, as: NList[A]) extends NList[A] {
-//   override def toString = 
-//     "NCons(" + i.toString + ")(" + a.toString + ", " + as.toString + ")"
-// }
-
-// case class NDir(val d: NList[NDir])
-
-// object NList {
-
-//   def apply(addr: SAddr) : NAddr = 
-//     translate(addr)._1
-
-//   def translate(addr: SAddr, i: Int = 1): (NAddr, Int) = 
-//     addr match {
-//       case Nil => (NNil(i), i + 1)
-//       case SDir(d) :: ds => {
-//         val (ns, j) = translate(ds, i)
-//         val (nd, k) = translate(d, j)
-//         (NCons(k)(NDir(nd), ns), k + 1)
-//       }
-
-//     }
-
-// }
-
 trait CardinalTypes {
 
   type MAddr = List[SAddr]
@@ -127,7 +100,17 @@ trait CardinalTypes {
 
   implicit class MTreeOps[A](mt: MTree[A]) {
 
-    def unfold: Option[MTree[STree[A]]] = 
+    def rootValue: Option[A] =
+      mt match {
+        case MObj(tr) => tr.rootValue
+        case MFix(t) =>
+          for {
+            m <- t.rootValue
+            a <- m.rootValue
+          } yield a
+      }
+
+    def unfold: Option[MTree[STree[A]]] =
       mt match {
         case MFix(t) => Some(t)
         case _ => None
@@ -287,7 +270,16 @@ trait CardinalTypes {
         (et, es) = cut
       } yield (cd.plug(zp.ctxt.close(SNode(SBox(a, et), es))), et)
 
-    def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] = 
+    def extrudeAtWithMask[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] =
+      for {
+        pr <- cnst.mSeek(addr.branchAddr)
+        (canopy, cd) = pr
+        zp <- canopy.seekTo(addr.canopyAddr)
+        cut <- zp.focus.takeWithMask(msk)
+        (et, es) = cut
+      } yield cd.plug(zp.ctxt.close(SNode(SBox(a, et), es)))
+
+    def extrudeFillerAt[B](addr: SCardAddr, a: A)(msk: STree[B]): Option[SCardNst[A]] =
       for {
         t <- cnst.unfold
         sd <- t.mSeek(addr.branchAddr)
@@ -400,26 +392,27 @@ trait CardinalTypes {
 
       }
 
-    def sproutFillerAt(addr: SCardAddr, a: A): Option[SCardNst[A]] = 
+    def sproutFillerAt(addr: SCardAddr, a: A): Option[(SCardNst[A], SAddr)] =
       for {
         t <- cnst.unfold
         pr <- t.mSeek(addr.branchAddr)
         (canopy, cd) = pr
         zp <- canopy.seekTo(addr.canopyAddr)
         ttsh <- zp.focus.nodeOption
-        (t, tsh) = ttsh
-        cz <- t.seekTo(addr.boxAddr)
+        (tr, trsh) = ttsh
+        na <- tr.spineToCanopyAddr(addr.boxAddr)
+        cz <- tr.seekTo(na)
         _ <- cz.focus.leafOption
       } yield {
 
         val sproutShell : TShell[SNesting[A]] = 
           cz.ctxt.g match {
-            case Nil => tsh.asShell
+            case Nil => trsh.asShell
             case (_, SDeriv(sh, _)) :: _ => sh.asShell
           }
 
         val sproutExtrusion = SNode(SDot(a), SNode(SLeaf, sproutShell)) 
-        MFix(cd.plug(zp.closeWith(SNode(cz.closeWith(sproutExtrusion), tsh))))
+        (MFix(cd.plug(zp.closeWith(SNode(cz.closeWith(sproutExtrusion), trsh)))), na)
 
       }
 
@@ -450,6 +443,8 @@ trait CardinalTypes {
 
   implicit class CardinalOps[A](card: SCardinal[A]) {
 
+    def dim: Int = card.length - 1
+
     def toComplex(ps: Suite[(A, A)]): Option[SComplex[A]] = 
       (card, ps) match {
         case (||(MObj(cn)), ||((p, _))) => Some(||(SBox(p, cn)))
@@ -461,13 +456,21 @@ trait CardinalTypes {
         case _ => None
       }
 
-    def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] = 
+    def cardinalComplex: SComplex[Polarity[A]] =
+      Traverse[Suite].map(card)(_.toPolarityNesting)
+
+    def seekNesting(addr: SCardAddr): Option[SNstZipper[A]] =
       card.take(addr.dim + 1).head.seek(addr)
 
     def seekCanopy(addr: SCardAddr): Option[SZipper[SNesting[A]]] = 
       card.take(addr.dim + 1).head.canopySeek(addr)
 
-    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[SCardinal[A]] = {
+    def extend(a: A): SCardinal[A] = {
+      val newHead = Traverse[MTree].map(card.head)(nst => nst.toTreeWith(_ => SDot(a)))
+      card >> MFix(newHead)
+    }
+
+    def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[(SCardinal[A], STree[Int])] = {
 
       val extDim = addr.dim
       val (p, l) = card.splitAt(extDim + 2)
@@ -487,7 +490,30 @@ trait CardinalTypes {
 
           }
         })
-      } yield (tl.withHead(en) >> fn) ++ lns
+      } yield ((tl.withHead(en) >> fn) ++ lns, msk.map(_ => 0))
+
+    }
+
+    def extrudeWithMask[B](addr: SCardAddr, tgt: A, fill: A)(msk: STree[B]): Option[SCardinal[A]] = {
+
+      val extDim = addr.dim
+      val (p, l) = card.splitAt(extDim + 2)
+
+      for {
+        tl <- p.tail
+        extNst = tl.head
+        fillNst = p.head
+        nn <- extNst.extrudeAtWithMask(addr, tgt)(msk)
+        fn <- fillNst.extrudeFillerAt(addr, fill)(msk)
+        lns <- l.zipWithIndex.traverse({
+          case (lfNst, i) => {
+
+            val lfAddr = SLeafAddr(i, addr.branchAddr)
+            lfNst.extrudeLeafAt(addr.canopyAddr, lfAddr, msk)
+
+          }
+        })
+      } yield (tl.withHead(nn) >> fn) ++ lns
 
     }
 
@@ -526,12 +552,13 @@ trait CardinalTypes {
         extNst = tl.head
         fillNst = p.head
         sn <- extNst.sproutAt(addr, src)
-        fn <- fillNst.sproutFillerAt(addr, fill)
+        pr <- fillNst.sproutFillerAt(addr, fill)
+        (fn, na) = pr
         lns <- l.zipWithIndex.traverse({
           case (lfNst, i) => {
 
             val lfAddr = SLeafAddr(i, addr.branchAddr)
-            lfNst.sproutLeafAt(addr.canopyAddr, addr.boxAddr, lfAddr)
+            lfNst.sproutLeafAt(addr.canopyAddr, na, lfAddr)
 
           }
         })

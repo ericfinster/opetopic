@@ -93,25 +93,25 @@ object Parser {
 
   val expr2: Parser[Expr] = 
     P( obj | cell |
-      isLeftExt | isRightExt |
+      isTgtUniv | isSrcUniv |
       refl | drop | comp | fill |
-      liftLeft | liftRight | fillLeft | fillRight |
+      liftTgt | liftSrc | fillTgt | fillSrc |
       expr3 )
 
   val obj: Parser[Expr] = 
-    P( "Obj" ~/ expr ).map(EObj(_))
+    P( "Ob" ~/ expr ).map(EObj(_))
 
   val cell: Parser[Expr] = 
     P( "Cell" ~/ expr ~ complex ).map({
       case (c, frm) => ECell(c, frm)
     })
 
-  val isLeftExt: Parser[Expr] = 
-    P( "isLeftExt" ~/ expr ).map(EIsLeftExt(_))
+  val isTgtUniv: Parser[Expr] = 
+    P( "isTgtUniv" ~/ expr ).map(EIsTgtUniv(_))
 
-  val isRightExt: Parser[Expr] = 
-    P( "isRightExt" ~/ expr ~ address ).map({
-      case (e, a) => EIsRightExt(e, a)
+  val isSrcUniv: Parser[Expr] = 
+    P( "isSrcUniv" ~/ expr ~ address ).map({
+      case (e, a) => EIsSrcUniv(e, a)
     })
 
   val refl: Parser[Expr] = 
@@ -126,24 +126,24 @@ object Parser {
   val fill: Parser[Expr] = 
     P( "fill" ~/ exprTree ).map(EFill(_))
 
-  val liftLeft: Parser[Expr] = 
-    P( "liftLeft" ~/ expr ~ expr ~ expr ~ expr ).map({
-      case (e, ev, cl, tgt) => ELiftLeft(e, ev, cl, tgt)
+  val liftTgt: Parser[Expr] = 
+    P( "liftTgt" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => ELiftTgt(e, ev, cl, tgt)
     })
 
-  val liftRight: Parser[Expr] = 
-    P( "liftRight" ~/ expr ~ expr ~ expr ~ expr ).map({
-      case (e, ev, cl, tgt) => ELiftRight(e, ev, cl, tgt)
+  val liftSrc: Parser[Expr] = 
+    P( "liftSrc" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => ELiftSrc(e, ev, cl, tgt)
     })
 
-  val fillLeft: Parser[Expr] = 
-    P( "fillLeft" ~/ expr ~ expr ~ expr ~ expr ).map({
-      case (e, ev, cl, tgt) => EFillLeft(e, ev, cl, tgt)
+  val fillTgt: Parser[Expr] = 
+    P( "fillTgt" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => EFillTgt(e, ev, cl, tgt)
     })
 
-  val fillRight: Parser[Expr] = 
-    P( "fillRight" ~/ expr ~ expr ~ expr ~ expr ).map({
-      case (e, ev, cl, tgt) => EFillRight(e, ev, cl, tgt)
+  val fillSrc: Parser[Expr] = 
+    P( "fillSrc" ~/ expr ~ expr ~ expr ~ expr ).map({
+      case (e, ev, cl, tgt) => EFillSrc(e, ev, cl, tgt)
     })
 
   // Expr3

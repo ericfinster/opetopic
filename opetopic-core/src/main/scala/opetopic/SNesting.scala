@@ -138,7 +138,13 @@ object SNesting {
         }
       }
 
-    def foldNesting[B](dot: A => B)(box: (A, STree[B]) => B) : B = 
+    def mapWithAddr[B](f: (A, => SAddr) => B): SNesting[B] = 
+      lazyTraverse(funcAddrToLt[Id, A, B](f))
+
+    def traverseWithAddr[G[_], B](f: (A, => SAddr) => G[B])(implicit isAp: Applicative[G]): G[SNesting[B]] = 
+      lazyTraverse(funcAddrToLt[G, A, B](f))
+
+    def foldNesting[B](dot: A => B)(box: (A, STree[B]) => B) : B =
       nst match {
         case SDot(a) => dot(a)
         case SBox(a, cn) => box(a, cn.map(_.foldNesting(dot)(box)))
@@ -164,7 +170,14 @@ object SNesting {
         case _ => None
       }
 
-    def toTree: STree[A] = 
+    def isLoop: Boolean =
+      nst match {
+        case SDot(_) => false
+        case SBox(_, SLeaf) => true
+        case SBox(_, cn) => cn.toList.forall(_.isLoop)
+      }
+
+    def toTree: STree[A] =
       foldNesting[STree[A]](a => SLeaf)((a, sh) => SNode(a, sh))
 
     def toTreeWith[B](f: A => B): STree[B] = 
@@ -193,13 +206,33 @@ object SNesting {
     def seek(addr: SAddr) : Option[SNstZipper[A]] = 
       SNstZipper(nst).seek(addr)
 
-    def baseValue: A = 
+    def replaceAt(addr: SAddr, a: A): Option[SNesting[A]] =
+      for {
+        zp <- nst.seek(addr)
+      } yield zp.withFocus(zp.focus.withBase(a)).close
+
+    def elementAt(addr: SAddr): Option[A] =
+      for {
+        zp <- nst.seek(addr)
+      } yield zp.focus.baseValue
+    
+    def baseValue: A =
       nst match {
         case SDot(a) => a
         case SBox(a, _) => a
       }
 
-    def withBase(a: A): SNesting[A] = 
+    def firstDotValue: Option[A] =
+      nst match {
+        case SDot(a) => Some(a)
+        case SBox(_, cn) =>
+          cn match {
+            case SLeaf => None
+            case SNode(n, _) => n.firstDotValue
+          }
+      }
+
+    def withBase(a: A): SNesting[A] =
       nst match {
         case SDot(_) => SDot(a)
         case SBox(_, cn) => SBox(a, cn)
@@ -284,6 +317,28 @@ object SNesting {
       cn.traverseWithData[Option, SNesting[A], STree[SNesting[A]]]({
         case (nst, _, deriv) => nst.canopy(deriv)
       }).flatMap(STree.join(_))
+
+
+    def spineToCanopyAddr(addr: SAddr): Option[SAddr] = {
+
+      val lr: SAddr => Option[SNesting[SAddr]] =
+        (addr: SAddr) => Some(SDot(addr))
+
+      val nr: (SNesting[A], STree[SNesting[SAddr]]) => Option[SNesting[SAddr]] =
+        (nst, newCn) => {
+          for {
+            sp <- nst.spine(SDeriv(newCn.map(_ => SLeaf)))
+            res <- STree.treeFold[A, SNesting[SAddr]](sp)(newCn.elementAt(_))(
+              (a:A, canp: STree[SNesting[SAddr]]) => Some(SBox(Nil, canp))  
+            ) // The node recursor gives a dummy value, since we won't use it...
+          } yield res
+        }
+
+      for {
+        nst <- STree.treeFoldVertical[SNesting[A], SNesting[SAddr]](cn)(lr)(nr)
+        nz <- nst.seek(addr)
+      } yield nz.focus.baseValue
+    }
 
   }
 

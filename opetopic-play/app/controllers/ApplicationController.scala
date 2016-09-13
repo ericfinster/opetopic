@@ -45,6 +45,14 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.stable()))
   }
 
+  // Temporarily put the multi-editor here
+  def multiedit = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.multiedit()(request.identity)))
+  }
+
+  def coloredit = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.coloredit()(request.identity)))
+  }
 
   /**
    * Handles the Sign In action.

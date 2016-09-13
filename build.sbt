@@ -2,13 +2,13 @@ import sbt.Project.projectToRef
 
 val commonSettings = Seq(
   organization := "opetopic",
-  homepage := Some(url("http://ericfinster.github.io")),
+  homepage := Some(url("http://opetopic.net")),
   scalaVersion := "2.11.8",
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
     "-feature",
-    "-deprecation",
+    // "-deprecation",
     "-unchecked"
   ),
   resolvers += Resolver.sonatypeRepo("releases"),
@@ -21,7 +21,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -57,11 +57,13 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
 lazy val opetopicTt = (project in file("opetopic-tt")).
   settings(commonSettings: _*).
   settings(
-    libraryDependencies ++= Seq(
-      "com.lihaoyi" %% "fastparse" % "0.3.7"
-    ),
-    exportJars := true
-  ).dependsOn(opetopicCoreJvm)
+// GGR    libraryDependencies ++= Seq(
+// GGR      "com.lihaoyi" %% "fastparse" % "0.3.7"
+// GGR    ),
+// GGR    exportJars := true
+    bnfcBasePackage := Some("opetopic")
+  ).
+  dependsOn(opetopicCoreJvm)
 
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
@@ -91,6 +93,36 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs).
   dependsOn(opetopicTt)
+
+lazy val opetopicMultiedit = (project in file("opetopic-multiedit")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "upickle" % "0.3.9",
+      "com.lihaoyi" %%% "fastparse" % "0.3.7"
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
+lazy val opetopicColoredit = (project in file("opetopic-coloredit")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
+      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
+      "com.lihaoyi" %%% "scalatags" % "0.5.3",
+      "com.lihaoyi" %%% "upickle" % "0.3.9",
+      "com.lihaoyi" %%% "fastparse" % "0.3.7"
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
 
 lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
   settings(commonSettings: _*).

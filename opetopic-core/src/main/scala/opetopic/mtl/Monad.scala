@@ -29,8 +29,6 @@ object Monad {
 
   def apply[F[_]](implicit m: Monad[F]): Monad[F] = m
 
-
-
 }
 
 abstract class MonadOps[F[_], A](fa: F[A]) {

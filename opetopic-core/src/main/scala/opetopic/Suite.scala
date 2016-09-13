@@ -49,7 +49,13 @@ object Suite {
 
   implicit class SuiteOps[A](s: Suite[A]) {
 
-    def head: A = 
+    def initial: A =
+      s match {
+        case ||(a) => a
+        case tl >> _ => tl.initial
+      }
+
+    def head: A =
       s match {
         case ||(a) => a
         case _ >> a => a
