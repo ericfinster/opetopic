@@ -9,12 +9,8 @@ package opetopic.ott
 
 import java.io._
 
-// import MinittSyntax._
-// import TypeChecker._
-// import scalaz._
-
-// import MR._
-// import ME.{raiseError, handleError}
+import OttSyntax._
+import TypeChecker._
 
 object Main {
 
@@ -26,19 +22,23 @@ object Main {
 
     } else {
 
-      println("Not done yet ...")
+      val fname = args(0)
 
-      // val fname = args(0)
+      println("Going to parse file: " + fname)
 
-      // println("Going to parse file: " + fname)
+      val reader = new FileReader(new File(fname))
+      val lexer = new OttLexer(reader)
+      val parser = new OttParser
+      parser.lexer = lexer
 
-      // val reader = new FileReader(new File(fname))
-      // val lexer = new MinittLexer(reader)
-      // val parser = new MinittParser
-      // parser.lexer = lexer
+      parser.parseAll match {
+        case Right(Prog(dfs)) => {
 
-      // parser.parseAll match {
-      //   case Right(Prog(dfs)) => {
+          for {
+            d <- dfs
+          } {
+            println("Definition: " + d.toString)
+          }
 
       //     def abstractDef(d: DeclT) : (String, ExpT, ExpT) =
       //       d match {
@@ -74,12 +74,12 @@ object Main {
       //       case \/-(_) => println("Success!")
       //     }
 
-      //   }
-      //   case Right(_) => println("Unknown error")
-      //   case Left(s) => println("Parse error: " + s)
-      // }
+        }
+        case Right(_) => println("Unknown error")
+        case Left(s) => println("Parse error: " + s)
+      }
 
-      // reader.close
+      reader.close
 
     }
 
