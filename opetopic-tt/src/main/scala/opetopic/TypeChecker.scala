@@ -38,7 +38,7 @@ object TypeChecker {
   case class ReflD(e : Dom) extends Dom
   case class DropD(e : Dom) extends Dom
   case class CompD(pd : STree[Dom]) extends Dom
-  case class FillD(e : Dom) extends Dom
+  case class FillD(pd : STree[Dom]) extends Dom
   case class LiftTgtD(e : Dom, ev : Dom, c : Dom, t : Dom) extends Dom
   case class LiftSrcD(e : Dom, ev : Dom, c : Dom, t : Dom) extends Dom
   case class FillTgtD(e : Dom, ev : Dom, c : Dom, t : Dom) extends Dom
@@ -50,7 +50,6 @@ object TypeChecker {
   case class FillSrcIsTgtD(e : Dom, ev : Dom, c : Dom, t : Dom) extends Dom
   case class FillTgtIsSrcD(e : Dom, ev : Dom, c : Dom, t : Dom) extends Dom
   case class FillSrcIsSrcD(e : Dom, ev : Dom, c : Dom, t : Dom) extends Dom
-
 
   def fstD(d: Dom) : Dom =
     d match {
@@ -134,7 +133,7 @@ object TypeChecker {
       case ReflD(e) => Refl(rb(k, e))
       case DropD(e) => Drop(rb(k, e))
       case CompD(pd) => Comp(pd.map(rb(k, _)))
-      case FillD(e) => Fill(rb(k, e))
+      case FillD(pd) => Fill(pd.map(rb(k, _)))
       case LiftTgtD(e, ev, c, t) => LiftTgt(rb(k, e), rb(k, ev), rb(k, c), rb(k, t))
       case LiftSrcD(e, ev, c, t) => LiftSrc(rb(k, e), rb(k, ev), rb(k, c), rb(k, t))
       case FillTgtD(e, ev, c, t) => FillTgt(rb(k, e), rb(k, ev), rb(k, c), rb(k, t))
@@ -174,7 +173,7 @@ object TypeChecker {
       case Refl(e) => ReflD(eval(e, rho))
       case Drop(e) => DropD(eval(e, rho))
       case Comp(pd) => CompD(pd.map(eval(_, rho)))
-      case Fill(e) => FillD(eval(e, rho))
+      case Fill(pd) => FillD(pd.map(eval(_, rho)))
       case LiftTgt(e, ev, c, t) => LiftTgtD(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case LiftSrc(e, ev, c, t) => LiftSrcD(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
       case FillTgt(e, ev, c, t) => FillTgtD(eval(e, rho), eval(ev, rho), eval(c, rho), eval(t, rho))
@@ -389,7 +388,7 @@ object TypeChecker {
       }
     } yield (tm, cat)
 
-  def tcInferComplex(pd: STree[ExpT]) : TCM[(Dom, SComplex[Dom], STree[SNesting[Dom]])] = {
+  def tcInferComplex(pd: STree[ExpT]) : TCM[(STree[Term], Dom, SComplex[Dom], STree[SNesting[Dom]])] = {
 
     for {
       // First, we need to find the category we are working in 
@@ -397,13 +396,16 @@ object TypeChecker {
       rt <- tcInferCell(re)
       (_, rcat, _) = rt
 
-      pdD <- pd.traverse(e => {
+      pdPrs <- pd.traverse(e => {
         for {
           info <- tcInferCell(e)
           (tm, cat, frm) = info
           tmD <- tcEval(tm)
-        } yield frm >> SDot(tmD)
+        } yield (tm, frm >> SDot(tmD))
       })
+
+      pdPr = STree.unzip(pdPrs)
+      (pdTm, pdD) = pdPr
 
       k <- tcDepth
 
@@ -413,7 +415,7 @@ object TypeChecker {
         ),
         "Complex graft failed"
       )
-    } yield { val (w, p) = res ; (rcat, w, p) }
+    } yield { val (w, p) = res ; (pdTm, rcat, w, p) }
 
   }
 
@@ -434,30 +436,34 @@ object TypeChecker {
       case _ => tcError("tcCellType: not a cell")
     }
 
-  def tcCompType(pd: STree[ExpT]): TCM[Dom] =
+  def tcCompType(pd: STree[ExpT]): TCM[(STree[Term], Dom)] = 
     for {
-      trpl <- tcInferComplex(pd)
-      (cat, web, pdD) = trpl
+      quad <- tcInferComplex(pd)
+      (pdTm, cat, web, pdD) = quad
       cc <- tcAttempt((web >> SBox(TtD, pdD)).target, "Failed to get target")
       ct <- tcCellType(cat, cc)
-    } yield ct
+    } yield (pdTm, ct)
 
 
-  def tcFillType(pd: STree[ExpT]): TCM[Dom] =
+  def tcFillType(pd: STree[ExpT]): TCM[(STree[Term], Dom)] =
     for {
-      trpl <- tcInferComplex(pd)
-      (cat, web, pdD) = trpl
+      quad <- tcInferComplex(pd)
+      (pdTm, cat, web, pdD) = quad
       srcs <- tcAttempt(pdD.traverse({
         case SDot(d) => Some(d)
         case _ => None
       }), "Not a pasting diagram")
-    } yield CellD(cat, web >> SBox(CompD(srcs), pdD))
+    } yield (pdTm , CellD(cat, web >> SBox(CompD(srcs), pdD)))
 
   //
   //  Typechecking Rules
   //
 
-  case class LiftData(eD: Dom, evD: Dom, cD: Dom, tD: Dom, catD: Dom, cellD: SComplex[Dom], addr: SAddr)
+  case class LiftData(
+    eT: Term, evT: Term, cT: Term, tT: Term,
+    eD: Dom, evD: Dom, cD: Dom, tD: Dom,
+    catD: Dom, cellD: SComplex[Dom], addr: SAddr
+  )
 
   def checkTgtLift(e: ExpT, ev: ExpT, c: ExpT, t: ExpT): TCM[LiftData] =
     for {
@@ -474,7 +480,7 @@ object TypeChecker {
       tFrm = frm.withTopValue(cD)
       tT <- check(t, CellD(cat, tFrm))
       tD <- tcEval(tT)
-    } yield LiftData(eD, evD, cD, tD, cat, cell, Nil)
+    } yield LiftData(eT, evT, cT, tT, eD, evD, cD, tD, cat, cell, Nil)
 
   def checkSrcLift(e: ExpT, ev: ExpT, c: ExpT, t: ExpT): TCM[LiftData] =
     for {
@@ -493,7 +499,7 @@ object TypeChecker {
       tNst <- tcAttempt(frm.head.replaceAt(naddr, cD), "Replacement failed")
       tT <- check(t, CellD(cat, frm.withHead(tNst)))
       tD <- tcEval(tT)
-    } yield LiftData(eD, evD, cD, tD, cat, cell, addr)
+    } yield LiftData(eT, evT, cT, tT, eD, evD, cD, tD, cat, cell, addr)
 
   // This is pretty inefficient in that we re-evaluate all the
   // terms each time.  It would be better to return the semantic
@@ -565,6 +571,11 @@ object TypeChecker {
 
   def checkI(exp: ExpT): TCM[(Term, Dom)] =
     exp match {
+
+      //
+      //  Basic Inferences
+      //
+      
       case EVar(id) => tcLookup(id)
       case EApp(u, v) =>
         for {
@@ -590,7 +601,173 @@ object TypeChecker {
           pr1 <- tcExtSig(uTy)
           (a, p) = pr1
         } yield (Snd(u0), p(fstD(uD)))
+
+
+      //
+      // Cell Construction
+      // 
+
+      case ERefl(e) => {
+        for {
+          pr <- checkI(e)
+          (tm, ty) = pr
+          tmD <- tcEval(tm)
+          res <- ty match {
+            case ObjD(cat) => pure(CellD(cat, ||(SBox(tmD, STree.obj(SDot(tmD))))))
+            case CellD(cat, frm) => 
+              for {
+                st <- tcAttempt(frm.asFrame, "Malformed frame")
+              } yield CellD(cat, frm >> SBox(tmD, SNode(SDot(tmD), st._1.asShell)))
+            case _ => tcError("Cannot apply reflexivity to non-cell: " + e.toString)
+          }
+        } yield (Refl(tm), res)
+      }
+
+      case EDrop(e) => 
+        for {
+          pr <- checkI(e)
+          (eT, eTy) = pr
+          eD <- tcEval(eT)
+          dTy <- eTy match {
+            case ObjD(cat) => pure(CellD(cat, ||(SDot(eD)) >> SBox(ReflD(eD), SLeaf)))
+            case CellD(cat, frm) => pure(CellD(cat, frm >> SBox(ReflD(eD), SLeaf)))
+            case _ => tcError("Cannot apply drop to non-cell: " + e.toString)
+          }
+        } yield (Drop(eT), dTy)
+
+      case EComp(pd) =>
+        for {
+          pdE <- tcParseTreeExp(pd)
+          pdPr <- tcCompType(pdE)
+          (pdTm, pdTy) = pdPr
+        } yield (Comp(pdTm), pdTy)
+
+      case EFill(pd) =>
+        for {
+          pdE <- tcParseTreeExp(pd)
+          pdPr <- tcFillType(pdE)
+          (pdTm, pdTy) = pdPr
+        } yield (Fill(pdTm), pdTy)
+
+      case ELiftTgt(e, ev, c, t) => 
+        checkTgtLift(e, ev, c, t).flatMap({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, _) =>
+            for {
+              lext <- tcAttempt(cellD.targetExtension(cD, TtD, tD), "Target extension failed")
+              lCell <- tcAttempt(lext.sourceAt(SDir(Nil) :: Nil), "Failed to extract lift face")
+              lTy <- tcCellType(catD, lCell)
+            } yield (LiftTgt(eT, evT, cT, tT), lTy)
+        })
+
+      case EFillTgt(e, ev, c, t) => 
+        checkTgtLift(e, ev, c, t).flatMap({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, _) =>
+            for {
+              lext <- tcAttempt(
+                cellD.targetExtension(cD, LiftTgtD(eD, evD, cD, tD), tD),
+                "Target extension failed"
+              )
+            } yield (FillTgt(eT, evT, cT, tT), CellD(catD, lext))
+        })
+        
+      case ELiftSrc(e, ev, c, t) => 
+        checkSrcLift(e, ev, c, t).flatMap({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, addr) =>
+            for {
+              rext <- tcAttempt(cellD.sourceExtension(addr)(cD, TtD, tD), "Source extension failed")
+              lCell <- tcAttempt(rext.sourceAt(SDir(SDir(addr) :: Nil) :: Nil), "Source calculation failed")
+              lTy <- tcCellType(catD, lCell)
+            } yield (LiftSrc(eT, evT, cT, tT), lTy)
+        })
+
+      case EFillSrc(e, ev, c, t) => 
+        checkSrcLift(e, ev, c, t).flatMap({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, addr) =>
+            for {
+              rext <- tcAttempt(
+                cellD.sourceExtension(addr)(cD, LiftSrcD(eD, evD, cD, tD), tD),
+                "Source extension failed"
+              )
+            } yield (FillSrc(eT, evT, cT, tT), CellD(catD, rext))
+        })
+
+      //
+      //  Property Inferences
+      //
+
+      case EDropIsTgt(e) =>
+        for {
+          pr <- checkI(EDrop(e))
+          (dTm, dTy) = pr
+          dD <- tcEval(dTm)
+          Drop(eTm) = dTm
+        } yield (DropIsTgt(eTm), IsTgtUD(dD))
+
+      case EFillIsTgt(pd) => 
+        for {
+          pr <- checkI(EFill(pd))
+          (fTm, fTy) = pr
+          fD <- tcEval(fTm)
+          Fill(pdTm) = fTm
+        } yield (FillIsTgt(pdTm), IsTgtUD(fD))
+
+      case EShellIsTgt(e, ev, pd, t) =>
+        for {
+          trpl <- tcInferCell(e)
+          (eT, catD, frmD) = trpl
+          eD <- tcEval(eT)
+          evT <- check(ev, IsTgtUD(eD))
+          frmData <- tcAttempt(frmD.asFrame, "Malformed frame")
+          (eSrcs, eTgt) = frmData
+          pdE <- tcParseTreeExp(pd)
+          pdPr <- tcAttempt(eSrcs.matchWith(pdE), "Source trees don't match")
+          eitherTr <- pdPr.traverse[TCM, Either[Dom, Term]]((pr : (Dom, ExpT)) => {
+            val (d, u) = pr
+            u match {
+              case ETt() => pure(Left(d))
+              case u => check(u, IsTgtUD(d)).map(Right(_))
+            }
+          })
+          pr <- (eitherTr.toList.filter(_.isLeft), t) match {
+            case (Nil, ETt()) => pure((Tt, IsTgtUD(eTgt)))
+            case (List(Left(u)), tev) => check(tev, IsTgtUD(eTgt)).map((_, IsTgtUD(u)))
+            case _ => tcError("Malformed shell evidence")
+          }
+          (tT, rTy) = pr
+          pdT = eitherTr.map({
+            case Left(_) => Tt
+            case Right(tm) => tm
+          })
+        } yield (ShellIsTgt(eT, evT, pdT, tT), rTy)
+
+      case EFillTgtIsTgt(e, ev, c, t) => 
+        checkTgtLift(e, ev, c, t).map({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, _) =>
+            (FillTgtIsTgt(eT, evT, cT, tT), IsTgtUD(FillTgtD(eD, evD, cD, tD)))
+        })
+
+      case EFillSrcIsTgt(e, ev, c, t) => 
+        checkSrcLift(e, ev, c, t).map({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, _) =>
+            (FillSrcIsTgt(eT, evT, cT, tT), IsTgtUD(FillSrcD(eD, evD, cD, tD)))
+        })
+
+      case EFillTgtIsSrc(e, ev, c, t) =>
+        checkTgtLift(e, ev, c, t).map({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, _) =>
+            (FillTgtIsSrc(eT, evT, cT, tT), IsSrcUD(FillTgtD(eD, evD, cD, tD), Nil))
+        })
+
+      case EFillSrcIsSrc(e, ev, c, t) =>
+        checkSrcLift(e, ev, c, t).map({
+          case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, addr) =>
+            (FillSrcIsSrc(eT, evT, cT, tT), IsSrcUD(FillSrcD(eD, evD, cD, tD),
+              List(SDir(List(SDir(addr)))))
+            )
+        })
+
       case _ => tcError("Cannot infer type of:" + exp.toString)
+
     }
 
 }

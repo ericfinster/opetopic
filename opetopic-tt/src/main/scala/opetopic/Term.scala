@@ -29,7 +29,7 @@ case class IsSrcU(e : Term, addr : SAddr) extends Term
 case class Refl(e : Term) extends Term
 case class Drop(e : Term) extends Term
 case class Comp(pd : STree[Term]) extends Term
-case class Fill(e : Term) extends Term
+case class Fill(pd : STree[Term]) extends Term
 case class LiftTgt(e : Term, ev : Term, c : Term, t : Term) extends Term
 case class LiftSrc(e : Term, ev : Term, c : Term, t : Term) extends Term
 case class FillTgt(e : Term, ev : Term, c : Term, t : Term) extends Term

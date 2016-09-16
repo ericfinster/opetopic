@@ -28,7 +28,7 @@ EIsSrcU.  Exp4   ::= "isSrcUniv" Exp4 Addr;
 ERefl.    Exp4   ::= "refl" Exp4 ;
 EDrop.    Exp4   ::= "drop" Exp4 ;
 EComp.    Exp4   ::= "comp" Tree ;
-EFill.    Exp4   ::= "fill" Exp4 ;
+EFill.    Exp4   ::= "fill" Tree ;
 
 ELiftTgt.  Exp4   ::= "liftTgt" Exp4 Exp4 Exp4 Exp4;
 ELiftSrc.  Exp4   ::= "liftSrc" Exp4 Exp4 Exp4 Exp4;
