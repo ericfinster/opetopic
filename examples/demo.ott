@@ -2,35 +2,31 @@
 -- demo.ott - playing with opetopic type theory
 --
 
-let identity : (X : U) -> X -> X
-             = \X. \x. x ;
+let Arrow (X : Cat) (x : |X|) (y : |X|) : U
+  =  Cell X [ box y (nd (dot x) lf) ] ;
 
-let catTest : U = Cat ;
+let Drop (X : Cat) (x : |X|) (f : Arrow X x x) : U
+  =  Cell X [ dot x || box f lf ] ;
 
-let obTest : (X : Cat) -> U
-           = \X. | X | ;
+let TwoGlob (X : Cat) (x : |X|) (y : |X|)
+    	    (f : Arrow X x y) (g : Arrow X x y) : U
+  = Cell X [ box y (nd (dot x) lf) || box g (nd (dot f) (nd lf lf)) ] ;
 
-let Arrow : (X : Cat) -> (x : |X|) -> (y : |X|) -> U
-          = \X. \x. \y. Cell X [ box y (nd (dot x) lf) ] ;
+let Simplex (X : Cat) (x : |X|) (y : |X|) (z : |X|)
+    	    (f : Arrow X x y) (g : Arrow X y z) (h : Arrow X x z) : U
+  = Cell X [ box z (nd (box y (nd (dot x) lf)) lf) ||
+    	     box h (nd (dot g) (nd (nd (dot f) (nd lf lf)) lf)) ] ;
 
-let Drop : (X : Cat) -> (x : |X|) -> (f : Arrow X x x) -> U
-         = \X. \x. \f. Cell X [ dot x || box f lf ] ;
+let rTest (X : Cat) (x : |X|) : Arrow X x x = refl x;
 
-let TwoGlob : (X : Cat) -> (x : |X|) -> (y : |X|) -> (f : Arrow X x y) -> (g : Arrow X x y) -> U
-    	    = \X. \x. \y. \f. \g. Cell X [ box y (nd (dot x) lf) || box g (nd (dot f) (nd lf lf)) ] ;
+let dTest (X : Cat) (x : |X|) : Drop X x (refl x) = drop x;
 
-let Simplex : (X : Cat) -> (x : |X|) -> (y : |X|) -> (z : |X|) -> (f : Arrow X x y) -> (g : Arrow X y z) -> (h : Arrow X x z) -> U
-            = \X. \x. \y. \z. \f. \g. \h. Cell X [ box z (nd (box y (nd (dot x) lf)) lf) || box h (nd (dot g) (nd (nd (dot f) (nd lf lf)) lf)) ] ;
+let cTest (X : Cat) (x : |X|) (y : |X|) (z : |X|)
+    	  (f : Arrow X x y) (g : Arrow X y z) : Arrow X x z
+  = comp (nd g (nd (nd f (nd lf lf)) lf)) ;
 
-let rTest : (X : Cat) -> (x : |X|) -> Arrow X x x
-          = \X. \x. refl x ;
-
-let dTest : (X : Cat) -> (x : |X|) -> Drop X x (rTest X x)
-          = \X. \x. drop x ;
-
-let cTest : (X : Cat) -> (x : |X|) -> (y : |X|) -> (z : |X|) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Arrow X x z
-    	  = \X. \x. \y. \z. \f. \g. comp (nd g (nd (nd f (nd lf lf)) lf)) ;
-
-let fTest : (X : Cat) -> (x : |X|) -> (y : |X|) -> (z : |X|) -> (f : Arrow X x y) -> (g : Arrow X y z) -> Simplex X x y z f g (cTest X x y z f g)
-    	  = \X. \x. \y. \z. \f. \g. fill (nd g (nd (nd f (nd lf lf)) lf)) ;
+let fTest (X : Cat) (x : |X|) (y : |X|) (z : |X|)
+    	  (f : Arrow X x y) (g : Arrow X y z)
+	  : Simplex X x y z f g (cTest X x y z f g)
+  = fill (nd g (nd (nd f (nd lf lf)) lf)) ;
 
