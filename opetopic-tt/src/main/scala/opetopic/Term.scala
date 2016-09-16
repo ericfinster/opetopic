@@ -13,6 +13,7 @@ sealed trait Term
 case object Tt extends Term
 case object Type extends Term
 case object Unt extends Term
+case object Cat extends Term
 case class Var(i: Int) extends Term
 case class Pi(u: Term, v: Term) extends Term
 case class Lam(u: Term) extends Term

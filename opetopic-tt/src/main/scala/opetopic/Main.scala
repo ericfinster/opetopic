@@ -9,6 +9,9 @@ package opetopic.ott
 
 import java.io._
 
+import opetopic._
+import mtl._
+
 import OttSyntax._
 import TypeChecker._
 
@@ -34,45 +37,43 @@ object Main {
       parser.parseAll match {
         case Right(Prog(dfs)) => {
 
-          for {
-            d <- dfs
-          } {
-            println("Definition: " + d.toString)
+          def abstractDef(d: DeclT) : (String, ExpT, ExpT) =
+            d match {
+              case Def(id, Nil, ty, tm) => (id, ty, tm)
+              case Def(id, Tele(p, t) :: cs, ty, tm) => {
+                val (tid, tty, ttm) = abstractDef(Def(id, cs, ty, tm))
+                (tid, EPi(List(PTele(p, t)), tty), ELam(p, ttm))
+              }
+            }
+
+          def checkDefs(defs: List[DeclT]): TCM[Unit] = {
+
+            import tcmMonad._
+
+            val test: MonadOps[TCM, Unit] = toMonadOps(pure(()))
+
+            defs match {
+              case Nil => pure(())
+              case d :: ds => {
+
+                val (id, ty, tm) = abstractDef(d)
+
+                println("Checking definition: " + id)
+
+                for {
+                  ty0 <- check(ty, TypeD)
+                  tyD <- tcEval(ty0)
+                  tm0 <- check(tm, tyD)
+                  _ <- local(withDef(id, ty0, tyD, tm0))(checkDefs(ds))
+                } yield ()
+               }
+            }
           }
 
-      //     def abstractDef(d: DeclT) : (String, ExpT, ExpT) =
-      //       d match {
-      //         case Def(id, Nil, ty, tm) => (id, ty, tm)
-      //         case Def(id, Tele(p, t) :: cs, ty, tm) => {
-      //           val (tid, tty, ttm) = abstractDef(Def(id, cs, ty, tm))
-      //           (tid, EPi(List(PTele(p, t)), tty), ELam(p, ttm))
-      //         }
-      //       }
-
-      //     def checkDefs(defs: List[DeclT]): TCM[Unit] =
-      //       defs match {
-      //         case Nil => pure(())
-      //         case d :: ds => {
-
-      //           val (id, ty, tm) = abstractDef(d)
-
-      //           println("Checking definition: " + id)
-
-      //           for {
-      //             ty0 <- check(ty, TypeD)
-      //             tyD <- tcEval(ty0)
-      //             tm0 <- check(tm, tyD)
-      //             _ <- local(withDef(id, ty0, tyD, tm0))(checkDefs(ds))
-      //           } yield ()
-      //         }
-
-
-      //       }
-
-      //     checkDefs(dfs).run(TcEnv(Nil, RNil)).run match {
-      //       case -\/(msg) => println("Typechecking error: " + msg)
-      //       case \/-(_) => println("Success!")
-      //     }
+          checkDefs(dfs).run(TCEnv(Nil, RNil)) match {
+            case Xor.Left(msg) => println("Typechecking error: " + msg)
+            case Xor.Right(_) => println("Success!")
+          }
 
         }
         case Right(_) => println("Unknown error")

@@ -22,6 +22,7 @@ object TypeChecker {
   case object TtD extends Dom
   case object TypeD extends Dom
   case object UnitD extends Dom
+  case object CatD extends Dom
   case class VarD(i: Int) extends Dom
   case class PiD(a: Dom, p: Dom => Dom) extends Dom
   case class LamD(f: Dom => Dom) extends Dom
@@ -117,6 +118,7 @@ object TypeChecker {
       case TtD => Tt
       case TypeD => Type
       case UnitD => Unt
+      case CatD => Cat
       case VarD(i) => Var(k-i-1)
       case PiD(a, p) => Pi(rb(k, a), rb(k+1, p(VarD(k))))
       case LamD(f) => Lam(rb(k+1, f(VarD(k))))
@@ -157,6 +159,7 @@ object TypeChecker {
       case Tt => TtD
       case Type => TypeD
       case Unt => UnitD
+      case Cat => CatD
       case Var(i) => rho(i)
       case Pi(a, p) => PiD(eval(a, rho), d => eval(p, UpVar(rho, PUnit(), d)))
       case Lam(u) => LamD(d => eval(u, UpVar(rho, PUnit(), d)))
@@ -440,7 +443,7 @@ object TypeChecker {
     for {
       quad <- tcInferComplex(pd)
       (pdTm, cat, web, pdD) = quad
-      cc <- tcAttempt((web >> SBox(TtD, pdD)).target, "Failed to get target")
+      cc <- tcAttempt((web >> SBox(TtD, pdD)).sourceAt(Nil), "Failed to get target")
       ct <- tcCellType(cat, cc)
     } yield (pdTm, ct)
 
@@ -522,7 +525,11 @@ object TypeChecker {
         } yield tmTl >> tmHd
     }
 
-  def check(exp: ExpT, ty: Dom): TCM[Term] =
+  def check(exp: ExpT, ty: Dom): TCM[Term] = {
+
+    // println("Checking: " ++ exp.toString)
+    // println("has type: " ++ rb(0, ty).toString)
+
     (exp, ty) match {
       case (EType(), TypeD) => pure(Type)
       case (EUnit(), TypeD) => pure(Unt)
@@ -559,6 +566,35 @@ object TypeChecker {
           )
         } yield Sig(a0, r0)
       case (EArrow(u, v), TypeD) => check(EPi(PTele(PUnit(), u) :: Nil, v), TypeD)
+
+
+      case (ECat(), TypeD) => pure(Cat)
+      case (EObj(c), TypeD) => check(c, CatD).map(Obj(_))
+
+      case (ECell(c, f), TypeD) =>
+        for {
+          cT <- check(c, CatD)
+          cD <- tcEval(cT)
+          frm <- tcParseComplex(f.reverse)
+          frmT <- checkComplex(frm, cD)
+          _ <- tcAttempt(frmT.asFrame, "Not a frame")
+        } yield Cell(cT, frmT)
+
+      case (EIsTgtU(e), TypeD) =>
+        for {
+          trpl <- tcInferCell(e)
+        } yield IsTgtU(trpl._1)
+
+      case (EIsSrcU(e, a), TypeD) =>
+        for {
+          trpl <- tcInferCell(e)
+          (eT, cat, frm) = trpl
+          addr <- tcParseAddr(a)
+          st <- tcAttempt(frm.asFrame, "Malformed frame")
+          (srcs, tgt) = st
+          _ <- tcAttempt(srcs.seekTo(addr), "Invalid address")
+        } yield IsSrcU(eT, addr)
+
       case (e, t) =>
         for {
           pr <- checkI(e)
@@ -568,6 +604,8 @@ object TypeChecker {
       case _ => tcError("Unimplemented")
 
     }
+
+  }
 
   def checkI(exp: ExpT): TCM[(Term, Dom)] =
     exp match {
