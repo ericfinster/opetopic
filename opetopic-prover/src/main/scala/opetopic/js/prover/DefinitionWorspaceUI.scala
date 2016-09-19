@@ -54,11 +54,11 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
         runExcept(onTargetLift)
       })
 
-//     jQuery(rightLiftBtn).on("click",
-//       (e : JQueryEventObject) => {
-//         e.preventDefault
-//         runAction(onRightLift)
-//       })
+    jQuery(srcLiftBtn).on("click",
+      (e : JQueryEventObject) => {
+        e.preventDefault
+        runExcept(onSourceLift)
+      })
 
 //     jQuery(shellForceBtn).on("click", 
 //       (e : JQueryEventObject) => {
