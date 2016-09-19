@@ -19,6 +19,7 @@ POST        /getModule                       controllers.ProverController.getMod
 # Auxillary
 GET         /multiedit                       controllers.ApplicationController.multiedit
 GET         /coloredit                       controllers.ApplicationController.coloredit
+GET         /tt                              controllers.ApplicationController.tt
 
 # Sketchpad 
 GET         /sketchpad                       controllers.SketchController.sketchpad
