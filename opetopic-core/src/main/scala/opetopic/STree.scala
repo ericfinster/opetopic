@@ -195,7 +195,13 @@ object STree {
         case _ => None
       }
 
-    def rootValue: Option[A] = 
+    def isLeaf: Boolean =
+      st match {
+        case SLeaf => true
+        case _ => false
+      }
+    
+    def rootValue: Option[A] =
       st match {
         case SLeaf => None
         case SNode(a, _) => Some(a)

@@ -8,20 +8,15 @@
 package opetopic.js.prover
 
 import opetopic._
-import opetopic.js._
-import opetopic.tt._
+// import opetopic.js._
+import opetopic.ott.OttSyntax._
 import opetopic.ui._
-import syntax.complex._
 
-sealed trait Marker[N <: Nat] {
-
-  def dim: N
-
-  def displayName: String
-  def expr: Expr
-  def wksp: DefinitionWorkspace
-
-  def visualize(frmwk: UIFramework) : frmwk.Visualization[N]
+case class Marker(
+  val wksp: DefinitionWorkspace,
+  val displayName: String,
+  val expr: ExpT
+) {
 
   def cs : ColorSpec = 
     if (wksp.hasUniversalProperty(displayName)) {
@@ -31,33 +26,7 @@ sealed trait Marker[N <: Nat] {
         case EVar(_) => VarColorSpec
         case _ => CompColorSpec
       }
-
-}
-
-case class ObjectMarker(
-  val wksp: DefinitionWorkspace,
-  val displayName: String,
-  val expr: Expr
-) extends Marker[_0] {
-
-  val dim: _0 = Z
-
-  def visualize(frmwk: UIFramework) : frmwk.Visualization[_0] =
-    frmwk.ObjectVisualization(cs, frmwk.text(displayName))
-
-}
-
-case class CellMarker[P <: Nat](p: P)(
-  val wksp: DefinitionWorkspace,
-  val displayName: String,
-  val expr: Expr
-) extends Marker[S[P]] {
-
-  val dim: S[P] = S(p)
-
-  def visualize(frmwk: UIFramework) : frmwk.Visualization[S[P]] = 
-    frmwk.CellVisualization(cs, frmwk.text(displayName))
-
+  
 }
 
 object VarColorSpec extends ColorSpec(
@@ -89,28 +58,27 @@ object FillColorSpec extends ColorSpec(
 
 object Marker {
 
-  @natElim
-  def apply[N <: Nat](n: N)(wksp: DefinitionWorkspace, id: String, expr: Expr) : Marker[N] = {
-    case (Z, wksp, id, expr) => ObjectMarker(wksp, id, expr)
-    case (S(p), wksp, id, expr) => CellMarker(p)(wksp, id, expr)
-  }
 
-  object ActiveInstance {
+  implicit object MarkerRenderable extends Renderable[Marker] {
+    def render(f: UIFramework)(mk: Marker): f.CellRendering = {
 
-    import JsDomFramework._
+      import f._
+      import isNumeric._
 
-    implicit def cellMarkerVis[N <: Nat] : Visualizable[Marker[N], N] = 
-      new Visualizable[Marker[N], N] {
-        def visualize(mk: Marker[N]) : Visualization[N] = 
-          mk.visualize(JsDomFramework)
-      }
+      implicit def intToUnit(i: Int) : Size =
+        fromInt(i)
 
-    implicit val cellMarkerVisFam : VisualizableFamily[Marker] = 
-      new VisualizableFamily[Marker] {
-        def visualize[N <: Nat](n: N)(mk: Marker[N]) : Visualization[N] = 
-          cellMarkerVis[N].visualize(mk)
-      }
+      val lblEl = 
+        if (mk.displayName == "")
+          spacer(Bounds(0, 0, 600, 600))
+        else text(mk.displayName)
 
+      // val td = mk.targetDec.map(_.render(f))
+      // val sd = mk.sourceDec.mapValues(_.render(f))
+
+      CellRendering(lblEl, mk.cs, None, Map())
+
+    }
   }
 
 }

@@ -7,37 +7,38 @@
 
 package opetopic.js.prover
 
-import opetopic.tt._
+import opetopic._
+import ott.OttSyntax._
 
 sealed trait Property {
   def propertyId: String
-  def propertyExpr: Expr
-  def propertyType: Expr
+  def propertyExp: ExpT
+  def propertyType: ExpT
   def cellId: String
-  def cellExpr: Expr
-  def isLeft: Boolean
-  def isRightAt(a: Addr): Boolean
+  def cellExp: ExpT
+  def isTarget: Boolean
+  def isSourceAt(a: SAddr): Boolean
 }
 
-case class LeftExtensionProperty(
+case class TgtExtProperty(
   val propertyId: String,
-  val propertyExpr: Expr,
-  val propertyType: Expr,
+  val propertyExp: ExpT,
+  val propertyType: ExpT,
   val cellId: String,
-  val cellExpr: Expr
+  val cellExp: ExpT
 ) extends Property {
-  def isLeft: Boolean = true
-  def isRightAt(a: Addr): Boolean = false
+  def isTarget: Boolean = true
+  def isSourceAt(a: SAddr): Boolean = false
 }
 
-case class RightExtensionProperty(
+case class SrcExtProperty(
   val propertyId: String,
-  val propertyExpr: Expr,
-  val propertyType: Expr,
-  val addr: Addr,
+  val propertyExp: ExpT,
+  val propertyType: ExpT,
+  val addr: SAddr,
   val cellId: String,
-  val cellExpr: Expr
+  val cellExp: ExpT
 ) extends Property {
-  def isLeft: Boolean = false
-  def isRightAt(a: Addr): Boolean = a == addr
+  def isTarget: Boolean = false
+  def isSourceAt(a: SAddr): Boolean = a == addr
 }

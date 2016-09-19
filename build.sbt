@@ -21,7 +21,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicTtJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicProver, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -64,10 +64,7 @@ lazy val opetopicTt = (crossProject in file("opetopic-tt")).
     jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
   ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
   jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
-  jsSettings(
-    persistLauncher := true
-    //unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value)
-  )
+  jsSettings(persistLauncher := true)
 
 lazy val opetopicTtJvm = opetopicTt.jvm
 lazy val opetopicTtJs = opetopicTt.js
@@ -97,6 +94,7 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
       "com.lihaoyi" %%% "upickle" % "0.3.9"
     )
   ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicTtJs).
   dependsOn(opetopicJs)
 
 lazy val opetopicMultiedit = (project in file("opetopic-multiedit")).

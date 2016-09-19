@@ -13,14 +13,10 @@ import scalatags.JsDom.all._
 import opetopic.js._
 import JsDomFramework._
 import JQuerySemanticUI._
-import Marker.ActiveInstance._
 
-import Prover.runAction
+import Prover.runExcept
 
-abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : DefinitionWorkspace => 
-
-  implicit val vf: VisualizableFamily[Marker] = 
-    cellMarkerVisFam
+abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : DefinitionWorkspace => 
 
   def initUI: Unit = {
 
@@ -31,57 +27,57 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
     jQuery(assumeForm).on("submit",
       (e : JQueryEventObject) => {
         e.preventDefault
-        runAction(onAssume)
+        runExcept(onAssume)
       })
 
     jQuery(composeForm).on("submit",
       (e : JQueryEventObject) => {
         e.preventDefault
-        runAction(onCompose)
+        runExcept(onCompose)
       })
 
-    jQuery(importCellBtn).on("click",
+//     jQuery(importCellBtn).on("click",
+//       (e : JQueryEventObject) => {
+//         e.preventDefault
+//         runAction(onImportCell)
+//       })
+
+//     jQuery(importPropBtn).on("click",
+//       (e : JQueryEventObject) => {
+//         e.preventDefault
+//         runAction(onImportProperty)
+//       })
+
+    jQuery(tgtLiftBtn).on("click", 
       (e : JQueryEventObject) => {
         e.preventDefault
-        runAction(onImportCell)
+        runExcept(onTargetLift)
       })
 
-    jQuery(importPropBtn).on("click",
-      (e : JQueryEventObject) => {
-        e.preventDefault
-        runAction(onImportProperty)
-      })
+//     jQuery(rightLiftBtn).on("click",
+//       (e : JQueryEventObject) => {
+//         e.preventDefault
+//         runAction(onRightLift)
+//       })
 
-    jQuery(leftLiftBtn).on("click", 
-      (e : JQueryEventObject) => {
-        e.preventDefault
-        runAction(onLeftLift)
-      })
+//     jQuery(shellForceBtn).on("click", 
+//       (e : JQueryEventObject) => {
+//       e.preventDefault
+//       runAction(onShellForce)
+//     })
 
-    jQuery(rightLiftBtn).on("click",
-      (e : JQueryEventObject) => {
-        e.preventDefault
-        runAction(onRightLift)
-      })
+//     jQuery(composeIdInput).on("input", () => {
+//       val compId = jQuery(composeIdInput).value().asInstanceOf[String]
+//       jQuery(composeFillInput).value(compId ++ "Fill")
+//       jQuery(composePropInput).value(compId ++ "FillIsLeft")
+//     })
 
-    jQuery(shellForceBtn).on("click", 
-      (e : JQueryEventObject) => {
-      e.preventDefault
-      runAction(onShellForce)
-    })
-
-    jQuery(composeIdInput).on("input", () => {
-      val compId = jQuery(composeIdInput).value().asInstanceOf[String]
-      jQuery(composeFillInput).value(compId ++ "Fill")
-      jQuery(composePropInput).value(compId ++ "FillIsLeft")
-    })
-
-    jQuery(liftIdInput).on("input", () => {
-      val liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-      jQuery(liftFillInput).value(liftId ++ "Fill")
-      jQuery(liftLextInput).value(liftId ++ "FillIsLeft")
-      jQuery(liftRextInput).value(liftId ++ "FillIsRight")
-    })
+//     jQuery(liftIdInput).on("input", () => {
+//       val liftId = jQuery(liftIdInput).value().asInstanceOf[String]
+//       jQuery(liftFillInput).value(liftId ++ "Fill")
+//       jQuery(liftLextInput).value(liftId ++ "FillIsLeft")
+//       jQuery(liftRextInput).value(liftId ++ "FillIsRight")
+//     })
 
     initialize
 
@@ -92,24 +88,24 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
   //
 
   val assumeIdInput = input(`type` := "text", placeholder := "Identifier").render
-  val assumeLextCheckbox = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
-  val assumeRextCheckbox = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
+  val assumeTgtExtCheckbox = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
+  val assumeSrcExtCheckbox = input(`type` := "checkbox", tabindex := 0, cls := "hidden").render
 
-  val assumeForm = 
+  val assumeForm =
     form(cls := "ui form")(
       div(cls := "ui grid")(
         div(cls := "eight wide column")(
           div(cls := "field")(label("Assume Variable:"), assumeIdInput),
           div(cls := "field")(
             div(cls := "ui checkbox")(
-              assumeLextCheckbox,
-              label("Left Extension")
+              assumeTgtExtCheckbox,
+              label("Target Extension")
             )
           ),
           div(cls := "field")(
             div(cls := "ui checkbox")(
-              assumeRextCheckbox,
-              label("Right Extension")
+              assumeSrcExtCheckbox,
+              label("Source Extension")
             )
           )
         ),
@@ -146,11 +142,11 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
 
   val liftIdInput = input(`type` := "text", placeholder := "Identifier").render
   val liftFillInput = input(`type` := "text", placeholder := "Identifier").render
-  val liftLextInput = input(`type` := "text", placeholder := "Identifier").render
-  val liftRextInput = input(`type` := "text", placeholder := "Identifier").render
+  val liftTgtInput = input(`type` := "text", placeholder := "Identifier").render
+  val liftSrcInput = input(`type` := "text", placeholder := "Identifier").render
 
-  val leftLiftBtn = button(`type` := "button", cls := "ui green button")("Lift Left").render
-  val rightLiftBtn = button(`type` := "button", cls := "ui green button")("Lift Right").render
+  val tgtLiftBtn = button(`type` := "button", cls := "ui green button")("Target Lift").render
+  val srcLiftBtn = button(`type` := "button", cls := "ui green button")("Source Lift").render
 
   val liftForm = 
     form(cls := "ui form")(
@@ -160,9 +156,9 @@ abstract class DefinitionWorkspaceUI extends JsCardinalEditor[Marker] { self : D
           div(cls := "field")(label("Filler:"), liftFillInput)
         ),
         div(cls := "eight wide column")(
-          div(cls := "field")(label("Left Property:"), liftLextInput),
-          div(cls := "field")(label("Right Property:"), liftRextInput),
-          leftLiftBtn, rightLiftBtn
+          div(cls := "field")(label("Target Property:"), liftTgtInput),
+          div(cls := "field")(label("Source Property:"), liftSrcInput),
+          tgtLiftBtn, srcLiftBtn
         )
       )
     ).render

@@ -9,7 +9,7 @@ package opetopic.js.prover
 
 import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
-import scala.collection.mutable.HashMap
+// import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 
@@ -20,18 +20,11 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
-import scalaz.std.string._
-
 import opetopic._
-import opetopic.tt._
 import opetopic.js._
 import opetopic.net._
+import opetopic.mtl._
 import JQuerySemanticUI._
-
-import syntax.complex._
-import syntax.tree._
-import syntax.nesting._
-import syntax.suite._
 
 import upickle.default._
 
@@ -46,9 +39,9 @@ object Prover extends JSApp {
     jQuery(".menu .item").tab()
     jQuery(".ui.accordion").accordion()
 
-    setupModules
+    // setupModules
 
-    // createModule("Untitled", "Empty module")
+    createModule("Untitled", "Empty module")
 
   }
 
@@ -87,7 +80,7 @@ object Prover extends JSApp {
         name,
         div(cls := "menu")(
           a(cls := "edit-item item", onclick := { () => editModule(m) })("Edit"),
-          a(cls := "save-item item", onclick := { () => saveModule(m) })("Save"),
+          a(cls := "save-item item", onclick := { () => /* saveModule(m) */ () })("Save"),
           a(cls := "delete-item item")("Delete")
         )
       ).render
@@ -139,30 +132,30 @@ object Prover extends JSApp {
 
   }
 
-  def saveModule(m: Module): Unit = {
+  // def saveModule(m: Module): Unit = {
 
-    val req = SaveModuleRequest(
-      m.moduleId,
-      m.name,
-      m.description,
-      m.writeData
-    )
+  //   val req = SaveModuleRequest(
+  //     m.moduleId,
+  //     m.name,
+  //     m.description,
+  //     m.writeData
+  //   )
 
-    dom.ext.Ajax.post(
-      url = "/saveModule",
-      data = write(req),
-      headers = Map(
-        ("X-Requested-With" -> "*"),
-        ("CSRF-Token" -> "nocheck")
-      ),
-      withCredentials = true
-    ).map(_.responseText).foreach(s => {
-      println("Response: " + s)
-      m.moduleId = Some(s)  // Record the returned UUID
-    })
+  //   dom.ext.Ajax.post(
+  //     url = "/saveModule",
+  //     data = write(req),
+  //     headers = Map(
+  //       ("X-Requested-With" -> "*"),
+  //       ("CSRF-Token" -> "nocheck")
+  //     ),
+  //     withCredentials = true
+  //   ).map(_.responseText).foreach(s => {
+  //     println("Response: " + s)
+  //     m.moduleId = Some(s)  // Record the returned UUID
+  //   })
 
 
-  }
+  // }
 
   def newDefinition: Unit = 
     for {
@@ -175,48 +168,40 @@ object Prover extends JSApp {
       jQuery("#defn-tab-btn").click()
 
       defnWksp.initUI
-      defnWksp.extendContext("X", ECat)
 
     }
 
 
-  def setupModules: Unit = {
+  // def setupModules: Unit = {
 
-    jQuery("#module-list").children().each((e: dom.Element) => 
-      for {
-        mname <- jQuery(e).attr("data-name").toOption 
-        muuid <- jQuery(e).attr("data-id").toOption
-      } {
+  //   jQuery("#module-list").children().each((e: dom.Element) => 
+  //     for {
+  //       mname <- jQuery(e).attr("data-name").toOption 
+  //       muuid <- jQuery(e).attr("data-id").toOption
+  //     } {
         
-        val m = new Module(mname)
-        m.moduleId = Some(muuid)
-        modules += m
+  //       val m = new Module(mname)
+  //       m.moduleId = Some(muuid)
+  //       modules += m
 
-        jQuery(e).dropdown()
-        jQuery(e).find(".edit-item").on("click", () => editModule(m))
-        jQuery(e).find(".save-item").on("click", () => saveModule(m))
+  //       jQuery(e).dropdown()
+  //       jQuery(e).find(".edit-item").on("click", () => editModule(m))
+  //       jQuery(e).find(".save-item").on("click", () => saveModule(m))
 
-      }
-    )
+  //     }
+  //   )
 
-  }
+  // }
 
   //============================================================================================
-  // ACTION EXECUTION
+  // RUN EXCEPT
   //
 
-  def runAction(act: EditorM[Unit]) : Unit = {
-
-    import scalaz.\/
-    import scalaz.\/-
-    import scalaz.-\/
-
-    act match {
-      case -\/(msg: String) => Prover.showErrorMessage(msg)
-      case \/-(_) => ()
+  def runExcept[A](e: Except[A]): Unit =
+    e match {
+      case Xor.Left(msg) => Prover.showErrorMessage(msg)
+      case Xor.Right(a) => ()
     }
-
-  }
 
   //============================================================================================
   // USER FEEDBACK ROUTINES

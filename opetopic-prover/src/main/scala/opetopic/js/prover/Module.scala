@@ -14,10 +14,10 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
-import opetopic.tt._
-import opetopic.pprint.Tokenizer._
-import OTTTypeChecker._
-import PrettyPrinter._
+// import opetopic.tt._
+// import opetopic.pprint.Tokenizer._
+// import OTTTypeChecker._
+// import PrettyPrinter._
 
 class Module(val name: String) { thisModule =>
 
@@ -30,22 +30,22 @@ class Module(val name: String) { thisModule =>
 
   }
 
-  case class Declaration(val id: String, val d: Decl) extends ModuleEntry {
+//   case class Declaration(val id: String, val d: Decl) extends ModuleEntry {
 
-    def title =
-      div(cls := "title")(
-        i(cls := "dropdown icon"),
-        id
-      ).render
+//     def title =
+//       div(cls := "title")(
+//         i(cls := "dropdown icon"),
+//         id
+//       ).render
 
-    def content =
-      div(cls := "content")(
-        p(cls := "transition hidden")(d.pprint)
-      ).render
+//     def content =
+//       div(cls := "content")(
+//         p(cls := "transition hidden")(d.pprint)
+//       ).render
 
-    def code = d.pprint
+//     def code = d.pprint
 
-  }
+//   }
 
   var isLoaded: Boolean = false
   var moduleId: Option[String] = None
@@ -53,37 +53,37 @@ class Module(val name: String) { thisModule =>
 
   val entries: ListBuffer[ModuleEntry] = ListBuffer()
 
-  // The current state of the context
-  // and environment
-  var gma: Gamma = Nil
-  var rho: Rho = RNil
+//   // The current state of the context
+//   // and environment
+//   var gma: Gamma = Nil
+//   var rho: Rho = RNil
 
-  def addDefinition(id: String, expr: Expr, exprTy: Expr): EditorM[Unit] = {
+//   def addDefinition(id: String, expr: Expr, exprTy: Expr): EditorM[Unit] = {
 
-    val decl : Decl = 
-      Def(PVar(id), exprTy, expr)
+//     val decl : Decl = 
+//       Def(PVar(id), exprTy, expr)
 
-    for {
-      g <- simpleCheck(
-        checkD(rho, gma, decl)
-      )
-    } yield {
+//     for {
+//       g <- simpleCheck(
+//         checkD(rho, gma, decl)
+//       )
+//     } yield {
 
-      Prover.showInfoMessage("Checked Declaration: " ++ decl.pprint)
+//       Prover.showInfoMessage("Checked Declaration: " ++ decl.pprint)
 
-      val entry = Declaration(id, decl)
-      entries += entry
-      showEntry(entry)
+//       val entry = Declaration(id, decl)
+//       entries += entry
+//       showEntry(entry)
 
-      // Update the context and environment
-      rho = UpDec(rho, decl)
-      gma = g
+//       // Update the context and environment
+//       rho = UpDec(rho, decl)
+//       gma = g
 
-    }
+//     }
 
-  }
+//   }
 
-  def showEntry(me: ModuleEntry): Unit = 
+  def showEntry(me: ModuleEntry): Unit =
     jQuery("#defn-list").append(me.title, me.content)
 
   def showEntries: Unit = {
@@ -92,31 +92,31 @@ class Module(val name: String) { thisModule =>
     )
   }
 
-  def toCode: String = 
-    (entries map (_.code)).mkString("\n\n")
+//   def toCode: String = 
+//     (entries map (_.code)).mkString("\n\n")
 
-  def writeData: String = {
-    import upickle.default._
-    write(entries.toList)
-  }
+//   def writeData: String = {
+//     import upickle.default._
+//     write(entries.toList)
+//   }
 
 
   def loadData(data: String): Unit = {
 
-    import upickle.default._
+    // import upickle.default._
 
-    val ents = read[List[ModuleEntry]](data)
+    // val ents = read[List[ModuleEntry]](data)
 
-    ents.foreach({
-      case (decl @ Declaration(id, d @ Def(p, e, f))) => {
-        gma = (id, eval(e, rho)) :: gma
-        rho = UpDec(rho, d)
-        entries += decl
-      }
-      case _ => ()
-    })
+    // ents.foreach({
+    //   case (decl @ Declaration(id, d @ Def(p, e, f))) => {
+    //     gma = (id, eval(e, rho)) :: gma
+    //     rho = UpDec(rho, d)
+    //     entries += decl
+    //   }
+    //   case _ => ()
+    // })
 
-    isLoaded = true
+    // isLoaded = true
 
   }
 

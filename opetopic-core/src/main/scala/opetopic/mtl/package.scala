@@ -51,10 +51,22 @@ package object mtl {
 
   implicit val exceptIsMonad: Monad[Except] = Xor.xorIsMonad
 
+  def succeed[A](a: A) : Except[A] =
+    Xor.Right(a)
+
   def attempt[A](o: Option[A], msg: String) : Except[A] =
     o match {
       case None => Xor.Left(msg)
       case Some(a) => Xor.Right(a)
+    }
+
+  def verify(b: Boolean, msg: String): Except[Unit] =
+    if (b) Xor.Right(()) else Xor.Left(msg)
+  
+  def forceNone[A](o: Option[A], msg: String): Except[Unit] =
+    o match {
+      case None => Xor.Right(())
+      case Some(_) => Xor.Left(msg)
     }
 
   def throwError[A](msg: => String) : Except[A] =

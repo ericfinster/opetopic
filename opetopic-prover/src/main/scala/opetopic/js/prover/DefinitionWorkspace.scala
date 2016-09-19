@@ -7,67 +7,80 @@
 
 package opetopic.js.prover
 
-import scala.collection.mutable.HashMap
+// import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
-import opetopic.js.JQuerySemanticUI._
-import scala.scalajs.js.Dynamic.{literal => lit}
-
-import scalaz.std.string._
+// import opetopic.js.JQuerySemanticUI._
+// import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic._
-import opetopic.tt._
-import OTTTypeChecker._
-import syntax.all._
-import opetopic.pprint.Tokenizer._
-import PrettyPrinter._
-import Prover.runAction
+import ott.OttSyntax._
+import ott.TypeChecker._
+import mtl._
+import ui._
 
 class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { thisWksp =>
+
+  //============================================================================================
+  // UTILITIES
+  //
+
+  def treeToExp[A](t: STree[A])(w: A => TValT): TreeT =
+    t match {
+      case SLeaf => TLf()
+      case SNode(a, sh) => TNd(w(a), treeToExp(sh)((b: STree[A]) => VTree(treeToExp(b)(w))))
+    }
+
+  def nstToExp(nst: SNesting[ExpT]): NstT =
+    nst match {
+      case SDot(e) => TDot(e)
+      case SBox(e, cn) => TBox(e, treeToExp(cn)((n: SNesting[ExpT]) => VNst(nstToExp(n))))
+    }
+
+  def cmplxToExp(cmplx: SComplex[ExpT]): List[NstT] =
+    Suite.SuiteTraverse.toList(cmplx).map(nstToExp(_))
+
+  def addrToExp(addr: SAddr): AddrT =
+    TAddr(addr.map((d: SDir) => addrToExp(d.dir)))
+
+  def typechecker[A](m: TCM[A]): Except[A] =
+    m.run(tcEnv)
 
   //============================================================================================
   // CONTEXT MANAGEMENT
   //
 
   // Map a normal form back to a name and an expression
-  val nfMap: HashMap[Expr, (String, Expr)] = HashMap()
+  //val nfMap: HashMap[Expr, (String, Expr)] = HashMap()
 
-  val catExpr: Expr = EVar("X")
+  val catExp: ExpT = EVar("X")
 
-  val context: ListBuffer[(String, Expr)] = ListBuffer()
-  val environment: ListBuffer[(String, Expr, Expr)] = ListBuffer()
-  val cells: ListBuffer[(String, Expr)] = ListBuffer()
+  // Start with a category variable
+  var tcEnv: TCEnv = TCEnv(List(("X", CatD)), UpVar(RNil, PVar("X"), VarD(0)))
+
+  val context: ListBuffer[(String, ExpT)] = ListBuffer(("X", ECat()))
+  val environment: ListBuffer[(String, ExpT, ExpT)] = ListBuffer()
+  val cells: ListBuffer[(String, ExpT)] = ListBuffer()
   val properties: ListBuffer[Property] = ListBuffer()
 
-  var gma: Gamma = module.gma
-  var rho: Rho = module.rho
+//   def abstractOverContext(gma: List[(String, Expr)], expr: Expr, exprTy: Expr) : (Expr, Expr) = 
+//     gma match {
+//       case Nil => (expr, exprTy)
+//       case (id, ty) :: gs => {
+//         val (e, t) = abstractOverContext(gs, expr, exprTy)
+//         (ELam(PVar(id), e), EPi(PVar(id), ty, t))
+//       }
+//     }
 
-  def abstractOverContext(gma: List[(String, Expr)], expr: Expr, exprTy: Expr) : (Expr, Expr) = 
-    gma match {
-      case Nil => (expr, exprTy)
-      case (id, ty) :: gs => {
-        val (e, t) = abstractOverContext(gs, expr, exprTy)
-        (ELam(PVar(id), e), EPi(PVar(id), ty, t))
-      }
-    }
+  def extendContext(id: String, tyE: ExpT, tyD: Dom) : Unit = {
 
-  def extendContext[N <: Nat](id: String, ty: Expr) : Unit = {
-
-    // Take care of the semantic part
-    val tVal = eval(ty, rho)
-    val l = lRho(rho)
-    val gen = Nt(Gen(l, "TC#"))
-
-    gma = (id, tVal) :: gma
-    rho = UpVar(rho, PVar(id), gen)
-
-    context += ((id, ty))
-    nfMap(EVar("TC#" ++ l.toString)) = (id, EVar(id))
+    tcEnv = withVar(PVar(id), tyD)(tcEnv)
+    context += ((id, tyE))
 
     val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id + " : " + ty.pprint
+      i(cls := "dropdown icon"), id + " : X" 
     ).render
 
     val content = div(cls := "content")(
@@ -78,21 +91,21 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   }
 
-  def extendEnvironment(id: String, expr: Expr, ty: Expr) : Unit = {
+  def extendEnvironment(id: String, expr: ExpT, ty: ExpT) : Unit = {
 
     environment += ((id, expr, ty))
 
-    // Update the normal form map
-    val nf = rbV(lRho(rho), eval(expr, rho))
-    nfMap(nf) = (id, expr)
+//     // Update the normal form map
+//     val nf = rbV(lRho(rho), eval(expr, rho))
+//     nfMap(nf) = (id, expr)
 
     val title = div(cls := "title")(
       i(cls := "dropdown icon"), id
     ).render
 
     val content = div(cls := "content")(
-      p(expr.pprint ++ " : " + ty.pprint),
-      button(cls := "ui icon button", onclick := { () => runAction(onExport(id, expr, ty)) })(
+      p(expr.toString ++ " : " + ty.toString),
+      button(cls := "ui icon button", onclick := { () => () /* runAction(onExport(id, expr, ty)) */ })(
         i(cls := "check circle icon")
       )
     ).render
@@ -101,7 +114,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   }
 
-  def registerCell(id: String, expr: Expr) : Unit = {
+  def registerCell(id: String, expr: ExpT) : Unit = {
 
     cells += ((id, expr))
 
@@ -112,7 +125,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     val content = div(cls := "content")(
       button(
         cls := "ui icon button",
-        onclick := { () => runAction(onPaste(expr, id)) }
+        onclick := { () => () /* runAction(onPaste(expr, id)) */ }
       )(
         i(cls := "paste icon")
       )
@@ -132,8 +145,8 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     val content = div(cls := "content")(
       prop match {
-        case l : LeftExtensionProperty => List(p("Target cell: " ++ prop.cellId))
-        case r : RightExtensionProperty => List(
+        case l : TgtExtProperty => List(p("Target cell: " ++ prop.cellId))
+        case r : SrcExtProperty => List(
           p("Target cell: " ++ prop.cellId),
           p("Address: " ++ r.addr.toString)
         )
@@ -145,347 +158,299 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   }
 
-  def findLeftExtensionWitness(cid: String) : Option[Expr] = 
-    properties.filter(_.cellId == cid).filter(_.isLeft).map(_.propertyExpr).headOption
+  def findTgtExtWitness(cid: String) : Option[ExpT] = 
+    properties.filter(_.cellId == cid).filter(_.isTarget).map(_.propertyExp).headOption
 
-  def findRightExtensionWitness(cid: String, addr: Addr) : Option[Expr] = 
-    properties.filter(_.cellId == cid).filter(_.isRightAt(addr)).map(_.propertyExpr).headOption
+  def findSrcExtWitness(cid: String, addr: SAddr) : Option[ExpT] = 
+    properties.filter(_.cellId == cid).filter(_.isSourceAt(addr)).map(_.propertyExp).headOption
 
   def hasUniversalProperty(cid: String) : Boolean = 
     properties.filter(_.cellId == cid).length > 0 
 
   //============================================================================================
-  // EDITOR EXTENSIONS
+  // TYPING HELPERS
   //
 
-  trait LiftAction[T] {
-    def apply[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[S[P]]]): EditorM[T]
-  }
-
-  def runLiftAction[T](act: LiftAction[T]) : EditorM[T] = {
-
-    @natElim
-    def doLift[N <: Nat](n: N)(i: EditorInstance)(b: i.InstanceBox[N]) : EditorM[T] = {
-      case (Z, i, b) => editorError("Cannot lift in dimension 0")
-      case (S(Z), _, _) => editorError("Cannot lift in dimension 1")
-      case (S(S(p)), _, b) => act(p)(i)(b)
-    }
-
+  def frameExpression(cell: StableCell) : Except[List[NstT]] =
     for {
-      i <- attempt(activeEditor, "No active editor")
-      boxSig <- attempt(i.rootBox, "No active box")
-      t <- doLift(boxSig.n)(i)(boxSig.value)
-    } yield t
+      face <- attempt(cell.face, "Error getting face")
+      expFace <- attempt(face.traverseComplex(mk => mk.map(_.expr)), "Face not full")
+      expFrm <- attempt(expFace.tail, "Selection was an object")
+    } yield cmplxToExp(expFrm)
 
-  }
-
-  def runInstanceAction[T](act: InstanceAction[EditorM[T]]) : EditorM[T] = 
+  def typeExpression(cell: StableCell): Except[ExpT] =
     for {
-      a <- attempt(actionWithSelection(act), "No selection")
-      r <- a
-    } yield r
-
-
-  def frameExpression[P <: Nat](i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Expr] = 
-    for {
-      fc <- fromShape(box.faceComplex)
-      ec <- fc.tail.traverse(new IndexedTraverse[EditorM, i.InstanceBox, ConstExpr] {
-        def apply[N <: Nat](n: N)(box: i.InstanceBox[N]) : EditorM[Expr] = 
-          for { mk <- attempt(box.optLabel, "Shell is incomplete") } yield mk.expr
-      })
-    } yield complexToExpr(ec.dim)(ec)
-
-  @natElim
-  def typeExpression[N <: Nat](n: N)(i: EditorInstance)(box: i.InstanceBox[N]) : EditorM[Expr] = {
-    case (Z, _, box) => editorSucceed(EOb(catExpr))
-    case (S(p: P), _, box) => 
-      for {
-        frmExpr <- frameExpression[P](i)(box)
-      } yield ECell(catExpr, frmExpr)
-  }
+      face <- attempt(cell.face, "Error getting face")
+      res <- face match {
+        case ||(SDot(_)) => succeed[ExpT](EObj(catExp))
+        case tl >> _ => 
+          for {
+            expFrm <- attempt(tl.traverseComplex(_.map(_.expr)), "Frame is not full")
+          } yield ECell(catExp, cmplxToExp(expFrm))
+      }
+    } yield res
 
   //============================================================================================
   // PASTING
   //
 
-  def onPaste(e: Expr, id: String) : EditorM[Unit] = 
-    for {
-      i <- attempt(activeEditor, "No editor active")
-      _ <- new Paster(i).pasteToRoot(e, id)
-    } yield ()
+//   def onPaste(e: Expr, id: String) : EditorM[Unit] = 
+//     for {
+//       i <- attempt(activeEditor, "No editor active")
+//       _ <- new Paster(i).pasteToRoot(e, id)
+//     } yield ()
 
-  class Paster(val i: EditorInstance) {
+//   class Paster(val i: EditorInstance) {
 
-    type BNst[N <: Nat] = Nesting[i.InstanceBox[N], N]
-    type ENst[N <: Nat] = Nesting[ConstExpr[N], N]
-    type VNst[N <: Nat] = Nesting[ConstVal[N], N]
-    type PNst[N <: Nat] = Nesting[(EditorBox[N], ConstVal[N]), N]
-    type BVPair[N <: Nat] = (BNst[N], VNst[N])
+//     type BNst[N <: Nat] = Nesting[i.InstanceBox[N], N]
+//     type ENst[N <: Nat] = Nesting[ConstExpr[N], N]
+//     type VNst[N <: Nat] = Nesting[ConstVal[N], N]
+//     type PNst[N <: Nat] = Nesting[(EditorBox[N], ConstVal[N]), N]
+//     type BVPair[N <: Nat] = (BNst[N], VNst[N])
 
-    def pasteToRoot(e: Expr, id: String) : EditorM[Unit] = 
-      for {
-        boxSig <- attempt(i.rootBox, "Nothing selected")
-        _ <- pasteToBox(boxSig.n)(boxSig.value, e, id)
-      } yield ()
+//     def pasteToRoot(e: Expr, id: String) : EditorM[Unit] = 
+//       for {
+//         boxSig <- attempt(i.rootBox, "Nothing selected")
+//         _ <- pasteToBox(boxSig.n)(boxSig.value, e, id)
+//       } yield ()
 
-    @natElim
-    def pasteToBox[N <: Nat](n: N)(box: i.InstanceBox[N], e: Expr, id: String) : EditorM[Unit] = {
-      case (Z, box, e, id) => 
-        for {
-          _ <- forceNone(box.optLabel, "Destination box is not empty")
-          _ <- simpleCheck(
-            check(rho, gma, e, Ob(eval(catExpr, rho)))
-          )
-        } yield {
+//     @natElim
+//     def pasteToBox[N <: Nat](n: N)(box: i.InstanceBox[N], e: Expr, id: String) : EditorM[Unit] = {
+//       case (Z, box, e, id) => 
+//         for {
+//           _ <- forceNone(box.optLabel, "Destination box is not empty")
+//           _ <- simpleCheck(
+//             check(rho, gma, e, Ob(eval(catExpr, rho)))
+//           )
+//         } yield {
 
-          val mk = ObjectMarker(thisWksp, id, e)
-          box.optLabel = Some(mk)
-          box.panel.refresh
-          i.ce.refreshGallery
+//           val mk = ObjectMarker(thisWksp, id, e)
+//           box.optLabel = Some(mk)
+//           box.panel.refresh
+//           i.ce.refreshGallery
 
-        }
-      case (S(p: P), box, e, id) => {
+//         }
+//       case (S(p: P), box, e, id) => {
 
-        import TypeLemmas._
+//         import TypeLemmas._
 
-        val cat = eval(catExpr, rho)
+//         val cat = eval(catExpr, rho)
 
-        for {
-          _ <- forceNone(box.optLabel, "Destination box is not empty")
-          frm <- simpleCheck(
-            for {
-              pr <- inferCell(rho, gma, e)
-              (cv, frm) = pr
-              _ <- eqNf(lRho(rho), cv, cat)
-            } yield frm
-          )
-          ed = frm.dim
-          ev <- attempt(matchNatPair(ed, p), "Expression has wrong dimension")
-          vfrm = rewriteNatIn[ValComplex, Nat, P](ev)(frm)
-          fc <- fromShape(box.faceComplex)
-          zc = Suite.zip[BNst, VNst, S[P]](fc.tail, vfrm)
-          pnst <- Suite.traverse[EditorM, BVPair, PNst, S[P]](zc)(Matcher)
-        } yield {
+//         for {
+//           _ <- forceNone(box.optLabel, "Destination box is not empty")
+//           frm <- simpleCheck(
+//             for {
+//               pr <- inferCell(rho, gma, e)
+//               (cv, frm) = pr
+//               _ <- eqNf(lRho(rho), cv, cat)
+//             } yield frm
+//           )
+//           ed = frm.dim
+//           ev <- attempt(matchNatPair(ed, p), "Expression has wrong dimension")
+//           vfrm = rewriteNatIn[ValComplex, Nat, P](ev)(frm)
+//           fc <- fromShape(box.faceComplex)
+//           zc = Suite.zip[BNst, VNst, S[P]](fc.tail, vfrm)
+//           pnst <- Suite.traverse[EditorM, BVPair, PNst, S[P]](zc)(Matcher)
+//         } yield {
 
-          // Update all the faces
-          Suite.foreach[PNst, S[P]](pnst)(Updater)
+//           // Update all the faces
+//           Suite.foreach[PNst, S[P]](pnst)(Updater)
 
-          // Update the main cell
-          val mk = CellMarker(p)(thisWksp, id, e)
-          box.optLabel = Some(mk)
-          box.panel.refresh
-          i.ce.refreshGallery
+//           // Update the main cell
+//           val mk = CellMarker(p)(thisWksp, id, e)
+//           box.optLabel = Some(mk)
+//           box.panel.refresh
+//           i.ce.refreshGallery
 
-        }
-      }
-    }
+//         }
+//       }
+//     }
 
-    object Matcher extends IndexedTraverse[EditorM, BVPair, PNst] {
-      def apply[N <: Nat](n: N)(pr: BVPair[N]) : EditorM[PNst[N]] = {
+//     object Matcher extends IndexedTraverse[EditorM, BVPair, PNst] {
+//       def apply[N <: Nat](n: N)(pr: BVPair[N]) : EditorM[PNst[N]] = {
 
-        val l = lRho(rho)
-        val (bnst, vnst) = pr
-        val fillings: HashMap[EditorBox[N], Val] = HashMap.empty
+//         val l = lRho(rho)
+//         val (bnst, vnst) = pr
+//         val fillings: HashMap[EditorBox[N], Val] = HashMap.empty
 
-        fromShape(
-          Nesting.matchTraverse(bnst, vnst)({
-            case (box, v) =>
-              box.optLabel match {
-                case None =>
-                  if (fillings.isDefinedAt(box)) {
-                    toShape(
-                      for {
-                        _ <- eqNf(l, fillings(box), v)
-                      } yield (box, v)
-                    )
-                  } else {
-                    fillings(box) = v
-                    opetopic.succeed((box, v))
-                  }
-                case Some(mk) =>
-                  toShape(
-                    for {
-                      _ <- eqNf(l, eval(mk.expr, rho), v)
-                    } yield (box, v)
-                  )
-              }
-          })
-        )
-      }
-    }
+//         fromShape(
+//           Nesting.matchTraverse(bnst, vnst)({
+//             case (box, v) =>
+//               box.optLabel match {
+//                 case None =>
+//                   if (fillings.isDefinedAt(box)) {
+//                     toShape(
+//                       for {
+//                         _ <- eqNf(l, fillings(box), v)
+//                       } yield (box, v)
+//                     )
+//                   } else {
+//                     fillings(box) = v
+//                     opetopic.succeed((box, v))
+//                   }
+//                 case Some(mk) =>
+//                   toShape(
+//                     for {
+//                       _ <- eqNf(l, eval(mk.expr, rho), v)
+//                     } yield (box, v)
+//                   )
+//               }
+//           })
+//         )
+//       }
+//     }
 
-    object Updater extends IndexedOp[PNst] {
-      def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
-        pr.foreach({ case (b, v) =>
-          if (b.optLabel == None) {
-            val nf = rbV(lRho(rho), v)
-            if (nfMap.isDefinedAt(nf)) {
-              val (id, e) = nfMap(nf)
-              b.optLabel = Some(Marker(n)(thisWksp, id, e))
-            } else b.optLabel = Some(Marker(n)(thisWksp, "unknown", EEmpty))
-          }
-        })
-        pr.baseValue._1.panel.refresh
-      }
-    }
+//     object Updater extends IndexedOp[PNst] {
+//       def apply[N <: Nat](n: N)(pr: PNst[N]): Unit = {
+//         pr.foreach({ case (b, v) =>
+//           if (b.optLabel == None) {
+//             val nf = rbV(lRho(rho), v)
+//             if (nfMap.isDefinedAt(nf)) {
+//               val (id, e) = nfMap(nf)
+//               b.optLabel = Some(Marker(n)(thisWksp, id, e))
+//             } else b.optLabel = Some(Marker(n)(thisWksp, "unknown", EEmpty))
+//           }
+//         })
+//         pr.baseValue._1.panel.refresh
+//       }
+//     }
 
-  }
+//   }
 
   //============================================================================================
   // EXPORTING
   //
 
-  def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
-    val (e, t) = abstractOverContext(context.toList, expr, ty)
-    module.addDefinition(id, e, t)
-  }
+//   def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
+//     val (e, t) = abstractOverContext(context.toList, expr, ty)
+//     module.addDefinition(id, e, t)
+//   }
 
   //============================================================================================
   // IMPORTING
   //
 
-  def onImportProperty: EditorM[Unit] = {
+//   def onImportProperty: EditorM[Unit] = {
 
-    import OTTParser._
+//     import OTTParser._
 
-    val id = jQuery(importPropIdInput).value().asInstanceOf[String]
-    val exprStr = jQuery(importPropExprInput).value().asInstanceOf[String]
+//     val id = jQuery(importPropIdInput).value().asInstanceOf[String]
+//     val exprStr = jQuery(importPropExprInput).value().asInstanceOf[String]
 
-    parseAll(phrase(expr), exprStr) match {
-      case Success(e, _) => {
+//     parseAll(phrase(expr), exprStr) match {
+//       case Success(e, _) => {
 
-        runInstanceAction(new InstanceAction[EditorM[Unit]] {
+//         runInstanceAction(new InstanceAction[EditorM[Unit]] {
 
-          def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
-            editorError("Objects don't have properties")
+//           def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
+//             editorError("Objects don't have properties")
           
-          def cellAction[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Unit] =
-            for {
-              mk <- attempt(box.optLabel, "Cannot assign property to empty box")
-              ee = eval(mk.expr, rho)
+//           def cellAction[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Unit] =
+//             for {
+//               mk <- attempt(box.optLabel, "Cannot assign property to empty box")
+//               ee = eval(mk.expr, rho)
 
-              _ <- simpleCheck(
-                check(rho, gma, e, IsLeftExt(ee))
-              )  
-            } yield {
+//               _ <- simpleCheck(
+//                 check(rho, gma, e, IsLeftExt(ee))
+//               )  
+//             } yield {
 
-              val propId = id
-              val propExpr = e
-              val propTy = EIsLeftExt(mk.expr)
+//               val propId = id
+//               val propExpr = e
+//               val propTy = EIsLeftExt(mk.expr)
 
-              registerProperty(
-                LeftExtensionProperty(
-                  propId, propExpr, propTy, mk.displayName, mk.expr
-                )
-              )
+//               registerProperty(
+//                 LeftExtensionProperty(
+//                   propId, propExpr, propTy, mk.displayName, mk.expr
+//                 )
+//               )
 
-              box.optLabel = Some(mk)
-              box.panel.refresh
-              refreshEditor
+//               box.optLabel = Some(mk)
+//               box.panel.refresh
+//               refreshEditor
 
-            }
+//             }
 
-        })
+//         })
 
-      }
-      case err => editorError("Parse error: " ++ err.toString)
-    }
+//       }
+//       case err => editorError("Parse error: " ++ err.toString)
+//     }
 
-  }
+//   }
 
-  def onImportCell : EditorM[Unit] = {
+//   def onImportCell : EditorM[Unit] = {
 
-    import OTTParser._
+//     import OTTParser._
 
-    val id = jQuery(importIdInput).value().asInstanceOf[String]
-    val exprStr = jQuery(importExprInput).value().asInstanceOf[String]
+//     val id = jQuery(importIdInput).value().asInstanceOf[String]
+//     val exprStr = jQuery(importExprInput).value().asInstanceOf[String]
 
-    parseAll(phrase(expr), exprStr) match {
-      case Success(e, _) => {
+//     parseAll(phrase(expr), exprStr) match {
+//       case Success(e, _) => {
 
-        for {
-          _ <- onPaste(e, id)
-        } yield {
-          val nf = rbV(lRho(rho), eval(e, rho))
-          nfMap(nf) = (id, e)
-        }
+//         for {
+//           _ <- onPaste(e, id)
+//         } yield {
+//           val nf = rbV(lRho(rho), eval(e, rho))
+//           nfMap(nf) = (id, e)
+//         }
 
-      }
-      case err => editorError("Parse error: " ++ err.toString)
-    }
+//       }
+//       case err => editorError("Parse error: " ++ err.toString)
+//     }
 
-  }
+//   }
 
   //============================================================================================
   // CELL ASSUMPTIONS
   //
 
-  def onAssume: EditorM[Unit] = {
+  def onAssume: Except[Unit] = {
 
     val id = jQuery(assumeIdInput).value().asInstanceOf[String]
-    val isLext = jQuery(assumeLextCheckbox).prop("checked").asInstanceOf[Boolean]
+    val isTgtExt = jQuery(assumeTgtExtCheckbox).prop("checked").asInstanceOf[Boolean]
 
-    val action = new InstanceAction[EditorM[Unit]] {
+    println("Going to assume new identifier: " + id)
 
-      def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
+    for {
+      tab <- attempt(activeTab, "No active tab")
+      root <- attempt(tab.editor.selectionRoot, "Nothing selected")
+      _ <- forceNone(root.label, "Cell is occupied")
+      tyE <- typeExpression(root)
+      tyD <- typechecker(
         for {
-          _ <- forceNone(box.optLabel, "Selected box is already occupied!")
-        } yield {
+          tyT <- check(tyE, TypeD)
+          tyD <- tcEval(tyT)
+        } yield tyD
+      )
+    } yield {
 
-          val ty = EOb(catExpr)
-          val mk = ObjectMarker(thisWksp, id, EVar(id))
+      val mk = Marker(thisWksp, id, EVar(id))
 
-          extendContext(id, ty)
-          registerCell(id, EVar(id))
+      extendContext(id, tyE, tyD)
+      registerCell(id, EVar(id))
 
-          box.optLabel = Some(mk)
-          box.panel.refresh
-          refreshEditor
+      root.label = Some(mk)
+      refreshEditor
 
-          jQuery(assumeIdInput).value("")
-
-        }
-
-      def cellAction[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Unit] = 
-        for {
-          _ <- forceNone(box.optLabel, "Selected box is already occupied!")
-          frmExpr <- frameExpression(i)(box)
-          ty = ECell(catExpr, frmExpr)
-          mk = CellMarker(p)(thisWksp, id, EVar(id))
-          _ <- runCheck(
-            checkT(rho, gma, ty)
-          )(
-            msg => editorError("Typechecking error: " ++ msg)
-          )(
-            _ => editorSucceed(())
+      // Have to do some evaluation here
+      // to get the property domain element
+      if (isTgtExt && root.dim > 0) {
+        val pId = id ++ "IsTgt"
+        val prop = EIsTgtU(EVar(id))
+        //extendContext(pId, prop, ???)
+        registerProperty(
+          TgtExtProperty(
+            pId, EVar(pId), prop, id, EVar(id)
           )
-        } yield {
+        )
+      }
 
-          extendContext(id, ty)
-          registerCell(id, EVar(id))
+      jQuery(assumeIdInput).value("")
+      jQuery(assumeTgtExtCheckbox).prop("checked", false)
 
-          if (isLext) {
-            val pId = id ++ "IsLeft"
-            val prop = EIsLeftExt(EVar(id))
-            extendContext(pId, prop)
-            registerProperty(
-              LeftExtensionProperty(
-                pId, EVar(pId), prop, id, EVar(id)
-              )
-            )
-          }
-
-          box.optLabel = Some(mk)
-          box.panel.refresh
-          refreshEditor
-
-          jQuery(assumeIdInput).value("")
-          jQuery(assumeLextCheckbox).prop("checked", false)
-
-        }
     }
-
-    runInstanceAction(action)
 
   }
 
@@ -493,191 +458,160 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // COMPOSITION
   //
 
-  def onCompose: EditorM[Unit] = {
+  def onCompose: Except[Unit] = {
 
-    val action = new InstanceAction[EditorM[Unit]] {
+    for {
+      tab <- attempt(activeTab, "No active tab")
+      fillBox <- attempt(tab.editor.selectionRoot, "Nothing selected")
+      _ <- verify(fillBox.dim > 0, "Cannot fill an object")
+      _ <- forceNone(fillBox.label, "Filling cell is occupied")
+      face <- attempt(fillBox.boxFace, "Error calculating face")
+      tail <- attempt(face.tail, "Box face has no tail")
+      frmInfo <- attempt(tail.asFrame, "Box face has malformed frame")
+      (srcs, compBox) = frmInfo
+      _ <- forceNone(compBox.label, "Composition cell is occupied.")
+      pdE <- attempt(srcs.traverse(_.label.map(_.expr)), "Niche is incomplete.")
+      pdTr = treeToExp(pdE)(VExp(_))
 
-      def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
-        editorError("Cannot fill an object!")
+      fillInfo <- (
+        if (pdE.isLeaf) {
+          for {
+            loop <- attempt(tail.sourceAt(Nil), "Failed to calculate loop source")
+            loopTail <- attempt(loop.tail, "Loop complex has no tail")
+            exp <- attempt(loopTail.topValue.label.map(_.expr), "Loop source is unoccupied")
+          } yield {
+            (ERefl(exp), EDrop(exp), EDropIsTgt(exp), EIsTgtU(EDrop(exp)))
+          }
+        } else succeed[(ExpT, ExpT, ExpT, ExpT)](
+          EComp(pdTr), EFill(pdTr), EFillIsTgt(pdTr), EIsTgtU(EFill(pdTr))
+        )
+      )
 
-      def cellAction[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[P]]) : EditorM[Unit] = 
-        for {
-          fc <- fromShape(fillBox.faceComplex)
-          (fpBoxes, compBox, nchTr) <- (
-            fc.tail match {
-              case Complex(fpBoxes, Box(compBox, nchTr)) => editorSucceed((fpBoxes, compBox, nchTr))
-              case _ => editorError("Malformed composition complex")
-            }
-          )
+      (comp, fill, prop, propTy) = fillInfo
 
-          _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-          _ <- forceNone(compBox.optLabel, "Composite box is occupied!")
+      compId = jQuery(composeIdInput).value().asInstanceOf[String]
+      fillId = jQuery(composeFillInput).value().asInstanceOf[String]
+      propId = jQuery(composePropInput).value().asInstanceOf[String]
 
+      // The property must be registered first, since assigning the
+      // label will trigger a recalculation of the cell visualization
+      _ = registerProperty(
+        TgtExtProperty(
+          propId, prop, propTy, fillId, fill
+        )
+      )
 
-          // Have to check if it's a leaf and use refl if so ...
-          nch <- nchTr.traverse[EditorM, Expr]({
-            case nst =>
-              for {
-                b <- attempt(nst.baseValue.optLabel, "Niche is not complete!")
-              } yield b.expr
-          })
+      _ = compBox.label = Some(Marker(thisWksp, compId, comp))
+      _ = fillBox.label = Some(Marker(thisWksp, fillId, fill))
 
-          nchExpr = treeToExpr(p)(nch)
-          dim = natToInt(p)
+      compTy <- typeExpression(compBox)
+      fillTy <- typeExpression(fillBox)
 
-          (comp, fill, prop, propTy) = (
-            if (Tree.isLeaf(nchTr)) {
+    } yield {
 
-              import TypeLemmas._
+      extendEnvironment(compId, comp, compTy)
+      extendEnvironment(fillId, fill, fillTy)
+      extendEnvironment(propId, prop, propTy)
 
-              type BN[K <: Nat] = Nesting[i.InstanceBox[K], K]
-              type BS[K <: Nat] = Suite[BN, K]
+      registerCell(compId, comp)
+      registerCell(fillId, fill)
 
-              // This is a serious hack and you should clean it up ...
-              val ev = asPred(p).get
-              val b = Suite.head(rewriteNatIn[BS, P, S[Nat]](ev)(fpBoxes)).baseValue
-              val expr = b.optLabel.get.expr
-
-              (
-                ERefl(catExpr, expr),
-                EDrop(catExpr, expr),
-                EDropIsLeft(catExpr, expr),
-                EIsLeftExt(EDrop(catExpr, expr))
-              )
-            } else {
-              (
-                EComp(catExpr, dim, nchExpr),
-                EFill(catExpr, dim, nchExpr),
-                EFillIsLeft(catExpr, dim, nchExpr),
-                EIsLeftExt(EFill(catExpr, dim, nchExpr))
-              )
-            }
-          )
-
-          compId = jQuery(composeIdInput).value().asInstanceOf[String]
-          fillId = jQuery(composeFillInput).value().asInstanceOf[String]
-          propId = jQuery(composePropInput).value().asInstanceOf[String]
-
-          // The property must be registered first, since assigning the
-          // label will trigger a recalculation of the cell visualization
-          _ = registerProperty(
-            LeftExtensionProperty(
-              propId, prop, propTy, fillId, fill
-            )
-          )
-
-          _ = compBox.optLabel = Some(Marker(p)(thisWksp, compId, comp))
-          _ = fillBox.optLabel = Some(Marker(S(p))(thisWksp, fillId, fill))
-
-          compTy <- typeExpression(p)(i)(compBox)
-          fillTy <- typeExpression(S(p))(i)(fillBox)
-
-        } yield {
-
-          extendEnvironment(compId, comp, compTy)
-          extendEnvironment(fillId, fill, fillTy)
-          extendEnvironment(propId, prop, propTy)
-
-          registerCell(compId, comp)
-          registerCell(fillId, fill)
-
-          compBox.panel.refresh
-          fillBox.panel.refresh
-          refreshEditor
-
-        }
+      refreshEditor
 
     }
-
-    runInstanceAction(action)
 
   }
 
   //============================================================================================
-  // LEFT LIFTING
+  // TARGET LIFTING
   //
 
-  def onLeftLift : EditorM[Unit] = {
+  // BUG! We don't actually check that there are exactly
+  // two cells in the source tree of the filling cell. This
+  // should be done as it is below for the source extension.
 
-    val action = new LiftAction[Unit] {
+  def onTargetLift: Except[Unit] = {
 
-      def apply[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[S[P]]]) : EditorM[Unit] = 
-        for {
-          fillCmplx <- fromShape(fillBox.faceComplex)
-          liftCmplx <- fromShape(fillCmplx.sourceAt(S(p))(Nil :: Nil))
-          evidenceCmplx <- fromShape(fillCmplx.sourceAt(S(p))((Zipper.rootAddr(p) :: Nil) :: Nil))
-          targetCmplx <- fromShape(fillCmplx.target)
-          competitorCmplx <- fromShape(targetCmplx.target)
+    val liftAddr : FaceAddr = PrevDim(ThisDim(List(SDir(Nil))))
+    val evAddr : FaceAddr = PrevDim(ThisDim(List(SDir(List(SDir(Nil))))))
 
-          // Extract the required boxes
-          liftBox = liftCmplx.headValue
-          evidenceBox = evidenceCmplx.headValue
-          targetBox = targetCmplx.headValue
-          competitorBox = competitorCmplx.headValue
+    for {
 
-          _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-          _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
-          eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
-          cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
-          tMk <- attempt(targetBox.optLabel, "Target is empty!")
+      tab <- attempt(activeTab, "No active tab")
+      fillBox <- attempt(tab.editor.selectionRoot, "Nothing selected")
+      fillCmplx <- attempt(fillBox.boxFace, "Face calculation failed")
+      liftCmplx <- attempt(fillCmplx.face(liftAddr), "Source calculation failed")
+      evidenceCmplx <- attempt(fillCmplx.face(evAddr), "Evidence calculation failed")
+      targetCmplx <- attempt(fillCmplx.target, "Target calculation failed")
+      competitorCmplx <- attempt(targetCmplx.target, "Competitor calculation faile")
 
-          lextWitness <- attempt(
-            findLeftExtensionWitness(eMk.displayName),
-            "No left lifting property found for " ++ eMk.displayName
-          )
+      // Extract the required boxes
+      liftBox = liftCmplx.topValue
+      evidenceBox = evidenceCmplx.topValue
+      targetBox = targetCmplx.topValue
+      competitorBox = competitorCmplx.topValue
 
-          liftExpr = ELiftLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
-          fillExpr = EFillLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
+      _ <- forceNone(fillBox.label, "Filling box is occupied!")
+      _ <- forceNone(liftBox.label, "Lift box is occupied!")
+      eMk <- attempt(evidenceBox.label, "Evidence box is empty!")
+      cMk <- attempt(competitorBox.label, "Competitor is empty!")
+      tMk <- attempt(targetBox.label, "Target is empty!")
 
-          liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-          fillId = jQuery(liftFillInput).value().asInstanceOf[String]
-          lextId = jQuery(liftLextInput).value().asInstanceOf[String]
-          rextId = jQuery(liftRextInput).value().asInstanceOf[String]
+      // _ = println("Evidence is: " + eMk.displayName)
+      // _ = println("Competitor is: " + cMk.displayName)
+      // _ = println("Target is: " + tMk.displayName)
 
-          lextProp = EFillLeftIsLeft(eMk.expr, lextWitness, cMk.expr, tMk.expr)
-          lextTy = EIsLeftExt(fillExpr)
+      tgtExtWitness <- attempt(
+        findTgtExtWitness(eMk.displayName),
+        "No left lifting property found for " ++ eMk.displayName
+      )
 
-          _ = registerProperty(
-            LeftExtensionProperty(
-              lextId, lextProp, lextTy, fillId, fillExpr
-            )
-          )
+      liftExpr = ELiftTgt(eMk.expr, tgtExtWitness, cMk.expr, tMk.expr)
+      fillExpr = EFillTgt(eMk.expr, tgtExtWitness, cMk.expr, tMk.expr)
 
-          rextAddr = rbAddr(S(p))(Nil)
-          rextProp = EFillLeftIsRight(eMk.expr, lextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
-          rextTy = EIsRightExt(fillExpr, rextAddr)
+      liftId = jQuery(liftIdInput).value().asInstanceOf[String]
+      fillId = jQuery(liftFillInput).value().asInstanceOf[String]
+      tgtPropId = jQuery(liftTgtInput).value().asInstanceOf[String]
+      srcPropId = jQuery(liftSrcInput).value().asInstanceOf[String]
 
-          _ = registerProperty(
-            RightExtensionProperty(
-              rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
-            )
-          )
+      tgtProp = EFillTgtIsTgt(eMk.expr, tgtExtWitness, cMk.expr, tMk.expr)
+      tgtPropTy = EIsTgtU(fillExpr)
 
-          _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
-          _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
+      _ = registerProperty(
+        TgtExtProperty(
+          tgtPropId, tgtProp, tgtPropTy, fillId, fillExpr
+        )
+      )
 
-          liftTy <- typeExpression(S(p))(i)(liftBox)
-          fillTy <- typeExpression(S(S(p)))(i)(fillBox)
+      srcPropAddr = addrToExp(Nil)
+      srcProp = EFillTgtIsSrc(eMk.expr, tgtExtWitness, cMk.expr, tMk.expr)
+      srcPropTy = EIsSrcU(fillExpr, srcPropAddr)
 
-        } yield {
+      _ = registerProperty(
+        SrcExtProperty(
+          srcPropId, srcProp, srcPropTy, Nil, fillId, fillExpr
+        )
+      )
 
-          extendEnvironment(liftId, liftExpr, liftTy)
-          extendEnvironment(fillId, fillExpr, fillTy)
-          extendEnvironment(lextId, lextProp, lextTy)
-          extendEnvironment(rextId, rextProp, rextTy)
+      _ = liftBox.label = Some(Marker(thisWksp, liftId, liftExpr))
+      _ = fillBox.label = Some(Marker(thisWksp, fillId, fillExpr))
 
-          registerCell(liftId, liftExpr)
-          registerCell(fillId, fillExpr)
+      liftTy <- typeExpression(liftBox)
+      fillTy <- typeExpression(fillBox)
 
-          liftBox.panel.refresh
-          fillBox.panel.refresh
-          i.ce.refreshGallery
+    } yield {
 
-        }
+      extendEnvironment(liftId, liftExpr, liftTy)
+      extendEnvironment(fillId, fillExpr, fillTy)
+      extendEnvironment(tgtPropId, tgtProp, tgtPropTy)
+      extendEnvironment(srcPropId, srcProp, srcPropTy)
+
+      registerCell(liftId, liftExpr)
+      registerCell(fillId, fillExpr)
+
+      refreshEditor
 
     }
-
-    runLiftAction(action)
 
   }
 
@@ -687,177 +621,170 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   def onRightLift : EditorM[Unit] = {
 
-    val action = new LiftAction[Unit] {
+//         for {
+//           fillCmplx <- fromShape(fillBox.faceComplex)
+//           (targetBox, tgtCanopy) <- fromShape(fillCmplx.tail.head.asFrame)
+//           (evidenceBox, liftBox) <- (
+//             tgtCanopy.nodes match {
+//               case eb :: lb :: Nil => editorSucceed((eb, lb))
+//               case _ => editorError("Malformed right lifting setup")
+//             }
+//           )
 
-      def apply[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[S[P]]]) : EditorM[Unit] = 
-        for {
-          fillCmplx <- fromShape(fillBox.faceComplex)
-          (targetBox, tgtCanopy) <- fromShape(fillCmplx.tail.head.asFrame)
-          (evidenceBox, liftBox) <- (
-            tgtCanopy.nodes match {
-              case eb :: lb :: Nil => editorSucceed((eb, lb))
-              case _ => editorError("Malformed right lifting setup")
-            }
-          )
+//           // Calculate the appropriate address
+//           addr <- attempt(liftBox.nestingAddress.headOption, "Malformed address")
+//           rextEvAddr <- attempt(addr.headOption, "Malformed address")
 
-          // Calculate the appropriate address
-          addr <- attempt(liftBox.nestingAddress.headOption, "Malformed address")
-          rextEvAddr <- attempt(addr.headOption, "Malformed address")
+//           zp <- fromShape(fillCmplx.tail.tail.head.seekTo(addr))
+//           (_, cn) <- fromShape(zp._1.asFrame)
+//           competitorBox <- (
+//             cn.nodes match {
+//               case cb :: Nil => editorSucceed(cb)
+//               case _ => editorError("Malformed competitor setup")
+//             }
+//           )
 
-          zp <- fromShape(fillCmplx.tail.tail.head.seekTo(addr))
-          (_, cn) <- fromShape(zp._1.asFrame)
-          competitorBox <- (
-            cn.nodes match {
-              case cb :: Nil => editorSucceed(cb)
-              case _ => editorError("Malformed competitor setup")
-            }
-          )
+//           _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
+//           _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
+//           eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
+//           cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
+//           tMk <- attempt(targetBox.optLabel, "Target is empty!")
 
-          _ <- forceNone(fillBox.optLabel, "Filling box is occupied!")
-          _ <- forceNone(liftBox.optLabel, "Lift box is occupied!")
-          eMk <- attempt(evidenceBox.optLabel, "Evidence box is empty!")
-          cMk <- attempt(competitorBox.optLabel, "Competitor is empty!")
-          tMk <- attempt(targetBox.optLabel, "Target is empty!")
+//           rextWitness <- attempt(
+//             findRightExtensionWitness(eMk.displayName, rbAddr(p)(rextEvAddr)),
+//             "No right lifting property found for " ++ eMk.displayName
+//           )
 
-          rextWitness <- attempt(
-            findRightExtensionWitness(eMk.displayName, rbAddr(p)(rextEvAddr)),
-            "No right lifting property found for " ++ eMk.displayName
-          )
+//           liftExpr = ELiftRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+//           fillExpr = EFillRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
 
-          liftExpr = ELiftRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
-          fillExpr = EFillRight(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+//           liftId = jQuery(liftIdInput).value().asInstanceOf[String]
+//           fillId = jQuery(liftFillInput).value().asInstanceOf[String]
+//           lextId = jQuery(liftLextInput).value().asInstanceOf[String]
+//           rextId = jQuery(liftRextInput).value().asInstanceOf[String]
 
-          liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-          fillId = jQuery(liftFillInput).value().asInstanceOf[String]
-          lextId = jQuery(liftLextInput).value().asInstanceOf[String]
-          rextId = jQuery(liftRextInput).value().asInstanceOf[String]
+//           lextProp = EFillRightIsLeft(eMk.expr, rextWitness, cMk.expr, tMk.expr)
+//           lextTy = EIsLeftExt(fillExpr)
 
-          lextProp = EFillRightIsLeft(eMk.expr, rextWitness, cMk.expr, tMk.expr)
-          lextTy = EIsLeftExt(fillExpr)
+//           _ = registerProperty(
+//             LeftExtensionProperty(
+//               lextId, lextProp, lextTy, fillId, fillExpr
+//             )
+//           )
 
-          _ = registerProperty(
-            LeftExtensionProperty(
-              lextId, lextProp, lextTy, fillId, fillExpr
-            )
-          )
+//           rextAddr = rbAddr(S(p))(addr)
+//           rextProp = EFillLeftIsRight(eMk.expr, rextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
+//           rextTy = EIsRightExt(fillExpr, rextAddr)
 
-          rextAddr = rbAddr(S(p))(addr)
-          rextProp = EFillLeftIsRight(eMk.expr, rextWitness, cMk.expr, tMk.expr, liftExpr, fillExpr, lextProp)
-          rextTy = EIsRightExt(fillExpr, rextAddr)
+//           _ = registerProperty(
+//             RightExtensionProperty(
+//               rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
+//             )
+//           )
 
-          _ = registerProperty(
-            RightExtensionProperty(
-              rextId, rextProp, rextTy, rextAddr, fillId, fillExpr
-            )
-          )
+//           _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
+//           _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
 
-          _ = liftBox.optLabel = Some(Marker(S(p))(thisWksp, liftId, liftExpr))
-          _ = fillBox.optLabel = Some(Marker(S(S(p)))(thisWksp, fillId, fillExpr))
+//           liftTy <- typeExpression(S(p))(i)(liftBox)
+//           fillTy <- typeExpression(S(S(p)))(i)(fillBox)
 
-          liftTy <- typeExpression(S(p))(i)(liftBox)
-          fillTy <- typeExpression(S(S(p)))(i)(fillBox)
+//         } yield {
 
-        } yield {
+//           extendEnvironment(liftId, liftExpr, liftTy)
+//           extendEnvironment(fillId, fillExpr, fillTy)
+//           extendEnvironment(lextId, lextProp, lextTy)
+//           extendEnvironment(rextId, rextProp, rextTy)
 
-          extendEnvironment(liftId, liftExpr, liftTy)
-          extendEnvironment(fillId, fillExpr, fillTy)
-          extendEnvironment(lextId, lextProp, lextTy)
-          extendEnvironment(rextId, rextProp, rextTy)
+//           registerCell(liftId, liftExpr)
+//           registerCell(fillId, fillExpr)
 
-          registerCell(liftId, liftExpr)
-          registerCell(fillId, fillExpr)
+//           liftBox.panel.refresh
+//           fillBox.panel.refresh
+//           i.ce.refreshGallery
 
-          liftBox.panel.refresh
-          fillBox.panel.refresh
-          i.ce.refreshGallery
-
-        }
-
-    }
-
-    runLiftAction(action)
+//         }
 
   }
 
-  //============================================================================================
-  // SHELL FORCING
-  //
+//   //============================================================================================
+//   // SHELL FORCING
+//   //
 
-  def onShellForce : EditorM[Unit] = {
+//   def onShellForce : EditorM[Unit] = {
 
-    val action = new InstanceAction[EditorM[Unit]] {
+//     val action = new InstanceAction[EditorM[Unit]] {
 
-      def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] = 
-        editorError("Cannot shell force an object")
+//       def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] = 
+//         editorError("Cannot shell force an object")
 
-      def cellAction[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[P]]) : EditorM[Unit] = 
-        for {
-          fc <- fromShape(fillBox.faceComplex)
-          fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
-          fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
+//       def cellAction[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[P]]) : EditorM[Unit] = 
+//         for {
+//           fc <- fromShape(fillBox.faceComplex)
+//           fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
+//           fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
 
-          nst <- fc.tail.head.traverse[EditorM, (i.InstanceBox[P], Marker[P], Option[Expr])]({
-            case b =>
-              for {
-                mk <- attempt(b.optLabel, "Shell is incomplete!")
-              } yield (b, mk, findLeftExtensionWitness(mk.displayName))
-          })
+//           nst <- fc.tail.head.traverse[EditorM, (i.InstanceBox[P], Marker[P], Option[Expr])]({
+//             case b =>
+//               for {
+//                 mk <- attempt(b.optLabel, "Shell is incomplete!")
+//               } yield (b, mk, findLeftExtensionWitness(mk.displayName))
+//           })
 
-          ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
+//           ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
 
-          (box, mk, src, tgt) <- (
-            tgtEvOpt match {
-              case None =>
-                for {
-                  src <- srcTrplTr.traverse[EditorM, Expr]({
-                    case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
-                  })
-                } yield (tgtBox, tgtMk, treeToExpr(p)(src), EEmpty)
-              case Some(tgtEv) => {
-                srcTrplTr.nodes.filterNot(_._3.isDefined) match {
-                  case (b, m, _) :: Nil => {
+//           (box, mk, src, tgt) <- (
+//             tgtEvOpt match {
+//               case None =>
+//                 for {
+//                   src <- srcTrplTr.traverse[EditorM, Expr]({
+//                     case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
+//                   })
+//                 } yield (tgtBox, tgtMk, treeToExpr(p)(src), EEmpty)
+//               case Some(tgtEv) => {
+//                 srcTrplTr.nodes.filterNot(_._3.isDefined) match {
+//                   case (b, m, _) :: Nil => {
 
-                    val src = treeToExpr(p)(
-                      srcTrplTr map {
-                        case (_, _, None) => EEmpty
-                        case (_, _, Some(ev)) => ev
-                      }
-                    )
+//                     val src = treeToExpr(p)(
+//                       srcTrplTr map {
+//                         case (_, _, None) => EEmpty
+//                         case (_, _, Some(ev)) => ev
+//                       }
+//                     )
 
-                    editorSucceed((b, m, src, tgtEv))
-                  }
-                  case _ => editorError("Malformed evidence tree.")
-                }
+//                     editorSucceed((b, m, src, tgtEv))
+//                   }
+//                   case _ => editorError("Malformed evidence tree.")
+//                 }
 
-              }
-            }
-          )
-        } yield {
+//               }
+//             }
+//           )
+//         } yield {
 
-          val propId = mk.displayName ++ "IsLeft"
-          val propExpr = EShellIsLeft(fillMk.expr, fillEv, src, tgt)
-          val propTy = EIsLeftExt(mk.expr)
+//           val propId = mk.displayName ++ "IsLeft"
+//           val propExpr = EShellIsLeft(fillMk.expr, fillEv, src, tgt)
+//           val propTy = EIsLeftExt(mk.expr)
 
-          val prop = LeftExtensionProperty(
-            propId, propExpr, propTy,
-            mk.displayName,
-            mk.expr
-          )
+//           val prop = LeftExtensionProperty(
+//             propId, propExpr, propTy,
+//             mk.displayName,
+//             mk.expr
+//           )
 
-          extendEnvironment(propId, propExpr, propTy)
-          registerProperty(prop)
+//           extendEnvironment(propId, propExpr, propTy)
+//           registerProperty(prop)
 
-          box.optLabel = Some(mk)
-          box.panel.refresh
-          i.ce.refreshGallery
+//           box.optLabel = Some(mk)
+//           box.panel.refresh
+//           i.ce.refreshGallery
 
-        }
+//         }
 
-    }
+//     }
 
-    runInstanceAction(action)
+//     runInstanceAction(action)
 
-  }
+//   }
 
 }
 
