@@ -23,7 +23,7 @@ trait Traverse[F[_]] extends Functor[F] {
   import State._
 
   def traverseS[S, A, B](fa: F[A])(f: A => State[S, B]): State[S, F[B]] =
-    traverse[Lambda[C => State[S, C]], A, B](fa)(f)(State.stateIsMonad)
+    traverse[({ type L[C] = State[S, C] })#L, A, B](fa)(f)(State.stateIsMonad)
 
   def toList[A](fa: F[A]): List[A] = 
     exec(traverseS[Queue[A], A, Unit](fa)((a: A) => modify(q => q.enqueue(a))))(Queue()).toList

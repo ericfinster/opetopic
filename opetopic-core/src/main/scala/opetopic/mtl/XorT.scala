@@ -11,8 +11,8 @@ final case class XorT[F[_], A, B](val value: F[Xor[A, B]])
 
 object XorT {
 
-  def xorTIsMonad[F[_], A](implicit isM: Monad[F]): Monad[Lambda[B => XorT[F, A, B]]] = 
-    new Monad[Lambda[B => XorT[F, A, B]]] {
+  def xorTIsMonad[F[_], A](implicit isM: Monad[F]): Monad[({ type L[B] = XorT[F, A, B] })#L] = 
+    new Monad[({ type L[B] = XorT[F, A, B] })#L] {
 
       def pure[U](u: U): XorT[F, A, U] = XorT(isM.pure(Xor.Right(u)))
 

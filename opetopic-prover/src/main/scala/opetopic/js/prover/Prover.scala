@@ -25,6 +25,8 @@ import opetopic.js._
 import opetopic.net._
 import opetopic.mtl._
 import JQuerySemanticUI._
+import opetopic.ott._
+import OttSyntax._
 
 import upickle.default._
 
@@ -42,6 +44,25 @@ object Prover extends JSApp {
     // setupModules
 
     createModule("Untitled", "Empty module")
+
+  }
+
+  def parseExpr(exprStr: String) : Except[ExpT] = {
+
+    // import java.io.StringReader
+    // val reader = new StringReader(exprStr)
+
+    // val lexer = new OttLexer(reader)
+    // val parser = new OttParser
+    // parser.lexer = lexer
+
+    // try {
+    //   Xor.Right(parser.parse_Exp())
+    // } catch {
+    //   case parser.YYError(s) => Xor.Left(s)
+    // }
+
+    Xor.Left("Unimplemented")
 
   }
 
@@ -75,7 +96,7 @@ object Prover extends JSApp {
     m.isLoaded = true
 
     val mItem =
-      div(cls := "ui dropdown item", "data-name".attr := name, "data-id".attr := "")(
+      div(cls := "ui dropdown item", attr("data-name") := name, attr("data-id") := "")(
         i(cls := "dropdown icon"),
         name,
         div(cls := "menu")(

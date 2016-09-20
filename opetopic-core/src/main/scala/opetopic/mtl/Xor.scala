@@ -11,8 +11,8 @@ sealed abstract class Xor[+A, +B] extends Product with Serializable
 
 trait XorInstances {
 
-  implicit def xorIsMonad[A]: Monad[Lambda[`+B` => Xor[A, B]]] = 
-    new Monad[Lambda[`+B` => Xor[A, B]]] {
+  implicit def xorIsMonad[A]: Monad[({ type L[+B] = Xor[A, B] })#L] = 
+    new Monad[({ type L[+B] = Xor[A, B] })#L] {
 
       def pure[U](u: U): Xor[A, U] = Xor.Right(u)
 

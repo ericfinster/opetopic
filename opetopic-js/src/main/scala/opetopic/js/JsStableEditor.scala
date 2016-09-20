@@ -117,8 +117,8 @@ class JsStableEditor[A: Renderable] {
     val cntStr = tabCount.toString
     val tabName = "tab-" ++ cntStr
 
-    val tabItem = a(cls := "item", "data-tab".attr := tabName)(cntStr).render
-    val tab = div(cls := "ui tab", "data-tab".attr := tabName)(
+    val tabItem = a(cls := "item", attr("data-tab") := tabName)(cntStr).render
+    val tab = div(cls := "ui tab", attr("data-tab") := tabName)(
       editorTab.editor.element.uiElement
     ).render
 
@@ -195,14 +195,7 @@ class JsStableEditor[A: Renderable] {
     tabHeight = jQuery(tabPane).height.toInt
 
     // Install the key handler
-    jQuery(uiElement).keypress((e : JQueryEventObject) => {
-      e.which match {
-        case 101 => doExtrude
-        case 100 => doDrop
-        case 115 => doSprout
-        case _ => ()
-      }
-    })
+    jQuery(uiElement).keypress(handleKeyEvent(_))
 
     jQuery(topMenu).
       find(".dropdown.item").
@@ -212,6 +205,15 @@ class JsStableEditor[A: Renderable] {
 
     newEditor
 
+  }
+
+  def handleKeyEvent(ev: JQueryEventObject): Unit = {
+    ev.which match {
+      case 101 => doExtrude
+      case 100 => doDrop
+      case 115 => doSprout
+      case _ => ()
+    }
   }
 
   def resizeInstances: Unit = {

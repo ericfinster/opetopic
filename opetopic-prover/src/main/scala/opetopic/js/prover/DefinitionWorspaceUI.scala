@@ -9,14 +9,23 @@ package opetopic.js.prover
 
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
+import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic.js._
 import JsDomFramework._
 import JQuerySemanticUI._
 
 import Prover.runExcept
+import Prover.parseExpr
 
-abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : DefinitionWorkspace => 
+abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : DefinitionWorkspace =>
+
+  override def handleKeyEvent(ev: JQueryEventObject): Unit = {
+    ev.which match {
+      case 112 => jQuery("#paste-expr-modal").modal("show")
+      case _ => super.handleKeyEvent(ev)
+    }
+  }
 
   def initUI: Unit = {
 
@@ -60,7 +69,19 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
         runExcept(onSourceLift)
       })
 
-//     jQuery(shellForceBtn).on("click", 
+
+    jQuery("#paste-expr-modal").modal(lit(
+      onApprove = () => {
+
+        val exprStr = jQuery("#paste-expr-input").value().asInstanceOf[String]
+        println("Going to parse expression: " + exprStr)
+        Prover.parseExpr(exprStr)
+
+      }
+    ))
+
+
+//     jQuery(shellForceBtn).on("click",
 //       (e : JQueryEventObject) => {
 //       e.preventDefault
 //       runAction(onShellForce)
@@ -218,11 +239,11 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
     div(cls := "ui grid")(
       div(cls := "three wide column")(
         div(cls := "ui secondary pointing menu")(
-          a(cls := "active item", "data-tab".attr := "context-tab")(h3("Context")),
-          a(cls := "item", "data-tab".attr := "environment-tab")(h3("Environment"))
+          a(cls := "active item", attr("data-tab") := "context-tab")(h3("Context")),
+          a(cls := "item", attr("data-tab") := "environment-tab")(h3("Environment"))
         ),
-        div(cls := "ui active tab", "data-tab".attr := "context-tab")(contextList),
-        div(cls := "ui tab", "data-tab".attr := "environment-tab")(environmentList)
+        div(cls := "ui active tab", attr("data-tab") := "context-tab")(contextList),
+        div(cls := "ui tab", attr("data-tab") := "environment-tab")(environmentList)
       ),
       div(cls := "ten wide column")(
         h3(cls := "ui dividing header")("Editor - " + module.name),
@@ -231,31 +252,31 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
         div(cls := "ui grid")(
           div(cls := "four wide column")(
             div(cls := "ui vertical fluid pointing menu")(
-              a(cls := "active item", "data-tab".attr := "assume-tab")("Assume"),
-              a(cls := "item", "data-tab".attr := "compose-tab")("Compose"),
-              a(cls := "item", "data-tab".attr := "lift-tab")("Lift"),
-              a(cls := "item", "data-tab".attr := "import-tab")("Import"),
-              a(cls := "item", "data-tab".attr := "force-tab")("Force")
+              a(cls := "active item", attr("data-tab") := "assume-tab")("Assume"),
+              a(cls := "item", attr("data-tab") := "compose-tab")("Compose"),
+              a(cls := "item", attr("data-tab") := "lift-tab")("Lift"),
+              a(cls := "item", attr("data-tab") := "import-tab")("Import"),
+              a(cls := "item", attr("data-tab") := "force-tab")("Force")
             )
           ),
           div(cls := "twelve wide stretched column")(
             div(cls := "ui segment")(
-              div(cls := "ui active tab", "data-tab".attr := "assume-tab")(assumeForm),
-              div(cls := "ui tab", "data-tab".attr := "compose-tab")(composeForm),
-              div(cls := "ui tab", "data-tab".attr := "lift-tab")(liftForm),
-              div(cls := "ui tab", "data-tab".attr := "import-tab")(importPane),
-              div(cls := "ui tab", "data-tab".attr := "force-tab")(shellForceBtn)
+              div(cls := "ui active tab", attr("data-tab") := "assume-tab")(assumeForm),
+              div(cls := "ui tab", attr("data-tab") := "compose-tab")(composeForm),
+              div(cls := "ui tab", attr("data-tab") := "lift-tab")(liftForm),
+              div(cls := "ui tab", attr("data-tab") := "import-tab")(importPane),
+              div(cls := "ui tab", attr("data-tab") := "force-tab")(shellForceBtn)
             )
           )
         )
       ),
       div(cls := "three wide column")(
         div(cls := "ui secondary pointing menu")(
-          a(cls := "active item", "data-tab".attr := "cells-tab")(h3("Cells")),
-          a(cls := "item", "data-tab".attr := "props-tab")(h3("Properties"))
+          a(cls := "active item", attr("data-tab") := "cells-tab")(h3("Cells")),
+          a(cls := "item", attr("data-tab") := "props-tab")(h3("Properties"))
         ),
-        div(cls := "ui active tab", "data-tab".attr := "cells-tab")(cellList),
-        div(cls := "ui tab", "data-tab".attr := "props-tab")(propertyList)
+        div(cls := "ui active tab", attr("data-tab") := "cells-tab")(cellList),
+        div(cls := "ui tab", attr("data-tab") := "props-tab")(propertyList)
       )
     ).render
 

@@ -563,9 +563,9 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
       cMk <- attempt(competitorBox.label, "Competitor is empty!")
       tMk <- attempt(targetBox.label, "Target is empty!")
 
-      _ = println("Evidence is: " + eMk.displayName)
-      _ = println("Competitor is: " + cMk.displayName)
-      _ = println("Target is: " + tMk.displayName)
+      // _ = println("Evidence is: " + eMk.displayName)
+      // _ = println("Competitor is: " + cMk.displayName)
+      // _ = println("Target is: " + tMk.displayName)
 
       // Uhhh, check the address setup here
       srcExtWitness <- attempt(
@@ -622,43 +622,52 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   }
 
-//   //============================================================================================
-//   // SHELL FORCING
-//   //
+  //============================================================================================
+  // TARGET CLOSURE
+  //
 
-//   def onShellForce : EditorM[Unit] = {
+  def onTargetClosure: Except[Unit] = {
 
-//     val action = new InstanceAction[EditorM[Unit]] {
+    for {
 
-//       def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] = 
-//         editorError("Cannot shell force an object")
+      tab <- attempt(activeTab, "No active tab")
+      fillBox <- attempt(tab.editor.selectionRoot, "Nothing selected")
+      fillMk <- attempt(fillBox.label, "Selected box is empty")
+      fillEv <- attempt(
+        findTgtExtWitness(fillMk.displayName),
+        "Could not find target evidence for " + fillMk.displayName
+      )
 
-//       def cellAction[P <: Nat](p: P)(i: EditorInstance)(fillBox: i.InstanceBox[S[P]]) : EditorM[Unit] = 
-//         for {
-//           fc <- fromShape(fillBox.faceComplex)
-//           fillMk <- attempt(fillBox.optLabel, "Selected box is empty")
-//           fillEv <- attempt(findLeftExtensionWitness(fillMk.displayName), "Selected box is not a left extension")
+      fillCmplx <- attempt(fillBox.boxFace, "Face calculation failed")
+      _ <- attempt(fillCmplx.traverseComplex(mk => mk.label), "Frame is incomplete")
 
-//           nst <- fc.tail.head.traverse[EditorM, (i.InstanceBox[P], Marker[P], Option[Expr])]({
-//             case b =>
-//               for {
-//                 mk <- attempt(b.optLabel, "Shell is incomplete!")
-//               } yield (b, mk, findLeftExtensionWitness(mk.displayName))
-//           })
+      fillTail <- attempt(fillCmplx.tail, "Face has no tail")
+      frmInfo <- attempt(fillTail.asFrame, "Malformed frame")
+      (srcs, targetBox) = frmInfo
 
-//           ((tgtBox, tgtMk, tgtEvOpt), srcTrplTr) <- fromShape(nst.asFrame)
+      srcEvOpts <- attempt(
+        srcs.traverse(srcBox => {
+          srcBox.label.map(srcMk => {
+            (srcBox, srcMk, findTgtExtWitness(srcMk.displayName))
+          })
+        }),
+        "Error extracting source evidence"
+      )
 
-//           (box, mk, src, tgt) <- (
-//             tgtEvOpt match {
-//               case None =>
-//                 for {
-//                   src <- srcTrplTr.traverse[EditorM, Expr]({
-//                     case (_, m, evOpt) => attempt(evOpt, "Missing evidence for: " ++ m.displayName)
-//                   })
-//                 } yield (tgtBox, tgtMk, treeToExpr(p)(src), EEmpty)
-//               case Some(tgtEv) => {
-//                 srcTrplTr.nodes.filterNot(_._3.isDefined) match {
-//                   case (b, m, _) :: Nil => {
+      tgtEvOpt = targetBox.label.flatMap(mk => {
+        findTgtExtWitness(mk.displayName)
+      })
+
+      res <- tgtEvOpt match {
+        case None => attempt(
+          srcEvOpts.traverse({
+            case (srcBox, srcMk, srcEvOpt) => srcEvOpt
+          }),
+          "Missing shell evidence"
+        ).map(srcTr => (targetBox, srcTr))
+        case Some(tgtEv) =>
+          srcEvOpts.toList.filterNot(_._3.isDefined) match {
+            case (bx, mk, ev) :: Nil => {
 
 //                     val src = treeToExpr(p)(
 //                       srcTrplTr map {
@@ -668,14 +677,14 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 //                     )
 
 //                     editorSucceed((b, m, src, tgtEv))
-//                   }
-//                   case _ => editorError("Malformed evidence tree.")
-//                 }
+              ???
 
-//               }
-//             }
-//           )
-//         } yield {
+            }
+            case _ => throwError("Malformed evidence tree")
+          }
+      }
+
+    } yield {
 
 //           val propId = mk.displayName ++ "IsLeft"
 //           val propExpr = EShellIsLeft(fillMk.expr, fillEv, src, tgt)
@@ -694,13 +703,11 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 //           box.panel.refresh
 //           i.ce.refreshGallery
 
-//         }
+      println("ok")
 
-//     }
+    }
 
-//     runInstanceAction(action)
-
-//   }
+  }
 
 }
 

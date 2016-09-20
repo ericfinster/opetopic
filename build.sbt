@@ -1,9 +1,16 @@
 import sbt.Project.projectToRef
 
+val scalaCompilerVersion = "2.11.8"
+val scalaJsDomVersion = "0.9.0"
+val scalaJsJQueryVersion = "0.9.0"
+val scalatagsVersion = "0.6.0"
+val upickleVersion = "0.4.1"
+val fastparseVersion = "0.4.1"
+
 val commonSettings = Seq(
   organization := "opetopic",
   homepage := Some(url("http://opetopic.net")),
-  scalaVersion := "2.11.8",
+  scalaVersion := scalaCompilerVersion,
   scalacOptions ++= Seq(
     "-language:higherKinds",
     "-language:implicitConversions",
@@ -13,8 +20,6 @@ val commonSettings = Seq(
   ),
   resolvers += Resolver.sonatypeRepo("releases"),
   resolvers += "bintray/non" at "http://dl.bintray.com/non/maven",
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.5.4"),
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
   initialCommands in console := 
     """
        import opetopic._
@@ -27,7 +32,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
   settings(
     scalaJSProjects := clients,
-    pipelineStages := Seq(scalaJSProd),
+    pipelineStages in Assets := Seq(scalaJSProd),
     JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
     includeFilter in (Assets, LessKeys.less) := "opetopic.less",
     resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value,
@@ -35,7 +40,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "com.mohiva" %% "play-silhouette" % "3.0.2",
       "net.codingwell" %% "scala-guice" % "4.0.0",
       "net.ceedubs" %% "ficus" % "1.1.2",
-      "com.lihaoyi" %%% "upickle" % "0.3.9",
+      "com.lihaoyi" %%% "upickle" % upickleVersion,
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
       "org.webjars" % "Semantic-UI" % "2.1.6",
@@ -75,9 +80,9 @@ lazy val opetopicDocs = (project in file("opetopic-docs")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3"
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -88,10 +93,10 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9"
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicTtJs).
@@ -103,11 +108,11 @@ lazy val opetopicMultiedit = (project in file("opetopic-multiedit")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9",
-      "com.lihaoyi" %%% "fastparse" % "0.3.7"
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion,
+      "com.lihaoyi" %%% "fastparse" % fastparseVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -118,11 +123,11 @@ lazy val opetopicColoredit = (project in file("opetopic-coloredit")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9",
-      "com.lihaoyi" %%% "fastparse" % "0.3.7"
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion,
+      "com.lihaoyi" %%% "fastparse" % fastparseVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -133,11 +138,11 @@ lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9",
-      "com.lihaoyi" %%% "fastparse" % "0.3.7"
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion,
+      "com.lihaoyi" %%% "fastparse" % fastparseVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
@@ -148,10 +153,10 @@ lazy val opetopicJs = (project in file("opetopic-js")).
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-      "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9"
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicCoreJs)
@@ -160,9 +165,9 @@ lazy val opetopicCore = (crossProject.crossType(CrossType.Pure) in file("opetopi
   settings(commonSettings: _*).
   settings(
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.5.3",
-      "com.lihaoyi" %%% "upickle" % "0.3.9",
-      "com.lihaoyi" %%% "fastparse" % "0.3.7"
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion,
+      "com.lihaoyi" %%% "fastparse" % fastparseVersion
     )
   )
 

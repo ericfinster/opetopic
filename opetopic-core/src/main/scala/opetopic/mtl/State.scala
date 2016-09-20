@@ -25,8 +25,8 @@ object State {
   def modify[S](f: (S) => S): State[S, Unit] = 
     (s : S) => (f(s), ())
 
-  def stateIsMonad[S] : Monad[Lambda[A => State[S, A]]] = 
-    new Monad[Lambda[A => State[S, A]]] {
+  def stateIsMonad[S] : Monad[({ type L[A] = State[S, A] })#L] = 
+    new Monad[({ type L[A] = State[S, A] })#L] {
 
       def pure[A](a: A) : State[S, A] = 
         (s: S) => (s, a)
