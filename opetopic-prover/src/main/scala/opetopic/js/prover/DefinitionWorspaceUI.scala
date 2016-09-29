@@ -77,7 +77,10 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
         val exprStr = jQuery("#paste-expr-input").value().asInstanceOf[String]
         println("Trying to parse expression: " + exprStr)
 
-        Prover.parseExpr(exprStr)
+        Prover.parseExpr(exprStr) match {
+          case Xor.Left(s) => println("Error during parse: " + s)
+          case Xor.Right(e) => runExcept(onPaste(e, exprStr))
+        }
 
       }
     ))

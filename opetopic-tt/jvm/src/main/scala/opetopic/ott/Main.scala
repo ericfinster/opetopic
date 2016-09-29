@@ -13,6 +13,7 @@ import opetopic._
 import mtl._
 
 import OttSyntax._
+import OttPPrint._
 import TypeChecker._
 
 object Main {
@@ -27,17 +28,10 @@ object Main {
 
       val fname = args(0)
 
-      println("Going to parse file: " + fname)
+      println("Typechecking file: " + fname)
 
       val reader = new FileReader(new File(fname))
       val lexer = new OttLexer(reader)
-
-      // val action: Array[Int] = lexer.zzUnpackAction
-      // println("Action array: " + action.map(_.toString).toList.toString)
-
-      // val attr: Array[Int] = lexer.zzUnpackAttribute
-      // println("Attribute array: " + attr.map(_.toString).toList.toString)
-
       val parser = new OttParser
       parser.lexer = lexer
 
@@ -65,7 +59,7 @@ object Main {
 
                 val (id, ty, tm) = abstractDef(d)
 
-                println("Checking definition: " + id)
+                println("Checking definition: " + id + " : " + show(ty))
 
                 for {
                   ty0 <- check(ty, TypeD)

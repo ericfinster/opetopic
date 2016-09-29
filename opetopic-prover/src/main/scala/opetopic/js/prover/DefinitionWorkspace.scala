@@ -14,6 +14,7 @@ import scalatags.JsDom.all._
 
 import opetopic._
 import ott.OttSyntax._
+import ott.OttPPrint._
 import ott.TypeChecker._
 import mtl._
 import ui._
@@ -83,7 +84,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     ).render
 
     val content = div(cls := "content")(
-      p("No information")
+      p(show(tyE))
     ).render
 
     jQuery(contextList).append(title, content)
@@ -103,7 +104,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     ).render
 
     val content = div(cls := "content")(
-      p(expr.toString ++ " : " + ty.toString),
+      p(show(expr) ++ " : " + show(ty)),
       button(cls := "ui icon button", onclick := { () => () /* runAction(onExport(id, expr, ty)) */ })(
         i(cls := "check circle icon")
       )

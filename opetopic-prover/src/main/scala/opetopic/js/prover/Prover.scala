@@ -59,7 +59,6 @@ object Prover extends JSApp {
     try {
 
       parser.lexer = lexer
-      println("About to parse ...")
       val e: ExpT = parser.parse_Exp1()
       println("Parsed expression: " + e.toString)
       Xor.Right(e)
