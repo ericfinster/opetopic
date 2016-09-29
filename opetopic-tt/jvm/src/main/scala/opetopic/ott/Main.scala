@@ -31,6 +31,13 @@ object Main {
 
       val reader = new FileReader(new File(fname))
       val lexer = new OttLexer(reader)
+
+      // val action: Array[Int] = lexer.zzUnpackAction
+      // println("Action array: " + action.map(_.toString).toList.toString)
+
+      // val attr: Array[Int] = lexer.zzUnpackAttribute
+      // println("Attribute array: " + attr.map(_.toString).toList.toString)
+
       val parser = new OttParser
       parser.lexer = lexer
 
@@ -87,3 +94,4 @@ object Main {
   }
 
 }
+

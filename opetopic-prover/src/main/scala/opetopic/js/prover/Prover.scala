@@ -49,20 +49,32 @@ object Prover extends JSApp {
 
   def parseExpr(exprStr: String) : Except[ExpT] = {
 
-    // import java.io.StringReader
-    // val reader = new StringReader(exprStr)
+    println("In parse routine with: " + exprStr)
 
-    // val lexer = new OttLexer(reader)
-    // val parser = new OttParser
-    // parser.lexer = lexer
+    import java.io.StringReader
+    val reader = new StringReader(exprStr)
+    val lexer = new OttLexer(reader)
+    val parser = new OttParser
 
-    // try {
-    //   Xor.Right(parser.parse_Exp())
-    // } catch {
-    //   case parser.YYError(s) => Xor.Left(s)
-    // }
+    try {
 
-    Xor.Left("Unimplemented")
+      parser.lexer = lexer
+      println("About to parse ...")
+      val e: ExpT = parser.parse_Exp1()
+      println("Parsed expression: " + e.toString)
+      Xor.Right(e)
+
+    } catch {
+      case parser.YYError(s) => {
+        println("There was an error: " + s)
+        Xor.Left(s)
+      }
+      case e : Error => {
+        val s = e.getMessage
+        println("There was an error: " + s)
+        Xor.Left(s)
+      }
+    }
 
   }
 

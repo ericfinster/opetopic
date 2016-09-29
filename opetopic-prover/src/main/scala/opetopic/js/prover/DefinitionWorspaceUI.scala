@@ -12,6 +12,7 @@ import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic.js._
+import opetopic.mtl._
 import JsDomFramework._
 import JQuerySemanticUI._
 
@@ -74,7 +75,8 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
       onApprove = () => {
 
         val exprStr = jQuery("#paste-expr-input").value().asInstanceOf[String]
-        println("Going to parse expression: " + exprStr)
+        println("Trying to parse expression: " + exprStr)
+
         Prover.parseExpr(exprStr)
 
       }

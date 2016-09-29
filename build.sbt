@@ -32,7 +32,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
   settings(
     scalaJSProjects := clients,
-    pipelineStages in Assets := Seq(scalaJSProd),
+    pipelineStages in Assets := Seq(scalaJSPipeline),
     JsEngineKeys.engineType := JsEngineKeys.EngineType.Node,
     includeFilter in (Assets, LessKeys.less) := "opetopic.less",
     resolvers := ("Atlassian Releases" at "https://maven.atlassian.com/public/") +: resolvers.value,
