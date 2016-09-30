@@ -6,6 +6,8 @@ val scalaJsJQueryVersion = "0.9.0"
 val scalatagsVersion = "0.6.0"
 val upickleVersion = "0.4.1"
 val fastparseVersion = "0.4.1"
+val codeMirrorVersion = "5.13.2"
+val codeMirrorFacadeVersion = "5.11-0.7"
 
 val commonSettings = Seq(
   organization := "opetopic",
@@ -44,7 +46,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
       "org.webjars" % "Semantic-UI" % "2.1.6",
-      "org.webjars" % "codemirror" % "5.8",
+      "org.webjars" % "codemirror" % codeMirrorVersion,
       "org.webjars.bower" % "snap.svg" % "0.4.1",
       "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
       "com.typesafe.play" %% "play-slick" % "1.1.1",
@@ -92,11 +94,13 @@ lazy val opetopicProver = (project in file("opetopic-prover")).
   settings(
     persistLauncher := true,
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion
+      "com.lihaoyi" %%% "upickle" % upickleVersion,
+      "org.denigma" %%% "codemirror-facade" % codeMirrorFacadeVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicTtJs).

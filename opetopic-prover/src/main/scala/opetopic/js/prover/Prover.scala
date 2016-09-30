@@ -20,6 +20,10 @@ import org.scalajs.jquery._
 import scalatags.JsDom.all._
 import scala.scalajs.js.Dynamic.{literal => lit}
 
+import org.denigma.codemirror.extensions.EditorConfig
+import org.denigma.codemirror.{CodeMirror, EditorConfiguration, Editor}
+import org.scalajs.dom.raw.HTMLTextAreaElement
+
 import opetopic._
 import opetopic.js._
 import opetopic.net._
@@ -32,6 +36,8 @@ import upickle.default._
 
 object Prover extends JSApp {
 
+  var cm: Option[Editor] = None
+
   def main : Unit = {
 
     println("Launched Opetopic Prover.")
@@ -40,6 +46,18 @@ object Prover extends JSApp {
     jQuery("#new-module-btn").on("click", () => newModule)
     jQuery(".menu .item").tab()
     jQuery(".ui.accordion").accordion()
+
+    // Let's setup a codemirror instance.
+
+    jQuery("#code-tab-btn").tab(lit(
+      onFirstLoad = () => {
+        val params: EditorConfiguration = EditorConfig.mode("clike").lineNumbers(true).keyMap("emacs") //config
+        val editEl = dom.document.getElementById("ott").asInstanceOf[HTMLTextAreaElement]
+        cm = Some(CodeMirror.fromTextArea(editEl, params))
+      }
+    ))
+
+    jQuery("#tc-btn").on("click", () => typecheckCode)
 
     // setupModules
 
@@ -236,6 +254,85 @@ object Prover extends JSApp {
     }
 
   //============================================================================================
+  // TYPECHECKING OF USER CODE
+  //
+
+  def typecheckCode: Unit = {
+
+    println("in typecheck routine")
+
+    for {
+      ed <- cm
+    } {
+
+      println("got the editor")
+
+      val code : String =
+        ed.getDoc.getValue()
+
+      import java.io.StringReader
+      import opetopic.ott.TypeChecker._
+      import opetopic.ott.OttPrettyPrinter._
+
+      val reader = new StringReader(code)
+      val lexer = new OttLexer(reader)
+      val parser = new OttParser
+      parser.lexer = lexer
+
+      parser.parseAll match {
+        case Right(Prog(dfs)) => {
+
+          def abstractDef(d: DeclT) : (String, ExpT, ExpT) =
+            d match {
+              case Def(id, Nil, ty, tm) => (id, ty, tm)
+              case Def(id, Tele(p, t) :: cs, ty, tm) => {
+                val (tid, tty, ttm) = abstractDef(Def(id, cs, ty, tm))
+                (tid, EPi(List(PTele(p, t)), tty), ELam(p, ttm))
+              }
+            }
+
+          def checkDefs(defs: List[DeclT]): TCM[Unit] = {
+
+            import tcmMonad._
+
+            defs match {
+              case Nil => pure(())
+              case d :: ds => {
+
+                val (id, ty, tm) = abstractDef(d)
+
+                val msg = "Checking definition\n" +
+                  "===================\n" +
+                  id + " : " + pprint(ty) + "\n" +
+                  "  = " + pprint(tm)
+
+                showInfoMessage(msg)
+
+                for {
+                  ty0 <- check(ty, TypeD)
+                  tyD <- tcEval(ty0)
+                  tm0 <- check(tm, tyD)
+                  _ <- local(withDef(id, ty0, tyD, tm0))(checkDefs(ds))
+                } yield ()
+               }
+            }
+          }
+
+          checkDefs(dfs).run(TCEnv(Nil, RNil)) match {
+            case Xor.Left(msg) => showErrorMessage("Typechecking error: " + msg)
+            case Xor.Right(_) => showInfoMessage("Success!")
+          }
+
+        }
+        case Right(_) => showErrorMessage("Unknown error")
+        case Left(s) => showErrorMessage("Parse error: " + s)
+      }
+
+    }
+
+  }
+
+  //============================================================================================
   // USER FEEDBACK ROUTINES
   //
 
@@ -266,11 +363,14 @@ object Prover extends JSApp {
 
     val closeIcon = i(cls := "close icon").render
 
+    val lines = str.split("\n").map(p(_).render)
+
     val msg = div(cls := "ui yellow message")(
       closeIcon,
-      div(cls := "header")("Info:"),
-      p(str)
+      div(cls := "header")("Info:")
     ).render
+
+    jQuery(msg).append(lines.toSeq : _*)
 
     jQuery(closeIcon).on("click", () => {
       jQuery(msg).transition(lit(

@@ -52,8 +52,6 @@ object Main {
 
             import tcmMonad._
 
-            val test: MonadOps[TCM, Unit] = toMonadOps(pure(()))
-
             defs match {
               case Nil => pure(())
               case d :: ds => {
