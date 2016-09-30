@@ -27,7 +27,7 @@ import JQuerySemanticUI._
 
 object Sketchpad extends JSApp {
 
-  val editor = new JsStableEditor[SimpleMarker]
+  val editor = new JsStableEditor[SimpleMarker] 
   val viewer = new JsStableViewer[Option[SimpleMarker]]
   val frameViewer = new JsStableViewer[Option[SimpleMarker]]
 
@@ -88,6 +88,7 @@ object Sketchpad extends JSApp {
     ))
 
     jQuery("#label-input").on("input", () => { updateLabel })
+    jQuery("#auto-lbl-btn").on("click", () => { autoLabel })
 
     jQuery(".color-select.popup button").on("click", (e: JQueryEventObject) => {
 
@@ -104,6 +105,7 @@ object Sketchpad extends JSApp {
     })
 
     jQuery("#edge-accordion").accordion()
+    jQuery("#auto-lbl-accordion").accordion()
 
     jQuery("#saved-sketches .item").each((e: dom.Element) => {
       for {
@@ -162,6 +164,25 @@ object Sketchpad extends JSApp {
 
     showRootFace
 
+  }
+
+  def autoLabel: Unit = {
+
+    for {
+      tab <- editor.activeTab
+      ed = tab.editor
+    } {
+
+      var lbl: Int = 0
+      val card = ed.cardinal
+      card.map((n: ed.NeutralCell) => {
+        n.label = Some(SimpleMarker(lbl.toString))
+        lbl += 1
+      })
+
+      editor.refreshEditor
+
+    }
   }
 
   def showDecoration: Unit = {
@@ -299,7 +320,7 @@ object Sketchpad extends JSApp {
         val c : SComplex[Option[SimpleMarker]] =
           complexFromJson[Option[SimpleMarker]](upickle.json.read(json))
 
-        editor.newEditor(c)
+        editor.newEditor(SCardinal(c))
 
       })
     }

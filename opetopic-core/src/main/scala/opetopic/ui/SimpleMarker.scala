@@ -34,6 +34,8 @@ case class SimpleMarker(
   def removeSourceDec(addr: SAddr) = 
     this.copy(sourceDec = this.sourceDec - addr)
 
+  override def toString = lbl
+  
 }
 
 case class EdgeDecoration(val shape: String, val color: String, val tgt: Boolean = true) {

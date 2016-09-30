@@ -579,7 +579,16 @@ trait CardinalTypes {
     def apply[A](): SCardinal[Option[A]] = 
       ||(MObj(STree.obj(SDot(None))))
 
-    def fromComplex[A](c: SComplex[A]): (SCardinal[A], SDeriv[SNesting[A]]) = 
+    def apply[A](c: SComplex[A], pd: STree[SNesting[A]]): SCardinal[A] = {
+      val (tl, SDeriv(sh, _)) = fromComplex(c)
+      val hd: MTree[STree[SNesting[A]]] =
+        Traverse[MTree].map(tl.head)(
+          (n: SNesting[A]) => pd
+        )
+      tl >> MFix(hd)
+    }
+
+    def fromComplex[A](c: SComplex[A]): (SCardinal[A], SDeriv[SNesting[A]]) =
       c match {
         case ||(nst) => (||(MObj(STree.obj(nst))), SDeriv(STree.obj(SLeaf)))
         case tl >> hd => {

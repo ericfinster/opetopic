@@ -16,6 +16,7 @@ import scala.scalajs.js.Dynamic.{literal => lit}
 
 import opetopic._
 import opetopic.ui._
+import opetopic.mtl._
 import JsDomFramework._
 import JQuerySemanticUI._
 
@@ -29,9 +30,9 @@ class JsStableEditor[A: Renderable] {
   // TAB CLASS
   //
 
-  class EditorTab(c: SComplex[Option[A]]) {
+  class EditorTab(c: SCardinal[Option[A]]) {
 
-    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(SCardinal[Option[A]](c))
+    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(c)
 
     editor.onCellClick = 
       (c: editor.EditorCell) => { }
@@ -66,6 +67,38 @@ class JsStableEditor[A: Renderable] {
   def doSprout: Unit =
     for { tab <- activeTab } {
       tab.editor.sproutAtSelection
+    }
+
+  def doExtract: Unit =
+    for {
+      tab <- activeTab
+      ed = tab.editor
+      pd <- ed.extractSelection
+      // _ = println("Extracted selection: " + pd.map(_.label).toString)
+      ccmplx = ed.complex
+      gpd <- pd.traverse((n: ed.NeutralCell) => {
+
+        val addr = n.cardinalAddress.complexAddress
+        val codim = ccmplx.dim - n.dim
+        val fa = FaceAddr(codim, addr)
+
+        for {
+          face <- ccmplx.face(fa)
+        } yield (face : SComplex[ed.EditorCell]).map(_.label)
+
+      })
+      // _ = println("About to graft")
+      pr <- graft(gpd)({ case (fst, _) => Some(fst) })
+      (web, srcs) = pr
+    } {
+
+      // println("Finished graft.")
+
+      // val newComplex : SComplex[Option[A]] =
+      //   web >> SBox(None, srcs) >> SDot(None)
+
+      newEditor(SCardinal(web, srcs))
+
     }
 
   //============================================================================================
@@ -107,8 +140,8 @@ class JsStableEditor[A: Renderable] {
   var tabCount: Int = 0
   var activeTab: Option[EditorTab] = None
 
-  def newEditor: Unit = newEditor(||(SDot(None)))
-  def newEditor(c: SComplex[Option[A]]) : Unit = {
+  def newEditor: Unit = newEditor(SCardinal[A]())
+  def newEditor(c: SCardinal[Option[A]]) : Unit = {
 
     val editorTab = new EditorTab(c)
     tabs += editorTab
@@ -212,6 +245,7 @@ class JsStableEditor[A: Renderable] {
       case 101 => doExtrude
       case 100 => doDrop
       case 115 => doSprout
+      case 120 => doExtract
       case _ => ()
     }
   }

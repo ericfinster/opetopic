@@ -153,6 +153,19 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
+  def extractSelection: Option[STree[NeutralCell]] =
+    selectionRoot.flatMap(root => {
+
+      val addr = root.cardinalAddress
+
+      for {
+        zp <- seekToCanopy(root.cardinalAddress)
+        cut <- zp.focus.takeWhile((n: SNesting[NeutralCell]) => n.baseValue.isSelected)
+        (et, es) = cut
+      } yield et.map(_.baseValue)
+
+    })
+
   def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Option[(SCardAddr, STree[Int])] =
     selectionRoot match {
       case None => None
