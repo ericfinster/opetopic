@@ -13,10 +13,11 @@ import opetopic._
 import mtl._
 
 import OttSyntax._
-import OttPPrint._
 import TypeChecker._
 
 object Main {
+
+  import OttPrettyPrinter._
 
   def main(args: Array[String]) : Unit = {
 
@@ -59,7 +60,10 @@ object Main {
 
                 val (id, ty, tm) = abstractDef(d)
 
-                println("Checking definition: " + id + " : " + show(ty))
+                println("Checking definition")
+                println("===================")
+                println(id + " : " + pprint(ty))
+                println("  = " + pprint(tm))
 
                 for {
                   ty0 <- check(ty, TypeD)
