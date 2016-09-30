@@ -185,7 +185,8 @@ class JsStableEditor[A: Renderable] {
         div(cls := "vertical fluid menu")(
           div(cls := "item", style := "min-width: 150px", onclick := { () => doExtrude })(span(cls := "description")("e"), "Extrude"),
           div(cls := "item", onclick := { () => doDrop })(span(cls := "description")("d"), "Drop"),
-          div(cls := "item", onclick := { () => doSprout })(span(cls := "description")("s"), "Sprout")
+          div(cls := "item", onclick := { () => doSprout })(span(cls := "description")("s"), "Sprout"),
+          div(cls := "item", onclick := { () => doExtract })(span(cls := "description")("x"), "Extract")
         )
       )
     ).render

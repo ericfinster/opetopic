@@ -260,8 +260,8 @@ trait ComplexTypes {
         case ||(SBox(t, SNode(SDot(s), SLeaf))) >> SDot(a) => {
           if (addr == Nil) {
             // Target extension of an arrow is a simplex
-            val objs = SBox(ext, SNode(SBox(t, SNode(SDot(s), SLeaf)), SLeaf))
-            val arrs = SBox(back, SNode(SDot(glob), SNode(SNode(SDot(a), SNode(SLeaf, SLeaf)), SLeaf)))
+            val objs = SBox(t, SNode(SBox(s, SNode(SDot(ext), SLeaf)), SLeaf))
+            val arrs = SBox(back, SNode(SDot(a), SNode(SNode(SDot(glob), SNode(SLeaf, SLeaf)), SLeaf)))
             Some(||(objs) >> arrs)
           } else None
         }
@@ -270,7 +270,7 @@ trait ComplexTypes {
             zp <- frm.seek(SDir(addr) :: Nil)
             s <- zp.focus.dotOption
             pr <- zp.ctxt.g.headOption
-            newFcs = SBox(s, SNode(SDot(ext), pr._2.sh))
+            newFcs = SBox(s, SNode(SDot(ext), pr._2.sh.asShell))
             newFrm = zp.withFocus(newFcs).close
             newCanopy = newFrm.toTree.mapWithAddr((_, addr) =>
               if (addr == Nil) SDot(a) else SDot(glob)

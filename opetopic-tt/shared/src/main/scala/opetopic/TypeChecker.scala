@@ -11,6 +11,7 @@ import opetopic._
 import mtl._
 
 import OttSyntax._
+import OttPrettyPrinter._
 
 object TypeChecker {
 
@@ -192,6 +193,65 @@ object TypeChecker {
     }
   
   //
+  //  Terms to user expressions
+  //
+
+  def treeToExp[A](t: STree[A])(w: A => TValT): TreeT =
+    t match {
+      case SLeaf => TLf()
+      case SNode(a, sh) => TNd(w(a), treeToExp(sh)((b: STree[A]) => VTree(treeToExp(b)(w))))
+    }
+
+  def nstToExp(nst: SNesting[ExpT]): NstT =
+    nst match {
+      case SDot(e) => TDot(e)
+      case SBox(e, cn) => TBox(e, treeToExp(cn)((n: SNesting[ExpT]) => VNst(nstToExp(n))))
+    }
+
+  def cmplxToExp(cmplx: SComplex[ExpT]): List[NstT] =
+    Suite.SuiteTraverse.toList(cmplx).map(nstToExp(_))
+
+  def addrToExp(addr: SAddr): AddrT =
+    TAddr(addr.map((d: SDir) => addrToExp(d.dir)))
+
+  def termToExp(k: Int, t: Term): ExpT =
+    t match {
+      case Tt => ETt()
+      case Type => EType()
+      case Unt => EUnit()
+      case Cat => ECat()
+      case Var(i: Int) => EVar("x" + (i + k - 1).toString) // Yeah, what's it again?
+      case Pi(u, v) => EPi(PTele(PVar("x" + k.toString), termToExp(k, u)) :: Nil, termToExp(k+1, v))
+      case Lam(u) => ELam(PVar("x" + k.toString), termToExp(k+1, u))
+      case App(u, v) => EApp(termToExp(k, u), termToExp(k, v))
+      case Sig(u, v) => ESig(PTele(PVar("x" + k.toString), termToExp(k, u)) :: Nil, termToExp(k+1, v))
+      case Pair(u, v) => EPair(termToExp(k, u), termToExp(k, v))
+      case Fst(u) => EFst(termToExp(k, u))
+      case Snd(u) => ESnd(termToExp(k, u))
+
+      case Obj(u) => EObj(termToExp(k, u))
+      case Cell(u, frm) => ECell(termToExp(k, u), cmplxToExp(frm.map(termToExp(k, _))))
+      case IsTgtU(e) => EIsTgtU(termToExp(k, e))
+      case IsSrcU(e, addr) => EIsSrcU(termToExp(k, e), addrToExp(addr))
+      case Refl(e) => ERefl(termToExp(k, e))
+      case Drop(e) => EDrop(termToExp(k, e))
+      case Comp(pd) => EComp(treeToExp(pd)((t: Term) => VExp(termToExp(k, t))))
+      case Fill(pd) => EFill(treeToExp(pd)((t: Term) => VExp(termToExp(k, t))))
+      case LiftTgt(e, ev, c, t) => ELiftTgt(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case LiftSrc(e, ev, c, t) => ELiftSrc(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case FillTgt(e, ev, c, t) => EFillTgt(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case FillSrc(e, ev, c, t) => EFillSrc(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case DropIsTgt(e) => EDropIsTgt(termToExp(k, e))
+      case FillIsTgt(pd) => EFillIsTgt(treeToExp(pd)((t: Term) => VExp(termToExp(k, t))))
+      case ShellIsTgt(e, ev, pd, tgt) => EShellIsTgt(termToExp(k, e), termToExp(k, ev), treeToExp(pd)((t: Term) => VExp(termToExp(k, t))), termToExp(k, tgt))
+      case FillTgtIsTgt(e, ev, c, t) => EFillTgtIsTgt(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case FillSrcIsTgt(e, ev, c, t) => EFillSrcIsTgt(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case FillTgtIsSrc(e, ev, c, t) => EFillTgtIsSrc(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+      case FillSrcIsSrc(e, ev, c, t) => EFillSrcIsSrc(termToExp(k, e), termToExp(k, ev), termToExp(k, c), termToExp(k, t))
+    }
+
+
+  //
   //  Typechecking Environment
   //
 
@@ -344,7 +404,7 @@ object TypeChecker {
       v0 = rb(i, downT(v))
       r <- (
         if (u0 == v0) pure(())
-        else tcError("Type conversion error.\nExpected: " + u0.toString + "\nInferred: " + v0.toString)
+        else tcError("Type conversion error.\nExpected: " + pprint(termToExp(i, u0)) + "\nInferred: " + pprint(termToExp(i, v0)))
       )
     } yield r
 
@@ -377,7 +437,7 @@ object TypeChecker {
       (tm, ty) = pr
       res <- ty match {
         case CellD(cat, frm) => pure(cat, frm)
-        case _ => tcError("tcInferCell: " + e.toString)
+        case _ => tcError("tcInferCell: " + pprint(e))
       }
     } yield { val (cat, frm) = res ; (tm, cat, frm) }
 
@@ -387,7 +447,7 @@ object TypeChecker {
       (tm, ty) = pr
       cat <- ty match {
         case ObjD(cat) => pure(cat)
-        case _ => tcError("tcInferCell: " + e.toString)
+        case _ => tcError("tcInferCell: " + pprint(e))
       }
     } yield (tm, cat)
 
@@ -656,7 +716,7 @@ object TypeChecker {
               for {
                 st <- tcAttempt(frm.asFrame, "Malformed frame")
               } yield CellD(cat, frm >> SBox(tmD, SNode(SDot(tmD), st._1.asShell)))
-            case _ => tcError("Cannot apply reflexivity to non-cell: " + e.toString)
+            case _ => tcError("Cannot apply reflexivity to non-cell: " + pprint(e))
           }
         } yield (Refl(tm), res)
       }
@@ -669,7 +729,7 @@ object TypeChecker {
           dTy <- eTy match {
             case ObjD(cat) => pure(CellD(cat, ||(SDot(eD)) >> SBox(ReflD(eD), SLeaf)))
             case CellD(cat, frm) => pure(CellD(cat, frm >> SBox(ReflD(eD), SLeaf)))
-            case _ => tcError("Cannot apply drop to non-cell: " + e.toString)
+            case _ => tcError("Cannot apply drop to non-cell: " + pprint(e))
           }
         } yield (Drop(eT), dTy)
 
@@ -712,6 +772,7 @@ object TypeChecker {
         checkSrcLift(e, ev, c, t).flatMap({
           case LiftData(eT, evT, cT, tT, eD, evD, cD, tD, catD, cellD, addr) =>
             for {
+              i <- tcDepth
               rext <- tcAttempt(cellD.sourceExtension(addr)(cD, TtD, tD), "Source extension failed")
               lCell <- tcAttempt(rext.sourceAt(SDir(SDir(addr) :: Nil) :: Nil), "Source calculation failed")
               lTy <- tcCellType(catD, lCell)
@@ -804,7 +865,7 @@ object TypeChecker {
             )
         })
 
-      case _ => tcError("Cannot infer type of:" + exp.toString)
+      case _ => tcError("Cannot infer type of:" + pprint(exp))
 
     }
 

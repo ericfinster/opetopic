@@ -8,6 +8,7 @@
 package opetopic.ott
 
 import opetopic._
+import OttSyntax._
 
 sealed trait Term
 case object Tt extends Term
@@ -42,3 +43,5 @@ case class FillTgtIsTgt(e : Term, ev : Term, c : Term, t : Term) extends Term
 case class FillSrcIsTgt(e : Term, ev : Term, c : Term, t : Term) extends Term
 case class FillTgtIsSrc(e : Term, ev : Term, c : Term, t : Term) extends Term
 case class FillSrcIsSrc(e : Term, ev : Term, c : Term, t : Term) extends Term
+
+

@@ -27,24 +27,6 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // UTILITIES
   //
 
-  def treeToExp[A](t: STree[A])(w: A => TValT): TreeT =
-    t match {
-      case SLeaf => TLf()
-      case SNode(a, sh) => TNd(w(a), treeToExp(sh)((b: STree[A]) => VTree(treeToExp(b)(w))))
-    }
-
-  def nstToExp(nst: SNesting[ExpT]): NstT =
-    nst match {
-      case SDot(e) => TDot(e)
-      case SBox(e, cn) => TBox(e, treeToExp(cn)((n: SNesting[ExpT]) => VNst(nstToExp(n))))
-    }
-
-  def cmplxToExp(cmplx: SComplex[ExpT]): List[NstT] =
-    Suite.SuiteTraverse.toList(cmplx).map(nstToExp(_))
-
-  def addrToExp(addr: SAddr): AddrT =
-    TAddr(addr.map((d: SDir) => addrToExp(d.dir)))
-
   def typechecker[A](m: TCM[A]): Except[A] =
     m.run(tcEnv)
 
@@ -198,10 +180,13 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // frame be full and simply checks against the type...
   def onPaste(e: ExpT, id: String): Except[Unit] = {
 
+    // println("Attempting paste on: " + pprint(e))
+    // println("Id is: " + id)
+
     for {
       tab <- attempt(activeTab, "No active tab")
       pasteBox <- attempt(tab.editor.selectionRoot, "Nothing selected")
-      _ <- forceNone(pasteBox.label, "Destination box is not empty")
+      _ <- forceNone(pasteBox.label, "Destination box is occupied")
       pasteTy <- typeExpression(pasteBox)
       _ <- typechecker(
         for {
