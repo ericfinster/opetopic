@@ -85,25 +85,24 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
       }
     ))
 
+    jQuery(tgtClosureBtn).on("click",
+      (e : JQueryEventObject) => {
+      e.preventDefault
+      runExcept(onTargetClosure)
+    })
 
-//     jQuery(shellForceBtn).on("click",
-//       (e : JQueryEventObject) => {
-//       e.preventDefault
-//       runAction(onShellForce)
-//     })
+    jQuery(composeIdInput).on("input", () => {
+      val compId = jQuery(composeIdInput).value().asInstanceOf[String]
+      jQuery(composeFillInput).value(compId ++ "-fill")
+      jQuery(composePropInput).value(compId ++ "-tgt")
+    })
 
-//     jQuery(composeIdInput).on("input", () => {
-//       val compId = jQuery(composeIdInput).value().asInstanceOf[String]
-//       jQuery(composeFillInput).value(compId ++ "Fill")
-//       jQuery(composePropInput).value(compId ++ "FillIsLeft")
-//     })
-
-//     jQuery(liftIdInput).on("input", () => {
-//       val liftId = jQuery(liftIdInput).value().asInstanceOf[String]
-//       jQuery(liftFillInput).value(liftId ++ "Fill")
-//       jQuery(liftLextInput).value(liftId ++ "FillIsLeft")
-//       jQuery(liftRextInput).value(liftId ++ "FillIsRight")
-//     })
+    jQuery(liftIdInput).on("input", () => {
+      val liftId = jQuery(liftIdInput).value().asInstanceOf[String]
+      jQuery(liftFillInput).value(liftId ++ "-fill")
+      jQuery(liftTgtInput).value(liftId ++ "-tgt")
+      jQuery(liftSrcInput).value(liftId ++ "-src")
+    })
 
     initialize
 
@@ -221,11 +220,11 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
     )
 
   //============================================================================================
-  // SHELL FORCE
+  // TARGET CLOSURE
   //
 
-  val shellForceBtn = 
-    button(cls := "ui button", id := "force-btn")("Shell Force").render
+  val tgtClosureBtn = 
+    button(cls := "ui button", id := "tgt-closure-btn")("Target Closure").render
 
   //============================================================================================
   // LISTS
@@ -261,7 +260,7 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
               a(cls := "item", attr("data-tab") := "compose-tab")("Compose"),
               a(cls := "item", attr("data-tab") := "lift-tab")("Lift"),
               a(cls := "item", attr("data-tab") := "import-tab")("Import"),
-              a(cls := "item", attr("data-tab") := "force-tab")("Force")
+              a(cls := "item", attr("data-tab") := "closure-tab")("Closure")
             )
           ),
           div(cls := "twelve wide stretched column")(
@@ -270,7 +269,7 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
               div(cls := "ui tab", attr("data-tab") := "compose-tab")(composeForm),
               div(cls := "ui tab", attr("data-tab") := "lift-tab")(liftForm),
               div(cls := "ui tab", attr("data-tab") := "import-tab")(importPane),
-              div(cls := "ui tab", attr("data-tab") := "force-tab")(shellForceBtn)
+              div(cls := "ui tab", attr("data-tab") := "closure-tab")(tgtClosureBtn)
             )
           )
         )

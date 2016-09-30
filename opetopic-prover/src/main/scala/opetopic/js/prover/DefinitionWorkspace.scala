@@ -165,7 +165,8 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
       face <- attempt(cell.face, "Error getting face")
       res <- face match {
         case ||(SDot(_)) => succeed[ExpT](EObj(catExp))
-        case tl >> _ => 
+        case ||(_) => throwError("Malformed complex")
+        case tl >> _ =>
           for {
             expFrm <- attempt(tl.traverseComplex(_.map(_.expr)), "Frame is not full")
           } yield ECell(catExp, cmplxToExp(expFrm))
@@ -650,46 +651,45 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
             case (srcBox, srcMk, srcEvOpt) => srcEvOpt
           }),
           "Missing shell evidence"
-        ).map(srcTr => (targetBox, srcTr))
+        ).map(srcTr => (targetBox, srcTr, ETt()))
         case Some(tgtEv) =>
           srcEvOpts.toList.filterNot(_._3.isDefined) match {
-            case (bx, mk, ev) :: Nil => {
-
-//                     val src = treeToExpr(p)(
-//                       srcTrplTr map {
-//                         case (_, _, None) => EEmpty
-//                         case (_, _, Some(ev)) => ev
-//                       }
-//                     )
-
-//                     editorSucceed((b, m, src, tgtEv))
-              ???
-
+            case (bx, mk, evOpt) :: Nil => {
+              for {
+                evTr <- attempt(
+                  srcEvOpts.traverse({
+                    // Not sure about the use of equality here.  Compare addresses?
+                    case (_, sMk, sEv) => if (sMk == mk) Some(ETt()) else sEv
+                  }),
+                  "Missing shell evidence"
+                )
+              } yield (bx, evTr, tgtEv)
             }
             case _ => throwError("Malformed evidence tree")
           }
       }
 
+      (destBox, srcEvTr, tgtEv) = res
+      destMk <- attempt(destBox.label, "Destination box is empty")
+
     } yield {
 
-//           val propId = mk.displayName ++ "IsLeft"
-//           val propExpr = EShellIsLeft(fillMk.expr, fillEv, src, tgt)
-//           val propTy = EIsLeftExt(mk.expr)
+      val propId = destMk.displayName ++ "-tgt"
+      val propExpr = EShellIsTgt(fillMk.expr, fillEv, treeToExp(srcEvTr)((e: ExpT) => VExp(e)), tgtEv)
+      val propTy = EIsTgtU(destMk.expr)
 
-//           val prop = LeftExtensionProperty(
-//             propId, propExpr, propTy,
-//             mk.displayName,
-//             mk.expr
-//           )
+      val prop = TgtExtProperty(
+        propId, propExpr, propTy,
+        destMk.displayName,
+        destMk.expr
+      )
 
-//           extendEnvironment(propId, propExpr, propTy)
-//           registerProperty(prop)
+      extendEnvironment(propId, propExpr, propTy)
+      registerProperty(prop)
 
-//           box.optLabel = Some(mk)
-//           box.panel.refresh
-//           i.ce.refreshGallery
-
-      println("ok")
+      // Cause the box to rerender
+      destBox.label = Some(destMk)
+      refreshEditor
 
     }
 
