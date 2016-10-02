@@ -2,32 +2,39 @@
 -- demo.ott - playing with opetopic type theory
 --
 
-let Arrow (X : Cat) (x : |X|) (y : |X|) : U
-  =  Cell X [ box y (nd (dot x) lf) ] ;
+module Demo where {
 
-let Drop (X : Cat) (x : |X|) (f : Arrow X x x) : U
-  =  Cell X [ dot x || box f lf ] ;
+  Arrow (X : Cat) (x : |X|) (y : |X|) : U
+    =  Cell X [ box y (nd (dot x) lf) ] ;
 
-let TwoGlob (X : Cat) (x : |X|) (y : |X|)
-    	    (f : Arrow X x y) (g : Arrow X x y) : U
-  = Cell X [ box y (nd (dot x) lf) ||
-    	     box g (nd (dot f) (nd lf lf)) ] ;
+  Drop (X : Cat) (x : |X|) (f : Arrow X x x) : U
+    =  Cell X [ dot x | box f lf ] ;
 
-let Simplex (X : Cat) (x : |X|) (y : |X|) (z : |X|)
-    	    (f : Arrow X x y) (g : Arrow X y z) (h : Arrow X x z) : U
-  = Cell X [ box z (nd (box y (nd (dot x) lf)) lf) ||
-    	     box h (nd (dot g) (nd (nd (dot f) (nd lf lf)) lf)) ] ;
+  TwoGlob (X : Cat) (x : |X|) (y : |X|)
+	  (f : Arrow X x y) (g : Arrow X x y) : U
+    = Cell X [ box y (nd (dot x) lf)
+             | box g (nd (dot f) (nd lf lf))
+	     ] ;
 
-let rTest (X : Cat) (x : |X|) : Arrow X x x = refl x;
+  Simplex (X : Cat) (x : |X|) (y : |X|) (z : |X|)
+	  (f : Arrow X x y) (g : Arrow X y z) (h : Arrow X x z) : U
+    = Cell X [ box z (nd (box y (nd (dot x) lf)) lf)
+             | box h (nd (dot g) (nd (nd (dot f) (nd lf lf)) lf))
+	     ] ;
 
-let dTest (X : Cat) (x : |X|) : Drop X x (refl x) = drop x;
+  rTest (X : Cat) (x : |X|) : Arrow X x x
+    = refl x ;
 
-let cTest (X : Cat) (x : |X|) (y : |X|) (z : |X|)
-    	  (f : Arrow X x y) (g : Arrow X y z) : Arrow X x z
-  = comp (nd g (nd (nd f (nd lf lf)) lf)) ;
+  dTest (X : Cat) (x : |X|) : Drop X x (refl x)
+    = drop x ;
 
-let fTest (X : Cat) (x : |X|) (y : |X|) (z : |X|)
-    	  (f : Arrow X x y) (g : Arrow X y z)
-	  : Simplex X x y z f g (cTest X x y z f g)
-  = fill (nd g (nd (nd f (nd lf lf)) lf)) ;
+  cTest (X : Cat) (x : |X|) (y : |X|) (z : |X|)
+	(f : Arrow X x y) (g : Arrow X y z) : Arrow X x z
+    = comp (nd g (nd (nd f (nd lf lf)) lf)) ;
 
+  fTest (X : Cat) (x : |X|) (y : |X|) (z : |X|)
+	(f : Arrow X x y) (g : Arrow X y z)
+    : Simplex X x y z f g (cTest X x y z f g)
+    = fill (nd g (nd (nd f (nd lf lf)) lf)) ;
+
+}

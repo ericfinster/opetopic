@@ -37,43 +37,11 @@ object Main {
       parser.lexer = lexer
 
       parser.parseAll match {
-        case Right(Prog(dfs)) => {
+        case Right(Module(mid, ds)) => {
 
-          def abstractDef(d: DeclT) : (String, ExpT, ExpT) =
-            d match {
-              case Def(id, Nil, ty, tm) => (id, ty, tm)
-              case Def(id, Tele(p, t) :: cs, ty, tm) => {
-                val (tid, tty, ttm) = abstractDef(Def(id, cs, ty, tm))
-                (tid, EPi(List(PTele(p, t)), tty), ELam(p, ttm))
-              }
-            }
+          println("Checking module: " + mid)
 
-          def checkDefs(defs: List[DeclT]): TCM[Unit] = {
-
-            import tcmMonad._
-
-            defs match {
-              case Nil => pure(())
-              case d :: ds => {
-
-                val (id, ty, tm) = abstractDef(d)
-
-                println("Checking definition")
-                println("===================")
-                println(id + " : " + pprint(ty))
-                println("  = " + pprint(tm))
-
-                for {
-                  ty0 <- check(ty, TypeD)
-                  tyD <- tcEval(ty0)
-                  tm0 <- check(tm, tyD)
-                  _ <- local(withDef(id, ty0, tyD, tm0))(checkDefs(ds))
-                } yield ()
-               }
-            }
-          }
-
-          checkDefs(dfs).run(TCEnv(Nil, RNil)) match {
+          checkDecls(ds).run(TCEnv(Nil, RNil)) match {
             case Xor.Left(msg) => println("Typechecking error: " + msg)
             case Xor.Right(_) => println("Success!")
           }

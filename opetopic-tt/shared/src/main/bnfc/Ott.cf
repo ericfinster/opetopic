@@ -2,15 +2,15 @@
 ---   This describes the labelled BNF Grammar of
 ---   OpetopicTT concrete syntax
 
-entrypoints Prog ;
+entrypoints Module ;
 
--- Programs
-Prog.     Prog   ::= [Decl] ;
+Module.   Module ::= "module" Ident "where" "{" [Decl] "}" ;
 
 -- Expressions
 
 EPair.    Exp    ::= Exp1 "," Exp ;
 
+ELet.     Exp1   ::= "let" "{" [Decl] "}" "in" Exp1 ;
 ELam.     Exp1   ::= "\\" Patt "." Exp1 ;
 EPi.      Exp1   ::= [PTele] "->" Exp1 ;
 ESig.     Exp1   ::= [PTele] "*" Exp1 ;
@@ -70,7 +70,7 @@ VExp.     TVal ::= Exp5 ;
 TDot.     Nst ::= "dot" Exp4 ;
 TBox.     Nst ::= "box" Exp4 Tree ;
 _.        Nst ::= "(" Nst ")" ;
-separator Nst "||" ;
+separator Nst "|" ;
 
 -- Addresses
 TAddr.    Addr ::= "{" [Addr] "}";
@@ -82,8 +82,11 @@ PTele.    PTele ::= "(" Patt ":" Exp ")" ;
 terminator nonempty PTele "" ;
 
 -- declarations
-Def.      Decl ::= "let" Ident [Tele] ":" Exp1 "=" Exp1 ;
+Def.      Decl ::= Ident [Tele] ":" Exp1 "=" ExpWhere ;
 separator Decl ";" ;
+
+Where.    ExpWhere ::= Exp "where" "{" [Decl] "}" ;
+NoWhere.  ExpWhere ::= Exp ;
 
 -- patterns
 PUnit.    Patt   ::= "_" ;

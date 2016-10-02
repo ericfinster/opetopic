@@ -312,6 +312,9 @@ object TypeChecker {
   def local[A](f: TCEnv => TCEnv)(m: TCM[A]): TCM[A] =
     TCM(env => m.run(f(env)))
 
+  def withEnv[A](env: TCEnv)(m: TCM[A]): TCM[A] =
+    local(_ => env)(m)
+
   def tcError[A](msg: String) : TCM[A] =
     TCM(env => Xor.Left(msg))
 
@@ -585,6 +588,41 @@ object TypeChecker {
         } yield tmTl >> tmHd
     }
 
+  def checkDecls(decls: List[DeclT]): TCM[TCEnv] =
+    decls match {
+      case Nil => ask
+      case d::ds =>
+        for {
+          env0 <- checkDecl(d)
+          env1 <- withEnv(env0)(checkDecls(ds))
+        } yield env1
+    }
+
+  def unfoldDecl(decl: DeclT): (Ident, ExpT, ExpT) = 
+    decl match {
+      case Def(id, ps, ty, Where(exp, decls)) =>
+        unfoldDecl(Def(id, ps, ty, NoWhere(ELet(decls, exp))))
+      case Def(id, Nil, ty, NoWhere(exp)) =>
+        (id, ty, exp)
+      case Def(id, Tele(p,a)::ps, ty, nw@NoWhere(exp)) => {
+        val (rId, rTy, rExp) = unfoldDecl(Def(id, ps, ty, nw))
+        (rId, EPi(List(PTele(p, a)), rTy), ELam(p, rExp))
+      }
+    }
+
+  def checkDecl(decl: DeclT): TCM[TCEnv] = {
+    val (id, ty, exp) = unfoldDecl(decl)
+
+    println("Checking definition: " + id)
+    
+    for {
+      tyT <- check(ty, TypeD)
+      tyD <- tcEval(tyT)
+      tm <- check(exp, tyD)
+      env <- ask.map(withDef(id, tyT, tyD, tm))
+    } yield env
+  }
+
   def check(exp: ExpT, ty: Dom): TCM[Term] = {
 
     // println("Checking: " ++ exp.toString)
@@ -655,6 +693,15 @@ object TypeChecker {
           _ <- tcAttempt(srcs.seekTo(addr), "Invalid address")
         } yield IsSrcU(eT, addr)
 
+      // BUG!  You need to come up with a
+      // term to put here for the let decl.
+      case (ELet(ds, e), t) =>
+        for {
+          env <- checkDecls(ds)
+          tm <- local(_ => env)(
+            check(e, t)
+          )
+        } yield tm
       case (e, t) =>
         for {
           pr <- checkI(e)
