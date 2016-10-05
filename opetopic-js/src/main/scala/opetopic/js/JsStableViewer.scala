@@ -41,6 +41,7 @@ class JsStableViewer[A: Renderable] {
         val g: GalleryType =
           new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(cc)
 
+        g.hoverCofaces = true
         g.firstPanel = firstPanel
         g.lastPanel = lastPanel
 

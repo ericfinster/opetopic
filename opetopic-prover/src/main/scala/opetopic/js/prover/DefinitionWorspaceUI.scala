@@ -46,18 +46,6 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
         runExcept(onCompose)
       })
 
-//     jQuery(importCellBtn).on("click",
-//       (e : JQueryEventObject) => {
-//         e.preventDefault
-//         runAction(onImportCell)
-//       })
-
-//     jQuery(importPropBtn).on("click",
-//       (e : JQueryEventObject) => {
-//         e.preventDefault
-//         runAction(onImportProperty)
-//       })
-
     jQuery(tgtLiftBtn).on("click", 
       (e : JQueryEventObject) => {
         e.preventDefault
@@ -189,37 +177,6 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
     ).render
 
   //============================================================================================
-  // IMPORT FORM
-  //
-
-  val importIdInput = input(`type` := "text", placeholder := "Identifier").render
-  val importExprInput = input(`type` := "text", placeholder := "Expression").render
-
-  val importPropIdInput = input(`type` := "text", placeholder := "Identifier").render
-  val importPropExprInput = input(`type` := "text", placeholder := "Expression").render
-
-  val importCellBtn = button(`type` := "button", cls := "ui green button")("Import Cell").render
-  val importPropBtn = button(`type` := "button", cls := "ui green button")("Import Property").render
-
-  val importPane = 
-    div(cls := "ui grid")(
-      div(cls := "eight wide column")(
-        form(cls := "ui form")(
-          div(cls := "field")(label("Display Name: "), importIdInput),
-          div(cls := "field")(label("Expression: "), importExprInput),
-          importCellBtn
-        )
-      ),
-      div(cls := "eight wide column")(
-        form(cls := "ui form")(
-          div(cls := "field")(label("Display Name: "), importPropIdInput),
-          div(cls := "field")(label("Expression: "), importPropExprInput),
-          importPropBtn
-        )
-      )
-    )
-
-  //============================================================================================
   // TARGET CLOSURE
   //
 
@@ -259,7 +216,6 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
               a(cls := "active item", attr("data-tab") := "assume-tab")("Assume"),
               a(cls := "item", attr("data-tab") := "compose-tab")("Compose"),
               a(cls := "item", attr("data-tab") := "lift-tab")("Lift"),
-              a(cls := "item", attr("data-tab") := "import-tab")("Import"),
               a(cls := "item", attr("data-tab") := "closure-tab")("Closure")
             )
           ),
@@ -268,7 +224,6 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
               div(cls := "ui active tab", attr("data-tab") := "assume-tab")(assumeForm),
               div(cls := "ui tab", attr("data-tab") := "compose-tab")(composeForm),
               div(cls := "ui tab", attr("data-tab") := "lift-tab")(liftForm),
-              div(cls := "ui tab", attr("data-tab") := "import-tab")(importPane),
               div(cls := "ui tab", attr("data-tab") := "closure-tab")(tgtClosureBtn)
             )
           )

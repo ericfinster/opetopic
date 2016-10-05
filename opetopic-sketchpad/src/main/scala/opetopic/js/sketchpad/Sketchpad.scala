@@ -131,6 +131,7 @@ object Sketchpad extends JSApp {
     jQuery("#save-btn").on("click", () => { saveSketch })
     jQuery("#svg-btn").on("click", () => { renderSketch })
     jQuery("#export-btn").on("click", () => { exportSketch })
+    jQuery("#pin-btn").on("click", () => { onPinToggle })
 
   }
 
@@ -218,10 +219,26 @@ object Sketchpad extends JSApp {
 
   }
 
-  def showRootFace: Unit = 
-    for {
-      face <- editor.rootFace
-    } { viewer.complex = Some(face) }
+  var isPinned = false
+
+  def onPinToggle: Unit = {
+
+    if (isPinned) {
+      jQuery("#pin-btn").removeClass("blue")
+    } else {
+      jQuery("#pin-btn").addClass("blue")
+    }
+
+    isPinned = ! isPinned
+    
+  }
+
+  def showRootFace: Unit =
+    if (! isPinned) {
+      for {
+        face <- editor.rootFace
+      } { viewer.complex = Some(face) }
+    }
 
   def updateFillColor: Unit = {
 

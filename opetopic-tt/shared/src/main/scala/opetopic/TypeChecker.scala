@@ -614,7 +614,7 @@ object TypeChecker {
     val (id, ty, exp) = unfoldDecl(decl)
 
     println("Checking definition: " + id)
-    
+
     for {
       tyT <- check(ty, TypeD)
       tyD <- tcEval(tyT)
@@ -695,13 +695,16 @@ object TypeChecker {
 
       // BUG!  You need to come up with a
       // term to put here for the let decl.
-      case (ELet(ds, e), t) =>
+      case (ELet(ds, e), t) => {
+        println("Checking a let definition")
         for {
           env <- checkDecls(ds)
+          _ = println("Environment after let: " + env.toString)
           tm <- local(_ => env)(
             check(e, t)
           )
         } yield tm
+      }
       case (e, t) =>
         for {
           pr <- checkI(e)

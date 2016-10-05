@@ -34,11 +34,14 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
   }
 
+  var hoverCofaces: Boolean = false
+
   //============================================================================================
   // EVENT HANDLERS
   //
 
   var onCellClick: SelectionType => Unit = { _ => () }
+  var onCellCtrlClick: SelectionType => Unit = { _ => () }
   var onHover: SelectionType => Unit = { _ => () }
   var onUnhover: SelectionType => Unit = { _ => () }
 
@@ -84,18 +87,42 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
     // Events
     def onClick: Unit = { selectAsRoot ; onCellClick(thisCell) }
-    def onCtrlClick: Unit = { select }
+    def onCtrlClick: Unit = { select ; onCellCtrlClick(thisCell) }
 
     def onMouseOver: Unit = {
-      boxFace.map(bc => {
-        bc.foreach(b => b.onHover)
-      })
+      if (hoverCofaces) {
+
+        val bc = boxComplex
+        val codim = bc.dim - dim
+
+        bc.traverseCofaces[Unit](codim, b => b == thisCell)({
+            case Left(b) => Some(())
+            case Right(b) => Some(b.onHover)
+        })
+
+      } else {
+        boxFace.map(bc => {
+          bc.foreach(b => b.onHover)
+        })
+      }
     }
 
     def onMouseOut: Unit = {
-      boxFace.map(bc => {
-        bc.foreach(b => b.onUnhover)
-      })
+      if (hoverCofaces) {
+
+        val bc = boxComplex
+        val codim = bc.dim - dim
+
+        bc.traverseCofaces[Unit](codim, b => b == thisCell)({
+          case Left(b) => Some(())
+          case Right(b) => Some(b.onUnhover)
+        })
+
+      } else {
+        boxFace.map(bc => {
+          bc.foreach(b => b.onUnhover)
+        })
+      }
     }
 
     var isHovered: Boolean = false

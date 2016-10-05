@@ -158,7 +158,20 @@ object SNesting {
         ))
       }
 
-    def boxOption: Option[(A, STree[SNesting[A]])] = 
+    def matchWith[B](n: SNesting[B]): Option[SNesting[(A, B)]] =
+      (nst, n) match {
+        case (SDot(a), SDot(b)) => Some(SDot((a, b)))
+        case (SBox(a, acn), SBox(b, bcn)) =>
+          for {
+            abcn <- acn.matchWith(bcn)
+            rcn <- abcn.traverse({
+              case (x, y) => x.matchWith(y)
+            })
+          } yield SBox((a, b), rcn)
+        case _ => None
+      }
+
+    def boxOption: Option[(A, STree[SNesting[A]])] =
       nst match {
         case SBox(a, cn) => Some(a, cn)
         case _ => None
@@ -303,6 +316,63 @@ object SNesting {
           } yield SBox(nst.baseValue, nnn)
         case SLeaf => Some(nst)
       }
+
+    //
+    //  Bond traverse: traverse with a nesting which is bonded with
+    //  this one.  I believe the layout routine could be rewritten
+    //  using this idea....
+    // 
+
+    def bondTraverse[B, C](web: SNesting[B], webD: SDeriv[B])(f: (A, STree[B], B) => Option[C]): Option[SNesting[C]] = {
+
+      def bondPass(n: SNesting[(A, SAddr)], lvs: STree[B]): Option[(SNesting[C], B)] =
+        n match {
+          case SDot((a, addr)) => {
+            for {
+              b <- web.elementAt(addr)
+              c <- f(a, lvs, b)
+            } yield (SDot(c), b)
+          }
+          case SBox((a, _), cn) => {
+            for {
+              pr <- cn.treeFold[(STree[SNesting[C]], B)]({
+                case extAddr => for {
+                  b <- lvs.elementAt(extAddr)
+                } yield (SLeaf, b)
+              })({
+                case (ln, horiz) => {
+
+                  val (hcn, bTr) = STree.unzip(horiz)
+
+                  for {
+                    lRes <- bondPass(ln, bTr)
+                    (thisNst, outB) = lRes
+                  } yield (SNode(thisNst, hcn), outB)
+
+                }
+              })
+              (newCn, outB) = pr
+              c <- f(a, lvs, outB)
+            } yield (SBox(c, newCn), outB)
+
+          }
+        }
+
+      // The extra setup required here is really annoying.
+      // Slightly more flexible grafting/folding routines
+      // would make this doable in one pass.
+      for {
+        addrNst <- nst.toTree.treeFold[SNesting[SAddr]]({
+          case addr => Some(SDot(addr))
+        })({
+          case (_, cn) => Some(SBox(Nil, cn))
+        })
+        prNst <- nst.matchWith(addrNst)
+        webSpine <- web.spine(webD)
+        res <- bondPass(prNst, webSpine)
+      } yield res._1
+
+    }
 
   }
 

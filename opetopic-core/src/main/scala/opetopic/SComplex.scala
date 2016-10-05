@@ -138,6 +138,66 @@ trait ComplexTypes {
         case tl >> SBox(_, cn) => cn.spine
       }
 
+    // Applies f to left for non-cofaces and right
+    // for cofaces of those faces selected by the selection
+    // function.  There is a lot of room for improvement
+    // here. Many inefficiencies ....
+    def traverseCofaces[B](codim: Int, sel: A => Boolean)(
+      f: Either[A, A] => Option[B]
+    ): Option[SComplex[B]] = {
+
+      val (web, coweb) = c.grab(codim)
+
+      val dispatch : A => Option[B] =
+        (a: A) => if (sel(a)) f(Right(a)) else f(Left(a))
+
+      // Map in the lower dimensions and the
+      // head dimension, returning the seed boolean complex
+      val (resWebOpt, bcmplx) =
+        web match {
+          case ||(hd) => (hd.traverse(dispatch).map(||(_)), ||(hd.map(sel)))
+          case tl >> hd => {
+            val rwo = 
+              for {
+                dt <- (tl : SComplex[A]).traverse(dispatch)
+                dh <- hd.traverse(dispatch)
+              } yield dt >> dh
+
+            (rwo, (tl : SComplex[A]).map(_ => false) >> hd.map(sel))
+          }
+        }
+
+      // Actually, we don't need the whole boolean complex because
+      // we can annotate the focusDeriv call below with a type
+
+      def traverseCoweb(cw: List[SNesting[A]], bc: SComplex[Boolean]): Option[List[SNesting[B]]] =
+        cw match {
+          case Nil => Some(Nil)
+          case n :: ns => {
+            for {
+              bd <- SCmplxZipper(bc).focusDeriv[Boolean]
+              newBnst <- n.bondTraverse(bc.head, bd)({
+                case (a, srcBs, tgtB) => {
+                  Some(tgtB || srcBs.toList.exists(b => b))
+                }
+              })  // Uh, yuck.  Two traversals instead of
+                  // one because the match function is to specific
+              prNst <- n.matchWith(newBnst)
+              r <- prNst.traverse({
+                case (a, true) => f(Right(a))
+                case (a, false) => f(Left(a))
+              })
+              rs <- traverseCoweb(ns, bc >> newBnst)
+            } yield r :: rs
+          }
+        }
+
+      for {
+        resWeb <- resWebOpt
+        resCw <- traverseCoweb(coweb, bcmplx)
+      } yield resWeb ++ resCw
+
+    }
 
     // This seems horribly inefficient
     def drops: List[FaceAddr] =

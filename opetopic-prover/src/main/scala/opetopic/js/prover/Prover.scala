@@ -280,52 +280,18 @@ object Prover extends JSApp {
       parser.lexer = lexer
 
       parser.parseAll match {
-        case Right(Prog(dfs)) => {
+        case Right(Module(mid, ds)) => {
 
-          def abstractDef(d: DeclT) : (String, ExpT, ExpT) =
-            d match {
-              case Def(id, Nil, ty, tm) => (id, ty, tm)
-              case Def(id, Tele(p, t) :: cs, ty, tm) => {
-                val (tid, tty, ttm) = abstractDef(Def(id, cs, ty, tm))
-                (tid, EPi(List(PTele(p, t)), tty), ELam(p, ttm))
-              }
-            }
+          println("Checking module: " + mid)
 
-          def checkDefs(defs: List[DeclT]): TCM[Unit] = {
-
-            import tcmMonad._
-
-            defs match {
-              case Nil => pure(())
-              case d :: ds => {
-
-                val (id, ty, tm) = abstractDef(d)
-
-                val msg = "Checking definition\n" +
-                  "===================\n" +
-                  id + " : " + pprint(ty) + "\n" +
-                  "  = " + pprint(tm)
-
-                showInfoMessage(msg)
-
-                for {
-                  ty0 <- check(ty, TypeD)
-                  tyD <- tcEval(ty0)
-                  tm0 <- check(tm, tyD)
-                  _ <- local(withDef(id, ty0, tyD, tm0))(checkDefs(ds))
-                } yield ()
-               }
-            }
-          }
-
-          checkDefs(dfs).run(TCEnv(Nil, RNil)) match {
-            case Xor.Left(msg) => showErrorMessage("Typechecking error: " + msg)
-            case Xor.Right(_) => showInfoMessage("Success!")
+          checkDecls(ds).run(TCEnv(Nil, RNil)) match {
+            case Xor.Left(msg) => println("Typechecking error: " + msg)
+            case Xor.Right(_) => println("Success!")
           }
 
         }
-        case Right(_) => showErrorMessage("Unknown error")
-        case Left(s) => showErrorMessage("Parse error: " + s)
+        case Right(_) => println("Unknown error")
+        case Left(s) => println("Parse error: " + s)
       }
 
     }

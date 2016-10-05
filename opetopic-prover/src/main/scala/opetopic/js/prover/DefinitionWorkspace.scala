@@ -34,35 +34,24 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // CONTEXT MANAGEMENT
   //
 
-  // Map a normal form back to a name and an expression
-  //val nfMap: HashMap[Expr, (String, Expr)] = HashMap()
-
   val catExp: ExpT = EVar("X")
 
   // Start with a category variable
   var tcEnv: TCEnv = TCEnv(List(("X", CatD)), UpVar(RNil, PVar("X"), VarD(0)))
 
-  val context: ListBuffer[(String, ExpT)] = ListBuffer(("X", ECat()))
-  val environment: ListBuffer[(String, ExpT, ExpT)] = ListBuffer()
   val cells: ListBuffer[(String, ExpT)] = ListBuffer()
   val properties: ListBuffer[Property] = ListBuffer()
 
-//   def abstractOverContext(gma: List[(String, Expr)], expr: Expr, exprTy: Expr) : (Expr, Expr) = 
-//     gma match {
-//       case Nil => (expr, exprTy)
-//       case (id, ty) :: gs => {
-//         val (e, t) = abstractOverContext(gs, expr, exprTy)
-//         (ELam(PVar(id), e), EPi(PVar(id), ty, t))
-//       }
-//     }
+  var context: List[(String, ExpT)] = List(("X", ECat()))
+  var environment: List[Definition] = Nil
 
   def extendContext(id: String, tyE: ExpT, tyD: Dom) : Unit = {
 
     tcEnv = withVar(PVar(id), tyD)(tcEnv)
-    context += ((id, tyE))
+    context = (id, tyE) :: context
 
     val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id + " : X" 
+      i(cls := "dropdown icon"), id 
     ).render
 
     val content = div(cls := "content")(
@@ -73,21 +62,17 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
   }
 
-  def extendEnvironment(id: String, expr: ExpT, ty: ExpT) : Unit = {
+  def extendEnvironment(defn: Definition) : Unit = {
 
-    environment += ((id, expr, ty))
-
-//     // Update the normal form map
-//     val nf = rbV(lRho(rho), eval(expr, rho))
-//     nfMap(nf) = (id, expr)
+    environment = defn :: environment
 
     val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id
+      i(cls := "dropdown icon"), defn.id
     ).render
 
     val content = div(cls := "content")(
-      p(pprint(expr) ++ " : " + pprint(ty)),
-      button(cls := "ui icon button", onclick := { () => () /* runAction(onExport(id, expr, ty)) */ })(
+      p(pprint(defn.expr) ++ " : " + pprint(defn.typeExpr)),
+      button(cls := "ui icon button", onclick := { () => runExcept(onExport(defn)) })(
         i(cls := "check circle icon")
       )
     ).render
@@ -122,7 +107,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     properties += prop
 
     val title = div(cls := "title")(
-      i(cls := "dropdown icon"), prop.propertyId
+      i(cls := "dropdown icon"), prop.id
     ).render
 
     val content = div(cls := "content")(
@@ -141,10 +126,10 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   }
 
   def findTgtExtWitness(cid: String) : Option[ExpT] = 
-    properties.filter(_.cellId == cid).filter(_.isTarget).map(_.propertyExp).headOption
+    properties.filter(_.cellId == cid).filter(_.isTarget).map(_.expr).headOption
 
   def findSrcExtWitness(cid: String, addr: SAddr) : Option[ExpT] = 
-    properties.filter(_.cellId == cid).filter(_.isSourceAt(addr)).map(_.propertyExp).headOption
+    properties.filter(_.cellId == cid).filter(_.isSourceAt(addr)).map(_.expr).headOption
 
   def hasUniversalProperty(cid: String) : Boolean = 
     properties.filter(_.cellId == cid).length > 0 
@@ -172,6 +157,21 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
           } yield ECell(catExp, cmplxToExp(expFrm))
       }
     } yield res
+
+  //============================================================================================
+  // EXPORTING
+  //
+
+  def onExport(defn: Definition): Except[Unit] =
+    for {
+      editor <- attempt(Prover.cm, "No active code mirror editor")
+    } yield {
+
+      val doc = editor.getDoc()
+      val cur = doc.getCursor()
+      doc.replaceRange(pprint(defn.declaration), cur, cur)
+
+    }
 
   //============================================================================================
   // PASTING
@@ -207,91 +207,6 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   }
 
   //============================================================================================
-  // EXPORTING
-  //
-
-//   def onExport(id: String, expr: Expr, ty: Expr) : EditorM[Unit] = {
-//     val (e, t) = abstractOverContext(context.toList, expr, ty)
-//     module.addDefinition(id, e, t)
-//   }
-
-  //============================================================================================
-  // IMPORTING
-  //
-
-//   def onImportProperty: EditorM[Unit] = {
-
-//     import OTTParser._
-
-//     val id = jQuery(importPropIdInput).value().asInstanceOf[String]
-//     val exprStr = jQuery(importPropExprInput).value().asInstanceOf[String]
-
-//     parseAll(phrase(expr), exprStr) match {
-//       case Success(e, _) => {
-
-//         runInstanceAction(new InstanceAction[EditorM[Unit]] {
-
-//           def objectAction(i: EditorInstance)(box: i.InstanceBox[_0]) : EditorM[Unit] =
-//             editorError("Objects don't have properties")
-          
-//           def cellAction[P <: Nat](p: P)(i: EditorInstance)(box: i.InstanceBox[S[P]]) : EditorM[Unit] =
-//             for {
-//               mk <- attempt(box.optLabel, "Cannot assign property to empty box")
-//               ee = eval(mk.expr, rho)
-
-//               _ <- simpleCheck(
-//                 check(rho, gma, e, IsLeftExt(ee))
-//               )  
-//             } yield {
-
-//               val propId = id
-//               val propExpr = e
-//               val propTy = EIsLeftExt(mk.expr)
-
-//               registerProperty(
-//                 LeftExtensionProperty(
-//                   propId, propExpr, propTy, mk.displayName, mk.expr
-//                 )
-//               )
-
-//               box.optLabel = Some(mk)
-//               box.panel.refresh
-//               refreshEditor
-
-//             }
-
-//         })
-
-//       }
-//       case err => editorError("Parse error: " ++ err.toString)
-//     }
-
-//   }
-
-//   def onImportCell : EditorM[Unit] = {
-
-//     import OTTParser._
-
-//     val id = jQuery(importIdInput).value().asInstanceOf[String]
-//     val exprStr = jQuery(importExprInput).value().asInstanceOf[String]
-
-//     parseAll(phrase(expr), exprStr) match {
-//       case Success(e, _) => {
-
-//         for {
-//           _ <- onPaste(e, id)
-//         } yield {
-//           val nf = rbV(lRho(rho), eval(e, rho))
-//           nfMap(nf) = (id, e)
-//         }
-
-//       }
-//       case err => editorError("Parse error: " ++ err.toString)
-//     }
-
-//   }
-
-  //============================================================================================
   // CELL ASSUMPTIONS
   //
 
@@ -300,7 +215,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     val id = jQuery(assumeIdInput).value().asInstanceOf[String]
     val isTgtExt = jQuery(assumeTgtExtCheckbox).prop("checked").asInstanceOf[Boolean]
 
-    println("Going to assume new identifier: " + id)
+    // println("Going to assume new identifier: " + id)
 
     for {
       tab <- attempt(activeTab, "No active tab")
@@ -333,7 +248,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
           registerProperty(
             TgtExtProperty(
-              pId, EVar(pId), prop, id, EVar(id)
+              pId, EVar(pId), prop, id, EVar(id), context, environment
             )
           )
 
@@ -395,11 +310,11 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
       // The property must be registered first, since assigning the
       // label will trigger a recalculation of the cell visualization
-      _ = registerProperty(
-        TgtExtProperty(
-          propId, prop, propTy, fillId, fill
-        )
+      propDefn = TgtExtProperty(
+        propId, prop, propTy, fillId, fill, context, environment
       )
+
+      _ = registerProperty(propDefn)
 
       _ = compBox.label = Some(Marker(thisWksp, compId, comp))
       _ = fillBox.label = Some(Marker(thisWksp, fillId, fill))
@@ -409,9 +324,12 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     } yield {
 
-      extendEnvironment(compId, comp, compTy)
-      extendEnvironment(fillId, fill, fillTy)
-      extendEnvironment(propId, prop, propTy)
+      val compDefn = Cell(compId, comp, compTy, context, environment)
+      val fillDefn = Cell(fillId, fill, fillTy, context, environment)
+
+      extendEnvironment(compDefn)
+      extendEnvironment(fillDefn)
+      extendEnvironment(propDefn)
 
       registerCell(compId, comp)
       registerCell(fillId, fill)
@@ -477,21 +395,21 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
       tgtProp = EFillTgtIsTgt(eMk.expr, tgtExtWitness, cMk.expr, tMk.expr)
       tgtPropTy = EIsTgtU(fillExpr)
 
-      _ = registerProperty(
-        TgtExtProperty(
-          tgtPropId, tgtProp, tgtPropTy, fillId, fillExpr
-        )
+      tgtPropDefn = TgtExtProperty(
+        tgtPropId, tgtProp, tgtPropTy, fillId, fillExpr, context, environment
       )
+
+      _ = registerProperty(tgtPropDefn)
 
       srcPropAddr = addrToExp(Nil)
       srcProp = EFillTgtIsSrc(eMk.expr, tgtExtWitness, cMk.expr, tMk.expr)
       srcPropTy = EIsSrcU(fillExpr, srcPropAddr)
 
-      _ = registerProperty(
-        SrcExtProperty(
-          srcPropId, srcProp, srcPropTy, Nil, fillId, fillExpr
-        )
+      srcPropDefn = SrcExtProperty(
+        srcPropId, srcProp, srcPropTy, Nil, fillId, fillExpr, context, environment
       )
+
+      _ = registerProperty(srcPropDefn)
 
       _ = liftBox.label = Some(Marker(thisWksp, liftId, liftExpr))
       _ = fillBox.label = Some(Marker(thisWksp, fillId, fillExpr))
@@ -501,10 +419,13 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     } yield {
 
-      extendEnvironment(liftId, liftExpr, liftTy)
-      extendEnvironment(fillId, fillExpr, fillTy)
-      extendEnvironment(tgtPropId, tgtProp, tgtPropTy)
-      extendEnvironment(srcPropId, srcProp, srcPropTy)
+      val liftDefn = Cell(liftId, liftExpr, liftTy, context, environment)
+      val fillDefn = Cell(fillId, fillExpr, fillTy, context, environment)
+
+      extendEnvironment(liftDefn)
+      extendEnvironment(fillDefn)
+      extendEnvironment(tgtPropDefn)
+      extendEnvironment(srcPropDefn)
 
       registerCell(liftId, liftExpr)
       registerCell(fillId, fillExpr)
@@ -571,21 +492,21 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
       tgtProp = EFillSrcIsTgt(eMk.expr, srcExtWitness, cMk.expr, tMk.expr)
       tgtPropTy = EIsTgtU(fillExpr)
 
-      _ = registerProperty(
-        TgtExtProperty(
-          tgtPropId, tgtProp, tgtPropTy, fillId, fillExpr
-        )
+      tgtPropDefn = TgtExtProperty(
+        tgtPropId, tgtProp, tgtPropTy, fillId, fillExpr, context, environment
       )
+
+      _ = registerProperty(tgtPropDefn)
 
       srcPropAddr <- attempt(addr.headOption.map(_.dir), "Malformed source address")
       srcProp = EFillSrcIsSrc(eMk.expr, srcExtWitness, cMk.expr, tMk.expr)
       srcPropTy = EIsSrcU(fillExpr, addrToExp(srcPropAddr))
 
-      _ = registerProperty(
-        SrcExtProperty(
-          srcPropId, srcProp, srcPropTy, Nil, fillId, fillExpr
-        )
+      srcPropDefn = SrcExtProperty(
+        srcPropId, srcProp, srcPropTy, Nil, fillId, fillExpr, context, environment
       )
+
+      _ = registerProperty(srcPropDefn)
 
       _ = liftBox.label = Some(Marker(thisWksp, liftId, liftExpr))
       _ = fillBox.label = Some(Marker(thisWksp, fillId, fillExpr))
@@ -595,10 +516,13 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     } yield {
 
-      extendEnvironment(liftId, liftExpr, liftTy)
-      extendEnvironment(fillId, fillExpr, fillTy)
-      extendEnvironment(tgtPropId, tgtProp, tgtPropTy)
-      extendEnvironment(srcPropId, srcProp, srcPropTy)
+      val liftDefn = Cell(liftId, liftExpr, liftTy, context, environment)
+      val fillDefn = Cell(fillId, fillExpr, fillTy, context, environment)
+
+      extendEnvironment(liftDefn)
+      extendEnvironment(fillDefn)
+      extendEnvironment(tgtPropDefn)
+      extendEnvironment(srcPropDefn)
 
       registerCell(liftId, liftExpr)
       registerCell(fillId, fillExpr)
@@ -681,10 +605,10 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
       val prop = TgtExtProperty(
         propId, propExpr, propTy,
         destMk.displayName,
-        destMk.expr
+        destMk.expr, context, environment
       )
 
-      extendEnvironment(propId, propExpr, propTy)
+      extendEnvironment(prop)
       registerProperty(prop)
 
       // Cause the box to rerender

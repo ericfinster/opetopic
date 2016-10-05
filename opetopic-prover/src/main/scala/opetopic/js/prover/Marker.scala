@@ -18,7 +18,10 @@ case class Marker(
   val expr: ExpT
 ) {
 
-  def cs : ColorSpec = 
+  def idExpr: ExpT =
+    EVar(displayName)
+  
+  def cs : ColorSpec =
     if (wksp.hasUniversalProperty(displayName)) {
       FillColorSpec
     } else 
