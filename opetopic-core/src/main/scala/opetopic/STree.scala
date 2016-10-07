@@ -242,6 +242,14 @@ object STree {
     def asShell[B]: STree[STree[B]] = 
       st.map(_ => SLeaf)
 
+    def addrTree: STree[SAddr] =
+      st.mapWithAddr({ case (_, addr) => addr })
+
+    def comultiply: STree[STree[A]] =
+      st.mapWithDeriv[A, STree[A]]({
+        case (a, d) => SNode(a, d.sh)
+      })
+
     def treeFold[B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
       STree.treeFold(st)(lr)(nr)
 
@@ -263,9 +271,9 @@ object STree {
       }
 
     // Fix for laziness ...
-    def flattenWith[B](d: SDeriv[B], addr: SAddr = Nil)(f: SAddr => B): Option[STree[B]] = 
+    def flattenWith[B](d: SDeriv[B], addr: SAddr = Nil)(f: SAddr => Option[B]): Option[STree[B]] = 
       st match {
-        case SLeaf => Some(d.plug(f(addr)))
+        case SLeaf => f(addr).map(d.plug(_)) 
         case SNode(a, sh) => 
           for {
             toJn <- sh.traverseWithData[Option, B, STree[B]](

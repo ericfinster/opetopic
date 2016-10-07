@@ -90,6 +90,17 @@ trait ComplexTypes {
       }
     }
 
+    def matchWith[B](d: SComplex[B]): Option[SComplex[(A, B)]] =
+      (c, d) match {
+        case (||(cn), ||(dn)) => cn.matchWith(dn).map(pn => ||(pn))
+        case (ctl >> chd, dtl >> dhd) =>
+          for {
+            tl <- ctl.matchWith(dtl)
+            hd <- chd.matchWith(dhd)
+          } yield tl >> hd
+        case _ => None
+      }
+
     def mapWithAddr[B](f: (A, FaceAddr) => B, codim: Int = 0): SComplex[B] =
       c match {
         case ||(hd) => hd.mapWithAddr((a, addr) => f(a, FaceAddr(codim, addr)))
@@ -124,6 +135,48 @@ trait ComplexTypes {
         case _ >> SBox(_, SLeaf) >> SDot(_) => true
         case _ => false
       }
+
+    def isCFreeFace(fa: FaceAddr): Option[Boolean] = {
+
+      val codim = fa.codim
+      val addr = fa.address
+
+      if (codim > 0) {
+
+        c.grab(codim) match {
+          case (fcmplx, nst :: _) => {
+
+            def hasCofaceLoops(bnst: SNesting[Boolean]): Boolean =
+              bnst match {
+                case SDot(_) => false
+                case SBox(b, SLeaf) => b
+                case SBox(_, cn) => cn.map(hasCofaceLoops(_)).toList.exists(b => b)
+              }
+
+            for {
+              zp <- fcmplx.head.seek(addr)
+              // _ = println("Focus: " + zp.focus.toString)
+              _ <- zp.focus.dotOption  // Make sure it's external
+              bd <- SCmplxZipper(fcmplx).focusDeriv[Boolean]
+              bn = fcmplx.head.mapWithAddr({
+                case (a, baddr) => baddr == addr
+              })
+              // _ = println("Boolean coface nesting: " + bn.toString)
+              cofaces <- nst.bondTraverse(bn, bd)({
+                case (a, srcBs, tgtB) => {
+                  Some(tgtB || srcBs.toList.exists(b => b))
+                }
+              })
+              // _ = println("Cofaces: " + cofaces.toString)
+            } yield (! hasCofaceLoops(cofaces))
+
+          }
+          case _ => None
+        }
+
+      } else None
+
+    }
 
     def headSpine: Option[STree[A]] =
       c match {
@@ -359,10 +412,6 @@ trait ComplexTypes {
         case tl >> hd => tl >> hd.withFocus(n)
       }
 
-    // This does a bunch of extra work calculating
-    // spines for derivatives which don't get used.
-    // You should use laziness here to avoid all the
-    // extra work.
     def focusDeriv[B]: Option[SDeriv[B]] =
       z match {
         case ||(_) => Some(SDeriv(SLeaf))
@@ -372,12 +421,19 @@ trait ComplexTypes {
               for {
                 tc <- tl.focusCanopy
               } yield SDeriv(tc.asShell)
-            case SBox(_, cn) => 
+            case SBox(_, cn) => {
+
+              // This is to avoid dropping all the way to the
+              // object level for computing a derivative that
+              // will often not be used.  But I haven't tested
+              // if it actually works or not ...
+              lazy val d = tl.focusDeriv[SNesting[A]]
+
               for {
                 sp <- cn.spine
-                d <- tl.focusDeriv[SNesting[A]]
                 dsh <- tl.focus.canopyWithGuide(sp, d)
               } yield SDeriv(dsh.asShell)
+            }
           }
       }
 
@@ -478,15 +534,328 @@ trait ComplexTypes {
           } yield c.withHead(chd) >> excised
       }
 
+    //
+    // Expansion
+    //
+
+    def expandWith(pd: STree[A], webOpt: Option[SComplex[A]]): Option[SComplex[A]] =
+      z match {
+        case ||(hd) =>
+          pd match {
+            case SNode(a, SLeaf) => hd.focus.dotOption.map(_ => ||(hd.withFocus(SDot(a)).close))
+            case _ => None // In zero case, pasting diagram must be an object
+          }
+        case tl >> hd => {
+          for {
+            _ <- hd.focus.dotOption
+            pr <- tl.focus.boxOption
+            (bv, bcn) = pr
+            web <- webOpt
+            wnst <- web.head.toTree.treeFold({
+              case addr => bcn.elementAt(addr)
+            })({
+              case (a, cn) => Some(SBox(a, cn))
+            })
+
+            nst <- hd.ctxt.g match {
+              case Nil => None
+              case (av, SDeriv(sh, gma)) :: prs => {
+                for {
+                  gres <- pd.map[SNesting[A]](SDot(_)).graftWith(sh)
+                } yield SNstCtxt(prs).close(SBox(av, gma.close(gres)))
+              }
+            }
+
+          } yield tl.withFocus(wnst).close >> nst
+        }
+      }
+
+  }
+
+  // Yeah, just do the simple case first, where we can count on the cardinalities
+  // being the same.
+  def newFix[A](base: SComplex[A], nst: SNesting[A]): Option[SNesting[A]] = {
+
+    type Cn = STree[SNesting[A]]
+    type Mp = Map[SAddr, SAddr]
+
+    def mkMap[U, V](u: STree[U], v: STree[V]): Mp = {
+      val ul = u.toList
+      val vl = v.toList
+      println("U length " + ul.length.toString)
+      println("V length " + vl.length.toString)
+
+      Map(u.addrTree.toList.zip(v.addrTree.toList): _*)
+    }
+
+    def vertical(n: SNesting[A], addr: SAddr, d: SDeriv[SAddr]): Option[(SNesting[A], STree[(SAddr, SDeriv[SAddr])])] =
+      n match {
+        case SDot(a) =>
+          for {
+            zp <- base.head.seek(addr)
+            cn <- zp.focus match {
+              case SDot(_) => None
+              case SBox(_, cn) => Some(cn)
+            }
+          } yield (SDot(a), cn.mapWithData[SAddr, (SAddr, SDeriv[SAddr])](
+            (_, dir, der) => (SDir(dir) :: addr, der)
+          ))
+        case SBox(a, cn) => {
+          for {
+            hres <- horizontal(cn, addr, d)
+            (newCn, dataTr) = hres
+          } yield (SBox(a, newCn), dataTr)
+        }
+      }
+
+    // Think of d as the derivative on the rising edge.
+    def horizontal(t: STree[SNesting[A]], addr: SAddr, d: SDeriv[SAddr]): Option[(Cn, STree[(SAddr, SDeriv[SAddr])])] =
+      t match {
+        case SLeaf => Some((SLeaf, d.plug(addr).map(a => (a, d))))
+        case SNode(n, sh) =>
+          for {
+            vres <- vertical(n, addr, d)
+            (ln, lsh) = vres
+            fwdMp = mkMap(lsh, sh)
+            bwkMp = fwdMp.map(_.swap)
+            hres <- sh.traverseWithAddr({
+              case (b, ad) => lsh.elementAt(bwkMp(ad)).flatMap(el => horizontal(b, el._1, el._2))
+            })
+            (brs, toJn) = STree.unzip(hres)
+            dataTr <- toJn.join
+            newSh <- lsh.traverseWithAddr({
+              case (_, ad) => brs.elementAt(fwdMp(ad))
+            })
+          } yield (SNode(ln, newSh), dataTr)
+      }
+
+    for {
+      d <- SCmplxZipper(base).focusDeriv[SAddr]
+      r <- vertical(nst, Nil, d)
+    } yield r._1
+
+  }
+
+
+  def fixLeaves[A](base: SComplex[A], nbase: SComplex[A], nst: SNesting[A], mp: Map[SAddr, SAddr]): Option[SNesting[A]] = {
+
+    type Cn = STree[SNesting[A]]
+    type Pr = (Cn, SDeriv[SAddr])
+    type Mp = Map[SAddr, SAddr]
+
+    def mkMap[U, V](u: STree[U], v: STree[V]): Mp = {
+      val ul = u.toList
+      val vl = v.toList
+      println("U length " + ul.length.toString)
+      println("V length " + vl.length.toString)
+
+      Map(u.addrTree.toList.zip(v.addrTree.toList): _*)
+    }
+
+    def innerFix(n: SNesting[(A, SAddr)], lvs: STree[Pr], m: Mp): Option[Pr] = {
+
+      println("InnerFix on " + n.baseValue._1.toString)
+
+      def getLeaf(addr: SAddr, mOpt: Option[Mp] = None): Option[Pr] =
+        mOpt match {
+          case None => getLeafRaw(addr)
+          case Some(mp) => {
+            if (mp.isDefinedAt(addr)) {
+              println("Successful map lookup")
+              getLeafRaw(mp(addr))
+            } else {
+              println("Map undefined for: " + addr.toString)
+              getLeafRaw(addr)
+            }
+          }
+        }
+
+      def getLeafRaw(addr: SAddr): Option[Pr] =
+        lvs.elementAt(addr) match {
+          case None => { println("Leaf lookup failed for: " + addr.toString) ; None }
+          case Some(p) => { println("Leaf lookup success") ; Some(p) }
+        }
+
+      n match {
+        case SDot((a, addr)) => {
+          println("Dot: " + a.toString)
+          for {
+            zp <- base.head.seek(addr)
+            cp <- zp.focus match {
+              case SDot(_) => None
+              case SBox(_, cn) => Some(cn)
+            }
+            mp = mkMap(cp, lvs)
+            sh <- cp.traverseWithAddr({
+              case (_, ad) => { println("3") ; getLeaf(ad, Some(mp)).map(_._1) }
+            })
+          } yield (SNode(SDot(a), sh), SDeriv(SLeaf))
+        }
+        case SBox((a, _), cn) => {
+          println("Box: " + a.toString)
+          for {
+            pr <- cn.treeFold[Pr]({
+              case addr => { println("1") ; getLeaf(addr, Some(m)) }
+            })({
+              case (lnst, lbrs) => innerFix(lnst, lbrs, mkMap(lbrs, lbrs))
+            })
+            _ = println("Finalizing box " + a.toString)
+            (ncn, d) = pr
+            lcn <- ncn.flattenWith(d)(ad => Some(ad))
+            // Duplication.  But just for now ..
+            lmp = mkMap(lcn, lvs)
+            _ = println("Local map: " + lmp.toString)
+            nlvs <- lcn.traverseWithAddr({
+              case (_, ad) => println("2") ; getLeaf(ad, Some(lmp)).map(_._1)
+            })
+          } yield (SNode(SBox(a, ncn), nlvs), SDeriv(SLeaf))
+        }
+      }
+    }
+
+    // As in bondTraverse, this extra setup could probably
+    // be profitably simplified.
+
+    for {
+      addrNst <- nst.toTree.treeFold[SNesting[SAddr]]({
+        case addr => {
+          val nwAd = mp(addr)
+          println("Setting address map: " + addr.toString + " -> " + nwAd.toString)
+          Some(SDot(nwAd))
+        }
+      })({
+        case (_, cn) => Some(SBox(Nil, cn))
+      })
+      prNst <- nst.matchWith(addrNst)
+      sp <- SCmplxZipper(base).focusSpine
+      lvs = sp.mapWithDeriv[SAddr, Pr]({
+        case (_, d) => (SLeaf, d)
+      })
+      // nsp <- SCmplxZipper(nbase).focusSpine
+      // m = mkMap(nsp, sp)
+      pr <- innerFix(prNst, lvs, mp)
+      (cn, _) = pr
+      r <- cn.rootValue
+    } yield r
+
+  }
+
+  // Right, I think now your fixup routine would actually be generic
+  // (since now it actually looks for the correct leaf setup in the
+  // base complex when processing a dot) if you could somehow have
+  // a slightly more sophisticated address setup at the beginning.
+
+  // It looks like we need just one extra address map when we build
+  // the nesting guy so that we are sent to correct addresses in the
+  // base.
+
+  // So, the idea for creating the tree is pretty simple: you're going
+  // to fill the original nesting with it's addresses, then make a partial
+  // join so that you see the resulting tree, then map over it to make
+  // the appropriate map.
+
+  def expandAt[A](c: SComplex[A], e: SComplex[A], fa: FaceAddr): Option[SComplex[A]] = {
+
+    type Cn[A] = STree[SNesting[A]]
+
+    def partialJoin(tr: STree[Either[Cn[A], STree[Cn[A]]]]): Option[STree[Cn[A]]] =
+      tr match {
+        case SLeaf => Some(SLeaf)
+        case SNode(Left(cn), sh) => sh.traverse(partialJoin(_)).map(r => SNode(cn, r))
+        case SNode(Right(pd), sh) => sh.traverse(partialJoin(_)).flatMap(r => pd.graftWith(r))
+      }
+
+    def fixup(nst: SNesting[A], lvs: STree[Either[Cn[A], STree[Cn[A]]]]): Option[Cn[A]] = {
+      nst match {
+        case SDot(a) => partialJoin(lvs).map(r =>  SNode(SDot(a), r))
+        case SBox(a, cn) => {
+          for {
+            hout <- partialJoin(lvs)
+            fres <- cn.treeFold[Either[Cn[A], STree[Cn[A]]]]({
+              case addr => lvs.elementAt(addr)
+            })({
+              case (lnst, hlvs) => fixup(lnst, hlvs).map(Left(_))
+            })
+            res <- fres match {
+              case Left(ncn) => Some(SNode(SBox(a, ncn), hout.map(_ => SLeaf)))
+              case Right(jcn) => {
+                println("WARNING: Right on return.  Not sure if this should happen.")
+                jcn.join.map(r => SNode(SBox(a, r), hout))
+              }
+            }
+          } yield res
+
+        }
+      }
+    }
+
+    for {
+      isCFree <- c.isCFreeFace(fa)
+      _ <- if (isCFree) Some(()) else None
+      face <- c.face(fa)
+      etgt <- e.target
+      _ <- face.matchWith(etgt)
+
+      pr = c.grab(fa.codim)
+      (base, upper) = pr
+
+      frmNst <- e.tail.map(_.head)
+      frmInfo <- e.cellFrame
+      (pd, tgt) = frmInfo
+
+      addr = fa.address
+      bz = SCmplxZipper(base)
+      zp <- bz.seek(addr)
+      exBase <- zp.expandWith(pd, e.tail.flatMap(_.tail))
+
+      // // This is the setup for joining to get the correct guy.
+      // toJn <- base.head.addrNesting.comultiply.replaceAt(addr, frmNst.addrNesting)
+      // jnd <- SNesting.join(toJn)
+      // // _ = println("Joined tree: " + jnd.toString)
+      // mp = Map(jnd.toTree.mapWithAddr({ case (o, n) => (o, n) }).toList : _*)
+      // // _ = println("Fixup map: " + mp.toString)
+
+      // Here we perform the expansion on a copy of the nesting
+      // with addresses embedded so we can build a map between
+      // the old and new addresses
+      addrNst = base.head.addrNesting
+      nz <- addrNst.seek(addr)
+      mpNst <- nz.ctxt.g match {
+        case Nil => None
+        case (ad, SDeriv(sh, gma)) :: prs => 
+          pd.addrTree.map[SNesting[SAddr]](SDot(_)).graftWith(sh).map(gres =>
+            SNstCtxt(prs).close(SBox(ad, gma.close(gres)))
+          )
+      }
+      mp = Map(mpNst.toTree.mapWithAddr({ case (o, n) => (o, n) }).toList : _*)
+
+      firstUpper <- upper.headOption
+      firstFixup <- fixLeaves(exBase, base, firstUpper, mp)
+      // firstFixup <- fixup(firstUpper, sp).flatMap(_.rootValue)
+
+      nextUpper = upper.tail.head
+      // fus <- doFixups(base, upper, sp)
+
+    } yield {
+
+      val b = exBase >> firstFixup
+
+      // val result =
+      //   fixLeaves(b, base >> firstUpper, upper.tail.head) match {
+      //     case None => { println("Leaf fixup failed") ; b }
+      //     case Some(n) => { println("Success!") ; b >> n }
+      //     }
+
+      b
+
+    }
+
   }
 
   //============================================================================================
   // COMPLEX GRAFTING
   //
 
-  // Uh, yeah, I haven't really tested these routines out yet.  I just translated from the
-  // unstable version so they would be here for use in the type checker.  But you should
-  // do some kind of test to make sure they're working as you would expect ...
   def graft[A](pd: STree[SComplex[A]])(disc: (A, A) => Option[A]): Option[(SComplex[A], STree[SNesting[A]])] = 
     for {
       pr <- pd.traverse({ 
@@ -712,3 +1081,4 @@ trait ComplexTypes {
   }
 
 }
+

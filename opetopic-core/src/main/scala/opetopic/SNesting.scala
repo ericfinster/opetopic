@@ -141,7 +141,16 @@ object SNesting {
     def mapWithAddr[B](f: (A, => SAddr) => B): SNesting[B] = 
       lazyTraverse(funcAddrToLt[Id, A, B](f))
 
-    def traverseWithAddr[G[_], B](f: (A, => SAddr) => G[B])(implicit isAp: Applicative[G]): G[SNesting[B]] = 
+    def mapWithDeriv[B, C](d: SDeriv[B])(f: (A, => SDeriv[B]) => C) : SNesting[C] =
+      lazyTraverse(funcDerivToLt[Id, A, B, C](f), Nil, d)
+
+    def mapWithData[B, C](d: SDeriv[B])(f: (A, => SAddr, => SDeriv[B]) => C) : SNesting[C] =
+      lazyTraverse(funcAddrDerivToLt[Id, A, B, C](f), Nil, d)
+
+    def addrNesting: SNesting[SAddr] =
+      nst.mapWithAddr({ case (a, addr) => addr })
+
+    def traverseWithAddr[G[_], B](f: (A, => SAddr) => G[B])(implicit isAp: Applicative[G]): G[SNesting[B]] =
       lazyTraverse(funcAddrToLt[G, A, B](f))
 
     def foldNesting[B](dot: A => B)(box: (A, STree[B]) => B) : B =
@@ -196,7 +205,16 @@ object SNesting {
     def toTreeWith[B](f: A => B): STree[B] = 
       foldNesting[STree[B]](a => SLeaf)((a, sh) => SNode(f(a), sh))
 
-    def foreach(op: A => Unit): Unit = 
+    def comultiply: SNesting[SNesting[A]] =
+      nst match {
+        case SDot(a) => SDot(SDot(a))
+        case SBox(a, cn) => {
+          val lcl = SBox(a, cn.map(ln => SDot(ln.baseValue)))
+          SBox(lcl, cn.map(_.comultiply))
+        }
+      }
+
+    def foreach(op: A => Unit): Unit =
       nst match {
         case SDot(a) => op(a)
         case SBox(a, cn) => {
@@ -264,13 +282,13 @@ object SNesting {
         case SBox(a, cn) => cn.canopy
       }
 
-    def canopyWithGuide[B](g: STree[B], d: SDeriv[SNesting[A]]): Option[STree[SNesting[A]]] = 
+    def canopyWithGuide[B](g: STree[B], dOpt: => Option[SDeriv[SNesting[A]]]): Option[STree[SNesting[A]]] = 
       (nst, g) match {
-        case (_, SLeaf) => Some(d.plug(nst))
+        case (_, SLeaf) => dOpt.map(d => d.plug(nst))
         case (SBox(_, cn), SNode(_, sh)) => 
           for {
             toJn <- cn.matchWithDeriv(sh)({
-              case (nn, gg, dd) => nn.canopyWithGuide(gg, dd)
+              case (nn, gg, dd) => nn.canopyWithGuide(gg, Some(dd))
             })
             jn <- toJn.join
           } yield jn
@@ -309,7 +327,7 @@ object SNesting {
           } yield SBox(nst.baseValue, d.plug(nn))
         case SNode(sk, sh) => 
           for {
-            cn <- nst.canopyWithGuide(sk, d)
+            cn <- nst.canopyWithGuide(sk, Some(d))
             nnn <- cn.matchWithDeriv(sh)({
               case (nn, gg, dd) => nn.compressWith(gg, dd)
             })

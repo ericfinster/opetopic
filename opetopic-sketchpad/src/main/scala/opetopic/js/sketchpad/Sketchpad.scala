@@ -132,6 +132,8 @@ object Sketchpad extends JSApp {
     jQuery("#svg-btn").on("click", () => { renderSketch })
     jQuery("#export-btn").on("click", () => { exportSketch })
     jQuery("#pin-btn").on("click", () => { onPinToggle })
+    jQuery("#expand-btn").on("click", () => { runExcept(onExpand) })
+    jQuery("#contract-btn").on("click", () => { onContract })
 
   }
 
@@ -217,6 +219,40 @@ object Sketchpad extends JSApp {
       })
     })
 
+  }
+
+  def runExcept[A](e: Except[A]): Unit =
+    e match {
+      case Xor.Left(s) => println("Error: " + s)
+      case Xor.Right(_) => ()
+    }
+
+  def onExpand: Except[Unit] = 
+    for {
+      tab <- attempt(editor.activeTab, "No tab")
+      root <- attempt(tab.editor.selectionRoot, "Nothing selected")
+      face <- attempt(root.face, "Error calculating face")
+
+      (cardCmplx: SComplex[tab.editor.EditorCell]) = tab.editor.complex
+      ccmplx = cardCmplx.map(_.label)
+      codim = ccmplx.dim - root.dim
+      ca = root.cardinalAddress.complexAddress
+      fa = FaceAddr(codim, ca)
+
+      expander <- attempt(viewer.complex, "No complex in viewer")
+
+      exCmplx <- attempt(expandAt(ccmplx, expander, fa), "Expansion failed")
+
+    } yield {
+
+      println("Expansion complete")
+      editor.newEditor(SCardinal(exCmplx))
+      // viewer.complex = Some(exCmplx)
+
+    }
+
+  def onContract: Unit = {
+    println("Contracting ...")
   }
 
   var isPinned = false
