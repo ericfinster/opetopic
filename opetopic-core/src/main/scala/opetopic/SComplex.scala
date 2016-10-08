@@ -823,10 +823,39 @@ trait ComplexTypes {
 
   def contractAt[A](c: SComplex[A], g: SComplex[A], fa: FaceAddr): Option[SComplex[A]] = {
 
+    case class ContractMarker(
+      val addr: SAddr,
+      val deriv: SDeriv[LeafMarker[A]],
+      val branch: Option[STree[SNesting[A]]] = None,
+      val pd: STree[STree[SNesting[A]]]
+    ) extends LeafMarker[A] {
+
+      def attach(b: STree[SNesting[A]]): LeafMarker[A] =
+        this.copy(branch = Some(b))
+
+    }
+
+    def contractJoin(mkSh: STree[LeafMarker[A]]): Option[Shell[SNesting[A]]] =
+      mkSh match {
+        case SLeaf => Some(SLeaf)
+        case SNode(b: BasicLeafMarker[A], sh) =>
+          for {
+            branch <- b.branch
+            bsh <- sh.traverse(contractJoin(_))
+          } yield SNode(branch, bsh)
+        case SNode(cm: ContractMarker, sh) => {
+          println("Contracting in shell!")
+          for {
+            bsh <- sh.traverse(contractJoin(_))
+            cut <- SNode(SLeaf, bsh).takeWithMask(cm.pd, SDeriv(sh.asShell)) // Check the derivative!!!
+            (_, cutSh) = cut
+          } yield SNode(SLeaf, cutSh)
+        }
+      }
 
     val codim = fa.codim
     val lclAddr = fa.address
-    val (base, uppder) = c.grab(codim)
+    val (base, upper) = c.grab(codim)
 
     for {
 
@@ -838,7 +867,6 @@ trait ComplexTypes {
       // We ban it for the time being .....
       if (! pd.isLeaf)
 
-      // tailDeriv <- SCmplxZipper(tail).focusDeriv[SAddr]
       addrNst = base.head.addrNesting
       cnpyAddr <- lclAddr.headOption
       baseAddr = lclAddr.tail
@@ -861,33 +889,20 @@ trait ComplexTypes {
       }
 
       bzip <- SCmplxZipper(base).seek(baseAddr)
-      result <- bzip.contractInCanopy(tgt, pd, cnpyAddr.dir)
+      cnBase <- bzip.contractInCanopy(tgt, pd, cnpyAddr.dir)
 
-      //def contractInCanopy(tgt: A, pd: STree[A], addr: SAddr): Option[SComplex[A]] =
+      // Create the contraction guide for leaf fixup
+      bd <- SCmplxZipper(base).focusDeriv[LeafMarker[A]]
+      bmkNst = base.head.mapWithData[LeafMarker[A], LeafMarker[A]](bd)(
+        (_, ad, dr) => LeafMarker(ad, dr)
+      )
+      nz <- bmkNst.seek(lclAddr)
+      emk <- nz.focus.dotOption
+      guide = nz.withFocus(SDot(ContractMarker(emk.addr, emk.deriv, None, pd.map(_ => SLeaf)))).close
 
-      // So, the basic idea is that we need to find the pasting
-      // diagram *in the spine* and then write over it with a guy.
-      // Right, we're going to comultiply in the spine.  Compressing
-      // the previous nesting with this guy should given the same thing
-      // back.  As an intermediate step, we're going to write over that
-      // part of the spine that we are going to be composing with the
-      // pasting diagram.  Then we call compress and we should be
-      // golden.
-
-      // So, first step: locate the pasting diagram in the spine.
-
-      // At this point, we should know that we have a compatible pasting
-      // diagram of cfree faces.
-
-      // Now, what's next?  We need to figure out how we're going to
-      // "compress" the lower dimension and replace the pasting diagram
-      // in the upper dimension with a single cell.
-
-      // d <- SCmplxZipper(g).focusDeriv[STree[A]]
-      // tz <- SCmplxZipper(base).seek(lclAddr)
-      // ttl <- tz.tail  // We must have a tail?
-
-      // test <- ttl.head.focus.compressWith(???, ???)
+      firstUpper <- upper.headOption
+      firstFixup <- fixLeaves(guide, firstUpper)(contractJoin)
+      result <- fixAllLeaves(cnBase >> firstFixup, upper.tail)
 
     } yield result
 
