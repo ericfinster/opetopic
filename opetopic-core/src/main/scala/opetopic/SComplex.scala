@@ -509,7 +509,8 @@ trait ComplexTypes {
       }
 
     //
-    //  Source Extraction
+    //  Source Extraction - extract the subcomplex of boxes
+    //  *above* the focus using the guide tree
     //
 
     def extract[B](guide: STree[B]): Option[SComplex[A]] = 
@@ -570,8 +571,48 @@ trait ComplexTypes {
         }
       }
 
+    //
+    //  Contraction
+    //
+
+    def contractInCanopy(tgt: A, pd: STree[A], addr: SAddr): Option[SComplex[A]] =
+      z match {
+        case ||(hd) => Some(||(hd.withFocus(hd.focus.withBase(tgt)).close))  // Just swap!
+        case tl >> hd => {
+          for {
+            tailZp <- tl.seek(addr)
+            // The ugly cast is to avoid calculating the
+            // derivative *three times*!
+            d <- tailZp.focusDeriv[STree[SNesting[A]]] 
+            dd = d.asInstanceOf[SDeriv[SNesting[A]]]
+            ddd = d.asInstanceOf[SDeriv[STree[A]]]
+
+            pr <- hd.focus.boxOption
+            (a, cn) = pr
+
+            cz <- cn.seekTo(addr)
+            cut <- cz.focus.takeWithMask(pd, d)
+            (exTr, cutSh) = cut
+
+            newCn = cz.closeWith(SNode(SDot(tgt), cutSh))
+            hdNst = hd.withFocus(SBox(a, newCn)).close
+
+            gcut <- tailZp.focus.toTree.takeWithMask(pd, ddd)
+            (gex, gsh) = gcut
+
+            cmprsd <- tailZp.focus.compressWith(
+              SNode(gex, (gsh : STree[STree[A]]).map(_.comultiply)), dd
+            )
+
+          } yield tailZp.withFocus(cmprsd).close >> hdNst
+        }
+      }
+
   }
 
+  //============================================================================================
+  // OPETOPIC SUBSTITUTION
+  //
 
   sealed trait LeafMarker[A] {
     def addr: SAddr
@@ -738,7 +779,7 @@ trait ComplexTypes {
 
     for {
       isCFree <- c.isCFreeFace(fa)
-      _ <- if (isCFree) Some(()) else None
+      if (isCFree) 
       face <- c.face(fa)
       etgt <- e.target
       _ <- face.matchWith(etgt)
@@ -768,6 +809,85 @@ trait ComplexTypes {
       firstUpper <- upper.headOption
       firstFixup <- fixLeaves(guide, firstUpper)(expandJoin)
       result <- fixAllLeaves(exBase >> firstFixup, upper.tail)
+
+    } yield result
+
+  }
+
+  // The expand routine does a number of checks:
+  //
+  //  1) codomain freeness
+  //  2) shape compatibility
+  //
+  // which I am going to put aside for a second while I design this ...
+
+  def contractAt[A](c: SComplex[A], g: SComplex[A], fa: FaceAddr): Option[SComplex[A]] = {
+
+
+    val codim = fa.codim
+    val lclAddr = fa.address
+    val (base, uppder) = c.grab(codim)
+
+    for {
+
+      tail <- base.tail
+      frmInfo <- g.cellFrame
+      (pd, tgt) = frmInfo
+
+      // The leaf case will take special attention.
+      // We ban it for the time being .....
+      if (! pd.isLeaf)
+
+      // tailDeriv <- SCmplxZipper(tail).focusDeriv[SAddr]
+      addrNst = base.head.addrNesting
+      cnpyAddr <- lclAddr.headOption
+      baseAddr = lclAddr.tail
+
+      zp <- addrNst.seek(baseAddr)
+      bInfo <- zp.focus.boxOption
+      (bv, cn) = bInfo
+
+      cz <- cn.seekTo(cnpyAddr.dir)
+      // BUG! You have to use a reasonable derivative here for the leaf case ...
+      cut <- cz.focus.takeWithMask(pd, SDeriv(SLeaf))
+      (cutPd, cutSh) = cut
+
+      cfrTr <- cutPd.traverse((n : SNesting[SAddr]) =>
+        n.dotOption.flatMap(ad => c.isCFreeFace(FaceAddr(codim, ad)))
+      )
+      _ <- if (cfrTr.toList.forall(b => b)) Some(()) else {
+        println("There is a non-cfree face!")
+        None
+      }
+
+      bzip <- SCmplxZipper(base).seek(baseAddr)
+      result <- bzip.contractInCanopy(tgt, pd, cnpyAddr.dir)
+
+      //def contractInCanopy(tgt: A, pd: STree[A], addr: SAddr): Option[SComplex[A]] =
+
+      // So, the basic idea is that we need to find the pasting
+      // diagram *in the spine* and then write over it with a guy.
+      // Right, we're going to comultiply in the spine.  Compressing
+      // the previous nesting with this guy should given the same thing
+      // back.  As an intermediate step, we're going to write over that
+      // part of the spine that we are going to be composing with the
+      // pasting diagram.  Then we call compress and we should be
+      // golden.
+
+      // So, first step: locate the pasting diagram in the spine.
+
+      // At this point, we should know that we have a compatible pasting
+      // diagram of cfree faces.
+
+      // Now, what's next?  We need to figure out how we're going to
+      // "compress" the lower dimension and replace the pasting diagram
+      // in the upper dimension with a single cell.
+
+      // d <- SCmplxZipper(g).focusDeriv[STree[A]]
+      // tz <- SCmplxZipper(base).seek(lclAddr)
+      // ttl <- tz.tail  // We must have a tail?
+
+      // test <- ttl.head.focus.compressWith(???, ???)
 
     } yield result
 

@@ -133,7 +133,7 @@ object Sketchpad extends JSApp {
     jQuery("#export-btn").on("click", () => { exportSketch })
     jQuery("#pin-btn").on("click", () => { onPinToggle })
     jQuery("#expand-btn").on("click", () => { runExcept(onExpand) })
-    jQuery("#contract-btn").on("click", () => { onContract })
+    jQuery("#contract-btn").on("click", () => { runExcept(onContract) })
 
   }
 
@@ -257,8 +257,31 @@ object Sketchpad extends JSApp {
 
     }
 
-  def onContract: Unit = {
-    println("Contracting ...")
+  def onContract: Except[Unit] = {
+    for {
+      tab <- attempt(editor.activeTab, "No tab")
+      root <- attempt(tab.editor.selectionRoot, "Nothing selected")
+
+      (cardCmplx: SComplex[tab.editor.EditorCell]) = tab.editor.complex
+      ccmplx = cardCmplx.map(_.label)
+      codim = ccmplx.dim - root.dim
+      ca = root.cardinalAddress.complexAddress
+      fa = FaceAddr(codim, ca)
+
+      contractor <- attempt(viewer.complex, "No complex in viewer")
+
+      cnCmplx <- attempt(contractAt(ccmplx, contractor, fa), "Contraction failed")
+
+    } yield {
+
+      println("Contraction complete")
+
+      SCardinal.fromCardinalComplex(cnCmplx) match {
+        case None => println("Error parsing cardinal complex")
+        case Some(card) => editor.newEditor(card)
+      }
+
+    }
   }
 
   var isPinned = false
