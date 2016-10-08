@@ -572,9 +572,38 @@ trait ComplexTypes {
 
   }
 
-  // Yeah, just do the simple case first, where we can count on the cardinalities
-  // being the same.
-  def newFix[A](base: SComplex[A], nst: SNesting[A]): Option[SNesting[A]] = {
+
+  sealed trait LeafMarker[A] {
+    def addr: SAddr
+    def deriv: SDeriv[LeafMarker[A]]
+    def branch: Option[STree[SNesting[A]]]
+    def attach(b: STree[SNesting[A]]): LeafMarker[A] 
+  }
+
+  case class BasicLeafMarker[A](
+    val addr: SAddr,
+    val deriv: SDeriv[LeafMarker[A]],
+    val branch: Option[STree[SNesting[A]]] = None
+  ) extends LeafMarker[A] {
+
+    def attach(b: STree[SNesting[A]]): LeafMarker[A] =
+      this.copy(branch = Some(b))
+
+  }
+
+  object LeafMarker {
+
+    def apply[A](addr: SAddr, deriv: SDeriv[LeafMarker[A]]) : LeafMarker[A] =
+      BasicLeafMarker(addr, deriv)
+
+    def simpleJoin[A] : STree[LeafMarker[A]] => Option[Shell[SNesting[A]]] =
+      (mkSh: STree[LeafMarker[A]]) => mkSh.traverse(_.branch)
+
+  }
+
+  def fixLeaves[A](guide: SNesting[LeafMarker[A]], nst: SNesting[A])(
+    joinOp: STree[LeafMarker[A]] => Option[Shell[SNesting[A]]]
+  ): Option[SNesting[A]] = {
 
     type Cn = STree[SNesting[A]]
     type Mp = Map[SAddr, SAddr]
@@ -588,206 +617,87 @@ trait ComplexTypes {
       Map(u.addrTree.toList.zip(v.addrTree.toList): _*)
     }
 
-    def vertical(n: SNesting[A], addr: SAddr, d: SDeriv[SAddr]): Option[(SNesting[A], STree[(SAddr, SDeriv[SAddr])])] =
+    def vertical(n: SNesting[A], mk: LeafMarker[A]): Option[(SNesting[A], STree[LeafMarker[A]])] =
       n match {
-        case SDot(a) =>
+        case SDot(a) => {
+          println("Vertical dot: " + a.toString)
           for {
-            zp <- base.head.seek(addr)
+            zp <- guide.seek(mk.addr)
             cn <- zp.focus match {
               case SDot(_) => None
               case SBox(_, cn) => Some(cn)
             }
-          } yield (SDot(a), cn.mapWithData[SAddr, (SAddr, SDeriv[SAddr])](
-            (_, dir, der) => (SDir(dir) :: addr, der)
-          ))
+          } yield (SDot(a), cn.map(_.baseValue))
+        }
         case SBox(a, cn) => {
+          println("Vertical box: " + a.toString)
           for {
-            hres <- horizontal(cn, addr, d)
+            hres <- horizontal(cn, mk)
             (newCn, dataTr) = hres
           } yield (SBox(a, newCn), dataTr)
         }
       }
 
     // Think of d as the derivative on the rising edge.
-    def horizontal(t: STree[SNesting[A]], addr: SAddr, d: SDeriv[SAddr]): Option[(Cn, STree[(SAddr, SDeriv[SAddr])])] =
+    def horizontal(t: STree[SNesting[A]], mk: LeafMarker[A]): Option[(Cn, STree[LeafMarker[A]])] =
       t match {
-        case SLeaf => Some((SLeaf, d.plug(addr).map(a => (a, d))))
-        case SNode(n, sh) =>
+        case SLeaf => Some((SLeaf, mk.deriv.plug(mk)))
+        case SNode(n, sh) => 
           for {
-            vres <- vertical(n, addr, d)
+            vres <- vertical(n, mk)
             (ln, lsh) = vres
             fwdMp = mkMap(lsh, sh)
             bwkMp = fwdMp.map(_.swap)
             hres <- sh.traverseWithAddr({
-              case (b, ad) => lsh.elementAt(bwkMp(ad)).flatMap(el => horizontal(b, el._1, el._2))
+              case (b, ad) => lsh.elementAt(bwkMp(ad)).flatMap(mk => horizontal(b, mk))
             })
             (brs, toJn) = STree.unzip(hres)
-            dataTr <- toJn.join
-            newSh <- lsh.traverseWithAddr({
-              case (_, ad) => brs.elementAt(fwdMp(ad))
+            mkTr <- toJn.join
+            mkdSh <- lsh.traverseWithAddr({
+              case (mk, ad) => brs.elementAt(fwdMp(ad)).map(b => mk.attach(b))
             })
-          } yield (SNode(ln, newSh), dataTr)
+            newSh <- joinOp(mkdSh)
+          } yield (SNode(ln, newSh), mkTr)
       }
 
-    for {
-      d <- SCmplxZipper(base).focusDeriv[SAddr]
-      r <- vertical(nst, Nil, d)
-    } yield r._1
+    vertical(nst, guide.baseValue).map(_._1)
 
   }
-
-
-  def fixLeaves[A](base: SComplex[A], nbase: SComplex[A], nst: SNesting[A], mp: Map[SAddr, SAddr]): Option[SNesting[A]] = {
-
-    type Cn = STree[SNesting[A]]
-    type Pr = (Cn, SDeriv[SAddr])
-    type Mp = Map[SAddr, SAddr]
-
-    def mkMap[U, V](u: STree[U], v: STree[V]): Mp = {
-      val ul = u.toList
-      val vl = v.toList
-      println("U length " + ul.length.toString)
-      println("V length " + vl.length.toString)
-
-      Map(u.addrTree.toList.zip(v.addrTree.toList): _*)
-    }
-
-    def innerFix(n: SNesting[(A, SAddr)], lvs: STree[Pr], m: Mp): Option[Pr] = {
-
-      println("InnerFix on " + n.baseValue._1.toString)
-
-      def getLeaf(addr: SAddr, mOpt: Option[Mp] = None): Option[Pr] =
-        mOpt match {
-          case None => getLeafRaw(addr)
-          case Some(mp) => {
-            if (mp.isDefinedAt(addr)) {
-              println("Successful map lookup")
-              getLeafRaw(mp(addr))
-            } else {
-              println("Map undefined for: " + addr.toString)
-              getLeafRaw(addr)
-            }
-          }
-        }
-
-      def getLeafRaw(addr: SAddr): Option[Pr] =
-        lvs.elementAt(addr) match {
-          case None => { println("Leaf lookup failed for: " + addr.toString) ; None }
-          case Some(p) => { println("Leaf lookup success") ; Some(p) }
-        }
-
-      n match {
-        case SDot((a, addr)) => {
-          println("Dot: " + a.toString)
-          for {
-            zp <- base.head.seek(addr)
-            cp <- zp.focus match {
-              case SDot(_) => None
-              case SBox(_, cn) => Some(cn)
-            }
-            mp = mkMap(cp, lvs)
-            sh <- cp.traverseWithAddr({
-              case (_, ad) => { println("3") ; getLeaf(ad, Some(mp)).map(_._1) }
-            })
-          } yield (SNode(SDot(a), sh), SDeriv(SLeaf))
-        }
-        case SBox((a, _), cn) => {
-          println("Box: " + a.toString)
-          for {
-            pr <- cn.treeFold[Pr]({
-              case addr => { println("1") ; getLeaf(addr, Some(m)) }
-            })({
-              case (lnst, lbrs) => innerFix(lnst, lbrs, mkMap(lbrs, lbrs))
-            })
-            _ = println("Finalizing box " + a.toString)
-            (ncn, d) = pr
-            lcn <- ncn.flattenWith(d)(ad => Some(ad))
-            // Duplication.  But just for now ..
-            lmp = mkMap(lcn, lvs)
-            _ = println("Local map: " + lmp.toString)
-            nlvs <- lcn.traverseWithAddr({
-              case (_, ad) => println("2") ; getLeaf(ad, Some(lmp)).map(_._1)
-            })
-          } yield (SNode(SBox(a, ncn), nlvs), SDeriv(SLeaf))
-        }
-      }
-    }
-
-    // As in bondTraverse, this extra setup could probably
-    // be profitably simplified.
-
-    for {
-      addrNst <- nst.toTree.treeFold[SNesting[SAddr]]({
-        case addr => {
-          val nwAd = mp(addr)
-          println("Setting address map: " + addr.toString + " -> " + nwAd.toString)
-          Some(SDot(nwAd))
-        }
-      })({
-        case (_, cn) => Some(SBox(Nil, cn))
-      })
-      prNst <- nst.matchWith(addrNst)
-      sp <- SCmplxZipper(base).focusSpine
-      lvs = sp.mapWithDeriv[SAddr, Pr]({
-        case (_, d) => (SLeaf, d)
-      })
-      // nsp <- SCmplxZipper(nbase).focusSpine
-      // m = mkMap(nsp, sp)
-      pr <- innerFix(prNst, lvs, mp)
-      (cn, _) = pr
-      r <- cn.rootValue
-    } yield r
-
-  }
-
-  // Right, I think now your fixup routine would actually be generic
-  // (since now it actually looks for the correct leaf setup in the
-  // base complex when processing a dot) if you could somehow have
-  // a slightly more sophisticated address setup at the beginning.
-
-  // It looks like we need just one extra address map when we build
-  // the nesting guy so that we are sent to correct addresses in the
-  // base.
-
-  // So, the idea for creating the tree is pretty simple: you're going
-  // to fill the original nesting with it's addresses, then make a partial
-  // join so that you see the resulting tree, then map over it to make
-  // the appropriate map.
 
   def expandAt[A](c: SComplex[A], e: SComplex[A], fa: FaceAddr): Option[SComplex[A]] = {
 
-    type Cn[A] = STree[SNesting[A]]
+    // type Cn[A] = STree[SNesting[A]]
 
-    def partialJoin(tr: STree[Either[Cn[A], STree[Cn[A]]]]): Option[STree[Cn[A]]] =
-      tr match {
-        case SLeaf => Some(SLeaf)
-        case SNode(Left(cn), sh) => sh.traverse(partialJoin(_)).map(r => SNode(cn, r))
-        case SNode(Right(pd), sh) => sh.traverse(partialJoin(_)).flatMap(r => pd.graftWith(r))
-      }
+    // def partialJoin(tr: STree[Either[Cn[A], STree[Cn[A]]]]): Option[STree[Cn[A]]] =
+    //   tr match {
+    //     case SLeaf => Some(SLeaf)
+    //     case SNode(Left(cn), sh) => sh.traverse(partialJoin(_)).map(r => SNode(cn, r))
+    //     case SNode(Right(pd), sh) => sh.traverse(partialJoin(_)).flatMap(r => pd.graftWith(r))
+    //   }
 
-    def fixup(nst: SNesting[A], lvs: STree[Either[Cn[A], STree[Cn[A]]]]): Option[Cn[A]] = {
-      nst match {
-        case SDot(a) => partialJoin(lvs).map(r =>  SNode(SDot(a), r))
-        case SBox(a, cn) => {
-          for {
-            hout <- partialJoin(lvs)
-            fres <- cn.treeFold[Either[Cn[A], STree[Cn[A]]]]({
-              case addr => lvs.elementAt(addr)
-            })({
-              case (lnst, hlvs) => fixup(lnst, hlvs).map(Left(_))
-            })
-            res <- fres match {
-              case Left(ncn) => Some(SNode(SBox(a, ncn), hout.map(_ => SLeaf)))
-              case Right(jcn) => {
-                println("WARNING: Right on return.  Not sure if this should happen.")
-                jcn.join.map(r => SNode(SBox(a, r), hout))
-              }
-            }
-          } yield res
+    // def fixup(nst: SNesting[A], lvs: STree[Either[Cn[A], STree[Cn[A]]]]): Option[Cn[A]] = {
+    //   nst match {
+    //     case SDot(a) => partialJoin(lvs).map(r =>  SNode(SDot(a), r))
+    //     case SBox(a, cn) => {
+    //       for {
+    //         hout <- partialJoin(lvs)
+    //         fres <- cn.treeFold[Either[Cn[A], STree[Cn[A]]]]({
+    //           case addr => lvs.elementAt(addr)
+    //         })({
+    //           case (lnst, hlvs) => fixup(lnst, hlvs).map(Left(_))
+    //         })
+    //         res <- fres match {
+    //           case Left(ncn) => Some(SNode(SBox(a, ncn), hout.map(_ => SLeaf)))
+    //           case Right(jcn) => {
+    //             println("WARNING: Right on return.  Not sure if this should happen.")
+    //             jcn.join.map(r => SNode(SBox(a, r), hout))
+    //           }
+    //         }
+    //       } yield res
 
-        }
-      }
-    }
+    //     }
+    //   }
+    // }
 
     for {
       isCFree <- c.isCFreeFace(fa)
@@ -818,35 +728,35 @@ trait ComplexTypes {
       // Here we perform the expansion on a copy of the nesting
       // with addresses embedded so we can build a map between
       // the old and new addresses
-      addrNst = base.head.addrNesting
-      nz <- addrNst.seek(addr)
-      mpNst <- nz.ctxt.g match {
-        case Nil => None
-        case (ad, SDeriv(sh, gma)) :: prs => 
-          pd.addrTree.map[SNesting[SAddr]](SDot(_)).graftWith(sh).map(gres =>
-            SNstCtxt(prs).close(SBox(ad, gma.close(gres)))
-          )
-      }
-      mp = Map(mpNst.toTree.mapWithAddr({ case (o, n) => (o, n) }).toList : _*)
+      // addrNst = base.head.addrNesting
+      // nz <- addrNst.seek(addr)
+      // mpNst <- nz.ctxt.g match {
+      //   case Nil => None
+      //   case (ad, SDeriv(sh, gma)) :: prs => 
+      //     pd.addrTree.map[SNesting[SAddr]](SDot(_)).graftWith(sh).map(gres =>
+      //       SNstCtxt(prs).close(SBox(ad, gma.close(gres)))
+      //     )
+      // }
+      // mp = Map(mpNst.toTree.mapWithAddr({ case (o, n) => (o, n) }).toList : _*)
 
-      firstUpper <- upper.headOption
-      firstFixup <- fixLeaves(exBase, base, firstUpper, mp)
+      // firstUpper <- upper.headOption
+      // firstFixup <- fixLeaves(exBase, firstUpper)
       // firstFixup <- fixup(firstUpper, sp).flatMap(_.rootValue)
-
-      nextUpper = upper.tail.head
       // fus <- doFixups(base, upper, sp)
 
     } yield {
 
-      val b = exBase >> firstFixup
+      // val b = exBase >> firstFixup
 
       // val result =
-      //   fixLeaves(b, base >> firstUpper, upper.tail.head) match {
+      //   fixLeaves(b, upper.tail.head) match {
       //     case None => { println("Leaf fixup failed") ; b }
       //     case Some(n) => { println("Success!") ; b >> n }
       //     }
 
-      b
+      // b
+
+      exBase
 
     }
 
