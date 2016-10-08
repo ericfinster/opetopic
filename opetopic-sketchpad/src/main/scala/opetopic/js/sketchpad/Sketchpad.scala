@@ -246,7 +246,13 @@ object Sketchpad extends JSApp {
     } yield {
 
       println("Expansion complete")
-      editor.newEditor(SCardinal(exCmplx))
+
+      SCardinal.fromCardinalComplex(exCmplx) match {
+        case None => println("Error parsing cardinal complex")
+        case Some(card) => editor.newEditor(card)
+      }
+
+      //editor.newEditor(SCardinal(exCmplx))
       // viewer.complex = Some(exCmplx)
 
     }

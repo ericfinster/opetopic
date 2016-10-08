@@ -605,6 +605,29 @@ trait CardinalTypes {
         }
       }
 
+    def fromCardinalComplex[A](c: SComplex[A]): Option[SCardinal[A]] = {
+
+      def mroot[A](i: Int, t: STree[A]): Option[MTree[A]] =
+        if (i <= 0) Some(MObj(t)) else {
+          t match {
+            case SLeaf => None
+            case SNode(_, sh) => mroot(i-1, sh).map(MFix(_))
+          }
+        }
+
+      c match {
+        case ||(SBox(_, cn)) => mroot(0, cn).map(||(_))
+        case tl >> SBox(_, cn) => {
+          for {
+            tlCard <- fromCardinalComplex(tl)
+            hdCard <- mroot(tl.dim + 1, cn)
+          } yield tlCard >> hdCard
+        }
+        case _ => None
+      }
+
+    }
+
   }
 
 }
