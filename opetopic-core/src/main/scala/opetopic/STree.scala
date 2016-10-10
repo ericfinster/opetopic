@@ -15,10 +15,10 @@ case class SNode[A](a: A, as: STree[STree[A]]) extends STree[A]
 
 case class SDir(val dir: List[SDir]) 
 
-case class SDeriv[+A](val sh: STree[STree[A]], gma: SCtxt[A] = SCtxt(Nil)) {
+case class SDeriv[+A](val sh: STree[STree[A]], val g: SCtxt[A] = SCtxt(Nil)) {
 
   def plug[B >: A](b: B) : STree[B] = 
-    gma.close(SNode(b, sh))
+    g.close(SNode(b, sh))
 
 }
 
@@ -34,6 +34,12 @@ case class SCtxt[+A](val g: List[(A, SDeriv[STree[A]])]) {
   def ::[B >: A](pr : (B, SDeriv[STree[B]])): SCtxt[B] = 
     SCtxt(pr :: g)
 
+  def address: SAddr =
+    g match {
+      case Nil => Nil
+      case (_,d) :: ds => SDir(d.g.address) :: SCtxt(ds).address
+    }
+
 }
 
 case class SZipper[+A](val focus: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) {
@@ -44,7 +50,10 @@ case class SZipper[+A](val focus: STree[A], val ctxt: SCtxt[A] = SCtxt[A](Nil)) 
   def closeWith[B >: A](t: STree[B]): STree[B] = 
     ctxt.close(t)
 
-  def predecessor: Option[SZipper[A]] = 
+  def address: SAddr =
+    ctxt.address
+
+  def predecessor: Option[SZipper[A]] =
     ctxt.g match {
       case Nil => None
       case (a, SDeriv(ts, g)) :: cs => 

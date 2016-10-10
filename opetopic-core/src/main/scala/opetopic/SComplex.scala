@@ -108,6 +108,19 @@ trait ComplexTypes {
           hd.mapWithAddr((a, addr) => f(a, FaceAddr(codim, addr)))
       }
 
+
+    // Get a map which associates the address of a cell in the
+    // previous dimension with the corresponding dot's position
+    // in the head dimension.
+    def bondingMap: Option[Map[SAddr, SAddr]] =
+      for {
+        tl <- c.tail
+        d <- SCmplxZipper(tl).focusDeriv[SAddr]
+        adSp <- c.head.addrNesting.spine(d)
+      } yield Map(adSp.mapWithAddr({
+        case (hdAddr, tlAddr) => (tlAddr, hdAddr)
+      }).toList : _*)
+
     //
     //  Source Calculation
     //
@@ -844,7 +857,7 @@ trait ComplexTypes {
             bsh <- sh.traverse(contractJoin(_))
           } yield SNode(branch, bsh)
         case SNode(cm: ContractMarker, sh) => {
-          println("Contracting in shell!")
+          // println("Contracting in shell!")
           for {
             bsh <- sh.traverse(contractJoin(_))
             cut <- SNode(SLeaf, bsh).takeWithMask(cm.pd, SDeriv(sh.asShell)) // Check the derivative!!!
@@ -865,7 +878,7 @@ trait ComplexTypes {
 
       // The leaf case will take special attention.
       // We ban it for the time being .....
-      if (! pd.isLeaf)
+      //if (! pd.isLeaf)
 
       addrNst = base.head.addrNesting
       cnpyAddr <- lclAddr.headOption

@@ -76,6 +76,21 @@ lazy val opetopicTt = (crossProject in file("opetopic-tt")).
 lazy val opetopicTtJvm = opetopicTt.jvm
 lazy val opetopicTtJs = opetopicTt.js
 
+lazy val opetopicMtt = (crossProject in file("opetopic-mtt")).
+  settings(commonSettings: _*).
+  settings(
+    bnfcBasePackage := Some("opetopic"),
+    bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
+    bnfcTgtDirectory := (sourceManaged in Compile).value,
+    scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
+    jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
+  ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
+  jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
+  jsSettings(persistLauncher := true)
+
+lazy val opetopicMttJvm = opetopicMtt.jvm
+lazy val opetopicMttJs = opetopicMtt.js
+
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
   settings(

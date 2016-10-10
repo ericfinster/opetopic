@@ -32,6 +32,12 @@ case class SNstCtxt[+A](val g: List[(A, SDeriv[SNesting[A]])]) {
   def ::[B >: A](pr: (B, SDeriv[SNesting[B]])): SNstCtxt[B] = 
     SNstCtxt(pr :: g)
 
+  def address: SAddr =
+    g match {
+      case Nil => Nil
+      case (_,d) :: ds => SDir(d.g.address) :: SNstCtxt(ds).address
+    }
+
 }
 
 case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCtxt(Nil)) {
@@ -45,7 +51,10 @@ case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCt
   def closeWith[B >: A](n: SNesting[B]): SNesting[B] = 
     ctxt.close(n)
 
-  def visit(d: SDir): Option[SNstZipper[A]] = 
+  def address: SAddr =
+    ctxt.address
+
+  def visit(d: SDir): Option[SNstZipper[A]] =
     (focus, d) match {
       case (SDot(_), _) => None
       case (SBox(a, cn), SDir(ds)) =>
@@ -84,7 +93,13 @@ case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCt
         } yield res
     }
 
-  def predecessor: Option[SNstZipper[A]] = 
+  def parent: Option[SNstZipper[A]] =
+    ctxt.g match {
+      case Nil => None
+      case (a, d) :: cs => Some(SNstZipper(SBox(a, d.plug(focus)), SNstCtxt(cs)))
+    }
+
+  def predecessor: Option[SNstZipper[A]] =
     ctxt.g match {
       case (a, SDeriv(verts, SCtxt((pred, deriv) :: vs))) :: cs => 
         Some(SNstZipper(pred, SNstCtxt((a, SDeriv(deriv.plug(SNode(focus, verts)), SCtxt(vs))) :: cs)))

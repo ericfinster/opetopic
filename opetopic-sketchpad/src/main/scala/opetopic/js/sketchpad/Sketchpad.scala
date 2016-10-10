@@ -134,6 +134,7 @@ object Sketchpad extends JSApp {
     jQuery("#pin-btn").on("click", () => { onPinToggle })
     jQuery("#expand-btn").on("click", () => { runExcept(onExpand) })
     jQuery("#contract-btn").on("click", () => { runExcept(onContract) })
+    jQuery("#link-btn").on("click", () => { runExcept(onLink) })
 
   }
 
@@ -256,6 +257,22 @@ object Sketchpad extends JSApp {
       // viewer.complex = Some(exCmplx)
 
     }
+
+  def onLink: Except[Unit] = {
+    for {
+      gallery <- attempt(viewer.activeGallery, "No active gallery")
+      complex = gallery.complex
+      root <- attempt(gallery.selectionRoot, "Nothing selected")
+    } yield {
+
+      println("Going to calculate a link of " + root.label.toString)
+      println("In complex with top cell: " + complex.head.baseValue.toString)
+
+      Link.link(complex, FaceAddr(complex.dim - root.dim, root.address))
+
+    }
+  }
+
 
   def onContract: Except[Unit] = {
     for {

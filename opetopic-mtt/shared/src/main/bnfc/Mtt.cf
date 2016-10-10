@@ -1,0 +1,84 @@
+--- Input file to BNF Converter
+---   This describes the labelled BNF Grammar of
+---   MakkaiTT 
+
+entrypoints Module ;
+
+Module.   Module ::= "module" Ident "where" "{" [Decl] "}" ;
+
+-- Expressions
+
+EPair.    Exp    ::= Exp1 "," Exp ;
+
+ELet.     Exp1   ::= "let" "{" [Decl] "}" "in" Exp1 ;
+ELam.     Exp1   ::= "\\" Patt "." Exp1 ;
+EPi.      Exp1   ::= [PTele] "->" Exp1 ;
+ESig.     Exp1   ::= [PTele] "*" Exp1 ;
+EArrow.   Exp1   ::= Exp2 "->" Exp1 ;
+ETimes.   Exp1   ::= Exp2 "*"  Exp1 ;
+
+EObj.     Exp2   ::= "|" Exp3 "|" ;
+ECell.    Exp2   ::= "Cell" Exp3 "[" [Nst] "]" ;
+EProp.    Exp2   ::= "Prop" Exp3 "[" [Nst] "]" ;
+
+EApp.     Exp3   ::= Exp3 Exp4 ;
+
+EFold.    Exp4   ::= "fold" Exp4 Addr Exp4 ;
+EUnfold.  Exp4   ::= "unfold" Exp4 Addr Exp4 ;
+
+ERefl.    Exp4   ::= "refl" Exp4 ;
+EDrop.    Exp4   ::= "drop" Exp4 ;
+EComp.    Exp4   ::= "comp" Tree ;
+EFill.    Exp4   ::= "fill" Tree ;
+
+EUnit.    Exp5   ::= "Unit";
+ECat.     Exp5   ::= "Cat";
+ETt.      Exp5   ::= "tt";
+EFst.     Exp5   ::= Exp5 ".1" ;
+ESnd.     Exp5   ::= Exp5 ".2" ;
+EType.    Exp5   ::= "U" ;
+EVar.     Exp5   ::= Ident ;
+
+coercions Exp 5 ;
+
+-- Telescopes
+Tele.     Tele ::= "(" Patt ":" Exp ")" ;
+terminator Tele "" ;
+
+-- Trees
+TLf.      Tree ::= "lf" ;
+TNd.      Tree ::= "nd" TVal Tree ;
+_.        Tree ::= "(" Tree ")" ;
+
+VNst.     TVal ::= Nst ;
+VTree.    TVal ::= Tree ;
+VExp.     TVal ::= Exp5 ;
+
+-- Nestings
+TDot.     Nst ::= "dot" Exp4 ;
+TBox.     Nst ::= "box" Exp4 Tree ;
+_.        Nst ::= "(" Nst ")" ;
+separator Nst "|" ;
+
+-- Addresses
+TAddr.    Addr ::= "{" [Addr] "}";
+separator Addr "|";
+
+-- Nonempty telescopes with Exp:s, this is hack to avoid ambiguities
+-- in the grammar when parsing Pi
+PTele.    PTele ::= "(" Patt ":" Exp ")" ;
+terminator nonempty PTele "" ;
+
+-- declarations
+Def.      Decl ::= Ident [Tele] ":" Exp1 "=" ExpWhere ;
+separator Decl ";" ;
+
+Where.    ExpWhere ::= Exp "where" "{" [Decl] "}" ;
+NoWhere.  ExpWhere ::= Exp ;
+
+-- patterns
+PUnit.    Patt   ::= "_" ;
+PVar.     Patt   ::= Ident ;
+
+comment "--" ;
+comment "{-" "-}" ;

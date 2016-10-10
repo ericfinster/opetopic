@@ -101,6 +101,48 @@ class JsStableEditor[A: Renderable] {
 
     }
 
+  // This is a bit of a frankenstein and could be better
+  // organized if the extraction routine above returned
+  // a decent value ....
+  def doCompose: Unit =
+    for {
+      tab <- activeTab
+      ed = tab.editor
+      root <- ed.selectionRoot
+
+      (cardCmplx: SComplex[ed.EditorCell]) = ed.complex
+      ccmplx = cardCmplx.map(_.label)
+      codim = ccmplx.dim - root.dim
+      ca = root.cardinalAddress.complexAddress
+      fa = FaceAddr(codim, ca)
+
+      pd <- ed.extractSelection
+      gpd <- pd.traverse((n: ed.NeutralCell) => {
+
+        val laddr = n.cardinalAddress.complexAddress
+        val lfa = FaceAddr(codim, laddr)
+
+        ccmplx.face(lfa)
+
+      })
+
+      pr <- graft(gpd)({ case (fst, _) => Some(fst) })
+      (web, srcs) = pr
+
+      contractor = web >> SBox(None, srcs) >> SDot(None)
+      compCmplx <- contractAt(ccmplx, contractor, fa)
+
+    } {
+
+      println("Composition complete")
+
+      SCardinal.fromCardinalComplex(compCmplx) match {
+        case None => println("Error parsing cardinal complex")
+        case Some(card) => newEditor(card)
+      }
+
+    }
+
   //============================================================================================
   // ACTIONS
   //
@@ -247,6 +289,7 @@ class JsStableEditor[A: Renderable] {
       case 100 => doDrop
       case 115 => doSprout
       case 120 => doExtract
+      case 99 => doCompose
       case _ => ()
     }
   }
