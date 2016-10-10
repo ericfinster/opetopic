@@ -470,6 +470,14 @@ trait CardinalTypes {
       card >> MFix(newHead)
     }
 
+    def extrudeObject(tgt: A, fill: A): Option[SCardinal[A]] = {
+      val extCard = if (card.dim == 0) {
+        card.extend(tgt)
+      } else card
+
+      extCard.extrude(SCardAddr(), tgt, fill)(_ => true).map(_._1)
+    }
+
     def extrude(addr: SCardAddr, tgt: A, fill: A)(pred: A => Boolean): Option[(SCardinal[A], STree[Int])] = {
 
       val extDim = addr.dim
