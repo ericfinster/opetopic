@@ -28,13 +28,16 @@ import opetopic._
 import opetopic.js._
 import opetopic.net._
 import opetopic.mtl._
-import JQuerySemanticUI._
 import opetopic.ott._
 import OttSyntax._
+
+import JQuerySemanticUI._
 
 import upickle.default._
 
 object Prover extends JSApp {
+
+  val moduleWksp: ModuleWorkspace = new ModuleWorkspace
 
   var cm: Option[Editor] = None
 
@@ -42,65 +45,45 @@ object Prover extends JSApp {
 
     println("Launched Opetopic Prover.")
 
+    showModuleWorkspace(moduleWksp)
+
+    moduleWksp.initialize
+    moduleWksp.createModule("Prelude", "The prelude")
+    
     jQuery("#new-defn-btn").on("click", () => newDefinition)
     jQuery("#new-module-btn").on("click", () => newModule)
-    jQuery(".menu .item").tab()
-    jQuery(".ui.accordion").accordion()
 
-    // Let's setup a codemirror instance.
+    // // Let's setup a codemirror instance.
 
-    jQuery("#code-tab-btn").tab(lit(
-      onFirstLoad = () => {
-        val params: EditorConfiguration = EditorConfig.mode("clike").lineNumbers(true).keyMap("emacs") //config
-        val editEl = dom.document.getElementById("ott").asInstanceOf[HTMLTextAreaElement]
-        cm = Some(CodeMirror.fromTextArea(editEl, params))
-      }
-    ))
+    // jQuery("#code-tab-btn").tab(lit(
+    //   onFirstLoad = () => {
+    //     val params: EditorConfiguration = EditorConfig.mode("clike").lineNumbers(true).keyMap("emacs") //config
+    //     val editEl = dom.document.getElementById("ott").asInstanceOf[HTMLTextAreaElement]
+    //     cm = Some(CodeMirror.fromTextArea(editEl, params))
+    //   }
+    // ))
 
-    jQuery("#tc-btn").on("click", () => typecheckCode)
+    // jQuery("#tc-btn").on("click", () => typecheckCode)
 
-    // setupModules
-
-    createModule("Untitled", "Empty module")
+    // // setupModules
 
   }
 
-  def parseExpr(exprStr: String) : Except[ExpT] = {
+  def showModuleWorkspace(wksp: ModuleWorkspace): Unit = {
+    jQuery("#toc-pane").empty().append(wksp.tocPane)
+    jQuery("#article-content").empty().append(wksp.articlePane)
+    jQuery("#base-bar").empty()
+  }
 
-    println("In parse routine with: " + exprStr)
-
-    import java.io.StringReader
-    val reader = new StringReader(exprStr)
-    val lexer = new OttLexer(reader)
-    val parser = new OttParser
-
-    try {
-
-      parser.lexer = lexer
-      val e: ExpT = parser.parse_Exp1()
-      println("Parsed expression: " + e.toString)
-      Xor.Right(e)
-
-    } catch {
-      case parser.YYError(s) => {
-        println("There was an error: " + s)
-        Xor.Left(s)
-      }
-      case e : Error => {
-        val s = e.getMessage
-        println("There was an error: " + s)
-        Xor.Left(s)
-      }
-    }
-
+  def showDefinitionWorkspace(wksp: DefinitionWorkspace): Unit = {
+    jQuery("#toc-pane").empty().append(wksp.tocPane)
+    jQuery("#article-content").empty().append(wksp.articlePane)
+    jQuery("#base-bar").empty().append(wksp.baseBar)
   }
 
   //============================================================================================
   // MODULE MANAGEMENT
   //
-
-  val modules: ListBuffer[Module] = ListBuffer()
-  var activeModule : Option[Module] = None
 
   def newModule: Unit = {
 
@@ -110,77 +93,51 @@ object Prover extends JSApp {
           val name = jQuery("#module-name-input").value.asInstanceOf[String]
           val description = jQuery("#module-desc-input").value.asInstanceOf[String]
 
-          createModule(name, description)
+          moduleWksp.createModule(name, description)
 
         }
       )).modal("show")
 
   }
 
-  def createModule(name: String, desc: String): Unit = {
+  // def editModule(m: Module): Unit = {
 
-    // Have to parse the imports ...
-    val m = new Module(name)
-    m.description = desc
-    m.isLoaded = true
+  //   val loadModuleFuture : Future[Unit] = 
+  //     if (m.isLoaded) 
+  //       Future.successful(()) 
+  //     else {
 
-    val mItem =
-      div(cls := "ui dropdown item", attr("data-name") := name, attr("data-id") := "")(
-        i(cls := "dropdown icon"),
-        name,
-        div(cls := "menu")(
-          a(cls := "edit-item item", onclick := { () => editModule(m) })("Edit"),
-          a(cls := "save-item item", onclick := { () => /* saveModule(m) */ () })("Save"),
-          a(cls := "delete-item item")("Delete")
-        )
-      ).render
+  //       m.moduleId match {
+  //         case None => Future.failed(new IllegalStateException("No module id"))
+  //         case Some(muuid) => {
 
-    jQuery("#module-list").append(mItem)
-    jQuery(mItem).dropdown()
-    
-    modules += m
-    editModule(m)
+  //           val req = LoadModuleRequest(m.name, muuid)
 
-  }
+  //           dom.ext.Ajax.post(
+  //             url = "/getModule",
+  //             data = write(req),
+  //             headers = Map(
+  //               ("X-Requested-With" -> "*"),
+  //               ("CSRF-Token" -> "nocheck")
+  //             ),
+  //             withCredentials = true
+  //           ).map(xhtml => m.loadData(xhtml.responseText))
 
-  def editModule(m: Module): Unit = {
+  //         }
+  //       }
 
-    val loadModuleFuture : Future[Unit] = 
-      if (m.isLoaded) 
-        Future.successful(()) 
-      else {
-
-        m.moduleId match {
-          case None => Future.failed(new IllegalStateException("No module id"))
-          case Some(muuid) => {
-
-            val req = LoadModuleRequest(m.name, muuid)
-
-            dom.ext.Ajax.post(
-              url = "/getModule",
-              data = write(req),
-              headers = Map(
-                ("X-Requested-With" -> "*"),
-                ("CSRF-Token" -> "nocheck")
-              ),
-              withCredentials = true
-            ).map(xhtml => m.loadData(xhtml.responseText))
-
-          }
-        }
-
-      }
+  //     }
 
 
-    loadModuleFuture onSuccess { 
-      case () => {
-        jQuery("#defns-hdr").text("Definitions - " + m.name)
-        activeModule = Some(m)
-        m.showEntries
-      }
-    }
+  //   loadModuleFuture onSuccess { 
+  //     case () => {
+  //       jQuery("#defns-hdr").text("Definitions - " + m.name)
+  //       activeModule = Some(m)
+  //       m.showEntries
+  //     }
+  //   }
 
-  }
+  // }
 
   // def saveModule(m: Module): Unit = {
 
@@ -207,21 +164,6 @@ object Prover extends JSApp {
 
   // }
 
-  def newDefinition: Unit = 
-    for {
-      m <- activeModule
-    } {
-
-      val defnWksp = new DefinitionWorkspace(m)
-
-      jQuery("#defn-tab").empty().append(defnWksp.mainGrid)
-      jQuery("#defn-tab-btn").click()
-
-      defnWksp.initUI
-
-    }
-
-
   // def setupModules: Unit = {
 
   //   jQuery("#module-list").children().each((e: dom.Element) => 
@@ -242,6 +184,17 @@ object Prover extends JSApp {
   //   )
 
   // }
+
+  def newDefinition: Unit =
+    for {
+      m <- moduleWksp.activeModule
+    } {
+
+      val defnWksp = new DefinitionWorkspace(m)
+      showDefinitionWorkspace(defnWksp)
+      defnWksp.initUI
+
+    }
 
   //============================================================================================
   // RUN EXCEPT
@@ -294,6 +247,36 @@ object Prover extends JSApp {
         case Left(s) => println("Parse error: " + s)
       }
 
+    }
+
+  }
+
+  def parseExpr(exprStr: String) : Except[ExpT] = {
+
+    println("In parse routine with: " + exprStr)
+
+    import java.io.StringReader
+    val reader = new StringReader(exprStr)
+    val lexer = new OttLexer(reader)
+    val parser = new OttParser
+
+    try {
+
+      parser.lexer = lexer
+      val e: ExpT = parser.parse_Exp1()
+      println("Parsed expression: " + e.toString)
+      Xor.Right(e)
+
+    } catch {
+      case parser.YYError(s) => {
+        println("There was an error: " + s)
+        Xor.Left(s)
+      }
+      case e : Error => {
+        val s = e.getMessage
+        println("There was an error: " + s)
+        Xor.Left(s)
+      }
     }
 
   }

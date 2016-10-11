@@ -19,7 +19,8 @@ import JQuerySemanticUI._
 import Prover.runExcept
 import Prover.parseExpr
 
-abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : DefinitionWorkspace =>
+abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] with Workspace {
+  self : DefinitionWorkspace =>
 
   override def handleKeyEvent(ev: JQueryEventObject): Unit = {
     ev.which match {
@@ -30,9 +31,14 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
 
   def initUI: Unit = {
 
-    jQuery(mainGrid).find(".ui.accordion").accordion()
-    jQuery(mainGrid).find(".menu .item").tab()
-    jQuery(mainGrid).find(".ui.checkbox").checkbox()
+    println("Initializing definition workspace ...")
+
+    jQuery(tocPane).accordion(lit(
+      exclusive = false
+    ))
+
+    jQuery(baseBar).find(".item").tab()
+    jQuery(baseBar).find(".ui.checkbox").checkbox()
 
     jQuery(assumeForm).on("submit",
       (e : JQueryEventObject) => {
@@ -187,55 +193,67 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] { self : Def
   // LISTS
   //
 
-  val contextList = div(cls := "ui fluid styled accordion").render
-  val environmentList = div(cls := "ui fluid styled accordion").render
-  val cellList = div(cls := "ui fluid styled accordion").render
-  val propertyList = div(cls := "ui fluid styled accordion").render
+  val contextList = div(cls := "menu").render
+  val environmentList = div(cls := "menu").render
+  val cellList = div(cls := "menu").render
+  val propertyList = div(cls := "menu").render
 
   //============================================================================================
   // MAIN LAYOUT
   //
 
-  val mainGrid = 
-    div(cls := "ui grid")(
-      div(cls := "three wide column")(
-        div(cls := "ui secondary pointing menu")(
-          a(cls := "active item", attr("data-tab") := "context-tab")(h3("Context")),
-          a(cls := "item", attr("data-tab") := "environment-tab")(h3("Environment"))
-        ),
-        div(cls := "ui active tab", attr("data-tab") := "context-tab")(contextList),
-        div(cls := "ui tab", attr("data-tab") := "environment-tab")(environmentList)
+  val tocPane =
+    div(cls := "opetopic ui vertical fluid accordion auxillary menu")(
+      div(cls := "item")(
+        div(cls := "header active title")(i(cls := "dropdown icon"), "Context"),
+        div(cls := "active content")(contextList)
       ),
-      div(cls := "ten wide column")(
-        h3(cls := "ui dividing header")("Editor - " + module.name),
-        uiElement,
-        h3(cls := "ui dividing header")("Action"),
-        div(cls := "ui grid")(
-          div(cls := "four wide column")(
-            div(cls := "ui vertical fluid pointing menu")(
-              a(cls := "active item", attr("data-tab") := "assume-tab")("Assume"),
-              a(cls := "item", attr("data-tab") := "compose-tab")("Compose"),
-              a(cls := "item", attr("data-tab") := "lift-tab")("Lift"),
-              a(cls := "item", attr("data-tab") := "closure-tab")("Closure")
-            )
+      div(cls := "item")(
+        div(cls := "header active title")(i(cls := "dropdown icon"), "Environment"),
+        div(cls := "active content")(environmentList)
+      ),
+      div(cls := "item")(
+        div(cls := "header active title")(i(cls := "dropdown icon"), "Cells"),
+        div(cls := "active content")(cellList)
+      ),
+      div(cls := "item")(
+        div(cls := "header active title")(i(cls := "dropdown icon"), "Properties"),
+        div(cls := "active content")(propertyList)
+      )
+    ).render
+
+  val articlePane = div(uiElement).render
+
+  val propsPane = div().render
+  
+  val baseBar =
+    div(cls := "ui basic segment")(
+      div(cls := "ui grid")(
+        div(cls := "four wide column")(
+          div(cls := "ui secondary pointing menu")(
+            a(cls := "active item")("Properties")
           ),
-          div(cls := "twelve wide stretched column")(
-            div(cls := "ui segment")(
-              div(cls := "ui active tab", attr("data-tab") := "assume-tab")(assumeForm),
-              div(cls := "ui tab", attr("data-tab") := "compose-tab")(composeForm),
-              div(cls := "ui tab", attr("data-tab") := "lift-tab")(liftForm),
-              div(cls := "ui tab", attr("data-tab") := "closure-tab")(tgtClosureBtn)
-            )
+          div(cls := "ui segment", style := "min-height: 300px;")(
+            propsPane
           )
-        )
-      ),
-      div(cls := "three wide column")(
-        div(cls := "ui secondary pointing menu")(
-          a(cls := "active item", attr("data-tab") := "cells-tab")(h3("Cells")),
-          a(cls := "item", attr("data-tab") := "props-tab")(h3("Properties"))
         ),
-        div(cls := "ui active tab", attr("data-tab") := "cells-tab")(cellList),
-        div(cls := "ui tab", attr("data-tab") := "props-tab")(propertyList)
+
+        div(cls := "twelve wide column")(
+          div(cls := "ui secondary pointing menu")(
+            a(cls := "active item", attr("data-tab") := "assume-tab")("Assume"),
+            a(cls := "item", attr("data-tab") := "compose-tab")("Compose"),
+            a(cls := "item", attr("data-tab") := "lift-tab")("Lift"),
+            a(cls := "item", attr("data-tab") := "closure-tab")("Closure")
+          ),
+
+          div(cls := "ui segment", style := "min-height: 300px;")(
+            div(cls := "ui active tab", attr("data-tab") := "assume-tab")(assumeForm),
+            div(cls := "ui tab", attr("data-tab") := "compose-tab")(composeForm),
+            div(cls := "ui tab", attr("data-tab") := "lift-tab")(liftForm),
+            div(cls := "ui tab", attr("data-tab") := "closure-tab")(tgtClosureBtn)
+          )
+          
+        )
       )
     ).render
 

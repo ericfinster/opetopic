@@ -44,3 +44,4 @@
 .sketch-cell-black { fill: @black }
 .sketch-cell-grey { fill: @grey }
 .sketch-cell-white { fill: @white }
+

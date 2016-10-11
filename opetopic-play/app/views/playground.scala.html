@@ -1,0 +1,74 @@
+@()(implicit userOpt: Option[User])
+
+@import play.api.Play
+
+@main("UI Playground") {
+
+  <style>
+    .divider { flex: 1; display: flex; flex-direction: row; }
+    .article { flex: 1; display: flex: flex-direction: column; padding: 60px 20px 20px 20px; }
+    .toc { min-width: 250px; padding-top: 40px; border-right: 1px solid grey; }
+    .editor { flex: 1; }
+  </style>
+
+  <div class="divider">
+
+    <div class="toc">
+      <div class="ui vertical fluid accordion menu">
+	<div class="header item">Options</div>
+	<div class="item">Fred</div>
+	<div class="item">Wilma</div>
+	<div class="item">
+	  <a class="title">
+	    <i class="dropdown icon"></i>
+	    Modules
+	  </a>
+	  <div class="content">
+	    <div class="item">
+	      Prelude
+	    </div>
+	    <div class="item">
+	      Adjoints
+	    </div>
+	  </div>
+	</div>
+	<div class="item">
+	  <a class="title">
+	    <i class="dropdown icon"></i>
+	    Definitions
+	  </a>
+	  <div class="content">
+	    <div class="item">
+	      is-left-adjoint
+	    </div>
+	  </div>
+	</div>
+	<div class="item">
+	  <div id="shape-btn" class="ui fluid labeled dropdown icon button">
+	    <i class="dropdown icon"></i>
+	    <span class="text">Shape</span>
+	    <div class="menu">
+	      <div class="item" data-value="triangle">Triangle</div>
+	      <div class="item" data-value="square">Square</div>
+	      <div class="item" data-value="circle">Circle</div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+    </div>
+
+    <div class="article">
+      <div id="editor-div" class="editor"></div>
+    </div>
+    
+  </div>
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopicjs-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopicjs-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopicjs-launcher.js")' type="text/javascript"></script>
+
+}

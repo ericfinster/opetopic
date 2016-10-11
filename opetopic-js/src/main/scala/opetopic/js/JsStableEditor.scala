@@ -40,6 +40,9 @@ class JsStableEditor[A: Renderable] {
     editor.onSelectAsRoot = 
       (c: StableCell) => onSelectAsRoot(c)
 
+    editor.layoutWidth = bnds => tabWidth
+    editor.layoutHeight = bnds => tabHeight
+
     def refreshDimensions: Unit = {
       editor.galleryViewport.width = tabWidth
       editor.galleryViewport.height = tabHeight
@@ -217,24 +220,26 @@ class JsStableEditor[A: Renderable] {
   // UI ELEMENTS
   //
 
-  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 300px").render
+  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 350px; background: none").render
   val paginationMenu = div(cls := "ui pagination menu").render
   
   val topMenu =
-    div(cls := "ui top attached menu")(
-      div(cls := "ui dropdown item")(
-        "Shape", i(cls := "dropdown icon"),
-        div(cls := "vertical fluid menu")(
-          div(cls := "item", style := "min-width: 150px", onclick := { () => doExtrude })(span(cls := "description")("e"), "Extrude"),
-          div(cls := "item", onclick := { () => doDrop })(span(cls := "description")("d"), "Drop"),
-          div(cls := "item", onclick := { () => doSprout })(span(cls := "description")("s"), "Sprout"),
-          div(cls := "item", onclick := { () => doExtract })(span(cls := "description")("x"), "Extract")
+    div(cls := "ui top attached borderless menu", style := "background: none")(
+      div(cls := "item")(
+        div(cls := "ui primary labeled dropdown icon button")(
+          span(cls := "text")("Shape"), i(cls := "dropdown icon"),
+          div(cls := "menu")(
+            div(cls := "item", style := "min-width: 150px", onclick := { () => doExtrude })(span(cls := "description")("e"), "Extrude"),
+            div(cls := "item", onclick := { () => doDrop })(span(cls := "description")("d"), "Drop"),
+            div(cls := "item", onclick := { () => doSprout })(span(cls := "description")("s"), "Sprout"),
+            div(cls := "item", onclick := { () => doExtract })(span(cls := "description")("x"), "Extract")
+          )
         )
       )
     ).render
 
   val bottomMenu =
-    div(cls := "ui bottom attached segment")(
+    div(cls := "ui bottom attached segment", style := "background: none")(
       div(cls := "ui grid")(
         div(cls := "four column row")(
           div(cls := "left floated column")(
@@ -274,7 +279,7 @@ class JsStableEditor[A: Renderable] {
     jQuery(uiElement).keypress(handleKeyEvent(_))
 
     jQuery(topMenu).
-      find(".dropdown.item").
+      find(".dropdown.button").
       dropdown(lit(action = "hide"))
 
     jQuery(dom.window).on("resize", () => { resizeInstances })
@@ -297,6 +302,7 @@ class JsStableEditor[A: Renderable] {
   def resizeInstances: Unit = {
 
     tabWidth = jQuery(tabPane).width.toInt
+    // tabHeight = jQuery(tabPane).height.toInt
 
     for {
       tab <- tabs

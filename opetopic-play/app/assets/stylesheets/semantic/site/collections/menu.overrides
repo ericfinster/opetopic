@@ -1,3 +1,9 @@
 /*******************************
          Site Overrides
 *******************************/
+
+.opetopic.ui.auxillary {
+  background: none;
+  border: none;
+}
+

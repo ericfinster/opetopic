@@ -184,6 +184,22 @@ trait CardinalTypes {
         )
       }
 
+    def traverseWithAddr[G[_], B](f: (STree[A], MAddr) => G[STree[B]], ma: MAddr = Nil)(
+      implicit isAp: Applicative[G]
+    ) : G[MTree[B]] = {
+
+      import isAp._
+
+      mt match {
+        case MObj(t) => ap(f(t, ma))(pure(MObj(_)))
+        case MFix(t) => ap(t.traverseWithAddr(
+          (sh, pa) => sh.traverseWithAddr(
+            (b, d) => f(b, d :: pa)
+          )
+        ))(pure(MFix(_)))
+      }
+    }
+      
   }
 
   implicit class MDerivOps[A](d: MDeriv[A]) {
@@ -205,6 +221,16 @@ trait CardinalTypes {
           nst.foreachWithAddr((a, ba) => op(a, SCardAddr(ma, ca, ba)))
         )
       )
+
+    def traverseWithAddr[G[_], B](f: (A, SCardAddr) => G[B])(implicit isAp: Applicative[G]): G[SCardNst[B]] = {
+      MTreeOps(cnst).traverseWithAddr(
+        (cn, ma) => cn.traverseWithAddr(
+          (nst, ca) => nst.traverseWithAddr((a, ba) =>
+            f(a, SCardAddr(ma, ca, ba))
+          )
+        )
+      )
+    }
 
     //============================================================================================
     // NESTING EXTRACTION

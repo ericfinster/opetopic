@@ -4,49 +4,23 @@
 
 @main("Prover") {
 
-  <div class="main">
+  <style>
+    .divider { flex: 1; display: flex; flex-direction: row; }
+    .article { flex: 1; display: flex: flex-direction: column; padding: 60px 40px 40px 40px ; }
+    .toc { min-width: 250px; padding-top: 40px; border-right: 1px solid grey; }
+  </style>
 
-    <div class="ui active tab" data-tab="module-tab">
-      <div class="ui grid">
+  <div class="divider">
 
-	<div class="three wide column">
-	  <h3 class="ui dividing header">Modules</h3>
-	  <div class="ui large vertical fluid menu" id="module-list">
-	    @for(m <- modules) {
-	      <div class="ui dropdown item" data-name="@m.name" data-id="@m.moduleId.toString">
-		<i class="dropdown icon"></i>
-		@m.name
-		<div class="menu">
-		  <a class="edit-item item">Edit</a>
-		  <a class="save-item item">Save</a>
-		  <a class="delete-item item">Delete</a>
-		</div>
-	      </div>
-	    }
-	  </div>
-	</div>
-	
-	<div class="thirteen wide column">
-	  <h3 class="ui dividing header" id="defns-hdr">Definitions</h3>
-	  <div class="ui fluid styled accordion" id="defn-list"></div>
-	</div>
+    <div id="toc-pane" class="toc"></div>
 
+    <div id="article-pane" class="article">
+      <div id="article-content"></div>
+
+      <div id="base-bar" class="opetopic ui basebar">
       </div>
     </div>
-
-    <div class="ui tab" data-tab="definition-tab" id="defn-tab"></div>
-
-    <div class="ui tab" data-tab="code-tab" id="code-edit-tab">
-      <textarea id="ott"></textarea>
-      <div class="ui right aligned segment">
-	<div class="ui button" id="tc-btn">TypeCheck</div>
-      </div>
-    </div>
-
-    <h3 class="ui dividing header">Messages</h3>
-
-    <div id="msg-box"></div>
-
+      
     <div class="ui inverted bottom fixed menu">
       <a class="active item" data-tab="module-tab">Module</a>
       <a class="item" data-tab="definition-tab" id="defn-tab-btn">Definition</a>

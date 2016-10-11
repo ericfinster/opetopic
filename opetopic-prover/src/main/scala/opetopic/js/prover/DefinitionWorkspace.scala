@@ -19,6 +19,7 @@ import ott.TypeChecker._
 import mtl._
 import ui._
 
+import js.JQuerySemanticUI._
 import Prover.runExcept
 
 class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { thisWksp =>
@@ -50,15 +51,16 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
     tcEnv = withVar(PVar(id), tyD)(tcEnv)
     context = (id, tyE) :: context
 
-    val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id 
-    ).render
+    // val title = div(cls := "title")(
+    //   i(cls := "dropdown icon"), id 
+    // ).render
 
-    val content = div(cls := "content")(
-      p(pprint(tyE))
-    ).render
+    // val content = div(cls := "content")(
+    //   p(pprint(tyE))
+    // ).render
 
-    jQuery(contextList).append(title, content)
+    val item = a(cls := "item")(id).render
+    jQuery(contextList).append(item)
 
   }
 
@@ -66,18 +68,41 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     environment = defn :: environment
 
-    val title = div(cls := "title")(
-      i(cls := "dropdown icon"), defn.id
-    ).render
+    // val title = div(cls := "title")(
+    //   i(cls := "dropdown icon"), defn.id
+    // ).render
 
-    val content = div(cls := "content")(
-      p(pprint(defn.expr) ++ " : " + pprint(defn.typeExpr)),
-      button(cls := "ui icon button", onclick := { () => runExcept(onExport(defn)) })(
-        i(cls := "check circle icon")
+    // val content = div(cls := "content")(
+    //   p(pprint(defn.expr) ++ " : " + pprint(defn.typeExpr)),
+    //   button(cls := "ui icon button", onclick := { () => runExcept(onExport(defn)) })(
+    //     i(cls := "check circle icon")
+    //   )
+    // ).render
+
+    // val item = a(cls := "ui dropdown item")(
+    //   defn.id, i(cls := "dropdown icon"),
+    //   div(cls := "menu")(
+    //     div(cls := "item")("Paste to cursor")
+    //   )
+    // ).render
+
+    def showProps: Unit = {
+      jQuery(propsPane).empty().append(
+        div(cls := "ui form")(
+          div(cls := "field")(
+            label("Definition"),
+            textarea(defn.id + " : " + pprint(defn.typeExpr) + " = " + pprint(defn.expr))
+          ),
+          div(cls := "field")(
+            button(cls := "ui primary button")("Export"),
+            button(cls := "ui primary button")("Paste")
+          )
+        ).render
       )
-    ).render
+    }
 
-    jQuery(environmentList).append(title, content)
+    val item = a(cls := "item", onclick := { () => showProps })(defn.id).render
+    jQuery(environmentList).append(item)
 
   }
 
@@ -85,20 +110,21 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     cells += ((id, expr))
 
-    val title = div(cls := "title")(
-      i(cls := "dropdown icon"), id
-    ).render
+    // val title = div(cls := "title")(
+    //   i(cls := "dropdown icon"), id
+    // ).render
 
-    val content = div(cls := "content")(
-      button(
-        cls := "ui icon button",
-        onclick := { () => runExcept(onPaste(expr, id)) }
-      )(
-        i(cls := "paste icon")
-      )
-    ).render
+    // val content = div(cls := "content")(
+    //   button(
+    //     cls := "ui icon button",
+    //     onclick := { () => runExcept(onPaste(expr, id)) }
+    //   )(
+    //     i(cls := "paste icon")
+    //   )
+    // ).render
 
-    jQuery(cellList).append(title, content)
+    val item = a(cls := "item")(id).render
+    jQuery(cellList).append(item)
 
   }
 
@@ -106,22 +132,23 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     properties += prop
 
-    val title = div(cls := "title")(
-      i(cls := "dropdown icon"), prop.id
-    ).render
+    // val title = div(cls := "title")(
+    //   i(cls := "dropdown icon"), prop.id
+    // ).render
 
-    val content = div(cls := "content")(
-      prop match {
-        case l : TgtExtProperty => List(p("Target cell: " ++ prop.cellId))
-        case r : SrcExtProperty => List(
-          p("Target cell: " ++ prop.cellId),
-          p("Address: " ++ r.addr.toString)
-        )
-      }
+    // val content = div(cls := "content")(
+    //   prop match {
+    //     case l : TgtExtProperty => List(p("Target cell: " ++ prop.cellId))
+    //     case r : SrcExtProperty => List(
+    //       p("Target cell: " ++ prop.cellId),
+    //       p("Address: " ++ r.addr.toString)
+    //     )
+    //   }
         
-    ).render
+    // ).render
 
-    jQuery(propertyList).append(title, content)
+    val item = a(cls := "item")(prop.id).render
+    jQuery(propertyList).append(item)
 
   }
 

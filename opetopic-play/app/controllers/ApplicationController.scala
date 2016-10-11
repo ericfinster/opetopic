@@ -58,6 +58,11 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.tt()(request.identity)))
   }
 
+  def playground = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.playground()(request.identity)))
+  }
+
+
   /**
    * Handles the Sign In action.
    *

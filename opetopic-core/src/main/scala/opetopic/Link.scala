@@ -56,7 +56,6 @@ object Link {
           (zp, asc, lastOpt) = trpl
 
           _ = println("Starting link calculation at: " + zp.focus.baseValue._1.toString)
-          // _ = println("Last is : " + lastOpt.toString)
 
           startCard = SCardinal(||(SDot(LinkData(zp.focus.baseValue._1, zp.focus.baseValue._2))))
 
@@ -77,13 +76,6 @@ object Link {
             case None => { println("There was an error") ; None }
             case Some(c) => { println("Trace complete") ; Some(c) }
           }
-
-          // This looks good.  The next step is to have a kind of loop
-          // which steps through the cofaces in the proper direction and
-          // calls some function as we go so that we can watch the progress.
-
-          // So I think you are going to want to do this on the nesting but
-          // appended with the boolean flag.  Let's try this
 
         } yield endCard.map(_.a)
       }
@@ -198,59 +190,142 @@ object Link {
     }
   }
 
+  // Uh, yeah, there are a couple of very serious problems.
+  //
+  //  1) Order is not preserved.  So you cannot count on the
+  //     root element in some canopy to carry the correct initial
+  //     address for the extrusion.  Well, actually, it probably
+  //     is preserved in dimensions greater than 2.  Anyway, it's
+  //     not totally clear how to handle this.
+  //
+  //  2) Worse: because of the peculiarities of how loops work,
+  //     I don't think you can put them off until the dimension
+  //     they actually occur, at which point it will be too late
+  //     beacuse they will be covered by lower cells.  This means
+  //     that the loops structure of the next dimension needs to
+  //     be worked out at the same time as the current ongoing
+  //     extrusion.  So they must be located and tagged ahead of time.
+  //
+  //  Right.  Work for another day.....    
+
+  def doLinkExtrusion[A](
+    card: SCardinal[LinkData[A]],
+    nst: SNesting[(A, SAddr, Boolean)],
+    mp: Map[SAddr, SCardAddr]
+  ): Option[SCardinal[LinkData[A]]] = {
+
+    type Data = (A, SAddr, Boolean)
+
+    // Okay, so I think the structure has to be
+    // similar to the fixLeaves routine in SComplex
+    // since you have to return from a dot with a
+    // full look at the outgoing canopy.
+
+    // But it's slightly simpler in this case, because
+    // you'll just be able to zip the two guys together
+    // and move on.  No messing with this map stuff.
+    // def vertical(n: SNesting[A], mk: LeafMarker[A]): Option[(SNesting[A], STree[LeafMarker[A]])] =
+
+    def vertical(n: SNesting[Data]): Option[STree[SCardAddr]] = 
+      n match {
+        case SDot((a, addr, isCoface)) => {
+
+          // Right, so in the dot case, things should already be taken care of.
+          // The main thing here is to get started passing along the address
+          // where we will be doing loop extrusions if we need to.
+
+
+          None
+
+        }
+        case SBox((a, addr, isCoface), cn) => {
+
+
+          for {
+            hres <- horizontal(cn, ???)
+          } yield ???
+
+          // We want to extrude at the base address.  What does this mean?
+
+
+
+        }
+      }
+
+    def horizontal(t: STree[SNesting[Data]], loopAddr: SCardAddr): Option[STree[SCardAddr]] =
+      t match {
+        case SLeaf => None
+        case SNode(n, sh) => {
+
+          for {
+            vres <- vertical(n)
+            hres <- vres.matchTraverse(sh)({
+              case (la, br) => horizontal(br, la)
+            })
+          } yield ???
+
+
+        }
+      }
+
+    None
+
+  }
+
+
   // This could be made much more generic and reused but I'm not in
   // the mood to fight the types, so I'm just going to make the specific
   // case of building the associated cardinal.
-  def traceLink[A](z: SNstZipper[A], ascending: Boolean)(f: A => Boolean): Option[SNstZipper[A]] =
-    if (ascending) {
-      z.focus match {
-        case SDot(a) => {
-          println("Finished at: " + a.toString)
-          Some(z)
-        }
-        case SBox(a, SLeaf) => {
-          println("Crossing box: " + a.toString)
-          traceLink(z, false)(f)
-        }
-        case SBox(a, SNode(n, vs)) => {
-          println("Entering box: " + a.toString)
-          traceLink(SNstZipper(n, SNstCtxt((a, SDeriv(vs)) :: z.ctxt.g)), true)(f)
-        }
-      }
-    } else {
-      z.ctxt.g match {
-        case (a, SDeriv(verts, _)) :: cs => {
+  // def traceLink[A](z: SNstZipper[A], ascending: Boolean)(f: A => Boolean): Option[SNstZipper[A]] =
+  //   if (ascending) {
+  //     z.focus match {
+  //       case SDot(a) => {
+  //         println("Finished at: " + a.toString)
+  //         Some(z)
+  //       }
+  //       case SBox(a, SLeaf) => {
+  //         println("Crossing box: " + a.toString)
+  //         traceLink(z, false)(f)
+  //       }
+  //       case SBox(a, SNode(n, vs)) => {
+  //         println("Entering box: " + a.toString)
+  //         traceLink(SNstZipper(n, SNstCtxt((a, SDeriv(vs)) :: z.ctxt.g)), true)(f)
+  //       }
+  //     }
+  //   } else {
+  //     z.ctxt.g match {
+  //       case (a, SDeriv(verts, _)) :: cs => {
 
-          verts.mapWithAddr({
-            case (SLeaf, addr) => None
-            case (SNode(n, sh), addr) =>
-              if (f(n.baseValue)) Some(addr) else None
-          }).toList.filter(_.isDefined) match {
-            case Nil => {
-              // In this case, there is no outgoing guy and
-              // we are going to move on to the next.
+  //         verts.mapWithAddr({
+  //           case (SLeaf, addr) => None
+  //           case (SNode(n, sh), addr) =>
+  //             if (f(n.baseValue)) Some(addr) else None
+  //         }).toList.filter(_.isDefined) match {
+  //           case Nil => {
+  //             // In this case, there is no outgoing guy and
+  //             // we are going to move on to the next.
 
-              if (f(a)) {
-                println("Descending past " + a.toString)
-                z.parent.flatMap(p => traceLink(p, false)(f))
-              } else {
-                println("Error: parent is not a coface in descent")
-                None
-              }
+  //             if (f(a)) {
+  //               println("Descending past " + a.toString)
+  //               z.parent.flatMap(p => traceLink(p, false)(f))
+  //             } else {
+  //               println("Error: parent is not a coface in descent")
+  //               None
+  //             }
 
-            }
-            case dOpt :: _ => {
-              z.sibling(SDir(dOpt.get)).flatMap(s => traceLink(s, true)(f))
-            }
-          }
+  //           }
+  //           case dOpt :: _ => {
+  //             z.sibling(SDir(dOpt.get)).flatMap(s => traceLink(s, true)(f))
+  //           }
+  //         }
 
-        }
-        case Nil => {
-          println("Exiting nesting at " + z.focus.baseValue.toString)
-          Some(z)
-        }
-      }
-    }
+  //       }
+  //       case Nil => {
+  //         println("Exiting nesting at " + z.focus.baseValue.toString)
+  //         Some(z)
+  //       }
+  //     }
+  //   }
 
 
 }
