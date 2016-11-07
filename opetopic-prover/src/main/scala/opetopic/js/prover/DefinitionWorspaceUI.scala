@@ -88,14 +88,14 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] with Workspa
     jQuery(composeIdInput).on("input", () => {
       val compId = jQuery(composeIdInput).value().asInstanceOf[String]
       jQuery(composeFillInput).value(compId ++ "-fill")
-      jQuery(composePropInput).value(compId ++ "-tgt")
+      jQuery(composePropInput).value(compId ++ "-fill-is-tgt")
     })
 
     jQuery(liftIdInput).on("input", () => {
       val liftId = jQuery(liftIdInput).value().asInstanceOf[String]
       jQuery(liftFillInput).value(liftId ++ "-fill")
-      jQuery(liftTgtInput).value(liftId ++ "-tgt")
-      jQuery(liftSrcInput).value(liftId ++ "-src")
+      jQuery(liftTgtInput).value(liftId ++ "-fill-is-tgt")
+      jQuery(liftSrcInput).value(liftId ++ "-fill-is-src")
     })
 
     initialize
@@ -227,7 +227,7 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] with Workspa
   val propsPane = div().render
   
   val baseBar =
-    div(cls := "ui basic segment")(
+    div(cls := "ui basic segment", style := "pointer-events: auto")(
       div(cls := "ui grid")(
         div(cls := "four wide column")(
           div(cls := "ui secondary pointing menu")(

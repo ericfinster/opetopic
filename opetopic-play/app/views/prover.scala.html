@@ -10,6 +10,12 @@
     .toc { min-width: 250px; padding-top: 40px; border-right: 1px solid grey; }
   </style>
 
+  <div id="module-list" style="display: none">
+    @for(m <- modules) {
+      <div data-name="@m.name" data-id="@m.moduleId.toString"></div>
+    }
+  </div>
+  
   <div class="divider">
 
     <div id="toc-pane" class="toc"></div>
@@ -24,7 +30,6 @@
     <div class="ui inverted bottom fixed menu">
       <a class="active item" data-tab="module-tab">Module</a>
       <a class="item" data-tab="definition-tab" id="defn-tab-btn">Definition</a>
-      <a class="item" data-tab="code-tab" id="code-tab-btn">Code</a>
       <div class="item">
 	<button type="button" class="ui button" id="new-module-btn">New Module</button>
       </div>

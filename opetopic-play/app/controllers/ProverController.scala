@@ -68,8 +68,8 @@ class ProverController @Inject() (
 
       val req = read[SaveModuleRequest](text)
 
-      // println("Saving module: " + req.name)
-      // println(req.data)
+      println("Saving module: " + req.name)
+      println(req.data)
 
       val moduleId = 
         req.moduleId match {
@@ -90,6 +90,20 @@ class ProverController @Inject() (
       } yield Ok(m.moduleId.toString)
 
     } getOrElse Future.successful(BadRequest("Bad save module request"))
+
+  }
+
+  def deleteModule = SecuredAction.async { implicit request => 
+
+    request.body.asText.map { text => 
+
+      val req = read[DeleteModuleRequest](text)
+
+      proverDAO.deleteModule(UUID.fromString(req.id)).map {
+        (i: Int) => Ok("Deleted " + i.toString + " module(s)")
+      }
+
+    } getOrElse Future.successful(BadRequest("Bad delete request"))
 
   }
 

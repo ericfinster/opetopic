@@ -63,4 +63,13 @@ class ProverDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProv
     
   }
 
+  def deleteModule(moduleId: UUID): Future[Int] = {
+
+    val action = 
+      slickModules.filter(_.moduleId === moduleId).delete
+
+    db.run(action)
+
+  }
+
 }

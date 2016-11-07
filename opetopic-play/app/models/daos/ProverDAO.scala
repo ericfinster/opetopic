@@ -17,5 +17,6 @@ trait ProverDAO {
   def userModules(user: User) : Future[Seq[Module]]
   def saveModule(module: Module) : Future[Module]
   def getModule(uuid: UUID) : Future[Option[Module]]
+  def deleteModule(uuid: UUID) : Future[Int]
 
 }

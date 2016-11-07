@@ -15,6 +15,7 @@ POST        /signUp                          controllers.SignUpController.signUp
 GET         /prover                          controllers.ProverController.prover
 POST        /saveModule                      controllers.ProverController.saveModule
 POST        /getModule                       controllers.ProverController.getModule
+POST        /deleteModule                    controllers.ProverController.deleteModule
 
 # Auxillary
 GET         /multiedit                       controllers.ApplicationController.multiedit

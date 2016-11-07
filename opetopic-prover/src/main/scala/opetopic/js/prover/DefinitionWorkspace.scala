@@ -68,24 +68,6 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     environment = defn :: environment
 
-    // val title = div(cls := "title")(
-    //   i(cls := "dropdown icon"), defn.id
-    // ).render
-
-    // val content = div(cls := "content")(
-    //   p(pprint(defn.expr) ++ " : " + pprint(defn.typeExpr)),
-    //   button(cls := "ui icon button", onclick := { () => runExcept(onExport(defn)) })(
-    //     i(cls := "check circle icon")
-    //   )
-    // ).render
-
-    // val item = a(cls := "ui dropdown item")(
-    //   defn.id, i(cls := "dropdown icon"),
-    //   div(cls := "menu")(
-    //     div(cls := "item")("Paste to cursor")
-    //   )
-    // ).render
-
     def showProps: Unit = {
       jQuery(propsPane).empty().append(
         div(cls := "ui form")(
@@ -94,8 +76,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
             textarea(defn.id + " : " + pprint(defn.typeExpr) + " = " + pprint(defn.expr))
           ),
           div(cls := "field")(
-            button(cls := "ui primary button")("Export"),
-            button(cls := "ui primary button")("Paste")
+            button(cls := "ui primary button")("Export")
           )
         ).render
       )
@@ -110,20 +91,26 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     cells += ((id, expr))
 
-    // val title = div(cls := "title")(
-    //   i(cls := "dropdown icon"), id
-    // ).render
+    def showCell: Unit = {
+      jQuery(propsPane).empty().append(
+        div(cls := "ui form")(
+          div(cls := "field")(
+            div(cls := "field")(
+              label("Definition"),
+              textarea(id + " = " + pprint(expr))
+            )
+          ),
+          div(cls := "field")(
+            button(
+              cls := "ui primary button",
+              onclick := { () => runExcept(onPaste(expr, id)) }
+            )("Paste to Cursor")
+          )
+        ).render
+      )
+    }
 
-    // val content = div(cls := "content")(
-    //   button(
-    //     cls := "ui icon button",
-    //     onclick := { () => runExcept(onPaste(expr, id)) }
-    //   )(
-    //     i(cls := "paste icon")
-    //   )
-    // ).render
-
-    val item = a(cls := "item")(id).render
+    val item = a(cls := "item", onclick := { () => showCell })(id).render
     jQuery(cellList).append(item)
 
   }
@@ -189,16 +176,16 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // EXPORTING
   //
 
-  def onExport(defn: Definition): Except[Unit] =
-    for {
-      editor <- attempt(Prover.cm, "No active code mirror editor")
-    } yield {
+  // def onExport(defn: Definition): Except[Unit] =
+  //   for {
+  //     editor <- attempt(Prover.cm, "No active code mirror editor")
+  //   } yield {
 
-      val doc = editor.getDoc()
-      val cur = doc.getCursor()
-      doc.replaceRange(pprint(defn.declaration), cur, cur)
+  //     val doc = editor.getDoc()
+  //     val cur = doc.getCursor()
+  //     doc.replaceRange(pprint(defn.declaration), cur, cur)
 
-    }
+  //   }
 
   //============================================================================================
   // PASTING
@@ -208,8 +195,8 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // frame be full and simply checks against the type...
   def onPaste(e: ExpT, id: String): Except[Unit] = {
 
-    // println("Attempting paste on: " + pprint(e))
-    // println("Id is: " + id)
+    println("Attempting paste on: " + pprint(e))
+    println("Id is: " + id)
 
     for {
       tab <- attempt(activeTab, "No active tab")
@@ -625,7 +612,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
 
     } yield {
 
-      val propId = destMk.displayName ++ "-tgt"
+      val propId = destMk.displayName ++ "-is-tgt-by-closure"
       val propExpr = EShellIsTgt(fillMk.expr, fillEv, treeToExp(srcEvTr)((e: ExpT) => VExp(e)), tgtEv)
       val propTy = EIsTgtU(destMk.expr)
 

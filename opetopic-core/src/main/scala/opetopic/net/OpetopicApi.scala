@@ -34,6 +34,10 @@ case class LoadModuleRequest(
   val uuid: String
 )
 
+case class DeleteModuleRequest(
+  val id: String
+)
+
 // Not sure where this belongs ....
 sealed trait SizingMethod
 case class Sized(val width: Int, val height: Int) extends SizingMethod
