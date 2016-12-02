@@ -13,7 +13,8 @@ case class ColorSpec(
   val fillSelected: String,
   val stroke: String,
   val strokeHovered: String,
-  val strokeSelected: String
+  val strokeSelected: String,
+  val edgeHovered: String
 ) {
 
   // Some default colors to play with ...
@@ -78,7 +79,8 @@ object DefaultColorSpec extends ColorSpec(
   fillSelected = "#DCDDDE",
   stroke = "#000000",
   strokeHovered = "#000000",
-  strokeSelected = "#000000"
+  strokeSelected = "#000000",
+  edgeHovered = "#f19091"
 )
 
 object PolarityColorSpec extends ColorSpec(
@@ -87,7 +89,8 @@ object PolarityColorSpec extends ColorSpec(
   fillSelected = "#DDDDDD",
   stroke = "#000000",
   strokeHovered = "#000000",
-  strokeSelected = "#000000"
+  strokeSelected = "#000000",
+  edgeHovered = "#f19091"
 )
 
 

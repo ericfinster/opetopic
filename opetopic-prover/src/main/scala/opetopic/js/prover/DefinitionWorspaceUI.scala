@@ -98,6 +98,7 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] with Workspa
       jQuery(liftSrcInput).value(liftId ++ "-fill-is-src")
     })
 
+
     initialize
 
   }
@@ -225,7 +226,9 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] with Workspa
   val articlePane = div(uiElement).render
 
   val propsPane = div().render
-  
+
+  val exportsList = div(cls := "ui fluid vertical menu").render
+
   val baseBar =
     div(cls := "ui basic segment", style := "pointer-events: auto")(
       div(cls := "ui grid")(
@@ -243,18 +246,28 @@ abstract class DefinitionWorkspaceUI extends JsStableEditor[Marker] with Workspa
             a(cls := "active item", attr("data-tab") := "assume-tab")("Assume"),
             a(cls := "item", attr("data-tab") := "compose-tab")("Compose"),
             a(cls := "item", attr("data-tab") := "lift-tab")("Lift"),
-            a(cls := "item", attr("data-tab") := "closure-tab")("Closure")
+            a(cls := "item", attr("data-tab") := "closure-tab")("Closure"),
+            a(cls := "item", attr("data-tab") := "exports-tab")("Exports")
           ),
 
           div(cls := "ui segment", style := "min-height: 300px;")(
             div(cls := "ui active tab", attr("data-tab") := "assume-tab")(assumeForm),
             div(cls := "ui tab", attr("data-tab") := "compose-tab")(composeForm),
             div(cls := "ui tab", attr("data-tab") := "lift-tab")(liftForm),
-            div(cls := "ui tab", attr("data-tab") := "closure-tab")(tgtClosureBtn)
+            div(cls := "ui tab", attr("data-tab") := "closure-tab")(tgtClosureBtn),
+            div(cls := "ui tab", attr("data-tab") := "exports-tab")(exportsList)
           )
           
         )
       )
     ).render
+
+  val baseMenuItems: Seq[org.scalajs.dom.html.Div] = Seq(
+    div(cls := "right menu")(
+      div(cls := "item")(
+        button(cls := "ui primary button", onclick := { () => onExit })("Exit")
+      )
+    ).render
+  )
 
 }

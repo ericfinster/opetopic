@@ -34,6 +34,27 @@ object Examples {
       SBox("ζ",SNode(SDot("ε"),SNode(SNode(SDot("δ"),SNode(SLeaf,SNode(SNode(SNode(SDot("γ"),SLeaf),
         SNode(SNode(SNode(SDot("β"),SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),SNode(SNode(SNode(SDot("α"),
           SNode(SLeaf,SNode(SLeaf,SLeaf))),SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)),SLeaf))),SNode(SLeaf,SLeaf)))) >>
-      SDot("Φ")
+  SDot("Φ")
+
+  val big: SComplex[String] = 
+    ||(SBox("w",SNode(SBox("z",SNode(SBox("y",SNode(SDot("x"),SLeaf)),SLeaf)),SLeaf))) >>
+      SBox("r",SNode(SBox("q",SNode(SDot("o"),SNode(SNode(SDot("n"),SNode(SLeaf,SLeaf)),SLeaf))),
+        SNode(SNode(SBox("p",SLeaf),SNode(SNode(SDot("m"),SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))) >>
+      SBox("f",SNode(SBox("e",SNode(SDot("c"),SNode(SLeaf,SNode(SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)))),
+        SNode(SNode(SDot("b"),SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),SNode(SNode(SNode(SBox("d",SNode(SDot("a"),SLeaf)),SLeaf),
+          SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)))) >>
+      SBox("ζ",SNode(SBox("ε",SNode(SDot("γ"),SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),
+        SNode(SNode(SNode(SLeaf,SLeaf),SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))))),
+        SNode(SNode(SBox("δ",SNode(SDot("β"),SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))))),
+          SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)))),
+          SNode(SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),SNode(SNode(SNode(SNode(SDot("α"),SNode(SLeaf,SLeaf)),SLeaf),
+            SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))))) >>
+      SBox("Θ",SNode(SDot("Ε"),SNode(SNode(SDot("Δ"),SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),
+        SNode(SNode(SNode(SLeaf,SLeaf),SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))))),SNode(SNode(SNode(SDot("Γ"),
+          SNode(SLeaf,SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf))))),
+          SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)))),
+          SNode(SNode(SLeaf,SNode(SLeaf,SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf))),SNode(SNode(SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf),
+            SNode(SNode(SLeaf,SNode(SLeaf,SLeaf)),SLeaf)),SLeaf)))))) >>
+      SDot("Ω")
 
 }

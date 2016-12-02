@@ -50,4 +50,8 @@ class DocsController @Inject() (
 
   }
 
+  def tutorial = UserAwareAction.async { 
+    Future.successful(Ok(views.html.docs.tutorial()))
+  }
+
 }

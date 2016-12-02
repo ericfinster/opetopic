@@ -38,7 +38,8 @@ object VarColorSpec extends ColorSpec(
   fillSelected = "#FBBD08",
   stroke = "#000000",
   strokeHovered = "#000000",
-  strokeSelected = "#000000"
+  strokeSelected = "#000000",
+  edgeHovered = "#f19091"
 )
 
 object CompColorSpec extends ColorSpec(
@@ -47,7 +48,8 @@ object CompColorSpec extends ColorSpec(
   fillSelected = "#DB2828",
   stroke = "#000000",
   strokeHovered = "#000000",
-  strokeSelected = "#000000"
+  strokeSelected = "#000000",
+  edgeHovered = "#f19091"
 )
 
 object FillColorSpec extends ColorSpec(
@@ -56,7 +58,8 @@ object FillColorSpec extends ColorSpec(
   fillSelected = "#2185D0",
   stroke = "#000000",
   strokeHovered = "#000000",
-  strokeSelected = "#000000"
+  strokeSelected = "#000000",
+  edgeHovered = "#f19091"
 )
 
 object Marker {

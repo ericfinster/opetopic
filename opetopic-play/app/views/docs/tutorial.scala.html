@@ -1,0 +1,132 @@
+
+@import play.api.Play
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Opetopic">
+    <meta name="author" content="Eric Finster">
+    <meta name="page" content="tutorial">
+
+    <title>Opetopic - Tutorial</title>
+
+    <link rel="stylesheet" href="/assets/lib/reveal.js/css/reveal.css">
+    <link rel="stylesheet" href="/assets/lib/reveal.js/css/theme/white.css">
+
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("jquery.js"))'></script>
+    
+  </head>
+
+  <body>
+
+    <div class="reveal">
+      <div class="slides">
+
+        <section>
+	  <h2>Opetopic Categories</h2>
+	  <h3>A Diagrammatic Approach<h3>
+	</section>
+
+	<section>
+	  <section>
+	    <h4>Two ways to view a tree</h4>
+	    <object type="image/svg+xml" data="/assets/svgs/boxtree.svg"></object>
+	  </section>
+	  <section>
+	    <h4>As an intersection</h4>
+	    <object type="image/svg+xml" data="/assets/svgs/3dboxtree.svg"></object>
+	  </section>
+	</section>
+
+	<section>
+	  <section>
+	    <h4>Two trees in one</h4>
+	    <object type="image/svg+xml" data="/assets/svgs/nesting.svg"></object>
+	  </section>
+	  <section>
+	    <h4>Perpendicular trees</h4>
+	    <object type="image/svg+xml" data="/assets/svgs/3dnesting.svg"></object>
+	  </section>
+	  <section>
+	    <h4>Pathologies</h4>
+	    <object type="image/svg+xml" data="/assets/svgs/badnesting.svg"></object>
+	  </section>
+	</section>
+
+	<section>
+	  <section>
+	    <h4>Bonds</h4>
+	    <p>Something about bonds</p>
+
+	    <div>
+	      <div id="atoms" style="opacity:1.0">
+		<object type="image/svg+xml" id="atoms-svg" data="/assets/svgs/newzoom.svg"></object>
+	      </div>
+	      <div id="bond" style="opacity:0.0; position: relative; top:-326px; margin-bottom:-326px;">
+		<object type="image/svg+xml" id="bond-svg" data="/assets/svgs/newzoomreveal.svg"></object>
+	      </div>
+	    </div>
+	    
+	    <span class="fragment" id="bond-fragment"></span>
+	    
+	  </section>
+	  <section>
+	    <h4>Complexes</h4>
+
+	    <div>
+	      <div id="csvg" style="opacity:1.0">
+		<object type="image/svg+xml" data="/assets/svgs/bigcomplex.svg"></object>
+	      </div>
+	      <div id="fsvg" style="opacity:0.0; position: relative; top:-254px; margin-bottom:-254px;">
+		<object type="image/svg+xml" data="/assets/svgs/bigcomplex-first.svg"></object>
+	      </div>
+	      <div id="ssvg" style="opacity:0.0; position: relative; top:-254px; margin-bottom:-254px;">
+		<object type="image/svg+xml" data="/assets/svgs/bigcomplex-second.svg"></object>
+	      </div>
+	    </div>
+
+	    <span class="fragment" id="lower-bond-fragment"></span>
+	    <span class="fragment" id="upper-bond-fragment"></span>
+	    
+	  </section>
+	  <section data-state="bond-diagram-slide">
+	    <h4>Illustration</h4>
+	    <div id="bond-diagram"></div>
+	  </section>
+	</section>
+	
+	<section data-state="diag-one-slide">
+	  <h2>An Example Diagram</h2>
+	  <div id="diag-one"></div>
+	</section>
+
+	<section>
+	  <section>
+	    <p>The object</p>
+	  </section>
+	  <section>
+	    <p>The arrow</p>
+	  </section>
+	</section>
+      </div>
+    </div>
+
+  </body>
+
+  <script src="/assets/lib/reveal.js/js/reveal.js"></script>
+
+  @if(Play.isProd(Play.current)) {
+    <script src='@routes.Assets.at("opetopicdocs-opt.js")' type="text/javascript"></script>
+  } else {
+    <script src='@routes.Assets.at("opetopicdocs-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopicdocs-launcher.js")' type="text/javascript"></script>
+
+</html>
+
+
+

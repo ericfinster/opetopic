@@ -36,6 +36,7 @@ GET         /stable                          controllers.ApplicationController.s
 # Documentation
 GET         /docs                            controllers.DocsController.showDoc(page = "intro")
 GET         /docs/*page                      controllers.DocsController.showDoc(page)
+GET         /tutorial                        controllers.DocsController.tutorial
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                    controllers.Assets.at(path="/public", file)

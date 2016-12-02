@@ -41,10 +41,6 @@ object Prover extends JSApp {
     showModuleWorkspace(moduleWksp)
 
     moduleWksp.initialize
-    
-    jQuery("#new-defn-btn").on("click", () => newDefinition)
-    jQuery("#new-module-btn").on("click", () => newModule)
-
     setupModules
 
   }
@@ -53,12 +49,16 @@ object Prover extends JSApp {
     jQuery("#toc-pane").empty().append(wksp.tocPane)
     jQuery("#article-content").empty().append(wksp.articlePane)
     jQuery("#base-bar").empty().append(wksp.baseBar)
+    jQuery("#bottom-menu").empty().append(wksp.baseMenuItems : _*)
+    jQuery(wksp.baseBar).find(".item").tab()
   }
+
 
   def showDefinitionWorkspace(wksp: DefinitionWorkspace): Unit = {
     jQuery("#toc-pane").empty().append(wksp.tocPane)
     jQuery("#article-content").empty().append(wksp.articlePane)
     jQuery("#base-bar").empty().append(wksp.baseBar)
+    jQuery("#bottom-menu").empty().append(wksp.baseMenuItems : _*)
   }
 
   //============================================================================================
@@ -99,7 +99,7 @@ object Prover extends JSApp {
               ("CSRF-Token" -> "nocheck")
             ),
             withCredentials = true
-          ).map(xhtml => { m.code = xhtml.responseText })
+          ).map(xhtml => { m.code = xhtml.responseText ; m.isLoaded = true })
 
         }
       }
@@ -193,70 +193,37 @@ object Prover extends JSApp {
       case Xor.Right(a) => ()
     }
 
-  //============================================================================================
-  // TYPECHECKING OF USER CODE
-  //
-
-  // def typecheckCode: Unit = {
-
-  //   println("in typecheck routine")
-
-  //   for {
-  //     ed <- cm
-  //   } {
-
-  //     println("got the editor")
-
-  //     val code : String =
-  //       ed.getDoc.getValue()
-
-  //     import java.io.StringReader
-  //     import opetopic.ott.TypeChecker._
-  //     import opetopic.ott.OttPrettyPrinter._
-
-  //     val reader = new StringReader(code)
-  //     val lexer = new OttLexer(reader)
-  //     val parser = new OttParser
-  //     parser.lexer = lexer
-
-  //     parser.parseAll match {
-  //       case Right(Module(mid, ds)) => {
-
-  //         println("Checking module: " + mid)
-
-  //         checkDecls(ds).run(TCEnv(Nil, RNil)) match {
-  //           case Xor.Left(msg) => println("Typechecking error: " + msg)
-  //           case Xor.Right(_) => println("Success!")
-  //         }
-
-  //       }
-  //       case Right(_) => println("Unknown error")
-  //       case Left(s) => println("Parse error: " + s)
-  //     }
-
-  //   }
-
-  // }
-
   def parseExpr(exprStr: String) : Except[ExpT] = {
 
     println("In parse routine with: " + exprStr)
 
+    val mstr = "module Temp where { none : U = " + exprStr + " ; }"
+
     import java.io.StringReader
-    val reader = new StringReader(exprStr)
+    val reader = new StringReader(mstr)
     val lexer = new OttLexer(reader)
     val parser = new OttParser
+    parser.lexer = lexer
+
+    // I have no idea why I need to do this kind of shennanigans.
+    // The parser is pretty unreliable, and in any case, gives
+    // terrible error messages and so on ....
 
     try {
 
-      parser.lexer = lexer
-      val e: ExpT = parser.parse_Exp1()
-      println("Parsed expression: " + e.toString)
-      Xor.Right(e)
+      println("About to parse")
+
+      parser.parse_Module match {
+        case Module(_, Def(_, _, _, NoWhere(e)) :: Nil) => {
+          println("Parsed expression: " + e.toString)
+          Xor.Right(e)
+        }
+        case _ => Xor.Left("Unexpected error")
+      }
 
     } catch {
       case parser.YYError(s) => {
-        println("There was an error: " + s)
+        println("There was a yyerror: " + s)
         Xor.Left(s)
       }
       case e : Error => {

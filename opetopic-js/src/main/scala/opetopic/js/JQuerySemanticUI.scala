@@ -39,6 +39,10 @@ trait JQuerySemanticUI extends JQuery {
   def transition(str: String) : this.type = js.native
   def transition(opts: js.Object) : this.type = js.native
 
+  def progress() : this.type = js.native
+  def progress(str: String*) : this.type = js.native
+  def progress(opts: js.Object) : this.type = js.native
+
 }
 
 object JQuerySemanticUI {

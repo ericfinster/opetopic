@@ -48,6 +48,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "org.webjars" % "Semantic-UI" % "2.1.6",
       "org.webjars" % "codemirror" % codeMirrorVersion,
       "org.webjars.bower" % "snap.svg" % "0.4.1",
+      "org.webjars.bower" % "reveal.js" % "3.3.0",
       "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
       "com.typesafe.play" %% "play-slick" % "1.1.1",
       cache,

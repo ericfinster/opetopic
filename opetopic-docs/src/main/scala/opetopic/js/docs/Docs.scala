@@ -38,7 +38,8 @@ object Docs extends JSApp {
     fillSelected = "#DCDDDE",
     stroke = "#000000",
     strokeHovered = "#000000",
-    strokeSelected = "#000000"
+    strokeSelected = "#000000",
+    edgeHovered = "#f19091"
   )
 
   def newViewer: DocsViewer = 
@@ -47,8 +48,6 @@ object Docs extends JSApp {
   def main: Unit = {
 
     println("Started Opetopic Interactive Documentation ...")
-
-    jQuery("#nav-accordion").accordion()
 
     for {
       pageName <- jQuery("meta[name=page]").attr("content").toOption
@@ -59,6 +58,7 @@ object Docs extends JSApp {
         case "diagrams/opetopes" => doOpetopes
         case "diagrams/geometry" => doGeometry
         case "categories/extrusions" => doExtrusions
+        case "tutorial" => Tutorial.start
         case _ => ()
       }
     }

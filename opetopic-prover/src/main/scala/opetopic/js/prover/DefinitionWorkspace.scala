@@ -31,6 +31,11 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   def typechecker[A](m: TCM[A]): Except[A] =
     m.run(tcEnv)
 
+  def onExit: Unit = {
+    Prover.showModuleWorkspace(Prover.moduleWksp)
+    Prover.moduleWksp.processExports(exports.toSeq)
+  }
+
   //============================================================================================
   // CONTEXT MANAGEMENT
   //
@@ -38,10 +43,18 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   val catExp: ExpT = EVar("X")
 
   // Start with a category variable
-  var tcEnv: TCEnv = TCEnv(List(("X", CatD)), UpVar(RNil, PVar("X"), VarD(0)))
+  var tcEnv: TCEnv =
+    if (module.isTypechecked) {
+      module.moduleEnv.get match {
+        case TCEnv(gma, rho) => TCEnv(("X", CatD) :: gma, UpVar(rho, PVar("X"), VarD(rho.length)))
+      }
+    } else {
+      TCEnv(List(("X", CatD)), UpVar(RNil, PVar("X"), VarD(0)))
+    }
 
   val cells: ListBuffer[(String, ExpT)] = ListBuffer()
   val properties: ListBuffer[Property] = ListBuffer()
+  val exports: ListBuffer[Definition] = ListBuffer()
 
   var context: List[(String, ExpT)] = List(("X", ECat()))
   var environment: List[Definition] = Nil
@@ -76,7 +89,7 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
             textarea(defn.id + " : " + pprint(defn.typeExpr) + " = " + pprint(defn.expr))
           ),
           div(cls := "field")(
-            button(cls := "ui primary button")("Export")
+            button(cls := "ui primary button", onclick := { () => onExport(defn) })("Export")
           )
         ).render
       )
@@ -176,16 +189,14 @@ class DefinitionWorkspace(val module: Module) extends DefinitionWorkspaceUI { th
   // EXPORTING
   //
 
-  // def onExport(defn: Definition): Except[Unit] =
-  //   for {
-  //     editor <- attempt(Prover.cm, "No active code mirror editor")
-  //   } yield {
+  def onExport(defn: Definition): Unit = {
 
-  //     val doc = editor.getDoc()
-  //     val cur = doc.getCursor()
-  //     doc.replaceRange(pprint(defn.declaration), cur, cur)
+    exports += defn
 
-  //   }
+    val expItem = div(cls := "item")(defn.id).render
+    jQuery(exportsList).append(expItem)
+
+  }
 
   //============================================================================================
   // PASTING

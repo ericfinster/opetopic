@@ -104,6 +104,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
         boxFace.map(bc => {
           bc.foreach(b => b.onHover)
         })
+        onHoverEdge
       }
     }
 
@@ -121,6 +122,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
       } else {
         boxFace.map(bc => {
           bc.foreach(b => b.onUnhover)
+          onUnhoverEdge
         })
       }
     }
@@ -131,24 +133,24 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
       thisGallery.onHover(thisCell)
       isHovered = true
       setFill
-      setStroke
+      // setStroke
     }
 
     def onUnhover: Unit = {
       thisGallery.onUnhover(thisCell)
       isHovered = false
       setFill
-      setStroke
+      // setStroke
     }
 
     def onSelected: Unit = {
       setFill
-      setStroke
+      // setStroke
     }
 
     def onDeselected: Unit = {
       setFill
-      setStroke
+      // setStroke
     }
 
     // UI Elements
@@ -221,6 +223,14 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     }
 
     val edgeGroup = group
+
+    def onHoverEdge: Unit = {
+      edgePath.stroke = colorSpec.edgeHovered
+    }
+
+    def onUnhoverEdge: Unit = {
+      edgePath.stroke = colorSpec.stroke
+    }
 
     def renderEdge: Unit = {
 
