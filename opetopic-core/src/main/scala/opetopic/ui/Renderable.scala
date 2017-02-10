@@ -52,4 +52,16 @@ object Renderable {
         }
     }
 
+  implicit object SAddrRenderable extends Renderable[SAddr] {
+    def render(f: UIFramework)(addr: SAddr): f.CellRendering = {
+      val trRenderer = new TreeRenderer[f.type](f)
+      val be = trRenderer.renderAddr(addr).be
+      // println("x: " + be.bounds.x.toString)
+      // println("y: " + be.bounds.y.toString)
+      // println("width: " + be.bounds.width.toString)
+      // println("height: " + be.bounds.height.toString)
+      f.CellRendering(be)
+    }
+  }
+  
 }

@@ -135,6 +135,7 @@ object Sketchpad extends JSApp {
     jQuery("#expand-btn").on("click", () => { runExcept(onExpand) })
     jQuery("#contract-btn").on("click", () => { runExcept(onContract) })
     jQuery("#link-btn").on("click", () => { runExcept(onLink) })
+    jQuery("#proof-btn").on("click", () => { renderAddrProof })
 
   }
 
@@ -280,7 +281,6 @@ object Sketchpad extends JSApp {
     }
   }
 
-
   def onContract: Except[Unit] = {
     for {
       tab <- attempt(editor.activeTab, "No tab")
@@ -383,6 +383,52 @@ object Sketchpad extends JSApp {
       jQuery("#render-request-form").submit()
 
     }
+
+  def renderAddrProof: Unit = 
+    for {
+      c <- viewer.complex
+    } {
+
+      import upickle.default._
+      import opetopic.net._
+
+      val renderData : String = complexToJson(c)
+      val sizingMethod : String = write(Percentage(0.05))
+
+      jQuery("#render-proof-data").value(renderData)
+      jQuery("#proof-sizing-mthd").value(sizingMethod)
+      jQuery("#render-proof-form").submit()
+
+    }
+
+  // def makeDomain: Except[Unit] = {
+
+  //   implicit object SAddrRenderable extends Renderable[SAddr] {
+  //     def render(f: UIFramework)(addr: SAddr): f.CellRendering = {
+  //       val trRenderer = new TreeRenderer[f.type](f)
+  //       f.CellRendering(trRenderer.renderAddr(addr).be)
+  //     }
+  //   }
+
+  //   def printDir(d: SDir, dim: Int = 0): String =
+  //     if (dim < 0) "*" else printAddr(d.dir, dim)
+
+  //   def printAddr(addr: SAddr, dim: Int = 0): String =
+  //     addr.map(printDir(_, dim - 1)).mkString("[", ",", "]")
+    
+  //   for {
+  //     gallery <- attempt(viewer.activeGallery, "No gallery")
+  //     complex = gallery.complex
+  //     dim = complex.dim
+  //     domain <- complex.traverseWithAddr[Except, Option[SimpleMarker]]({
+  //       case (_, fa) => succeed(Some(SimpleMarker(printAddr(fa.address, dim - fa.codim))))
+  //     })      
+  //   } yield {
+
+  //     editor.newEditor(SCardinal(domain))
+
+  //   }
+  // }
 
   def deleteSelectedSketch: Unit = 
     for { (id, _) <- selectedSketch } {

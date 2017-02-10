@@ -14,8 +14,8 @@ import org.scalajs.dom
 // what they types should be ...
 @js.native
 trait RevealEvent extends js.Object {
-  def previousSlide: Int = js.native
-  def currentSlide: Int = js.native
+  def previousSlide: dom.Element = js.native
+  def currentSlide: dom.Element = js.native
   def indexh: Int = js.native
   def indexv: Int = js.native
   def fragment: dom.Element = js.native

@@ -12,6 +12,7 @@ package object opetopic extends ComplexTypes with CardinalTypes {
   type TShell[A] = STree[Shell[A]]
   type QShell[A] = STree[TShell[A]]
 
+  
   //============================================================================================
   // LAZY TRAVERSAL HELPER
   //

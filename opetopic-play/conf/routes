@@ -29,6 +29,7 @@ POST        /saveSketch                      controllers.SketchController.saveSk
 POST        /getSketch                       controllers.SketchController.getSketch
 POST        /renderSketch                    controllers.SketchController.renderSketch
 POST        /deleteSketch                    controllers.SketchController.deleteSketch
+POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
 
 # Stable Editor
 GET         /stable                          controllers.ApplicationController.stable

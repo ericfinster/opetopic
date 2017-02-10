@@ -6,104 +6,106 @@
 @main("SketchPad") {
 
   <style>
-    .article { padding-top: 60px }
+    .divider { flex: 1; display: flex; flex-direction: row; }
+    .article { flex: 1; display: flex: flex-direction: column; padding: 60px 40px 40px 40px ; }
+    .toc { min-width: 350px; padding-top: 60px; padding-left: 20px; padding-right: 20px; border-right: 1px solid grey; }
   </style>
 
-  <div class="article">
+  <div class="divider">
 
-    <div class="ui centered grid">
+    <div id="toc-pane" class="toc">
 
-      <div class="three wide column" style="min-width: 300px">
-
-	<h3 class="ui dividing header">Properties</h3>
-	<div class="ui segment">
-	  <form class="ui form">
-	    <div class="field">
-	      <label>Label</label>
-	      <input type="text" id="label-input" placeholder="Label">
+      <h3 class="ui dividing header">Properties</h3>
+      <div class="ui segment">
+	<form class="ui form">
+	  <div class="field">
+	    <label>Label</label>
+	    <input type="text" id="label-input" placeholder="Label">
+	  </div>
+	  <div class="ui accordion field" id="auto-lbl-accordion">
+	    <div class="title">
+	      <i class="dropdown icon"></i>
+	      Auto Label
 	    </div>
-	    <div class="ui accordion field" id="auto-lbl-accordion">
-	      <div class="title">
-		<i class="dropdown icon"></i>
-		Auto Label
-	      </div>
-	      <div class="content field">
-		<div class="ui button" id="auto-lbl-btn">Go!</div>
-	      </div>
-	    </div>
-	    <div class="field">
-	      <label>Colors</label>
-	      <div class="ui fluid buttons">
-		<button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
-		<button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
-	      </div>
-	    </div>
-	    <div class="ui accordion field" id="edge-accordion">
-	      <div class="title">
-		<i class="dropdown icon"></i>
-		Edge Decorations
-	      </div>
-	      <div class="content field">
-		<div class="ui center aligned plain segment" id="edge-props"></div>
-		<div class="ui fluid buttons">
-		  <div id="dec-shape-btn" class="ui labeled dropdown icon button">
-		    <i class="dropdown icon"></i>
-		    <span class="text">Shape</span>
-		    <div class="menu">
-		      <div class="item" data-value="triangle">Triangle</div>
-		      <div class="item" data-value="square">Square</div>
-		      <div class="item" data-value="circle">Circle</div>
-		    </div>
-		  </div>
-		  <div id="dec-color-btn" class="ui black right labeled dropdown icon button">
-		    <span class="text">Color</span>
-		    <i class="dropdown icon"></i>
-		    <div class="menu">
-		      <div class="item" data-value="black"><div class="ui black empty circular label"></div>Black</div>
-		      <div class="item" data-value="red"><div class="ui red empty circular label"></div>Red</div>
-		      <div class="item" data-value="green"><div class="ui green empty circular label"></div>Green</div>
-		      <div class="item" data-value="blue"><div class="ui blue empty circular label"></div>Blue</div>
-		    </div>
-		  </div>
-		</div>
-	      </div>
-	    </div>
-	  </form>
-	</div>
-
-	<h3 class="ui dividing header">Sketches</h3>
-
-	@if(userOpt.isDefined) {
-	  <div class="ui attached segment">
-	    <div class="ui large selection list" id="saved-sketches">
-	      @for(s <- sketches) {
-		<div class="item" data-name="@s.name" data-id="@s.sketchId.toString">
-		  @s.name
-		</div>
-	      }
+	    <div class="content field">
+	      <div class="ui button" id="auto-lbl-btn">Go!</div>
 	    </div>
 	  </div>
-	  <div class="ui bottom attached segment">
+	  <div class="field">
+	    <label>Colors</label>
 	    <div class="ui fluid buttons">
-	      <button type="button" class="ui button" id="view-btn">View</button>
-	      <div class="or"></div>
-	      <button type="button" class="ui button" id="delete-btn">Delete</button>
+	      <button type="button" id="fill-color-btn" class="ui white labeled icon button"><i class="dropdown icon"></i>Fill</button>
+	      <button type="button" id="stroke-color-btn" class="ui black right labeled icon button">Stroke<i class="dropdown icon"></i></button>
 	    </div>
 	  </div>
-	} else {
-	  <p>Please <a href="/signIn">log in</a> to save sketches.</p>
-	}
-
+	  <div class="ui accordion field" id="edge-accordion">
+	    <div class="title">
+	      <i class="dropdown icon"></i>
+	      Edge Decorations
+	    </div>
+	    <div class="content field">
+	      <div class="ui center aligned plain segment" id="edge-props"></div>
+	      <div class="ui fluid buttons">
+		<div id="dec-shape-btn" class="ui labeled dropdown icon button">
+		  <i class="dropdown icon"></i>
+		  <span class="text">Shape</span>
+		  <div class="menu">
+		    <div class="item" data-value="triangle">Triangle</div>
+		    <div class="item" data-value="square">Square</div>
+		    <div class="item" data-value="circle">Circle</div>
+		  </div>
+		</div>
+		<div id="dec-color-btn" class="ui black right labeled dropdown icon button">
+		  <span class="text">Color</span>
+		  <i class="dropdown icon"></i>
+		  <div class="menu">
+		    <div class="item" data-value="black"><div class="ui black empty circular label"></div>Black</div>
+		    <div class="item" data-value="red"><div class="ui red empty circular label"></div>Red</div>
+		    <div class="item" data-value="green"><div class="ui green empty circular label"></div>Green</div>
+		    <div class="item" data-value="blue"><div class="ui blue empty circular label"></div>Blue</div>
+		  </div>
+		</div>
+	      </div>
+	    </div>
+	  </div>
+	</form>
       </div>
 
-      <div class="ten wide column" style="min-width: 300px">
-	
+      <h3 class="ui dividing header">Sketches</h3>
+
+      @if(userOpt.isDefined) {
+        <div class="ui attached segment" style="max-height: 450px; overflow-y: scroll; overflow-x: hidden">
+	  <div class="ui large selection list" id="saved-sketches">
+	    @for(s <- sketches) {
+	      <div class="item" data-name="@s.name" data-id="@s.sketchId.toString">
+	        @s.name
+	      </div>
+	    }
+	  </div>
+	</div>
+	<div class="ui bottom attached segment">
+	  <div class="ui fluid buttons">
+	    <button type="button" class="ui button" id="view-btn">View</button>
+	    <div class="or"></div>
+	    <button type="button" class="ui button" id="delete-btn">Delete</button>
+	  </div>
+	</div>
+      } else {
+        <p>Please <a href="/signIn">log in</a> to save sketches.</p>
+      }
+
+    </div>
+
+    <div id="article-pane" class="article">
+      <div id="article-content">
+
 	<h3 class="ui dividing header">Editor</h3>
 	<div id="editor-div"></div>
 
 	<h3 class="ui dividing header">Face Viewer</h3>
 	<div class="ui attached segment" id="viewer-div"></div>
 	<div class="ui bottom right aligned attached segment">
+	  <button type="button" class="ui button" id="proof-btn">Addr Proof</button>
 	  <button type="button" class="ui button" id="link-btn">Link</button>
 	  <button type="button" class="ui button" id="expand-btn">Expand</button>
 	  <button type="button" class="ui button" id="contract-btn">Contract</button>
@@ -112,83 +114,93 @@
 	  <button type="button" class="ui button" id="save-btn">Save</button>
 	  <button type="button" class="ui icon button" id="pin-btn"><i class="pin icon"></i></button>
 	</div>
+
       </div>
+
+      <div id="base-bar" class="opetopic ui basebar"></div>
+      
     </div>
 
-    <div class="ui color-select popup segments" style="min-width: 150px; padding: 5px 5px 5px 5px;">
-      <!-- <div class="ui compact segments"> -->
-	<div class="ui compact basic segment" style="padding-bottom: 0px">
-	  <button type="button" data-color="red" class="ui small red icon button"></button>
-	  <button type="button" data-color="orange" class="ui small orange icon button"></button>
-	  <button type="button" data-color="yellow" class="ui small yellow icon button"></button>
-	</div>
-	<div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
-	  <button type="button" data-color="green" class="ui small green icon button"></button>
-	  <button type="button" data-color="teal" class="ui small teal icon button"></button>
-	  <button type="button" data-color="blue" class="ui small blue icon button"></button>
-	</div>
-	<div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
-	  <button type="button" data-color="violet" class="ui small violet icon button"></button>
-	  <button type="button" data-color="purple" class="ui small purple icon button"></button>
-	  <button type="button" data-color="pink" class="ui small pink icon button"></button>
-	</div>
-	<div class="ui compact basic segment" style="padding-top: 0px">
-	  <button type="button" data-color="black" class="ui small black icon button"></button>
-	  <button type="button" data-color="grey" class="ui small grey icon button"></button>
-	  <button type="button" data-color="white" class="ui small basic white icon button"></button>
-	</div>
-      <!-- </div> -->
+  </div>
+
+  <div class="ui color-select popup segments" style="min-width: 150px; padding: 5px 5px 5px 5px;">
+    <!-- <div class="ui compact segments"> -->
+    <div class="ui compact basic segment" style="padding-bottom: 0px">
+      <button type="button" data-color="red" class="ui small red icon button"></button>
+      <button type="button" data-color="orange" class="ui small orange icon button"></button>
+      <button type="button" data-color="yellow" class="ui small yellow icon button"></button>
     </div>
-
-    <form id="render-request-form" action="/renderSketch" method="post" target="_blank">
-      @helper.CSRF.formField
-      <input id="render-data" type="hidden" name="renderData" value="default">
-      <input id="sizing-mthd" type="hidden" name="sizingMethod" value="default">
-    </form>
-
-    <div class="ui modal small codeexport">
-      <div class="header">Export Code</div>
-      <div class="ui basic segment center aligned">
-	<p id="code-text"></p>
-      </div>
-      <div class="actions">
-	<div class="ui positive right labeled icon button">
-	  Great!
-	  <i class="checkmark icon"></i>
-	</div>      
-      </div>
+    <div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
+      <button type="button" data-color="green" class="ui small green icon button"></button>
+      <button type="button" data-color="teal" class="ui small teal icon button"></button>
+      <button type="button" data-color="blue" class="ui small blue icon button"></button>
     </div>
+    <div class="ui compact basic segment" style="padding-top: 0px; padding-bottom: 0px">
+      <button type="button" data-color="violet" class="ui small violet icon button"></button>
+      <button type="button" data-color="purple" class="ui small purple icon button"></button>
+      <button type="button" data-color="pink" class="ui small pink icon button"></button>
+    </div>
+    <div class="ui compact basic segment" style="padding-top: 0px">
+      <button type="button" data-color="black" class="ui small black icon button"></button>
+      <button type="button" data-color="grey" class="ui small grey icon button"></button>
+      <button type="button" data-color="white" class="ui small basic white icon button"></button>
+    </div>
+    <!-- </div> -->
+  </div>
 
-    <div class="ui modal small" id="save-modal">
-      <div class="header">Save</div>
-      <div class="content">
-	<form class="ui form">
-	  <div class="field">
-	    <label>Name</label>
-	    <input type="text" id="sketch-name-input"></input>
-	  </div>
-	  <div class="field">
-	    <label>Path</label>
-	    <input type="text" id="sketch-path-input"></input>
-	  </div>
-	  <div class="field">
-	    <label>Description</label>
-	    <input type="text" id="sketch-desc-input"></input>
-	  </div>
-	</form>
-      </div>
-      <div class="actions">
-	<div class="ui positive right labeled icon button">
-	  Save It!
-	  <i class="checkmark icon"></i>
-	</div>   
-	<div class="ui negative right labeled icon button">
-	  Nevermind
-	  <i class="checkmark icon"></i>
+  <form id="render-request-form" action="/renderSketch" method="post" target="_blank">
+    @helper.CSRF.formField
+    <input id="render-data" type="hidden" name="renderData" value="default">
+    <input id="sizing-mthd" type="hidden" name="sizingMethod" value="default">
+  </form>
+
+  <form id="render-proof-form" action="/renderAddrProof" method="post" target="_blank">
+    @helper.CSRF.formField
+    <input id="render-proof-data" type="hidden" name="renderData" value="default">
+    <input id="proof-sizing-mthd" type="hidden" name="sizingMethod" value="default">
+  </form>
+  
+  <div class="ui modal small codeexport">
+    <div class="header">Export Code</div>
+    <div class="ui basic segment center aligned">
+      <p id="code-text"></p>
+    </div>
+    <div class="actions">
+      <div class="ui positive right labeled icon button">
+	Great!
+	<i class="checkmark icon"></i>
+      </div>      
+    </div>
+  </div>
+
+  <div class="ui modal small" id="save-modal">
+    <div class="header">Save</div>
+    <div class="content">
+      <form class="ui form">
+	<div class="field">
+	  <label>Name</label>
+	  <input type="text" id="sketch-name-input"></input>
 	</div>
+	<div class="field">
+	  <label>Path</label>
+	  <input type="text" id="sketch-path-input"></input>
+	</div>
+	<div class="field">
+	  <label>Description</label>
+	  <input type="text" id="sketch-desc-input"></input>
+	</div>
+      </form>
+    </div>
+    <div class="actions">
+      <div class="ui positive right labeled icon button">
+	Save It!
+	<i class="checkmark icon"></i>
+      </div>   
+      <div class="ui negative right labeled icon button">
+	Nevermind
+	<i class="checkmark icon"></i>
       </div>
     </div>
-
   </div>
 
   @if(Play.isProd(Play.current)) {

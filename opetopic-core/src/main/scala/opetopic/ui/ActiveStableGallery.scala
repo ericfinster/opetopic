@@ -229,7 +229,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     }
 
     def onUnhoverEdge: Unit = {
-      edgePath.stroke = colorSpec.stroke
+      edgePath.stroke = "black"
     }
 
     def renderEdge: Unit = {

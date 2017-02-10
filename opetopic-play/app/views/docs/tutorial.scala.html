@@ -25,33 +25,34 @@
     <div class="reveal">
       <div class="slides">
 
-        <section>
+        <section id="title-slide">
 	  <h2>Opetopic Categories</h2>
 	  <h3>A Diagrammatic Approach<h3>
 	</section>
 
 	<section>
 	  <section>
-	    <h4>Two ways to view a tree</h4>
+	    <h4>Two ways to represent a tree</h4>
 	    <object type="image/svg+xml" data="/assets/svgs/boxtree.svg"></object>
 	  </section>
 	  <section>
-	    <h4>As an intersection</h4>
+	    <h4>A Geometric Intuition</h4>
 	    <object type="image/svg+xml" data="/assets/svgs/3dboxtree.svg"></object>
 	  </section>
 	</section>
 
 	<section>
 	  <section>
-	    <h4>Two trees in one</h4>
+	    <h4>Atomic Diagrams</h4>
+	    <p>Two Trees in One</p>
 	    <object type="image/svg+xml" data="/assets/svgs/nesting.svg"></object>
 	  </section>
 	  <section>
-	    <h4>Perpendicular trees</h4>
+	    <h4>Vertical and Horizontal Trees</h4>
 	    <object type="image/svg+xml" data="/assets/svgs/3dnesting.svg"></object>
 	  </section>
 	  <section>
-	    <h4>Pathologies</h4>
+	    <h4>Pathologies in Atomic Diagrams</h4>
 	    <object type="image/svg+xml" data="/assets/svgs/badnesting.svg"></object>
 	  </section>
 	</section>
@@ -59,7 +60,6 @@
 	<section>
 	  <section>
 	    <h4>Bonds</h4>
-	    <p>Something about bonds</p>
 
 	    <div>
 	      <div id="atoms" style="opacity:1.0">
@@ -92,23 +92,154 @@
 	    <span class="fragment" id="upper-bond-fragment"></span>
 	    
 	  </section>
-	  <section data-state="bond-diagram-slide">
-	    <h4>Illustration</h4>
+	  <section id="bond-diagram-slide">
+	    <h4>Live Demo</h4>
 	    <div id="bond-diagram"></div>
 	  </section>
 	</section>
 	
-	<section data-state="diag-one-slide">
-	  <h2>An Example Diagram</h2>
-	  <div id="diag-one"></div>
+	<section id="opetope-diagram-slide">
+	  <h2>An Opetope</h2>
+	  <div id="opetope-diagram"></div>
+	  <div id="face-diagram"></div>
+	</section>
+
+	<section>
+	  <section id="object-slide">
+	    <p>The Object</p>
+	    <div id="object-pane"></div>
+	    <svg width="75" height="75" id="object-svg"></svg>
+	  </section>
+	  <section id="arrow-slide">
+	    <p>The Arrow</p>
+	    <div id="arrow-pane"></div>
+	    <svg width="150" height="75" id="arrow-svg">
+	  </section>
+	  <section id="drop-slide">
+	    <p>The Drop</p>
+	    <div id="drop-pane"></div>
+	    <svg width="150" height="150" id="drop-svg">
+	  </section>
+	  <section id="twoglob-slide">
+	    <p>The Two-Glob</p>
+	    <div id="twoglob-pane"></div>
+	    <svg width="150" height="150" id="twoglob-svg">
+	  </section>
+	  <section id="simplex-slide">
+	    <p>The Simplex</p>
+	    <div id="simplex-pane"></div>
+	    <svg width="175" height="175" id="simplex-svg">
+	  </section>
+	  <section id="quad-slide">
+	    <p>The Quad</p>
+	    <div id="quad-pane"></div>
+	    <svg width="175" height="175" id="quad-svg">
+	  </section>
+	  <section id="threecell-slide">
+	    <p>A Threecell</p>
+	    <div id="threecell-pane"></div>
+	    <svg width="725" height="250" id="threecell-svg">
+	  </section>
 	</section>
 
 	<section>
 	  <section>
-	    <p>The object</p>
+	    <h4>Target Universal Cells</h4>
+
+	    <div>
+	      <div id="tgt-prop-1" style="opacity:1.0">
+		<object type="image/svg+xml" data="/assets/svgs/uprops1.svg"></object>
+	      </div>
+	      <div id="tgt-prop-2" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/uprops2.svg"></object>
+	      </div>
+	      <div id="tgt-prop-3" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/uprops3.svg"></object>
+	      </div>
+	      <div id="tgt-prop-4" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/uprops4.svg"></object>
+	      </div>
+	      <div id="tgt-prop-5" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/uprops5.svg"></object>
+	      </div>
+	      <div id="tgt-prop-6" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/uprops6.svg"></object>
+	      </div>
+	    </div>
+
+	    <span class="fragment" id="tgt-1-fragment"></span>
+	    <span class="fragment" id="tgt-2-fragment"></span>
+	    <span class="fragment" id="tgt-3-fragment"></span>
+	    <span class="fragment" id="tgt-4-fragment"></span>
+	    <span class="fragment" id="tgt-5-fragment"></span>
+	    
+	  </section>
+
+	  <section>
+	    <h4>Source Universal Cells</h4>
+
+	    <div>
+	      <div id="src-prop-1" style="opacity:1.0">
+		<object type="image/svg+xml" data="/assets/svgs/sprops1.svg"></object>
+	      </div>
+	      <div id="src-prop-2" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/sprops2.svg"></object>
+	      </div>
+	      <div id="src-prop-3" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/sprops3.svg"></object>
+	      </div>
+	      <div id="src-prop-4" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/sprops4.svg"></object>
+	      </div>
+	      <div id="src-prop-5" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/sprops5.svg"></object>
+	      </div>
+	      <div id="src-prop-6" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/sprops6.svg"></object>
+	      </div>
+	    </div>
+
+	    <span class="fragment" id="src-1-fragment"></span>
+	    <span class="fragment" id="src-2-fragment"></span>
+	    <span class="fragment" id="src-3-fragment"></span>
+	    <span class="fragment" id="src-4-fragment"></span>
+	    <span class="fragment" id="src-5-fragment"></span>
+	    
+	  </section>
+	</section>
+
+	<section>
+	  <section>
+	    <h4>Composites exist</h4>
+	    <div>
+	      <div id="comps-1" style="opacity:1.0">
+		<object type="image/svg+xml" data="/assets/svgs/comps1.svg"></object>
+	      </div>
+	      <div id="comps-2" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/comps2.svg"></object>
+	      </div>
+	    </div>
+	    <span class="fragment" id="comps-fragment"></span>
 	  </section>
 	  <section>
-	    <p>The arrow</p>
+	    <h4>N for N-1</h4>
+	    <div>
+	      <div id="eqvs-1" style="opacity:1.0">
+		<object type="image/svg+xml" data="/assets/svgs/eqvs-src-1.svg"></object>
+	      </div>
+	      <div id="eqvs-2" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/eqvs-src-2.svg"></object>
+	      </div>
+	      <div id="eqvs-3" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/eqvs-tgt-1.svg"></object>
+	      </div>
+	      <div id="eqvs-4" style="opacity:0.0; position: relative; top:-236px; margin-bottom:-236px;">
+		<object type="image/svg+xml" data="/assets/svgs/eqvs-tgt-2.svg"></object>
+	      </div>
+	    </div>
+	    <span class="fragment" id="eqvs-1-fragment"></span>
+	    <span class="fragment" id="eqvs-2-fragment"></span>
+	    <span class="fragment" id="eqvs-3-fragment"></span>
 	  </section>
 	</section>
       </div>
@@ -116,8 +247,9 @@
 
   </body>
 
-  <script src="/assets/lib/reveal.js/js/reveal.js"></script>
-
+  <script src="/assets/lib/reveal.js/js/reveal.js" type="text/javascript"></script>
+  <script src="/assets/lib/snap.svg/dist/snap.svg-min.js" type="text/javascript"></script>
+  
   @if(Play.isProd(Play.current)) {
     <script src='@routes.Assets.at("opetopicdocs-opt.js")' type="text/javascript"></script>
   } else {

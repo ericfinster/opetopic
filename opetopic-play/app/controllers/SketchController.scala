@@ -134,4 +134,31 @@ class SketchController @Inject() (
 
   }
 
+  def renderAddrProof = UserAwareAction.async { implicit request =>
+
+    RenderSketchForm.form.bindFromRequest.fold(
+      form => Future.successful(BadRequest("Bad render reqeust")),
+      data => {
+
+        import ScalatagsTextFramework._
+
+        val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(data.renderData))
+        val addrCmplx : SComplex[SAddr] = c.mapWithAddr({
+          case (_, fa) => fa.address
+        })
+
+        val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(addrCmplx)
+
+        val fct = 0.02
+        staticGallery.layoutWidth = (b: Bounds) => { (b.width * fct).toInt }
+        staticGallery.layoutHeight = (b: Bounds) => { (b.height * fct).toInt }
+
+        val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+        Future.successful(Ok(xmlHeader + "\n" + staticGallery.element.toString).as("image/svg+xml"))
+
+      }
+    )
+
+  }
+
 }
