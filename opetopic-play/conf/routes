@@ -20,6 +20,7 @@ POST        /deleteModule                    controllers.ProverController.delete
 # Auxillary
 GET         /multiedit                       controllers.ApplicationController.multiedit
 GET         /coloredit                       controllers.ApplicationController.coloredit
+GET         /addrexplorer                    controllers.ApplicationController.addrexplorer
 GET         /tt                              controllers.ApplicationController.tt
 GET         /playground                      controllers.ApplicationController.playground
 

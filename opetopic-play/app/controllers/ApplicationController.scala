@@ -54,6 +54,10 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.coloredit()(request.identity)))
   }
 
+  def addrexplorer = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.addrexplorer()(request.identity)))
+  }
+
   def tt = UserAwareAction.async { implicit request =>
     Future.successful(Ok(views.html.tt()(request.identity)))
   }

@@ -28,7 +28,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicProver, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicProver, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -148,6 +148,20 @@ lazy val opetopicColoredit = (project in file("opetopic-coloredit")).
       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
       "com.lihaoyi" %%% "upickle" % upickleVersion,
       "com.lihaoyi" %%% "fastparse" % fastparseVersion
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
+lazy val opetopicAddrExplorer = (project in file("opetopic-addrexplorer")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
