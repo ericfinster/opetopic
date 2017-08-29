@@ -28,7 +28,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicProver, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -62,35 +62,35 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
 
-lazy val opetopicTt = (crossProject in file("opetopic-tt")).
-  settings(commonSettings: _*).
-  settings(
-    bnfcBasePackage := Some("opetopic"),
-    bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
-    bnfcTgtDirectory := (sourceManaged in Compile).value,
-    scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
-    jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
-  ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
-  jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
-  jsSettings(persistLauncher := true)
+// lazy val opetopicTt = (crossProject in file("opetopic-tt")).
+//   settings(commonSettings: _*).
+//   settings(
+//     bnfcBasePackage := Some("opetopic"),
+//     bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
+//     bnfcTgtDirectory := (sourceManaged in Compile).value,
+//     scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
+//     jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
+//   ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
+//   jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
+//   jsSettings(persistLauncher := true)
 
-lazy val opetopicTtJvm = opetopicTt.jvm
-lazy val opetopicTtJs = opetopicTt.js
+// lazy val opetopicTtJvm = opetopicTt.jvm
+// lazy val opetopicTtJs = opetopicTt.js
 
-lazy val opetopicMtt = (crossProject in file("opetopic-mtt")).
-  settings(commonSettings: _*).
-  settings(
-    bnfcBasePackage := Some("opetopic"),
-    bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
-    bnfcTgtDirectory := (sourceManaged in Compile).value,
-    scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
-    jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
-  ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
-  jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
-  jsSettings(persistLauncher := true)
+// lazy val opetopicMtt = (crossProject in file("opetopic-mtt")).
+//   settings(commonSettings: _*).
+//   settings(
+//     bnfcBasePackage := Some("opetopic"),
+//     bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
+//     bnfcTgtDirectory := (sourceManaged in Compile).value,
+//     scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
+//     jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
+//   ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
+//   jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
+//   jsSettings(persistLauncher := true)
 
-lazy val opetopicMttJvm = opetopicMtt.jvm
-lazy val opetopicMttJs = opetopicMtt.js
+// lazy val opetopicMttJvm = opetopicMtt.jvm
+// lazy val opetopicMttJs = opetopicMtt.js
 
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
@@ -105,22 +105,22 @@ lazy val opetopicDocs = (project in file("opetopic-docs")).
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
 
-lazy val opetopicProver = (project in file("opetopic-prover")).
-  settings(commonSettings: _*).
-  settings(
-    persistLauncher := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
-      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
-      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion,
-      "org.denigma" %%% "codemirror-facade" % codeMirrorFacadeVersion
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicTtJs).
-  dependsOn(opetopicJs)
+// lazy val opetopicProver = (project in file("opetopic-prover")).
+//   settings(commonSettings: _*).
+//   settings(
+//     persistLauncher := true,
+//     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+//     resolvers += sbt.Resolver.bintrayRepo("denigma", "denigma-releases"),
+//     libraryDependencies ++= Seq(
+//       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+//       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+//       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+//       "com.lihaoyi" %%% "upickle" % upickleVersion,
+//       "org.denigma" %%% "codemirror-facade" % codeMirrorFacadeVersion
+//     )
+//   ).enablePlugins(ScalaJSPlugin).
+//   dependsOn(opetopicTtJs).
+//   dependsOn(opetopicJs)
 
 lazy val opetopicMultiedit = (project in file("opetopic-multiedit")).
   settings(commonSettings: _*).
