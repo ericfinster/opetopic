@@ -21,7 +21,7 @@ POST        /deleteModule                    controllers.ProverController.delete
 GET         /multiedit                       controllers.ApplicationController.multiedit
 GET         /coloredit                       controllers.ApplicationController.coloredit
 GET         /addrexplorer                    controllers.ApplicationController.addrexplorer
-GET         /tt                              controllers.ApplicationController.tt
+GET	    /mtt			     controllers.ApplicationController.mtt
 GET         /playground                      controllers.ApplicationController.playground
 
 # Sketchpad 

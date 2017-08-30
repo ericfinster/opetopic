@@ -28,7 +28,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicMtt, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -77,20 +77,19 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
 // lazy val opetopicTtJvm = opetopicTt.jvm
 // lazy val opetopicTtJs = opetopicTt.js
 
-// lazy val opetopicMtt = (crossProject in file("opetopic-mtt")).
-//   settings(commonSettings: _*).
-//   settings(
-//     bnfcBasePackage := Some("opetopic"),
-//     bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
-//     bnfcTgtDirectory := (sourceManaged in Compile).value,
-//     scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
-//     jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
-//   ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
-//   jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
-//   jsSettings(persistLauncher := true)
-
-// lazy val opetopicMttJvm = opetopicMtt.jvm
-// lazy val opetopicMttJs = opetopicMtt.js
+lazy val opetopicMtt = (project in file("opetopic-mtt")).
+  settings(commonSettings: _*).
+  settings(
+    persistLauncher := true,
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
 
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
