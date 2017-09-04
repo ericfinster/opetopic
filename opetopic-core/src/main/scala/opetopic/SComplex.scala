@@ -204,6 +204,18 @@ trait ComplexTypes {
         case tl >> SBox(_, cn) => cn.spine
       }
 
+    // Given a face address, return a zipper pointing to that
+    // face as well as the co-nestings
+    def faceZipper(fa: FaceAddr): Option[(SCmplxZipper[A], List[SNesting[A]])] = {
+
+      val (left, right) = c.grab(fa.codim)
+
+      for {
+        z <- SCmplxZipper(left).seek(fa.address)
+      } yield (z, right)
+
+    }
+
     // Applies f to left for non-cofaces and right
     // for cofaces of those faces selected by the selection
     // function.  There is a lot of room for improvement

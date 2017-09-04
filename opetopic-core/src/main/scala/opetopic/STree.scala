@@ -366,6 +366,87 @@ object STree {
   // GRAFTING AND JOINING
   //
 
+  // Takes lr : (HorizAddr, VertAddr) => Option[B]
+  //       nr : (A, VertAddr, STree[B]) => Option[B]
+
+  // This updated version also carries the vertical address during the fold.
+  case class STrFold[A, B](lr: (SAddr, SAddr) => Option[B])(nr: (A, SAddr, STree[B]) => Option[B]) {
+
+    def unzipAndJoin(t: STree[(STree[B], STree[SAddr])]): Option[(STree[STree[B]], STree[SAddr])] = {
+      val (bs, adJn) = unzip(t)
+      join(adJn).map((bs, _))
+    }
+
+    def unzipJoinAndAppend(t: STree[(STree[B], STree[SAddr])], mb: Option[B]): Option[(STree[B], STree[SAddr])] = 
+      for {
+        pr <- unzipAndJoin(t)
+        (bs, at) = pr
+        b <- mb
+      } yield (SNode(b, bs), at)
+
+
+    // Okay, I see. The main point is that you aren't keeping track of the
+    // actual horizontal address as you traverse the shell.  Rather, hAddr is
+    // the canopy's horizontal address.  So you need a kind of second parameter
+    // which is the actual horizontal (say, local) address.  Let's try that.
+
+    def foldPass(h: STree[STree[A]], hAddr: SAddr, d: SDeriv[SAddr])(lAddr: SAddr, vAddr: SAddr) : Option[(STree[B], STree[SAddr])] = 
+      h match {
+        case SLeaf => Some(SLeaf, d.plug(hAddr))
+        case SNode(SLeaf, hs) => 
+          for {
+            hr <- hs.traverseWithData[Option, SAddr, (STree[B], STree[SAddr])]({
+              (hbr, dir, deriv) => foldPass(hbr, SDir(dir) :: hAddr, deriv)(SDir(dir) :: lAddr, vAddr)
+            })
+            r <- unzipJoinAndAppend(hr, lr(hAddr, SDir(lAddr) :: vAddr))
+          } yield r
+        case SNode(SNode(a, vs), hs) => 
+          for {
+            pr <- foldPass(vs, hAddr, d)(Nil, SDir(lAddr) :: vAddr)
+            (bs, at) = pr
+            mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)({
+              (hbr, dir, deriv) => foldPass(hbr, dir, deriv)(SDir(dir) :: lAddr, vAddr)
+            })
+            r <- unzipJoinAndAppend(mr, nr(a, SDir(lAddr) :: vAddr, bs))
+          } yield r
+      }
+
+    def initHorizontal(a: A, h: STree[STree[STree[A]]], vaddr: SAddr)(m: Option[(B, STree[SAddr])]): Option[(B, STree[SAddr])] = 
+      for {
+        pa <- m
+        (c, at) = pa
+        r <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _)(Nil, vaddr))
+        pb <- unzipAndJoin(r)
+        (cs, atr) = pb
+        b <- nr(a, vaddr, SNode(c, cs))
+      } yield (b, atr)
+
+    def initVertical(a: A, v: STree[A], h: STree[STree[STree[A]]], vaddr: SAddr): Option[(B, STree[SAddr])] =
+      v match {
+        case SLeaf => initHorizontal(a, h, vaddr)(
+          for {
+            b <- lr(Nil, vaddr)
+          } yield (b, h.mapWithAddr((_, d) => SDir(d) :: Nil))
+        )
+        case SNode(aa, SLeaf) => initHorizontal(a, h, vaddr)(
+          for {
+            b <- nr(aa, vaddr, SLeaf)
+          } yield (b, h.map(_ => Nil))
+        )
+        case SNode(aa, SNode(vv, hh)) => 
+          initHorizontal(a, h, vaddr)(initVertical(aa, vv, hh, SDir(Nil) :: vaddr))
+      }
+
+
+  }
+
+  def trFold[A, B](t: STree[A])(lr: (SAddr, SAddr) => Option[B])(nr: (A, SAddr, STree[B]) => Option[B]): Option[B] =
+    t match {
+      case SLeaf => lr(Nil, Nil)
+      case SNode(a, SLeaf) => nr(a, Nil, SLeaf)
+      case SNode(a, SNode(v, hs)) => STrFold(lr)(nr).initVertical(a, v, hs, Nil).map(_._1)
+    }
+
   case class STreeFold[A, B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]) {
 
     def unzipAndJoin(t: STree[(STree[B], STree[SAddr])]): Option[(STree[STree[B]], STree[SAddr])] = {

@@ -9,261 +9,78 @@ package opetopic
 
 import mtl._
 
-object Link {
+class LinkCalculator[A](val cmplx: SComplex[A]) {
 
-  def link[A](c: SComplex[A], fa: FaceAddr): Option[SCardinal[A]] = {
+  sealed trait LinkMarker
+  case object LinkLeaf extends LinkMarker
+  case class LinkRoot(n: SNesting[A]) extends LinkMarker
+  case class LinkInternal(nz: SNstZipper[A]) extends LinkMarker
 
-    val codim = fa.codim
-    val addr = fa.address
+  // So our little zipper guy is a list of markers
+  type LinkZipper = List[LinkMarker]
 
+  implicit class LinkZipperOps(lz: LinkZipper) {
 
-    c.grab(fa.codim) match {
-      case (fcmplx, nst :: ns) => {
-        for {
-          bd <- SCmplxZipper(fcmplx).focusDeriv[Boolean]
-          bn = fcmplx.head.mapWithAddr({
-            case (_, baddr) => baddr == addr
-          })
-          // _ = println("Boolean coface nesting: " + bn.toString)
-          cofaces <- nst.bondTraverse(bn, bd)({
-            case (a, srcBs, tgtB) => {
-              Some((a, tgtB || srcBs.toList.exists(b => b)))
-            }
-          })
+    // Now, the idea is that there are a couple of different
+    // operations: we can ascend, descend, enter, etc, etc.
 
-          // Lame.  Think of a better setup
-          addrCofaces = cofaces.mapWithAddr({
-            case ((a, b), addr) => (a, addr, b)
-          })
-
-          mp <- (fcmplx >> nst).bondingMap
-
-          trpl <- addr match {
-            case Nil => Some((SNstZipper(addrCofaces), true, None))
-            case d :: ds => {
-              addrCofaces.seek(mp(ds)).map(z => {
-                val dataOpt =
-                  z.parent match {
-                    case None => None
-                    case Some(p) => Some(LinkData(p.focus.baseValue._1, p.focus.baseValue._2))
-                  }
-
-                (z, false, dataOpt)
-              })
-            }
-          }
-
-          (zp, asc, lastOpt) = trpl
-
-          _ = println("Starting link calculation at: " + zp.focus.baseValue._1.toString)
-
-          startCard = SCardinal(||(SDot(LinkData(zp.focus.baseValue._1, zp.focus.baseValue._2))))
-
-          nxtMpOpt = ns match {
-            case Nil => None
-            case nn :: _ => {
-              for {
-                m <- (fcmplx >> nst >> nn).bondingMap
-                blorp = nn.mapWithAddr({ case (a, addr) => LinkData(a, addr) })
-                kvs <- m.toList.traverse({
-                  case (k, v) => blorp.elementAt(v).map(r => (k, r))
-                })
-              } yield Map(kvs : _*)
-            }
-          }
-
-          endCard <- buildLinkArrows(startCard, zp, asc, nxtMpOpt, lastOpt) match {
-            case None => { println("There was an error") ; None }
-            case Some(c) => { println("Trace complete") ; Some(c) }
-          }
-
-        } yield endCard.map(_.a)
-      }
-      case _ => None
-    }
+    // These operations should all maintain a kind of invariant
+    // about the positioning of the zippers.
 
   }
 
 
-  case class LinkData[A](val a: A, val addr: SAddr)
+  def link(fa: FaceAddr) : Option[SComplex[A]] = None
 
-  def buildLinkArrows[A](
-    c: SCardinal[LinkData[A]],
-    z: SNstZipper[(A, SAddr, Boolean)],
-    ascending: Boolean,
-    mp: Option[Map[SAddr, LinkData[A]]],
-    last: Option[LinkData[A]]
-  ): Option[SCardinal[LinkData[A]]] = {
+  // Right, so a couple of different things are unwinding at
+  // this point, and perhaps it will be best to go back and
+  // visit a couple of them.
 
-    println("Last is: " + last.toString)
-
-    def arrowData(d: LinkData[A]): LinkData[A] =
-      mp match {
-        case None => d
-        case Some(m) => m.get(d.addr).getOrElse(d)
-      }
-
-    if (ascending) {
-      z.focus match {
-        case SDot((a, addr, _)) => {
-          println("Finished at: " + a.toString)
-          val data = LinkData(a, addr)
-          last match {
-            case None => c.extrudeObject(data, arrowData(data))
-            case Some(l) => c.extrudeObject(data, arrowData(l))
-          }
-        }
-        case SBox((a, addr, _), SLeaf) => {
-          println("Crossing box: " + a.toString)
-          val data = LinkData(a, addr)
-          val ad = arrowData(data)
-
-          last match {
-            case None => c.extrudeObject(data, ad).flatMap(cc =>
-              cc.extrudeObject(data, ad)
-            ).flatMap(ccc => buildLinkArrows(ccc, z, false, mp, last))
-            case Some(l) => c.extrudeObject(data, arrowData(l)).flatMap(cc =>
-              cc.extrudeObject(data, ad)
-            ).flatMap(ccc => buildLinkArrows(ccc, z, false, mp, last))
-          }
-        }
-        case SBox((a, addr, b), SNode(n, vs)) => {
-          println("Entering box: " + a.toString)
-          val data = LinkData(a, addr)
-          val next = SNstZipper(n, SNstCtxt(((a, addr, b), SDeriv(vs)) :: z.ctxt.g))
-
-          last match {
-            case None => {
-              println("No last, skipping extrusion")
-              buildLinkArrows(c, next, true, mp, Some(data))
-            }
-            case Some(l) => 
-              c.extrudeObject(data, arrowData(l)).flatMap(cc =>
-                buildLinkArrows(cc, next, true, mp, Some(data))
-              )
-          }
-        }
-      }
-    } else {
-      z.ctxt.g match {
-        case ((a, addr, b), SDeriv(verts, _)) :: cs => {
-
-          verts.mapWithAddr({
-            case (SLeaf, addr) => None
-            case (SNode(n, sh), addr) =>
-              if (n.baseValue._3) Some(addr) else None
-          }).toList.filter(_.isDefined) match {
-            case Nil => {
-              // In this case, there is no outgoing guy and
-              // we are going to move on to the next.
-
-              if (b) {
-                println("Descending past " + a.toString)
-                val data = LinkData(a, addr)
-                c.extrudeObject(data, arrowData(data)).flatMap(cc => 
-                  z.parent.flatMap(p => buildLinkArrows(cc, p, false, mp, Some(data)))
-                )
-              } else {
-                println("Error: parent is not a coface in descent")
-                None
-              }
-
-            }
-            case dOpt :: _ => {
-              val newLast = z.parent match {
-                case None => last
-                case Some(p) => Some(LinkData(p.focus.baseValue._1, p.focus.baseValue._2))
-              }
-
-              z.sibling(SDir(dOpt.get)).flatMap(s =>
-                buildLinkArrows(c, s, true, mp, newLast)
-              )
-            }
-          }
-
-        }
-        case Nil => {
-          println("Exiting nesting at " + z.focus.baseValue.toString)
-          Some(c)
-        }
-      }
-    }
-  }
-
-  // Uh, yeah, there are a couple of very serious problems.
+  // 1) There is what seems like the fundamental idea of the
+  //    bond traverse.  This already shows some of the difficulties
+  //    with your approach to the grafting functions, and these
+  //    should be resolved.
   //
-  //  1) Order is not preserved.  So you cannot count on the
-  //     root element in some canopy to carry the correct initial
-  //     address for the extrusion.  Well, actually, it probably
-  //     is preserved in dimensions greater than 2.  Anyway, it's
-  //     not totally clear how to handle this.
+  // 2) Once this is done, I think traversing the cofaces can be
+  //    done much, much simpler, that is, using the algorithm that
+  //    you would first think of: during a bond traverse, you simply
+  //    look if at least one of the faces has been previously flagged
+  //    as being a coface.  Easy peasy.
   //
-  //  2) Worse: because of the peculiarities of how loops work,
-  //     I don't think you can put them off until the dimension
-  //     they actually occur, at which point it will be too late
-  //     beacuse they will be covered by lower cells.  This means
-  //     that the loops structure of the next dimension needs to
-  //     be worked out at the same time as the current ongoing
-  //     extrusion.  So they must be located and tagged ahead of time.
+  // 3) Possibly this can even be adapted to the link calculation.
+  //    Dunno.
   //
-  //  Right.  Work for another day.....    
 
-  def doLinkExtrusion[A](
-    card: SCardinal[LinkData[A]],
-    nst: SNesting[(A, SAddr, Boolean)],
-    mp: Map[SAddr, SCardAddr]
-  ): Option[SCardinal[LinkData[A]]] = {
+  def traverseCofaces[B](fa: FaceAddr)(f: Either[A, A] => Option[B]): Option[SComplex[B]] = {
 
-    type Data = (A, SAddr, Boolean)
+    val (left, right) = cmplx.grab(fa.codim)
 
-    // Okay, so I think the structure has to be
-    // similar to the fixLeaves routine in SComplex
-    // since you have to return from a dot with a
-    // full look at the outgoing canopy.
+    for {
+      z <- SCmplxZipper(left).seek(fa.address)
+      d <- z.focusDeriv[Boolean]
 
-    // But it's slightly simpler in this case, because
-    // you'll just be able to zip the two guys together
-    // and move on.  No messing with this map stuff.
-    // def vertical(n: SNesting[A], mk: LeafMarker[A]): Option[(SNesting[A], STree[LeafMarker[A]])] =
+      // Now make a copy of the web with the guy highlighted.
+    } yield (z, right)
 
-    def vertical(n: SNesting[Data]): Option[STree[SCardAddr]] = 
-      n match {
-        case SDot((a, addr, isCoface)) => {
-
-          // Right, so in the dot case, things should already be taken care of.
-          // The main thing here is to get started passing along the address
-          // where we will be doing loop extrusions if we need to.
-
-
-          None
-
-        }
-        case SBox((a, addr, isCoface), cn) => {
-
-
+    def cofacePass(c: SComplex[A], l: List[SNesting[A]], s: SNesting[Boolean]): Option[List[SNesting[B]]] =
+      l match {
+        case Nil => Some(Nil)
+        case n :: ns => {
           for {
-            hres <- horizontal(cn, ???)
-          } yield ???
-
-          // We want to extrude at the base address.  What does this mean?
-
-
-
-        }
-      }
-
-    def horizontal(t: STree[SNesting[Data]], loopAddr: SCardAddr): Option[STree[SCardAddr]] =
-      t match {
-        case SLeaf => None
-        case SNode(n, sh) => {
-
-          for {
-            vres <- vertical(n)
-            hres <- vres.matchTraverse(sh)({
-              case (la, br) => horizontal(br, la)
+            // Use the complex to calculate the required derivative
+            d <- SCmplxZipper(c).focusDeriv[Boolean]
+            prNst <- n.bondTraverse(s, d)({
+              case (a, bsrcs, btgt) => {
+                if (bsrcs.toList.exists(b => b) || btgt) {
+                  f(Left(a)).map(r => (r, true)) // is a coface
+                } else {
+                  f(Right(a)).map(r => (r, false)) // isn't a coface
+                }
+              }
             })
-          } yield ???
-
+            (rNst, bnst) = SNesting.unzip(prNst)
+            ll <- cofacePass(c >> n, ns, bnst)
+          } yield rNst :: ll
 
         }
       }
@@ -272,60 +89,13 @@ object Link {
 
   }
 
-
-  // This could be made much more generic and reused but I'm not in
-  // the mood to fight the types, so I'm just going to make the specific
-  // case of building the associated cardinal.
-  // def traceLink[A](z: SNstZipper[A], ascending: Boolean)(f: A => Boolean): Option[SNstZipper[A]] =
-  //   if (ascending) {
-  //     z.focus match {
-  //       case SDot(a) => {
-  //         println("Finished at: " + a.toString)
-  //         Some(z)
-  //       }
-  //       case SBox(a, SLeaf) => {
-  //         println("Crossing box: " + a.toString)
-  //         traceLink(z, false)(f)
-  //       }
-  //       case SBox(a, SNode(n, vs)) => {
-  //         println("Entering box: " + a.toString)
-  //         traceLink(SNstZipper(n, SNstCtxt((a, SDeriv(vs)) :: z.ctxt.g)), true)(f)
-  //       }
-  //     }
-  //   } else {
-  //     z.ctxt.g match {
-  //       case (a, SDeriv(verts, _)) :: cs => {
-
-  //         verts.mapWithAddr({
-  //           case (SLeaf, addr) => None
-  //           case (SNode(n, sh), addr) =>
-  //             if (f(n.baseValue)) Some(addr) else None
-  //         }).toList.filter(_.isDefined) match {
-  //           case Nil => {
-  //             // In this case, there is no outgoing guy and
-  //             // we are going to move on to the next.
-
-  //             if (f(a)) {
-  //               println("Descending past " + a.toString)
-  //               z.parent.flatMap(p => traceLink(p, false)(f))
-  //             } else {
-  //               println("Error: parent is not a coface in descent")
-  //               None
-  //             }
-
-  //           }
-  //           case dOpt :: _ => {
-  //             z.sibling(SDir(dOpt.get)).flatMap(s => traceLink(s, true)(f))
-  //           }
-  //         }
-
-  //       }
-  //       case Nil => {
-  //         println("Exiting nesting at " + z.focus.baseValue.toString)
-  //         Some(z)
-  //       }
-  //     }
-  //   }
+  // Here is the idea about the link: recall that a major outstanding
+  // question was *when* the traversal of a particular box was finished.
+  // That is, in higher dimensions, we end up traversing many times.
+  // (And this is annoying from an efficiency standpoint ....)
+  // Anyway, the idea is that this is somehow determined by the
+  // coface structure.  Not sure how, but it's something to look into.
 
 
 }
+

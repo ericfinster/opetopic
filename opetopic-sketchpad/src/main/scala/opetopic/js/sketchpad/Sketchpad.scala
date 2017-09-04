@@ -269,14 +269,14 @@ object Sketchpad extends JSApp {
       println("Going to calculate a link of " + root.label.toString)
       println("In complex with top cell: " + complex.head.baseValue.toString)
 
-      Link.link(complex, FaceAddr(complex.dim - root.dim, root.address)) match {
-        case None => println("Failed to compute link")
-        case Some(c) => {
+      // Link.link(complex, FaceAddr(complex.dim - root.dim, root.address)) match {
+      //   case None => println("Failed to compute link")
+      //   case Some(c) => {
 
-          editor.newEditor(c)
+      //     editor.newEditor(c)
           
-        }
-      }
+      //   }
+      // }
 
     }
   }

@@ -284,6 +284,19 @@ object SNesting {
         case SBox(_, cn) => SBox(a, cn)
       }
 
+    def splitWith[B, C](f: A => (B, C)): (SNesting[B], SNesting[C]) =
+      nst match {
+        case SDot(a) => {
+          val (b, c) = f(a)
+          (SDot(b), SDot(c))
+        }
+        case SBox(a, cn) => {
+          val (b, c) = f(a)
+          val (bcn, ccn) = STree.unzip(cn.map(_.splitWith(f)))
+          (SBox(b, bcn), SBox(c, ccn))
+        }
+      }
+
     def spine(d: SDeriv[A]): Option[STree[A]] = 
       nst match {
         case SDot(a) => Some(d.plug(a))
@@ -463,6 +476,14 @@ object SNesting {
           })
         } yield r
     }
+
+  //============================================================================================
+  // UNZIP
+  //
+
+  // Is there a generic version of this using traverse?
+  def unzip[A, B](n: SNesting[(A, B)]): (SNesting[A], SNesting[B]) =
+    n.splitWith({ case (a, b) => (a, b) })
 
   //============================================================================================
   // PICKLING
