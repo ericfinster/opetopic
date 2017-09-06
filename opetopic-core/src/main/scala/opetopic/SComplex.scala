@@ -204,76 +204,52 @@ trait ComplexTypes {
         case tl >> SBox(_, cn) => cn.spine
       }
 
-    // Given a face address, return a zipper pointing to that
-    // face as well as the co-nestings
-    def faceZipper(fa: FaceAddr): Option[(SCmplxZipper[A], List[SNesting[A]])] = {
 
-      val (left, right) = c.grab(fa.codim)
+    // Traverse the cofaces of the selected cells
+    def traverseCofaces[B](codim: Int, sel: A => Boolean)(f: Either[A, A] => Option[B]): Option[SComplex[B]] = {
 
-      for {
-        z <- SCmplxZipper(left).seek(fa.address)
-      } yield (z, right)
-
-    }
-
-    // Applies f to left for non-cofaces and right
-    // for cofaces of those faces selected by the selection
-    // function.  There is a lot of room for improvement
-    // here. Many inefficiencies ....
-    def traverseCofaces[B](codim: Int, sel: A => Boolean)(
-      f: Either[A, A] => Option[B]
-    ): Option[SComplex[B]] = {
-
-      val (web, coweb) = c.grab(codim)
-
-      val dispatch : A => Option[B] =
-        (a: A) => if (sel(a)) f(Right(a)) else f(Left(a))
-
-      // Map in the lower dimensions and the
-      // head dimension, returning the seed boolean complex
-      val (resWebOpt, bcmplx) =
-        web match {
-          case ||(hd) => (hd.traverse(dispatch).map(||(_)), ||(hd.map(sel)))
-          case tl >> hd => {
-            val rwo = 
-              for {
-                dt <- (tl : SComplex[A]).traverse(dispatch)
-                dh <- hd.traverse(dispatch)
-              } yield dt >> dh
-
-            (rwo, (tl : SComplex[A]).map(_ => false) >> hd.map(sel))
-          }
-        }
-
-      // Actually, we don't need the whole boolean complex because
-      // we can annotate the focusDeriv call below with a type
-
-      def traverseCoweb(cw: List[SNesting[A]], bc: SComplex[Boolean]): Option[List[SNesting[B]]] =
-        cw match {
+      // The heart of the routine: do a bond traverse and just check if any of the source
+      // or target faces of a given cell are cofaces.  If any are, so is the current cell.
+      // Do this for each nesting, passing further down the list
+      def cofacePass(cmplx: SComplex[A], l: List[SNesting[A]], s: SNesting[Boolean]): Option[List[SNesting[B]]] =
+        l match {
           case Nil => Some(Nil)
           case n :: ns => {
             for {
-              bd <- SCmplxZipper(bc).focusDeriv[Boolean]
-              newBnst <- n.bondTraverse(bc.head, bd)({
-                case (a, srcBs, tgtB) => {
-                  Some(tgtB || srcBs.toList.exists(b => b))
+              // Use the complex to calculate the required derivative
+              d <- SCmplxZipper(cmplx).focusDeriv[Boolean]
+              prNst <- n.bondTraverse(s, d)({
+                case (a, bsrcs, btgt) => {
+                  if (bsrcs.toList.exists(b => b) || btgt) {
+                    f(Right(a)).map(r => (r, true)) // is a coface
+                  } else {
+                    f(Left(a)).map(r => (r, false)) // isn't a coface
+                  }
                 }
-              })  // Uh, yuck.  Two traversals instead of
-                  // one because the match function is to specific
-              prNst <- n.matchWith(newBnst)
-              r <- prNst.traverse({
-                case (a, true) => f(Right(a))
-                case (a, false) => f(Left(a))
               })
-              rs <- traverseCoweb(ns, bc >> newBnst)
-            } yield r :: rs
+              (rNst, bnst) = SNesting.unzip(prNst)
+              ll <- cofacePass(cmplx >> n, ns, bnst)
+            } yield rNst :: ll
+
           }
         }
 
+      val (left, right) = c.grab(codim)
+
       for {
-        resWeb <- resWebOpt
-        resCw <- traverseCoweb(coweb, bcmplx)
-      } yield resWeb ++ resCw
+
+        // Traverse in the left half of the complex
+        newLeft <- left.traverseComplex((a : A) =>
+          if (sel(a)) f(Right(a)) else f(Left(a))
+        )
+
+        // Generate the seed boolean nesting to use
+        boolNst = left.head.map(sel(_))
+
+        // Now traverse the right half using the tagging info.
+        newRight <- cofacePass(left, right, boolNst)
+
+      } yield newLeft ++ newRight
 
     }
 
@@ -704,7 +680,6 @@ trait ComplexTypes {
         }
       }
 
-    // Think of d as the derivative on the rising edge.
     def horizontal(t: STree[SNesting[A]], mk: LeafMarker[A]): Option[(Cn, STree[LeafMarker[A]])] = {
 
       def getLeaf[B](addr: SAddr, t: STree[B], m: Map[SAddr, SAddr]) : Option[B] =

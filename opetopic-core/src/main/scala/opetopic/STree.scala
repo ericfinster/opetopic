@@ -385,10 +385,10 @@ object STree {
       } yield (SNode(b, bs), at)
 
 
-    // Okay, I see. The main point is that you aren't keeping track of the
-    // actual horizontal address as you traverse the shell.  Rather, hAddr is
-    // the canopy's horizontal address.  So you need a kind of second parameter
-    // which is the actual horizontal (say, local) address.  Let's try that.
+    // Right, here is the crux of the algorithm: you are traversing a shell.  You have the
+    // horizontal address of the spine as well as the local and vertical addresses.  
+    // You return the calculated shell of results as well as set of directions for the
+    // outgoing leaves.
 
     def foldPass(h: STree[STree[A]], hAddr: SAddr, d: SDeriv[SAddr])(lAddr: SAddr, vAddr: SAddr) : Option[(STree[B], STree[SAddr])] = 
       h match {

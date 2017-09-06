@@ -364,6 +364,81 @@ object SNesting {
       }
 
     //
+    // Nesting Fold
+    //
+
+    def nestingFold[B](dotRec: (SAddr, SAddr, A) => Option[B])(boxRec: (SAddr, A, STree[B]) => Option[B]): Option[B] = {
+
+      def foldPass(canopy : STree[SNesting[A]], spineAddr: SAddr, addrDeriv: SDeriv[SAddr])(lclAddr: SAddr, vertAddr: SAddr): Option[(STree[B], STree[SAddr])] =
+        canopy match {
+          case SLeaf => Some(SLeaf, addrDeriv.plug(spineAddr))
+          case SNode(SDot(a), sh) => {
+
+            for {
+              hr <- sh.traverseWithData[Option, SAddr, (STree[B], STree[SAddr])]({
+                (hbr, dir, deriv) => foldPass(hbr, SDir(dir) :: spineAddr, deriv)(SDir(dir) :: lclAddr, vertAddr)
+              })
+              (bs, adJn) = STree.unzip(hr) 
+              adTr <- STree.join(adJn)
+              b <- dotRec(spineAddr, SDir(lclAddr) :: vertAddr, a) 
+            } yield (SNode(b, bs), adTr)
+
+          }
+          case SNode(SBox(a, cn), sh) => {
+
+            for {
+              pr <- foldPass(cn, spineAddr, addrDeriv)(Nil, SDir(lclAddr) :: vertAddr)
+              (bTr, adOutTr) = pr
+              cr <- sh.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](adOutTr)({
+                (hbr, dir, deriv) => foldPass(hbr, dir, deriv)(SDir(dir) :: lclAddr, vertAddr)
+              })
+              (bs, adJn) = STree.unzip(cr)
+              adTr <- STree.join(adJn)
+              b <- boxRec(SDir(lclAddr) :: vertAddr, a, bTr)
+            } yield (SNode(b, bs), adTr)
+
+          }
+        }
+
+      def horizInit(a: A, h: STree[STree[SNesting[A]]], vertAddr: SAddr)(initCalc: Option[(B, STree[SAddr])]): Option[(B, STree[SAddr])] =
+        for {
+          pr <- initCalc
+          (b, adOutTr) = pr
+          hr <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](adOutTr)(foldPass(_, _, _)(Nil, vertAddr))
+          (bs, adJn) = STree.unzip(hr)
+          adTr <- STree.join(adJn)
+          b <- boxRec(vertAddr, a, SNode(b, bs))
+        } yield (b, adTr)
+      
+      def vertInit(a: A, n: SNesting[A], h: STree[STree[SNesting[A]]], vertAddr: SAddr): Option[(B, STree[SAddr])] =
+        n match {
+          case SDot(aa) => horizInit(a, h, vertAddr)(
+            for {
+              b <- dotRec(Nil, vertAddr, aa)
+            } yield (b, h.mapWithAddr((_, d) => SDir(d) :: Nil))
+          )
+          case SBox(aa, SLeaf) => horizInit(a, h, vertAddr)(
+            for {
+              b <- boxRec(vertAddr, aa, SLeaf)
+            } yield (b, h.map(_ => Nil))
+          )
+          case SBox(aa, SNode(nn, hh)) =>
+            horizInit(a, h, vertAddr)(vertInit(aa, nn, hh, SDir(Nil) :: vertAddr))
+        }
+
+      nst match {
+        case SDot(a) => dotRec(Nil, Nil, a)
+        case SBox(a, SLeaf) => boxRec(Nil, a, SLeaf)
+        case SBox(a, SNode(n, sh)) => vertInit(a, n, sh, Nil).map(_._1)
+      }
+
+    }
+
+
+    // Okay, despite the implementation of the nesting fold function, the
+    // bond traversal barely improved.
+
+    //
     //  Bond traverse: traverse with a nesting which is bonded with
     //  this one.  I believe the layout routine could be rewritten
     //  using this idea....
@@ -404,18 +479,14 @@ object SNesting {
           }
         }
 
-      // The extra setup required here is really annoying.
-      // Slightly more flexible grafting/folding routines
-      // would make this doable in one pass.
       for {
-        addrNst <- nst.toTree.treeFold[SNesting[SAddr]]({
-          case addr => Some(SDot(addr))
-        })({
-          case (_, cn) => Some(SBox(Nil, cn))
-        })
-        prNst <- nst.matchWith(addrNst)
+        nstWithAddr <- nst.nestingFold[SNesting[(A, SAddr)]](
+          (spineAddr, vertAddr, a) => Some(SDot(a, spineAddr))
+        )(
+          (vertAddr, a, cn) => Some(SBox((a, Nil), cn))
+        )
         webSpine <- web.spine(webD)
-        res <- bondPass(prNst, webSpine)
+        res <- bondPass(nstWithAddr, webSpine)
       } yield res._1
 
     }
@@ -435,6 +506,9 @@ object SNesting {
       }).flatMap(STree.join(_))
 
 
+    // I believe this can now be either drastically simplified out
+    // completely removed using the nesting fold function implemented
+    // above....
     def spineToCanopyAddr(addr: SAddr): Option[SAddr] = {
 
       val lr: SAddr => Option[SNesting[SAddr]] =
