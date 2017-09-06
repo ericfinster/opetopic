@@ -12,7 +12,7 @@ import mtl._
 class LinkCalculator[A](val cmplx: SComplex[A]) {
 
   sealed trait LinkMarker
-  case class LinkLeaf(d: SDir) extends LinkMarker
+  case class LinkLeaf(n: SNesting[A]) extends LinkMarker
   case class LinkRoot(n: SNesting[A]) extends LinkMarker
   case class LinkNode(z: SNstZipper[A]) extends LinkMarker
 
@@ -38,6 +38,7 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
 
           // We are trying to ascend in from a root.  Recurse up the complex
           // and then ascend into the trivial zipper.
+
           for {
             uz <- zs.ascend
             az <- (LinkNode(SNstZipper(n)) :: uz).ascend
@@ -51,6 +52,7 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
 
               // We have arrived at a dot.  Simply return
               // the current zipper as there is nothing to do.
+
               succeed(lz)
 
             }
@@ -84,7 +86,25 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
     // Enter a box along a given direction until the first
     // internal dot is encountered
     def descend(dir: SDir): Except[LinkZipper] =
-      throwError("Unimplemented")
+      lz match {
+        case Nil => succeed(Nil)
+        case LinkRoot(_) :: zs => throwError("Attempting to descend at the root")
+        case LinkLeaf(n) :: zs => {
+
+          // To descend from a leaf, we should ascend in the upper
+          // complex and the descend using the Node case on the trivial zipper.
+          for {
+            uz <- zs.ascend
+            az <- (LinkNode(SNstZipper(n)) :: uz).descend(dir)
+          } yield az
+
+        }
+        case LinkNode(z) :: zs => {
+
+          throwError("Unimplemented")
+
+        }
+      }
 
     // Trace the edge emanating in the given direction until a dot is reached
     def follow(dir: SDir): Except[LinkZipper] =
@@ -100,6 +120,7 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
 
                 // This should be the direction of the newly found sibling
                 // with respect to its parent.
+
                 val myDir = sibZip.address.head
 
                 for {
@@ -111,17 +132,38 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
               }
               case None => {
 
-                // If there is no sibling, then the idea is that we should pass
-                // to the parent.
+                // The lack of a sibling should mean we hit a leaf
+                // (Should you check this?), so we calculate the corresponding
+                // external direction and then continue in the parent
 
-                ???
+                val lfAddr = dir :: z.ctxt.g.head._2.g.address
+
+                for {
+                  // First calculate the external address
+                  p <- attempt(z.parent, "Failed to get parent")
+                  cn <- attempt(p.focus.boxOption.map(_._2), "No canopy")
+                  addrNst <- attempt(
+                    cn.treeFold[SNesting[SAddr]](a => Some(SDot(a)))((_, nwCn) => Some(SBox(Nil, nwCn))),
+                    "Tree fold failed"
+                  )
+                  az <- attempt(addrNst.seek(lfAddr), "Invalid leaf address")
+                  extAddr <- attempt(az.focus.dotOption, "Leaf was not a dot")
+
+                  // Now continue along that address in the parent
+                  uz <- zs.rewind
+                  az <- (LinkNode(p) :: uz).follow(SDir(extAddr))
+
+                } yield az
 
               }
             }
           } else {
+
             // If we are at the base box, we exit to a leaf marker and
-            // rewind the rest of the zipper 
-            zs.rewind.map(LinkLeaf(dir) :: _)
+            // rewind the rest of the zipper
+
+            zs.rewind.map(LinkLeaf(z.close) :: _)
+
           }
 
         }

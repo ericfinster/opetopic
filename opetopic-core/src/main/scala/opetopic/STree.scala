@@ -279,18 +279,18 @@ object STree {
           } yield res
       }
 
-    // Fix for laziness ...
-    def flattenWith[B](d: SDeriv[B], addr: SAddr = Nil)(f: SAddr => Option[B]): Option[STree[B]] = 
-      st match {
-        case SLeaf => f(addr).map(d.plug(_)) 
-        case SNode(a, sh) => 
-          for {
-            toJn <- sh.traverseWithData[Option, B, STree[B]](
-              (t, dir, deriv) => t.flattenWith(deriv, SDir(dir) :: addr)(f)
-            )
-            res <- join(toJn)
-          } yield res
-      }
+    // Probably should deprecate ...
+    // def flattenWith[B](d: SDeriv[B], addr: SAddr = Nil)(f: SAddr => Option[B]): Option[STree[B]] = 
+    //   st match {
+    //     case SLeaf => f(addr).map(d.plug(_)) 
+    //     case SNode(a, sh) => 
+    //       for {
+    //         toJn <- sh.traverseWithData[Option, B, STree[B]](
+    //           (t, dir, deriv) => t.flattenWith(deriv, SDir(dir) :: addr)(f)
+    //         )
+    //         res <- join(toJn)
+    //       } yield res
+    //   }
 
 
     def takeWhile(prop: A => Boolean, deriv: SDeriv[STree[A]] = SDeriv(SLeaf)): Option[(STree[A], Shell[A])] = 
