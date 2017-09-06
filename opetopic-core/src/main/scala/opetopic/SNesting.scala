@@ -93,6 +93,9 @@ case class SNstZipper[+A](val focus: SNesting[A], val ctxt: SNstCtxt[A] = SNstCt
         } yield res
     }
 
+  def hasParent: Boolean =
+    ctxt.g != Nil
+
   def parent: Option[SNstZipper[A]] =
     ctxt.g match {
       case Nil => None
