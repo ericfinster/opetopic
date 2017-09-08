@@ -37,6 +37,40 @@ object LinkCalculator {
         case LinkNode(z) => z.focus.baseValue.toString
       })
 
+    def seek(addr: SAddr): Except[LinkZipper[A]] =
+      lz match {
+        case Nil => succeed(Nil)
+        case LinkLeaf(_, _) :: zs => throwError("Visiting leaf")
+        case LinkRoot(n) :: zs => {
+
+          for {
+            uz <- zs.ascend
+            rz <- (LinkNode(SNstZipper(n)) :: uz).seek(addr)
+          } yield rz
+
+        }
+        case LinkNode(z) :: zs => {
+
+          addr match {
+            case Nil => succeed(lz)
+            case d :: ds => {
+
+              lz.seek(ds).flatMap({
+                case LinkNode(sz) :: usz => {
+                  for {
+                    nz <- attempt(sz.visit(d), "Visit failed")
+                    uz <- usz.follow(d)
+                  } yield LinkNode(nz) :: uz
+                }
+                case _ => throwError("Unexpected seek result")
+              })
+
+            }
+          }
+
+        }
+      }
+
     // Enter a box along the root edge, continuing until
     // the internal root dot is reached.
     def ascend: Except[LinkZipper[A]] = {
