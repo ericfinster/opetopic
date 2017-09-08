@@ -27,6 +27,9 @@ object LinkCalculator {
     def printFoci: Unit =
       println("Foci: " + foci.mkString(", "))
 
+    def fociString: String =
+      foci.mkString(", ")
+
     def foci: List[String] = 
       lz.map({
         case LinkLeaf(_, _) => "Leaf"
@@ -38,8 +41,7 @@ object LinkCalculator {
     // the internal root dot is reached.
     def ascend: Except[LinkZipper[A]] = {
 
-      println("Entering ascend")
-      printFoci
+      println("(Ascend) " + fociString)
 
       lz match {
         case Nil => succeed(Nil)
@@ -63,7 +65,7 @@ object LinkCalculator {
               // We have arrived at a dot.  Simply return
               // the current zipper as there is nothing to do.
 
-              println("Ascend finishing at: " + a.toString)
+              // println("Ascend finishing at: " + a.toString)
 
               succeed(lz)
 
@@ -74,7 +76,7 @@ object LinkCalculator {
               // the other side.  I think this should mean following
               // the nil direction.
 
-              println("Ascending past loop: " + a.toString)
+              // println("Ascending past loop: " + a.toString)
 
               lz.follow(SDir(Nil))
 
@@ -84,7 +86,7 @@ object LinkCalculator {
               // There is a further box to attempt to ascend.  Construct
               // the appropriate zipper and continue.
 
-              println("Ascending past box: " + a.toString)
+              // println("Ascending past box: " + a.toString)
 
               val rz = SNstZipper(n, (a, SDeriv(sh)) :: z.ctxt)
 
@@ -102,7 +104,10 @@ object LinkCalculator {
 
     // Enter a box along a given direction until the first
     // internal dot is encountered
-    def descend(dir: SDir): Except[LinkZipper[A]] =
+    def descend(dir: SDir): Except[LinkZipper[A]] = {
+
+      println("(Descend) " + fociString)
+
       lz match {
         case Nil => succeed(Nil)
         case LinkRoot(_) :: zs => throwError("Attempting to descend at the root")
@@ -125,7 +130,7 @@ object LinkCalculator {
 
               // We have arrived.  Return the current zipper
 
-              println("Descending finished at: " + a.toString)
+              // println("Descending finished at: " + a.toString)
 
               succeed(lz)
 
@@ -134,14 +139,14 @@ object LinkCalculator {
 
               // We are passing through a loop.
 
-              println("Descending past loop: " + a.toString)
+              // println("Descending past loop: " + a.toString)
 
               lz.rewind
 
             }
             case SBox(a, cn) => {
 
-              println("Descending into box: " + a.toString)
+              // println("Descending into box: " + a.toString)
 
               attempt(
                 STree.treeFold[SNesting[A], List[SAddr]](cn)((hAddr, vAddr) =>
@@ -155,7 +160,6 @@ object LinkCalculator {
                   // the leaf corresponding to the direction we are entering on.
                   for {
                     cz <- attempt(cn.seekTo(vAddr), "Vertical address was invalid")
-                    _ = println(cz.focus.toString)
                     _ <- attempt(cz.focus.leafOption, "Vertical address was not a leaf")
                     p <- attempt(cz.predecessor, "Leaf has no parent")
 
@@ -163,7 +167,12 @@ object LinkCalculator {
                     uz <- zs.follow(vDir)
                     nz <- attempt(z.visit(vDir), "Local visit failed")
 
-                  } yield LinkNode(nz) :: uz
+                    // Now, we have entered the box at the appropriate
+                    // child.  Continue descending along the last direction
+                    // for the leaf.
+                    rz <- (LinkNode(nz) :: uz).descend(cz.address.head)
+
+                  } yield rz
 
                 }
                 case _ => throwError("Unexpected address list")
@@ -174,9 +183,13 @@ object LinkCalculator {
 
         }
       }
+    }
 
     // Trace the edge emanating in the given direction until a dot is reached
-    def follow(dir: SDir): Except[LinkZipper[A]] =
+    def follow(dir: SDir): Except[LinkZipper[A]] = {
+
+      println("(Follow) " + fociString)
+
       lz match {
         case Nil => succeed(Nil)
         case LinkLeaf(_, _) :: zs => throwError("Attempting to follow at a leaf")
@@ -237,9 +250,13 @@ object LinkCalculator {
 
         }
       }
+    }
 
     // Trace backwards along the root edge emanating from this cell
-    def rewind: Except[LinkZipper[A]] =
+    def rewind: Except[LinkZipper[A]] = {
+
+      println("(Rewind) " + fociString)
+
       lz match {
         case Nil => succeed(Nil)
         case LinkRoot(_) :: zs => throwError("Attempting to rewind at a root")
@@ -297,6 +314,7 @@ object LinkCalculator {
 
         }
       }
+    }
 
   }
 

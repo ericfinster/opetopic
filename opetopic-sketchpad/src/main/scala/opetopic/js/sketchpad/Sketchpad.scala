@@ -266,67 +266,26 @@ object Sketchpad extends JSApp {
       root <- attempt(gallery.selectionRoot, "Nothing selected")
     } yield {
 
-      // println("Going to calculate a link of " + root.label.toString)
-      // println("In complex with top cell: " + complex.head.baseValue.toString)
+      println("Going to calculate a link of " + root.label.toString)
+      println("In complex with top cell: " + complex.head.baseValue.toString)
 
-      // import LinkCalculator._
+      import LinkCalculator._
 
-      // val lz = LinkCalculator(complex)
+      val lz = LinkCalculator(complex)
 
-      // println("Created LinkZipper ...")
-      // lz.printFoci
+      println("Created LinkZipper ...")
+      lz.printFoci
 
-      // lz.ascend match {
-      //   case Xor.Left(msg) => {
-      //     println("Failed with message: " + msg)
-      //   }
-      //   case Xor.Right(az) => {
-      //     az.printFoci
-      //   }
-      // }
-
-      // succeed(())
-
-
-      val (left, right) = complex.grab(complex.dim - root.dim)
-      val tr = left.head.toTree.map(_.toString)
-
-      // println("Going to run address check on: " + tr.toString)
-
-      for {
-        adNst <- STree.treeFold[String, SNesting[SAddr]](tr)(
-          (hAddr, vAddr) => Some(SDot(vAddr))
-        )(
-          (_, vAddr, cn) => Some(SBox(vAddr, cn))
-        )
-      } yield {
-
-        val correctNst = left.head.addrNesting
-
-        if (adNst != correctNst) {
-          println("Test failed.")
-
-          left.head.mapWithAddr((a, addr) => (a, addr)).
-            matchWith(adNst).map(rnst => {
-              rnst.toList.foreach({
-                case ((a, caddr), baddr) => {
-                  println("====" + a.toString + "====")
-                  println("Cor: " + caddr.toString)
-                  println("Bad: " + baddr.toString)
-                }
-              })
-            })
-
-
-          // println("============ Result ================")
-          // println(adNst.toList.mkString("\n"))
-          // println("============ Wanted ================")
-          // println(correctNst.toString)
-        } else {
-          println("Test succeeded.")
+      lz.ascend match {
+        case Xor.Left(msg) => {
+          println("Failed with message: " + msg)
         }
-
+        case Xor.Right(az) => {
+          az.printFoci
+        }
       }
+
+      succeed(())
 
     }
   }
