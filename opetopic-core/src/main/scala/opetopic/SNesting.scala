@@ -521,7 +521,7 @@ object SNesting {
         (nst, newCn) => {
           for {
             sp <- nst.spine(SDeriv(newCn.map(_ => SLeaf)))
-            res <- STree.treeFold[A, SNesting[SAddr]](sp)(newCn.elementAt(_))(
+            res <- sp.treeFold[SNesting[SAddr]](newCn.elementAt(_))(
               (a:A, canp: STree[SNesting[SAddr]]) => Some(SBox(Nil, canp))  
             ) // The node recursor gives a dummy value, since we won't use it...
           } yield res

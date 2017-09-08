@@ -101,7 +101,48 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
         }
         case LinkNode(z) :: zs => {
 
-          throwError("Unimplemented")
+          z.focus match {
+            case SDot(a) => {
+
+              // We have arrived.  Return the current zipper
+              succeed(lz)
+
+            }
+            case SBox(a, SLeaf) => {
+
+              // We are passing through a loop.
+              lz.rewind
+
+            }
+            case SBox(a, cn) => {
+
+              attempt(
+                STree.treeFold[SNesting[A], List[SAddr]](cn)((hAddr, vAddr) =>
+                  if (hAddr == dir.dir) Some(List(vAddr)) else Some(Nil)
+                )((_, _, lstTr) => Some(lstTr.toList.flatten)),
+                "Edge address map calculation failed."
+              ).flatMap({
+                case vAddr :: Nil => {
+
+                  // vAddr should now be the address in the canopy of
+                  // the leaf corresponding to the direction we are entering on.
+                  for {
+                    cz <- attempt(cn.seekTo(vAddr), "Vertical address was invalid")
+                    _ <- attempt(cz.focus.leafOption, "Vertical address was not a leaf")
+                    p <- attempt(cz.predecessor, "Leaf has no parent")
+
+                    vDir = SDir(p.address)
+                    uz <- zs.follow(vDir)
+                    nz <- attempt(z.visit(vDir), "Local visit failed")
+
+                  } yield LinkNode(nz) :: uz
+
+                }
+                case _ => throwError("Unexpected address list")
+              })
+
+            }
+          }
 
         }
       }

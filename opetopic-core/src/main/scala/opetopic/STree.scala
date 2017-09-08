@@ -259,8 +259,10 @@ object STree {
         case (a, d) => SNode(a, d.sh)
       })
 
+    // TODO: Change the types to reflect the new generalization
+    // which carries the vertical address as well.
     def treeFold[B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
-      STree.treeFold(st)(lr)(nr)
+      STree.treeFold(st)((hAddr, vAddr) => lr(hAddr))((a, vAddr, bTr) => nr(a, bTr))
 
     def graftWith(brs: STree[STree[A]]): Option[STree[A]] =
       graft(st, brs)
@@ -369,155 +371,84 @@ object STree {
   // Takes lr : (HorizAddr, VertAddr) => Option[B]
   //       nr : (A, VertAddr, STree[B]) => Option[B]
 
-  // This updated version also carries the vertical address during the fold.
-  case class STrFold[A, B](lr: (SAddr, SAddr) => Option[B])(nr: (A, SAddr, STree[B]) => Option[B]) {
-
-    def unzipAndJoin(t: STree[(STree[B], STree[SAddr])]): Option[(STree[STree[B]], STree[SAddr])] = {
-      val (bs, adJn) = unzip(t)
-      join(adJn).map((bs, _))
-    }
-
-    def unzipJoinAndAppend(t: STree[(STree[B], STree[SAddr])], mb: Option[B]): Option[(STree[B], STree[SAddr])] = 
-      for {
-        pr <- unzipAndJoin(t)
-        (bs, at) = pr
-        b <- mb
-      } yield (SNode(b, bs), at)
-
+  def treeFold[A, B](t: STree[A])(leafRec: (SAddr, SAddr) => Option[B])(nodeRec: (A, SAddr, STree[B]) => Option[B]): Option[B] = {
 
     // Right, here is the crux of the algorithm: you are traversing a shell.  You have the
     // horizontal address of the spine as well as the local and vertical addresses.  
     // You return the calculated shell of results as well as set of directions for the
     // outgoing leaves.
 
-    def foldPass(h: STree[STree[A]], hAddr: SAddr, d: SDeriv[SAddr])(lAddr: SAddr, vAddr: SAddr) : Option[(STree[B], STree[SAddr])] = 
-      h match {
-        case SLeaf => Some(SLeaf, d.plug(hAddr))
-        case SNode(SLeaf, hs) => 
+    def foldPass(shell: STree[STree[A]], horizAddr: SAddr, addrDeriv: SDeriv[SAddr])(lclAddr: SAddr, vertAddr: SAddr) : Option[(STree[B], STree[SAddr])] = 
+      shell match {
+        case SLeaf => Some(SLeaf, addrDeriv.plug(horizAddr))
+        case SNode(SLeaf, hs) => {
+
           for {
             hr <- hs.traverseWithData[Option, SAddr, (STree[B], STree[SAddr])]({
-              (hbr, dir, deriv) => foldPass(hbr, SDir(dir) :: hAddr, deriv)(SDir(dir) :: lAddr, vAddr)
+              (hbr, dir, deriv) => foldPass(hbr, SDir(dir) :: horizAddr, deriv)(SDir(dir) :: lclAddr, vertAddr)
             })
-            r <- unzipJoinAndAppend(hr, lr(hAddr, SDir(lAddr) :: vAddr))
-          } yield r
-        case SNode(SNode(a, vs), hs) => 
+            (bs, adJn) = STree.unzip(hr)
+            adTr <- STree.join(adJn)
+            b <- leafRec(horizAddr, SDir(lclAddr) :: vertAddr)
+          } yield (SNode(b, bs), adTr)
+
+        }
+        case SNode(SNode(a, vs), hs) => {
+
           for {
-            pr <- foldPass(vs, hAddr, d)(Nil, SDir(lAddr) :: vAddr)
-            (bs, at) = pr
+            pr <- foldPass(vs, horizAddr, addrDeriv)(Nil, SDir(lclAddr) :: vertAddr)
+            (bTr, at) = pr
             mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)({
-              (hbr, dir, deriv) => foldPass(hbr, dir, deriv)(SDir(dir) :: lAddr, vAddr)
+              (hbr, dir, deriv) => foldPass(hbr, dir, deriv)(SDir(dir) :: lclAddr, vertAddr)
             })
-            r <- unzipJoinAndAppend(mr, nr(a, SDir(lAddr) :: vAddr, bs))
-          } yield r
+            (bs, adJn) = STree.unzip(mr)
+            adTr <- STree.join(adJn)
+            b <- nodeRec(a, SDir(lclAddr) :: vertAddr, bTr)
+          } yield (SNode(b, bs), adTr)
+
+        }
       }
 
-    def initHorizontal(a: A, h: STree[STree[STree[A]]], vaddr: SAddr)(m: Option[(B, STree[SAddr])]): Option[(B, STree[SAddr])] = 
+
+    def horizInit(a: A, h: STree[STree[STree[A]]], vertAddr: SAddr)(m: Option[(B, STree[SAddr])]): Option[(B, STree[SAddr])] =
       for {
         pa <- m
         (c, at) = pa
-        r <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _)(Nil, vaddr))
-        pb <- unzipAndJoin(r)
-        (cs, atr) = pb
-        b <- nr(a, vaddr, SNode(c, cs))
-      } yield (b, atr)
+        hr <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _)(Nil, vertAddr))
+        (cs, adJn) = STree.unzip(hr)
+        adTr <- STree.join(adJn)
+        b <- nodeRec(a, vertAddr, SNode(c, cs))
+      } yield (b, adTr)
 
-    def initVertical(a: A, v: STree[A], h: STree[STree[STree[A]]], vaddr: SAddr): Option[(B, STree[SAddr])] =
+
+    def vertInit(a: A, v: STree[A], h: STree[STree[STree[A]]], vertAddr: SAddr): Option[(B, STree[SAddr])] =
       v match {
-        case SLeaf => initHorizontal(a, h, vaddr)(
+        case SLeaf => horizInit(a, h, vertAddr)(
           for {
-            b <- lr(Nil, vaddr)
+            b <- leafRec(Nil, vertAddr)
           } yield (b, h.mapWithAddr((_, d) => SDir(d) :: Nil))
         )
-        case SNode(aa, SLeaf) => initHorizontal(a, h, vaddr)(
+        case SNode(aa, SLeaf) => horizInit(a, h, vertAddr)(
           for {
-            b <- nr(aa, vaddr, SLeaf)
+            b <- nodeRec(aa, vertAddr, SLeaf)
           } yield (b, h.map(_ => Nil))
         )
-        case SNode(aa, SNode(vv, hh)) => 
-          initHorizontal(a, h, vaddr)(initVertical(aa, vv, hh, SDir(Nil) :: vaddr))
+        case SNode(aa, SNode(vv, hh)) =>
+          horizInit(a, h, vertAddr)(vertInit(aa, vv, hh, SDir(Nil) :: vertAddr))
       }
 
+
+    // Now, perform the correct initialization ...
+    t match {
+      case SLeaf => leafRec(Nil, Nil)
+      case SNode(a, SLeaf) => nodeRec(a, Nil, SLeaf)
+      case SNode(a, SNode(v, hs)) => vertInit(a, v, hs, Nil).map(_._1)
+    }
 
   }
 
-  def trFold[A, B](t: STree[A])(lr: (SAddr, SAddr) => Option[B])(nr: (A, SAddr, STree[B]) => Option[B]): Option[B] =
-    t match {
-      case SLeaf => lr(Nil, Nil)
-      case SNode(a, SLeaf) => nr(a, Nil, SLeaf)
-      case SNode(a, SNode(v, hs)) => STrFold(lr)(nr).initVertical(a, v, hs, Nil).map(_._1)
-    }
-
-  case class STreeFold[A, B](lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]) {
-
-    def unzipAndJoin(t: STree[(STree[B], STree[SAddr])]): Option[(STree[STree[B]], STree[SAddr])] = {
-      val (bs, adJn) = unzip(t)
-      join(adJn).map((bs, _))
-    }
-
-    def unzipJoinAndAppend(t: STree[(STree[B], STree[SAddr])], mb: Option[B]): Option[(STree[B], STree[SAddr])] = 
-      for {
-        pr <- unzipAndJoin(t)
-        (bs, at) = pr
-        b <- mb
-      } yield (SNode(b, bs), at)
-
-
-    def foldPass(h: STree[STree[A]], addr: SAddr, d: SDeriv[SAddr]): Option[(STree[B], STree[SAddr])] = 
-      h match {
-        case SLeaf => Some(SLeaf, d.plug(addr))
-        case SNode(SLeaf, hs) => 
-          for {
-            hr <- hs.traverseWithData[Option, SAddr, (STree[B], STree[SAddr])]({
-              (hbr, dir, deriv) => foldPass(hbr, SDir(dir) :: addr, deriv)
-            })
-            r <- unzipJoinAndAppend(hr, lr(addr))
-          } yield r
-        case SNode(SNode(a, vs), hs) =>
-          for {
-            pr <- foldPass(vs, addr, d)
-            (bs, at) = pr
-            mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _))
-            r <- unzipJoinAndAppend(mr, nr(a, bs))
-          } yield r
-      }
-
-    def initHorizontal(a: A, h: STree[STree[STree[A]]])(m: Option[(B, STree[SAddr])]): Option[(B, STree[SAddr])] = 
-      for {
-        pa <- m
-        (c, at) = pa
-        r <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _))
-        pb <- unzipAndJoin(r)
-        (cs, atr) = pb
-        b <- nr(a, SNode(c, cs))
-      } yield (b, atr)
-
-    def initVertical(a: A, v: STree[A], h: STree[STree[STree[A]]]): Option[(B, STree[SAddr])] = 
-      v match {
-        case SLeaf => initHorizontal(a, h)(
-          for {
-            b <- lr(Nil)
-          } yield (b, h.mapWithAddr((_, d) => SDir(d) :: Nil))
-        )
-        case SNode(aa, SLeaf) => initHorizontal(a, h)(
-          for {
-            b <- nr(aa, SLeaf)
-          } yield (b, h.map(_ => Nil))
-        )
-        case SNode(aa, SNode(vv, hh)) => 
-          initHorizontal(a, h)(initVertical(aa, vv, hh))
-      }
-
-  }
-
-  // A fold with leaves called with the horizontal address 
-  def treeFold[A, B](t: STree[A])(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
-    t match {
-      case SLeaf => lr(Nil)
-      case SNode(a, SLeaf) => nr(a, SLeaf)
-      case SNode(a, SNode(v, hs)) => STreeFold(lr)(nr).initVertical(a, v, hs).map(_._1)
-    }
-
-  // The same as above, but use the vertical leaf address...
+  // This is a more direct verions of the fold which keeps only the vertical address.
+  // It is rendered obsolete by the above but may be more performant ...
   def treeFoldVertical[A, B](t: STree[A], addr: SAddr = Nil)(lr: SAddr => Option[B])(nr: (A, STree[B]) => Option[B]): Option[B] =
     t match {
       case SLeaf => lr(addr)
@@ -531,7 +462,7 @@ object STree {
     }
 
   def graft[A](st: STree[A], bs: STree[STree[A]]): Option[STree[A]] =
-    treeFold(st)(bs.elementAt(_))({ case (a, as) => Some(SNode(a, as)) })
+    st.treeFold(bs.elementAt(_))({ case (a, as) => Some(SNode(a, as)) })
 
   def join[A](st: STree[STree[A]]): Option[STree[A]] = 
     st match {
