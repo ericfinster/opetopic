@@ -218,10 +218,46 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
         case LinkRoot(_) :: zs => throwError("Attempting to rewind at a root")
         case LinkNode(z) :: zs => {
 
+          if (z.hasParent) {
+
+            z.predecessor match {
+              case Some(predZip) => {
 
 
-          throwError("Unimplemented")
+                // Here we want to "turn the corner" as it were.  So we need
+                // to calculate the address we are coming from and then descend
+                // in that direction ...
 
+                val descDir = z.ctxt.g.head._2.g.address.head
+
+                for {
+                  uz <- zs.rewind
+                  az <- uz.follow(predZip.address.head)
+                  rz <- (LinkNode(predZip) :: az).descend(descDir)
+                } yield rz
+
+              }
+              case None => {
+
+                // If there is no predecessor, we rewind in higer dimensions
+                // passing to the parent and continue recursively.
+
+                for {
+                  p <- attempt(z.parent, "Failed to get parent")
+                  uz <- zs.rewind
+                  rz <- (LinkNode(p) :: uz).rewind
+                } yield rz
+
+              }
+            }
+
+          } else {
+
+            // Exit to the root and rewind the rest
+            zs.rewind.map(LinkRoot(z.close) :: _)
+
+
+          }
 
         }
       }
