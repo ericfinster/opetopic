@@ -9,31 +9,41 @@ package opetopic
 
 import mtl._
 
-class LinkCalculator[A](val cmplx: SComplex[A]) {
+object LinkCalculator {
 
-  sealed trait LinkMarker
-  case class LinkLeaf(n: SNesting[A]) extends LinkMarker
-  case class LinkRoot(n: SNesting[A]) extends LinkMarker
-  case class LinkNode(z: SNstZipper[A]) extends LinkMarker
+  sealed trait LinkMarker[A]
+  case class LinkLeaf[A](n: SNesting[A], d: SDir) extends LinkMarker[A]
+  case class LinkRoot[A](n: SNesting[A]) extends LinkMarker[A]
+  case class LinkNode[A](z: SNstZipper[A]) extends LinkMarker[A]
 
   // So our little zipper guy is a list of markers
-  type LinkZipper = List[LinkMarker]
+  type LinkZipper[A] = List[LinkMarker[A]]
 
-  implicit class LinkZipperOps(lz: LinkZipper) {
+  def apply[A](cmplx: SComplex[A]): LinkZipper[A] =
+    (cmplx : Suite[SNesting[A]]).toList.map(n => LinkRoot(n))
+
+  implicit class LinkZipperOps[A](lz: LinkZipper[A]) {
+
+    def printFoci: Unit =
+      println("Foci: " + foci.mkString(", "))
 
     def foci: List[String] = 
       lz.map({
-        case LinkLeaf(_) => "Leaf"
-        case LinkRoot(_) => "Root"
+        case LinkLeaf(_, _) => "Leaf"
+        case LinkRoot(n) => "Root (" ++ n.baseValue.toString ++ ")"
         case LinkNode(z) => z.focus.baseValue.toString
       })
 
     // Enter a box along the root edge, continuing until
     // the internal root dot is reached.
-    def ascend: Except[LinkZipper] =
+    def ascend: Except[LinkZipper[A]] = {
+
+      println("Entering ascend")
+      printFoci
+
       lz match {
         case Nil => succeed(Nil)
-        case LinkLeaf(_) :: zs => throwError("Attempting to ascend at a leaf")
+        case LinkLeaf(_, _) :: zs => throwError("Attempting to ascend at a leaf")
         case LinkRoot(n) :: zs => {
 
           // We are trying to ascend in from a root.  Recurse up the complex
@@ -53,6 +63,8 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
               // We have arrived at a dot.  Simply return
               // the current zipper as there is nothing to do.
 
+              println("Ascend finishing at: " + a.toString)
+
               succeed(lz)
 
             }
@@ -62,6 +74,8 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
               // the other side.  I think this should mean following
               // the nil direction.
 
+              println("Ascending past loop: " + a.toString)
+
               lz.follow(SDir(Nil))
 
             }
@@ -69,6 +83,8 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
 
               // There is a further box to attempt to ascend.  Construct
               // the appropriate zipper and continue.
+
+              println("Ascending past box: " + a.toString)
 
               val rz = SNstZipper(n, (a, SDeriv(sh)) :: z.ctxt)
 
@@ -82,14 +98,17 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
 
         }
       }
+    }
 
     // Enter a box along a given direction until the first
     // internal dot is encountered
-    def descend(dir: SDir): Except[LinkZipper] =
+    def descend(dir: SDir): Except[LinkZipper[A]] =
       lz match {
         case Nil => succeed(Nil)
         case LinkRoot(_) :: zs => throwError("Attempting to descend at the root")
-        case LinkLeaf(n) :: zs => {
+        case LinkLeaf(n, _) :: zs => {
+
+          // Note: a sanity check would be that d == dir ...
 
           // To descend from a leaf, we should ascend in the upper
           // complex and the descend using the Node case on the trivial zipper.
@@ -105,16 +124,24 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
             case SDot(a) => {
 
               // We have arrived.  Return the current zipper
+
+              println("Descending finished at: " + a.toString)
+
               succeed(lz)
 
             }
             case SBox(a, SLeaf) => {
 
               // We are passing through a loop.
+
+              println("Descending past loop: " + a.toString)
+
               lz.rewind
 
             }
             case SBox(a, cn) => {
+
+              println("Descending into box: " + a.toString)
 
               attempt(
                 STree.treeFold[SNesting[A], List[SAddr]](cn)((hAddr, vAddr) =>
@@ -128,6 +155,7 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
                   // the leaf corresponding to the direction we are entering on.
                   for {
                     cz <- attempt(cn.seekTo(vAddr), "Vertical address was invalid")
+                    _ = println(cz.focus.toString)
                     _ <- attempt(cz.focus.leafOption, "Vertical address was not a leaf")
                     p <- attempt(cz.predecessor, "Leaf has no parent")
 
@@ -148,10 +176,10 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
       }
 
     // Trace the edge emanating in the given direction until a dot is reached
-    def follow(dir: SDir): Except[LinkZipper] =
+    def follow(dir: SDir): Except[LinkZipper[A]] =
       lz match {
         case Nil => succeed(Nil)
-        case LinkLeaf(_) :: zs => throwError("Attempting to follow at a leaf")
+        case LinkLeaf(_, _) :: zs => throwError("Attempting to follow at a leaf")
         case LinkRoot(_) :: zs => throwError("Attempting to follow at a root")
         case LinkNode(z) :: zs => {
 
@@ -203,7 +231,7 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
             // If we are at the base box, we exit to a leaf marker and
             // rewind the rest of the zipper
 
-            zs.rewind.map(LinkLeaf(z.close) :: _)
+            zs.rewind.map(LinkLeaf(z.close, dir) :: _    )
 
           }
 
@@ -211,11 +239,19 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
       }
 
     // Trace backwards along the root edge emanating from this cell
-    def rewind: Except[LinkZipper] =
+    def rewind: Except[LinkZipper[A]] =
       lz match {
         case Nil => succeed(Nil)
-        case LinkLeaf(_) :: zs => throwError("Attempting to rewind at a leaf")
         case LinkRoot(_) :: zs => throwError("Attempting to rewind at a root")
+        case LinkLeaf(n, d) :: zs => {
+
+          // Descend back along the stored direction.
+          for {
+            uz <- zs.ascend
+            rz <- (LinkNode(SNstZipper(n)) :: uz).descend(d)
+          } yield rz
+
+        }
         case LinkNode(z) :: zs => {
 
           if (z.hasParent) {
@@ -265,7 +301,7 @@ class LinkCalculator[A](val cmplx: SComplex[A]) {
   }
 
 
-  def link(fa: FaceAddr) : Option[SComplex[A]] = None
+  def link[A](cmplx: SComplex[A], fa: FaceAddr) : Option[SComplex[A]] = None
 
 }
 

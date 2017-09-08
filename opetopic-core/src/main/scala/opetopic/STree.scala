@@ -204,6 +204,17 @@ object STree {
         case _ => None
       }
 
+    def matchWithData[B, C, D](tt: STree[B])(f: (A, B, SAddr, SDeriv[C]) => Option[D], addr: SAddr = Nil): Option[STree[D]] =
+      (st, tt) match {
+        case (SLeaf, SLeaf) => Some(SLeaf)
+        case (SNode(a, as), SNode(b, bs)) =>
+          for {
+            d <- f(a, b, addr, SDeriv(bs.asShell))
+            ds <- as.matchWithAddr(bs)({ case (r, s, dir) => r.matchWithData(s)(f, SDir(dir) :: addr) })
+          } yield SNode(d, ds)
+        case _ => None
+      }
+
     def isLeaf: Boolean =
       st match {
         case SLeaf => true
@@ -398,8 +409,8 @@ object STree {
           for {
             pr <- foldPass(vs, horizAddr, addrDeriv)(Nil, SDir(lclAddr) :: vertAddr)
             (bTr, at) = pr
-            mr <- hs.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)({
-              (hbr, dir, deriv) => foldPass(hbr, dir, deriv)(SDir(dir) :: lclAddr, vertAddr)
+            mr <- hs.matchWithData[SAddr, SAddr, (STree[B], STree[SAddr])](at)({
+              (hbr, hDir, lDir, deriv) => foldPass(hbr, hDir, deriv)(SDir(lDir) :: lclAddr, vertAddr)
             })
             (bs, adJn) = STree.unzip(mr)
             adTr <- STree.join(adJn)
@@ -414,7 +425,9 @@ object STree {
       for {
         pa <- m
         (c, at) = pa
-        hr <- h.matchWithDeriv[SAddr, SAddr, (STree[B], STree[SAddr])](at)(foldPass(_, _, _)(Nil, vertAddr))
+        hr <- h.matchWithData[SAddr, SAddr, (STree[B], STree[SAddr])](at)(
+          (sh, hAddr, lAddr, deriv) => foldPass(sh, hAddr, deriv)(SDir(lAddr) :: Nil, vertAddr)
+        )
         (cs, adJn) = STree.unzip(hr)
         adTr <- STree.join(adJn)
         b <- nodeRec(a, vertAddr, SNode(c, cs))
@@ -425,12 +438,12 @@ object STree {
       v match {
         case SLeaf => horizInit(a, h, vertAddr)(
           for {
-            b <- leafRec(Nil, vertAddr)
+            b <- leafRec(Nil, SDir(Nil) :: vertAddr)
           } yield (b, h.mapWithAddr((_, d) => SDir(d) :: Nil))
         )
         case SNode(aa, SLeaf) => horizInit(a, h, vertAddr)(
           for {
-            b <- nodeRec(aa, vertAddr, SLeaf)
+            b <- nodeRec(aa, SDir(Nil) :: vertAddr, SLeaf) 
           } yield (b, h.map(_ => Nil))
         )
         case SNode(aa, SNode(vv, hh)) =>
