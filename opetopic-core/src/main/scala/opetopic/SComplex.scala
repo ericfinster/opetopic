@@ -53,6 +53,36 @@ trait ComplexTypes {
     
   }
 
+
+  //
+  // A Coface traversal routine.  Not sure where this goes, but it has a number
+  // of different uses, so it needs to be somewhere accessible ...
+  //
+
+  def cofacePass[A, B](cmplx: SComplex[A], l: List[SNesting[A]], s: SNesting[Boolean])(f: Either[A, A] => Option[B]): Option[List[SNesting[B]]] =
+    l match {
+      case Nil => Some(Nil)
+      case n :: ns => {
+        for {
+          // Use the complex to calculate the required derivative
+          d <- SCmplxZipper(cmplx).focusDeriv[Boolean]
+          prNst <- n.bondTraverse(s, d)({
+            case (a, bsrcs, btgt) => {
+              if (bsrcs.toList.exists(b => b) || btgt) {
+                f(Right(a)).map(r => (r, true)) // is a coface
+              } else {
+                f(Left(a)).map(r => (r, false)) // isn't a coface
+              }
+            }
+          })
+          (rNst, bnst) = SNesting.unzip(prNst)
+          ll <- cofacePass(cmplx >> n, ns, bnst)(f)
+        } yield rNst :: ll
+
+      }
+    }
+
+
   implicit class SComplexOps[A](c: SComplex[A]) {
 
     def dim: Int = c.length - 1
@@ -208,32 +238,6 @@ trait ComplexTypes {
     // Traverse the cofaces of the selected cells
     def traverseCofaces[B](codim: Int, sel: A => Boolean)(f: Either[A, A] => Option[B]): Option[SComplex[B]] = {
 
-      // The heart of the routine: do a bond traverse and just check if any of the source
-      // or target faces of a given cell are cofaces.  If any are, so is the current cell.
-      // Do this for each nesting, passing further down the list
-      def cofacePass(cmplx: SComplex[A], l: List[SNesting[A]], s: SNesting[Boolean]): Option[List[SNesting[B]]] =
-        l match {
-          case Nil => Some(Nil)
-          case n :: ns => {
-            for {
-              // Use the complex to calculate the required derivative
-              d <- SCmplxZipper(cmplx).focusDeriv[Boolean]
-              prNst <- n.bondTraverse(s, d)({
-                case (a, bsrcs, btgt) => {
-                  if (bsrcs.toList.exists(b => b) || btgt) {
-                    f(Right(a)).map(r => (r, true)) // is a coface
-                  } else {
-                    f(Left(a)).map(r => (r, false)) // isn't a coface
-                  }
-                }
-              })
-              (rNst, bnst) = SNesting.unzip(prNst)
-              ll <- cofacePass(cmplx >> n, ns, bnst)
-            } yield rNst :: ll
-
-          }
-        }
-
       val (left, right) = c.grab(codim)
 
       for {
@@ -247,11 +251,29 @@ trait ComplexTypes {
         boolNst = left.head.map(sel(_))
 
         // Now traverse the right half using the tagging info.
-        newRight <- cofacePass(left, right, boolNst)
+        newRight <- cofacePass(left, right, boolNst)(f)
 
       } yield newLeft ++ newRight
 
     }
+
+    // Doesn't include the face itself.  Should you change this?
+    def traverseCofacesOf[B](fa: FaceAddr)(f: Either[A, A] => Option[B]): Option[List[SNesting[B]]] = {
+
+      val (lower, upper) = c.grab(fa.codim)
+      val fNst = lower.head.map(_ => false)
+
+      for {
+        fz <- fNst.seek(fa.address)
+        bNst = fz.closeWith(fz.focus.withBase(true))
+        r <- cofacePass(lower, upper, bNst)(f)
+      } yield r
+
+    }
+
+
+  // def cofacePass(cmplx: SComplex[A], l: List[SNesting[A]], s: SNesting[Boolean]): Option[List[SNesting[B]]] =
+
 
     // This seems horribly inefficient
     def drops: List[FaceAddr] =

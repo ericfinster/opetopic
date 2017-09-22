@@ -103,6 +103,9 @@ abstract class StableGallery[F <: UIFramework](final val framework: F)
     def dim: Int
     def address: SAddr
 
+    def faceAddress: FaceAddr =
+      FaceAddr(boxComplex.dim - dim, address)
+
     def label: LabelType
 
     def face: Option[SComplex[LabelType]] = 

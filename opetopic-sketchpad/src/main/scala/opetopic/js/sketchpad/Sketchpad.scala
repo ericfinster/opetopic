@@ -267,27 +267,15 @@ object Sketchpad extends JSApp {
     } yield {
 
       println("Going to calculate a link of " + root.label.toString)
-      println("In complex with top cell: " + complex.head.baseValue.toString)
 
-      import LinkCalculator._
-
-      val (left, right) = complex.grab(complex.dim - root.dim)
-      val lz = (left.head :: right).map(LinkRoot(_))
-
-      println("Created LinkZipper ...")
-      lz.printFoci
-
-      lz.seek(root.address) match {
+      Link.link(root.faceAddress, complex) match {
         case Xor.Left(msg) => {
-          println("Failed with message: " + msg)
+          println("Link failed with message: " + msg)
         }
-        case Xor.Right(az) => {
-          println("Arrived at link cell.")
-          az.printFoci
+        case Xor.Right(_) => {
+          println("Link calculation finished!")
         }
       }
-
-      succeed(())
 
     }
   }

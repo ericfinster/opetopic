@@ -210,6 +210,12 @@ object SNesting {
         case _ => None
       }
 
+    def isDot: Boolean =
+      dotOption.isDefined
+
+    def isBox: Boolean =
+      boxOption.isDefined
+
     def isLoop: Boolean =
       nst match {
         case SDot(_) => false

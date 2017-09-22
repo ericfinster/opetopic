@@ -605,7 +605,7 @@ trait CardinalTypes {
   object SCardinal {
 
     def apply[A](a: A): SCardinal[A] = 
-      ||(MObj(STree.obj(SDot(a)))) >> MFix(MObj(SLeaf))
+      ||(MObj(STree.obj(SDot(a)))) //>> MFix(MObj(SLeaf))
 
     def apply[A](c: SComplex[A]): SCardinal[A] = 
       fromComplex(c)._1
