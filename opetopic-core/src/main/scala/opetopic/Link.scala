@@ -16,6 +16,16 @@ trait LinkTracer[A] {
   case class LinkRoot(n: SNesting[A]) extends LinkMarker
   case class LinkNode(z: SNstZipper[A]) extends LinkMarker
 
+  implicit class LinkMarkerOps(mk: LinkMarker) {
+
+    def isNode: Boolean =
+      mk match {
+        case LinkNode(_) => true
+        case _ => false
+      }
+
+  }
+
   // So our little zipper guy is a list of markers
   type LinkZipper = List[LinkMarker]
 
@@ -23,20 +33,7 @@ trait LinkTracer[A] {
   // CALLBACKS
   //
 
-  sealed trait LinkStep
-  case class AtLeaf(dir: SDir) extends LinkStep
-  case object AtRoot extends LinkStep
-
   def step(src: LinkMarker, dest: LinkMarker, codim: Int) : Except[Unit]
-
-  // def enterRoot(nz: SNstZipper[A], lz: LinkZipper): Except[Unit]
-  // def enterLeaf(nz: SNstZipper[A], lz: LinkZipper, dir: SDir): Except[Unit]
-
-  // def exitRoot(nz: SNstZipper[A], lz: LinkZipper): Except[Unit]
-  // def exitLeaf(nz: SNstZipper[A], lz: LinkZipper, dir: SDir): Except[Unit]
-
-  // def ascendLoop(nz: SNstZipper[A], lz: LinkZipper): Except[Unit]
-  // def descendLoop(nz: SNstZipper[A], lz: LinkZipper): Except[Unit]
 
   //============================================================================================
   // ZIPPER OPERATIONS
@@ -94,8 +91,6 @@ trait LinkTracer[A] {
     // Enter a box along the root edge, continuing until
     // the internal root dot is reached.
     def ascend: Except[LinkZipper] = {
-
-      // println("(Ascend) " + fociString)
 
       lz match {
         case Nil => succeed(Nil)
@@ -559,126 +554,103 @@ trait LinkTracer[A] {
 
 // }
 
-// class LinkCalculator[A](fa: FaceAddr, cmplx: SComplex[A]) extends LinkTracer[A] {
+class LinkCalculator[A](fa: FaceAddr, cmplx: SComplex[A]) extends LinkTracer[A] {
 
-//   var calculating = false
-//   def done: Except[Unit] = succeed(())
+  var calculating = false
+  def done: Except[Unit] = succeed(())
 
-//   var boolComplex:SComplex[Boolean] =
-//     ||(SDot(false))
+  var boolComplex:SComplex[Boolean] =
+    ||(SDot(false))
 
-//   def link: Except[SComplex[A]] = {
+  def link: Except[SComplex[A]] = {
 
-//     val (lower, upper) = cmplx.grab(fa.codim)
+    val (lower, upper) = cmplx.grab(fa.codim)
 
-//     cmplx.traverseCofacesOf[Boolean](fa)({
-//       case Left(_) => Some(true)
-//       case Right(_) => Some(false)
-//     }) match {
-//       case None => throwError("Boolean initialization failed!")
-//       case Some(boolUpper) => {
+    cmplx.traverseCofacesOf[Boolean](fa)({
+      case Left(_) => Some(true)
+      case Right(_) => Some(false)
+    }) match {
+      case None => throwError("Boolean initialization failed!")
+      case Some(boolUpper) => {
 
-//         // Initialize the boolean state complex
-//         boolComplex = (lower: SComplex[A]).map(_ => true) ++
-//           (boolUpper.head.map(_ => true) :: boolUpper.tail)
+        // Initialize the boolean state complex
+        boolComplex = (lower: SComplex[A]).map(_ => true) ++
+          (boolUpper.head.map(_ => true) :: boolUpper.tail)
 
-//         val lz = (lower.head :: upper).map(LinkRoot(_))
+        val lz = (lower.head :: upper).map(LinkRoot(_))
 
-//         for {
-//           z <- (lower.head :: upper).map(LinkRoot(_)).seek(fa.address)
+        for {
+          z <- (lower.head :: upper).map(LinkRoot(_)).seek(fa.address)
 
-//           _ = println("Arrived at link cell.")
-//           _ = z.printFoci
+          _ = println("Arrived at link cell.")
+          _ = z.printFoci
 
-//           // Turn on callbacks ...
-//           _ = calculating = true
+          // Turn on callbacks ...
+          _ = calculating = true
 
-//           // Now, we should toss out the lowest dimension
-//           // and rewind? descend? the tail.
+          // Now, we should toss out the lowest dimension
+          // and rewind? descend? the tail.
 
-//           rz <- z.tail.rewind
+          rz <- z.tail.rewind
 
-//         } yield {
+        } yield {
 
-//           println("Link trace complete.")
-//           cmplx // Dummy return
+          println("Link trace complete.")
+          cmplx // Dummy return
 
-//         }
+        }
 
-//       }
-//     }
-
-
-//   }
-
-//   def updateAt(fa: FaceAddr): Option[Boolean] = {
-
-//     val (lower, upper) = boolComplex.grab(fa.codim)
-
-//     for {
-//       el <- cmplx.elementAt(fa)
-//       face <- boolComplex.face(fa)
-//       frm <- face.cellFrame
-//       (srcs, tgt) = frm
-
-//       isComplete = (tgt :: srcs.toList).forall(b => b) && (! face.head.baseValue)
-
-//       newNst <- if (isComplete) {
-//         println("Completed a face! Element: " + el.toString)
-//         lower.head.replaceAt(fa.address, true)
-//       } else Some(lower.head)
-
-//     } yield {
-
-//       boolComplex = lower.withHead(newNst) ++ upper
-//       isComplete
-
-//     }
-
-//   }
-
-//   def enterRoot(nz: SNstZipper[A], lz: LinkZipper): Except[Unit] = 
-//     if (calculating && (lz.length == fa.codim - 1)) {
-//     // if (calculating) {
-//       println("Entering root of: " + nz.focus.baseValue.toString)
-//       attempt(updateAt(FaceAddr(lz.length, nz.address)), "Update failed").map(_ => ())
-//     } else done
+      }
+    }
 
 
-//   def exitRoot(nz: SNstZipper[A], lz: LinkZipper): Except[Unit] =
-//     if (calculating) {
+  }
 
-//       if (lz.length == fa.codim -1) {
-//         println("Exiting root of: " + nz.focus.baseValue.toString)
-//       }
+  def updateAt(fa: FaceAddr): Option[Boolean] = {
 
-//       for {
-//         isComplete <- attempt(updateAt(FaceAddr(lz.length, nz.address)), "Update failed")
-//       } yield ()
+    val (lower, upper) = boolComplex.grab(fa.codim)
 
-//     } else done
+    for {
+      el <- cmplx.elementAt(fa)
+      face <- boolComplex.face(fa)
+      frm <- face.cellFrame
+      (srcs, tgt) = frm
+
+      isComplete = (tgt :: srcs.toList).forall(b => b) && (! face.head.baseValue)
+
+      newNst <- if (isComplete) {
+        // println("Completed a face! Element: " + el.toString)
+        lower.head.replaceAt(fa.address, true)
+      } else Some(lower.head)
+
+    } yield {
+
+      boolComplex = lower.withHead(newNst) ++ upper
+      isComplete
+
+    }
+
+  }
 
 
-//   def ascendLoop(nz: SNstZipper[A], lz: LinkZipper): Except[Unit] =
-//     if (calculating) {
+  def step(src: LinkMarker, dest: LinkMarker, codim: Int): Except[Unit] = {
 
-//       println("Passing a loop: " + nz.focus.baseValue.toString)
+    dest match {
+      case LinkLeaf(_, _) => succeed(())
+      case LinkRoot(_) => succeed(())
+      case LinkNode(nz) =>
+        if (src.isNode) {
+          for {
+            isComplete <- attempt(updateAt(FaceAddr(codim, nz.address)), "Update failed")
+          } yield {
 
-//       for {
-//         isComplete <- attempt(updateAt(FaceAddr(lz.length, nz.address)), "Update failed")
-//       } yield ()
-      
-//     } else done
+            if (isComplete) {
+              println("Completed cell: " + nz.focus.baseValue.toString)
+            }
 
+          }
+        } else succeed(())
+    }
+  }
 
-//   // These guys just repeat the above
-//   def enterLeaf(nz: SNstZipper[A], lz: LinkZipper, dir: SDir): Except[Unit] =
-//     enterRoot(nz, lz)
-
-//   def exitLeaf(nz: SNstZipper[A], lz: LinkZipper, dir: SDir): Except[Unit] =
-//     exitRoot(nz, lz)
-
-//   def descendLoop(nz: SNstZipper[A], lz: LinkZipper): Except[Unit] =
-//     ascendLoop(nz, lz)
-
-// }
+}

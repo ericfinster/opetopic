@@ -88,6 +88,9 @@ trait ComplexTypes {
     def dim: Int = c.length - 1
     def topValue: A = c.head.baseValue
 
+    def asList: List[SNesting[A]] =
+      Suite.SuiteTraverse.toList(c)
+    
     def withTopValue(a: A): SComplex[A] =
       c match {
         case ||(hd) => ||(hd.withBase(a))

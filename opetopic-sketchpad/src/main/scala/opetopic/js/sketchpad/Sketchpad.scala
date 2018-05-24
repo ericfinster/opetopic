@@ -136,6 +136,7 @@ object Sketchpad extends JSApp {
     jQuery("#contract-btn").on("click", () => { runExcept(onContract) })
     jQuery("#link-btn").on("click", () => { runExcept(onLink) })
     jQuery("#proof-btn").on("click", () => { renderAddrProof })
+    jQuery("#flag-btn").on("click", () => { onFlag })
 
   }
 
@@ -259,6 +260,38 @@ object Sketchpad extends JSApp {
 
     }
 
+  def onFlag: Except[Unit] =
+    for {
+      gallery <- attempt(viewer.activeGallery, "No active gallery")
+      complex = gallery.complex
+      root <- attempt(gallery.selectionRoot, "Nothing selected")
+      face <- attempt(root.face, "Error calculating face")
+      initAddr <- attempt(face.initial.addrNesting.firstDotValue, "No initial object")
+    } yield {
+
+      println("Attempting flag calculation.")
+
+      object FlagCalculator extends LinkTracer[Option[SimpleMarker]] {
+
+        def step(src: LinkMarker, dest: LinkMarker, codim: Int) : Except[Unit] = {
+          succeed(())
+        }
+
+      }
+
+      import FlagCalculator._
+
+      val lz = face.asList.map(n => LinkRoot(n))
+      println("Initial zipper: " + lz.fociString)
+
+      for {
+        az <- lz.ascend
+      } yield {
+        println("Ascended zipper: " + az.fociString)
+      }
+
+    }
+
   def onLink: Except[Unit] = {
     for {
       gallery <- attempt(viewer.activeGallery, "No active gallery")
@@ -268,7 +301,9 @@ object Sketchpad extends JSApp {
 
       println("Going to calculate a link of " + root.label.toString)
 
-      Link.link(root.faceAddress, complex) match {
+      val calc = new LinkCalculator(root.faceAddress, complex)
+
+      calc.link match {
         case Xor.Left(msg) => {
           println("Link failed with message: " + msg)
         }
@@ -355,14 +390,20 @@ object Sketchpad extends JSApp {
       c <- viewer.complex
     } {
 
-      def quotStr(str: String): String = "\"" + str + "\""
+      // def quotStr(str: String): String = "\"" + str + "\""
 
-      val lc = c.map(om => om match {
-        case None => quotStr("empty")
-        case Some(mk) => quotStr(mk.lbl)
-      })
-      
-      println(lc.toString)
+      // val lc = c.map(om => om match {
+      //   case None => quotStr("empty")
+      //   case Some(mk) => quotStr(mk.lbl)
+      // })
+
+      def printMarker(o: Option[SimpleMarker]) : String =
+        o match {
+          case None => "none"
+          case Some(mk) => mk.lbl
+        }
+
+      println(c.asList.map(n => AgdaPrint.agdaPrintNesting(n)(printMarker)))
 
     }
 
@@ -551,5 +592,25 @@ object Sketchpad extends JSApp {
     jQuery("#stroke-color-btn").removeClass(strokeColor).addClass(str).popup("hide")
     strokeColor = str
   }
+
+}
+
+object AgdaPrint {
+
+  // Agda style printing
+  def agdaPrintNesting[A](n : SNesting[A])(aPrint : A => String): String =
+    n match {
+      case SDot(a) => "dot " ++ aPrint(a) 
+      case SBox(a, cn) => "box " ++ aPrint(a) ++ " (" ++
+        agdaPrintTree(cn)(nst => agdaPrintNesting(nst)(aPrint)) ++ ")"
+    }
+
+  def agdaPrintTree[A](t : STree[A])(aPrint : A => String): String =
+    t match {
+      case SLeaf => "lf"
+      case SNode(a, sh) => "nd (" ++ aPrint(a) ++ ") (" ++
+        agdaPrintTree(sh)(vt => agdaPrintTree(vt)(aPrint)) ++ ")"
+    }
+
 
 }
