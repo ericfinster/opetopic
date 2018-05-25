@@ -271,23 +271,25 @@ object Sketchpad extends JSApp {
 
       println("Attempting flag calculation.")
 
-      object FlagCalculator extends LinkTracer[Option[SimpleMarker]] {
+      object FlagCalculator extends FlagTracer[Option[SimpleMarker]] {
 
-        def step(src: LinkMarker, dest: LinkMarker, codim: Int) : Except[Unit] = {
-          succeed(())
-        }
+        def markFlag(lz: FlagZipper, op: FlagOp) =
+          succeed({
+            if (op != FollowFirst && op != RewindFirst && op != FollowFourth && op != RewindFifth && op != AscendFirst)
+              println("(" ++ op.toString ++ ") " ++ lz.fociString)
+          })
 
       }
 
       import FlagCalculator._
 
-      val lz = face.asList.map(n => LinkRoot(n))
-      println("Initial zipper: " + lz.fociString)
+      val lz = (Nil, FlagRoot(face.initial), face.asList.tail.map(FlagRoot(_)))
+      println("(Init)" ++ lz.fociString)
 
       for {
         az <- lz.ascend
       } yield {
-        println("Ascended zipper: " + az.fociString)
+        println("Done")
       }
 
     }

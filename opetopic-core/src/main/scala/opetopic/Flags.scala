@@ -26,6 +26,24 @@ trait FlagTracer[A] { tracer =>
 
   }
 
+  sealed trait FlagOp
+  case object AscendFirst extends FlagOp
+  case object AscendSecond extends FlagOp
+  case object DescendFirst extends FlagOp
+  case object DescendSecond extends FlagOp
+  case object FollowFirst extends FlagOp
+  case object FollowSecond extends FlagOp
+  case object FollowThird extends FlagOp
+  case object FollowFourth extends FlagOp
+  case object RewindFirst extends FlagOp
+  case object RewindSecond extends FlagOp
+  case object RewindThird extends FlagOp
+  case object RewindFourth extends FlagOp
+  case object RewindFifth extends FlagOp
+
+  def markFlag(lz: FlagZipper, op: FlagOp): Except[Unit]
+
+
   // NOTE! - The complex gets reversed in the first part of the zipper
   //         so as not to run into the efficiency problem of appending
   //         elements to lists.
@@ -43,8 +61,8 @@ trait FlagTracer[A] { tracer =>
       case FlagLeaf(_, _) => throwError("Attempting to ascend at a leaf")
       case FlagRoot(n) =>
         for {
-          asc <- lz.inNextDim(ascend)
-          res <- asc.withFocus(FlagNode(SNstZipper(n))).ascend
+          asc <- lz.withFocus(FlagNode(SNstZipper(n)))(AscendFirst).flatMap(_.inNextDim(ascend))
+          res <- asc.ascend
         } yield res
       case FlagNode(z) =>
         z.focus match {
@@ -52,8 +70,9 @@ trait FlagTracer[A] { tracer =>
           case SBox(a, SLeaf) => lz.follow(SDir(Nil))
           case SBox(a, SNode(n, sh)) => 
             for {
-              flw <- lz.inNextDim(follow(SDir(Nil)))
-              res <- flw.withFocus(FlagNode(SNstZipper(n, (a, SDeriv(sh)) :: z.ctxt))).ascend
+              flag <- lz.withFocus(FlagNode(SNstZipper(n, (a, SDeriv(sh)) :: z.ctxt)))(AscendSecond)
+              flw <- flag.inNextDim(follow(SDir(Nil)))
+              res <- flw.ascend
             } yield res
         }
     }
@@ -68,8 +87,9 @@ trait FlagTracer[A] { tracer =>
       case FlagRoot(_) => throwError("Attempting to descend at the root")
       case FlagLeaf(n, _) => // We should check that d == dir
         for {
-          asc <- lz.inNextDim(ascend)
-          res <- asc.withFocus(FlagNode(SNstZipper(n))).descend(dir)
+          flag <- lz.withFocus(FlagNode(SNstZipper(n)))(DescendFirst)
+          asc <- flag.inNextDim(ascend)
+          res <- asc.descend(dir)
         } yield res
       case FlagNode(z) =>
         z.focus match {
@@ -94,17 +114,15 @@ trait FlagTracer[A] { tracer =>
 
                   vDir = SDir(p.address)
                   nz <- attempt(z.visit(vDir), "Local visit failed")
-                  dest = FlagNode(nz)
 
-                  // _ <- step(src, dest, zs.length)
-
-                  flw <- lz.inNextDim(follow(vDir))
+                  flag <- lz.withFocus(FlagNode(nz))(DescendSecond)
+                  flw <- flag.inNextDim(follow(vDir))
 
                   // Now, we have entered the box at the appropriate
                   // child.  Continue descending along the last direction
                   // for the leaf.
 
-                  res <- flw.withFocus(FlagNode(nz)).descend(cz.address.head)
+                  res <- flw.descend(cz.address.head)
 
                 } yield res
 
@@ -129,11 +147,11 @@ trait FlagTracer[A] { tracer =>
           z.sibling(dir) match {
             case Some(sibZip) => {
               for {
-                nxt <- lz.nextDim
-                rw <- nxt.rewind
-                flw <- rw.follow(sibZip.address.head)
-                prv <- flw.prevDim
-                res <- prv.withFocus(FlagNode(sibZip)).ascend
+                rw <- lz.inNextDim(rewind)
+                ff <- rw.mark(FollowFirst)
+                sf <- ff.withFocus(FlagNode(sibZip))(FollowSecond)
+                flw <- sf.inNextDim(follow(sibZip.address.head))
+                res <- flw.ascend
               } yield res
             }
             case None => {
@@ -145,7 +163,6 @@ trait FlagTracer[A] { tracer =>
               for {
                 // First calculate the external address
                 p <- attempt(z.parent, "Failed to get parent")
-                dest = FlagNode(p)
 
                 cn <- attempt(p.focus.boxOption.map(_._2), "No canopy")
                 addrNst <- attempt(
@@ -159,17 +176,15 @@ trait FlagTracer[A] { tracer =>
                 az <- attempt(addrNst.seek(lfAddr), "Invalid leaf address")
                 extAddr <- attempt(az.focus.dotOption, "Leaf was not a dot")
 
-                // _ <- step(src, dest, zs.length)
-
                 rw <- lz.inNextDim(rewind)
-                res <- rw.withFocus(FlagNode(p)).follow(SDir(extAddr))
+                flag <- rw.withFocus(FlagNode(p))(FollowThird)
+                res <- flag.follow(SDir(extAddr))
               } yield res
 
             }
           }
 
-        } else lz.inNextDim(rewind).map(rw =>
-          rw.withFocus(FlagLeaf(z.close, dir)))
+        } else lz.withFocus(FlagLeaf(z.close, dir))(FollowFourth).flatMap(_.inNextDim(rewind))
 
     }
 
@@ -182,8 +197,8 @@ trait FlagTracer[A] { tracer =>
       case FlagRoot(_) => throwError("Attempting to rewind at a root")
       case FlagLeaf(n, d) =>
         for {
-          asc <- lz.inNextDim(ascend)
-          res <- asc.withFocus(FlagNode(SNstZipper(n))).descend(d)
+          asc <- lz.withFocus(FlagNode(SNstZipper(n)))(RewindFirst).flatMap(_.inNextDim(ascend))
+          res <- asc.descend(d)
         } yield res
       case FlagNode(z) => {
         if (z.hasParent) {
@@ -191,24 +206,23 @@ trait FlagTracer[A] { tracer =>
           z.predecessor match {
             case Some(predZip) => 
               for {
-                nxt <- lz.nextDim
-                rw <- nxt.rewind
-                flw <- rw.follow(predZip.address.head)
-                prv <- flw.prevDim
+                rw <- lz.inNextDim(rewind)
+                flag <- rw.withFocus(FlagNode(predZip))(RewindThird)
+                flw <- flag.inNextDim(follow(predZip.address.head))
 
                 descDir = z.ctxt.g.head._2.g.address.head
 
-                res <- prv.withFocus(FlagNode(predZip)).descend(descDir)
+                res <- flw.descend(descDir)
               } yield res
             case None => 
               for {
                 p <- attempt(z.parent, "Failed to get parent")
                 rw <- lz.inNextDim(rewind)
-                res <- rw.withFocus(FlagNode(p)).rewind
+                flag <- rw.withFocus(FlagNode(p))(RewindFourth)
+                res <- flag.rewind
               } yield res
           }
-        } else lz.inNextDim(rewind).map(rw =>
-          rw.withFocus(FlagRoot(z.close)))
+        } else lz.withFocus(FlagRoot(z.close))(RewindFifth).flatMap(_.inNextDim(rewind))
       }
     }
 
@@ -217,22 +231,16 @@ trait FlagTracer[A] { tracer =>
   //
 
   implicit class FlagZipperOps(lz: FlagZipper) {
+    
+    def fociString: String =
+      foci.mkString(", ")
 
-    // def printFoci: Unit =
-    //   println("Foci: " + foci.mkString(", "))
-
-    // def fociString: String =
-    //   foci.mkString(", ")
-
-    // def toList: List[FlagMarker] = 
-    //   lz._1 ++ lz._2
-
-    // def foci: List[String] = 
-    //   lz.toList.map({
-    //     case FlagLeaf(_, _) => "Leaf"
-    //     case FlagRoot(n) => "Root (" ++ n.baseValue.toString ++ ")"
-    //     case FlagNode(z) => z.focus.baseValue.toString
-    //   })
+    def foci: List[String] = 
+      lz.close.map({
+        case FlagLeaf(n, _) => "Leaf (" ++ n.baseValue.toString ++ ")"
+        case FlagRoot(n) => "Root (" ++ n.baseValue.toString ++ ")"
+        case FlagNode(z) => z.focus.baseValue.toString
+      })
 
     def stack: List[FlagMarker] = lz._1
     def focus: FlagMarker       = lz._2
@@ -260,8 +268,16 @@ trait FlagTracer[A] { tracer =>
         prv <- res.prevDim
       } yield prv
 
-    def withFocus(mk: FlagMarker): FlagZipper =
-      (lz._1, mk, lz._3)
+    def withFocus(mk: FlagMarker)(op: FlagOp): Except[FlagZipper] =
+      (lz._1, mk, lz._3).mark(op)
+
+    def mark(op: FlagOp): Except[FlagZipper] =
+      for {
+        _ <- markFlag(lz, op)
+      } yield lz
+
+    def close: List[FlagMarker] =
+      lz._1.reverse ++ (lz.focus :: lz._3)
 
     def ascend: Except[FlagZipper] =
       tracer.ascend(lz)
