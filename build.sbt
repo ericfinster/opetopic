@@ -28,7 +28,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicMtt, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicEditor, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -45,6 +45,9 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "com.lihaoyi" %%% "upickle" % upickleVersion,
       "org.webjars" %% "webjars-play" % "2.4.0-1",
       "org.webjars" % "jquery" % "2.1.4",
+      "org.webjars" % "jquery-ui" % "1.12.1",
+      "org.webjars" % "jqueryui-layout" % "1.4.0",
+      "org.webjars" % "webix" % "5.2.0",
       "org.webjars" % "Semantic-UI" % "2.1.6",
       "org.webjars" % "codemirror" % codeMirrorVersion,
       "org.webjars.bower" % "snap.svg" % "0.4.1",
@@ -62,22 +65,7 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
 
-// lazy val opetopicTt = (crossProject in file("opetopic-tt")).
-//   settings(commonSettings: _*).
-//   settings(
-//     bnfcBasePackage := Some("opetopic"),
-//     bnfcSrcDirectory := baseDirectory.value / ".." / "shared" / "src" / "main" / "bnfc",
-//     bnfcTgtDirectory := (sourceManaged in Compile).value,
-//     scalaBisonJar := baseDirectory.value / ".." / "project" / "lib" / "scala-bison-2.11.jar",
-//     jflexScalaJar := baseDirectory.value / ".." / "project" / "lib" / "jflex-scala-1.7.0-SNAPSHOT.jar"
-//   ).jsConfigure(_.dependsOn(opetopicCoreJs).enablePlugins(SbtBnfcPlugin)).
-//   jvmConfigure(_.dependsOn(opetopicCoreJvm).enablePlugins(SbtBnfcPlugin)).
-//   jsSettings(persistLauncher := true)
-
-// lazy val opetopicTtJvm = opetopicTt.jvm
-// lazy val opetopicTtJs = opetopicTt.js
-
-lazy val opetopicMtt = (project in file("opetopic-mtt")).
+lazy val opetopicEditor = (project in file("opetopic-editor")).
   settings(commonSettings: _*).
   settings(
     persistLauncher := true,

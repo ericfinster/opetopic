@@ -1,0 +1,110 @@
+@()(implicit userOpt: Option[User])
+
+@import play.api.Play
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Opetopic">
+    <meta name="author" content="Eric Finster">
+
+    <title>Opetopic Editor</title>
+
+    <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("webix.css"))'>
+    
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("jquery.js"))'></script>
+    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("webix.js"))'></script>
+
+    <style>
+      body{
+        background: #faf6ed;
+      }
+
+      #areaA, #areaB{
+        margin: 50px;
+        width:700px; height:110px;
+      }
+    </style>
+
+  </head>
+
+  <body>
+
+
+    <div id="areaA">
+    </div>
+    <br><hr><br>
+    <div id="areaB">
+    </div>
+
+    <script type="text/javascript" charset="utf-8">
+
+			webix.ui({
+				container:"areaA",
+				view:"menu",
+			        data:[
+					{ id:"1",value:"Translate...", submenu:[
+						"English", 
+						{ value:"Slavic...", submenu:[
+							"Belarusian", "Ukrainian", {value:"Russian", submenu:["East", "West"]}
+						]},
+						"German"
+					]},
+					{ id:"2",value:"Post...", submenu:[ "Facebook", "Google+", "Twitter" ]},
+					{ id:"3",value:"Info" }
+				],
+				on:{
+					onMenuItemClick:function(id){
+						webix.message("Click: "+this.getMenuItem(id).value);
+					}
+				},
+			        type:{
+			          subsign:true
+			        }
+			});	
+
+			webix.ui({
+				container:"areaB",
+			        view:"menu",
+				width:150,
+				layout:"y",
+				subMenuPos:"right",
+				data:[
+					{ value:"Translate...", submenu:[ 
+						"English", 
+						{ value:"Slavic...", submenu:[
+							"Belarusian", "Russian", {value:"Ukrainian", submenu:["1", "2"]}
+						]},
+						"German"
+					]},
+					{ value:"Post...", submenu:[ "Facebook", "Google+", "Twitter" ]},
+					{ $template:"Separator" },
+					{ value:"Info" }
+				],
+				on:{
+					onMenuItemClick:function(id){
+						webix.message("Click: "+this.getMenuItem(id).value);
+					}
+				}
+			});	
+
+			
+    </script>
+    
+  </body>
+
+  @if(Play.isProd(Play.current)) {
+  <script src='@routes.Assets.at("opetopiceditor-opt.js")' type="text/javascript"></script>
+  } else {
+  <script src='@routes.Assets.at("opetopiceditor-fastopt.js")' type="text/javascript"></script>
+  }
+
+  <script src='@routes.Assets.at("opetopiceditor-launcher.js")' type="text/javascript"></script>
+  
+</html>
+
+
+

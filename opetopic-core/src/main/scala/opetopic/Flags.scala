@@ -237,8 +237,8 @@ trait FlagTracer[A] { tracer =>
 
     def foci: List[String] = 
       lz.close.map({
-        case FlagLeaf(n, _) => "Leaf (" ++ n.baseValue.toString ++ ")"
-        case FlagRoot(n) => "Root (" ++ n.baseValue.toString ++ ")"
+        case FlagLeaf(n, _) => n.baseValue.toString // "Leaf (" ++ n.baseValue.toString ++ ")"
+        case FlagRoot(n) => n.baseValue.toString // "Root (" ++ n.baseValue.toString ++ ")"
         case FlagNode(z) => z.focus.baseValue.toString
       })
 

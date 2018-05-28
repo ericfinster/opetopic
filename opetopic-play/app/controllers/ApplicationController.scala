@@ -58,12 +58,8 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.addrexplorer()(request.identity)))
   }
 
-  def mtt = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(views.html.mtt()(request.identity)))
-  }
-
-  def playground = UserAwareAction.async { implicit request =>
-    Future.successful(Ok(views.html.playground()(request.identity)))
+  def editor = UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.editor()(request.identity)))
   }
 
 

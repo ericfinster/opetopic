@@ -271,7 +271,15 @@ object Sketchpad extends JSApp {
 
       println("Attempting flag calculation.")
 
-      object FlagCalculator extends FlagTracer[Option[SimpleMarker]] {
+
+      var lbl: Int = -1
+      val intFace: SComplex[Int] =
+        face.map((om: Option[SimpleMarker]) => {
+          lbl += 1
+          lbl
+        })
+
+      object FlagCalculator extends FlagTracer[Int] {
 
         def markFlag(lz: FlagZipper, op: FlagOp) =
           succeed({
@@ -283,8 +291,8 @@ object Sketchpad extends JSApp {
 
       import FlagCalculator._
 
-      val lz = (Nil, FlagRoot(face.initial), face.asList.tail.map(FlagRoot(_)))
-      println("(Init)" ++ lz.fociString)
+      val lz = (Nil, FlagRoot(intFace.initial), intFace.asList.tail.map(FlagRoot(_)))
+      println("(Init) " ++ lz.fociString)
 
       for {
         az <- lz.ascend
