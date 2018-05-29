@@ -278,39 +278,15 @@ object Sketchpad extends JSApp {
           lbl
         })
 
-      import Flags._
-      import FlagZipper._
+      val flagItr = new FlagIterator(intFace)
+
+      // while(flagItr.hasNext) {
+      //   val f = flagItr.next
+      //   println(f.map(_.toString).mkString(" "))
+      // }
+
+      FlagExtruder.extrudeFrom(flagItr)
       
-      var fz = FlagZipper(intFace)
-      var done = false
-
-      def printFlag(z: FlagZipper[Int]): Unit = {
-        println("Flag: " + z.flagStr)
-      }
-
-      printFlag(fz)
-
-      while (! done) {
-
-        fz.next match {
-          case Xor.Left(msg) => {
-            println("Error: " + msg)
-            done = true
-          }
-          case Xor.Right(None) => {
-            println("Traversal finished.")
-            done = true
-          }
-          case Xor.Right(Some(nz)) => {
-            printFlag(nz)
-            fz = nz
-          }
-        }
-
-      }
-
-      println("Done.")
-
     }
 
   def onLink: Except[Unit] = {
