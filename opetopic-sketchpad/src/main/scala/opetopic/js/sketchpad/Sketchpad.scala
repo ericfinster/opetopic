@@ -266,7 +266,6 @@ object Sketchpad extends JSApp {
       complex = gallery.complex
       root <- attempt(gallery.selectionRoot, "Nothing selected")
       face <- attempt(root.face, "Error calculating face")
-      initAddr <- attempt(face.initial.addrNesting.firstDotValue, "No initial object")
     } yield {
 
       println("Attempting flag calculation.")
@@ -279,26 +278,37 @@ object Sketchpad extends JSApp {
           lbl
         })
 
-      object FlagCalculator extends FlagTracer[Int] {
+      import Flags._
+      var fz = FlagZipper(intFace)
+      var done = false
 
-        def markFlag(lz: FlagZipper, op: FlagOp) =
-          succeed({
-            if (op != FollowFirst && op != RewindFirst && op != FollowFourth && op != RewindFifth && op != AscendFirst)
-              println("(" ++ op.toString ++ ") " ++ lz.fociString)
-          })
+      def printFlag(z: FlagZipper[Int]): Unit = {
+        println("Flag: " + z.map(_.focus.focus.baseValue.toString).mkString(", "))
+      }
+
+      printFlag(fz)
+
+      while (! done) {
+
+        FlagZipper.next(fz) match {
+          case Xor.Left(msg) => {
+            println("Error: " + msg)
+            done = true
+          }
+          case Xor.Right(None) => {
+            println("Traversal finished.")
+            done = true
+          }
+          case Xor.Right(Some(nz)) => {
+            printFlag(nz)
+            fz = nz
+          }
+        }
 
       }
 
-      import FlagCalculator._
 
-      val lz = (Nil, FlagRoot(intFace.initial), intFace.asList.tail.map(FlagRoot(_)))
-      println("(Init) " ++ lz.fociString)
-
-      for {
-        az <- lz.ascend
-      } yield {
-        println("Done")
-      }
+      println("Done.")
 
     }
 

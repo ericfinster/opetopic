@@ -9,178 +9,223 @@ package opetopic
 
 import mtl._
 
-sealed trait SignedList[+A] {
+object Flags {
 
-  def :-:[B >: A](b: B): SignedList[B] =
-    new :-:(b, this)
-
-  def :+:[B >: A](b: B): SignedList[B] =
-    new :+:(b, this)
-
-}
-
-case object <> extends SignedList[Nothing]
-case class :-:[+A](a: A, sl: SignedList[A]) extends SignedList[A]
-case class :+:[+A](a: A, sl: SignedList[A]) extends SignedList[A]
-
-object SignedList {
-
-  implicit class SignedListOps[A](sl: SignedList[A]) {
-
-    def head: A =
-      sl match {
-        case <> => ???
-        case a :-: _ => a
-        case a :+: _ => a
-      }
-
-    def tail: SignedList[A] =
-      sl match {
-        case <> => ???
-        case _ :-: tl => tl
-        case _ :+: tl => tl
-      }
-
-    def sign: Boolean =
-      sl match {
-        case <> => true
-        case _ :-: tl => ! (tl.sign)
-        case _ :+: tl => tl.sign
-      }
-
+  sealed trait Facet[A] {
+    val focus: SNstZipper[A]
+    val isSrc: Boolean
   }
+  case class TgtFacet[A](val focus: SNstZipper[A]) extends Facet[A] { val isSrc = false }
+  case class SrcFacet[A](val focus: SNstZipper[A], dir: SDir) extends Facet[A] { val isSrc = true }
 
-}
+  type FlagZipper[A] = List[Facet[A]]
 
-object FlagTraverse {
+  object FlagZipper {
 
-  type FlagPtr[A] = SignedList[SNstZipper[A]]
+    // Creating this guy should be as simple as a map
+    def apply[A](cmplx: SComplex[A]): FlagZipper[A] =
+      cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
 
-  sealed trait RidgeType
-  case object SrcSrc extends RidgeType
-  case object SrcTgt extends RidgeType
-  case object TgtSrc extends RidgeType
-  case object TgtTgt extends RidgeType
+    def next[A](flagz: FlagZipper[A]): Except[Option[FlagZipper[A]]] =
+      flagz match {
+        case Nil => succeed(None)
+        case _ :: Nil => succeed(None)
+        case f :: g :: gs =>
+          (if (f.isSrc) prev(g :: gs) else next(g :: gs)).flatMap(r => 
+            if (! r.isDefined) {
+              if (g.focus.focus.isDot) {
 
-  case class FlagZipper[A](
-    val lower: FlagPtr[A],
-    val focus: SNstZipper[A],
-    val upper: FlagPtr[A],
-    val ridgeType: RidgeType
-  )
+                (f, g) match {
+                  case (SrcFacet(fz, d), TgtFacet(gz)) => succeed(None) // Blocked
+                  case (TgtFacet(fz), SrcFacet(gz, d)) => succeed(None) // Blocked
+                  case (SrcFacet(fz, d), SrcFacet(gz, _)) => {
 
-  implicit class FlagZipperOps[A](fz: FlagZipper[A]) {
+                    if (fz.hasParent) {
 
-    def hasNextDim: Boolean =
-      fz.upper != <>
+                      fz.sibling(d) match {
+                        case None => {
 
-    def hasPrevDim: Boolean =
-      fz.lower != <>
+                          // Okay, this should mean we need to pass to the parent
+                          // This is where we need to do some kind of address calculation
+                          // in order to generate the next direction in the parent.
 
-    def nextDim: Except[FlagZipper[A]] =
-      fz match {
-        case FlagZipper(l, f, <>, rt) => throwError("nextDim")
-        case FlagZipper(l, f, u :-: us, SrcSrc) => succeed(FlagZipper(f :-: l, u, us, SrcSrc))
-        case FlagZipper(l, f, u :-: us, SrcTgt) => succeed(FlagZipper(f :-: l, u, us, TgtSrc))
-        case FlagZipper(l, f, u :-: us, TgtSrc) => succeed(FlagZipper(f :+: l, u, us, SrcSrc))
-        case FlagZipper(l, f, u :-: us, TgtTgt) => succeed(FlagZipper(f :+: l, u, us, TgtSrc))
-        case FlagZipper(l, f, u :+: us, rt) => ???
-      }
+                          // This is the address of the leaf we're looking for
+                          // in the canopy of our parent
+                          val lfAddr = d :: fz.ctxt.g.head._2.g.address
 
-    def prevDim: Except[FlagZipper[A]] = ???
+                          for {
+                            // First calculate the external address
+                            p <- attempt(fz.parent, "Failed to get parent")
 
-    def sign: Boolean =
-      fz.lower.sign
+                            cn <- attempt(p.focus.boxOption.map(_._2), "No canopy")
+                            addrNst <- attempt(
+                              cn.treeFold[SNesting[SAddr]](a => Some(SDot(a)))((_, nwCn) => Some(SBox(Nil, nwCn))),
+                              "Tree fold failed"
+                            )
 
-    def advance: Except[FlagZipper[A]] = {
+                            az <- attempt(addrNst.seek(lfAddr), "Invalid leaf address")
+                            extAddr <- attempt(az.focus.dotOption, "Leaf was not a dot")
+                          } yield {
+                            // Now, we should pass to the parent.
+                            Some(SrcFacet(p, SDir(extAddr)) :: TgtFacet(gz) :: gs)
+                          }
 
-      if (fz.hasNextDim) {
+                        }
+                        case Some(sz) => {
 
-        fz.nextDim.flatMap(nxt =>
-          nxt.advance.handle(_ => {
+                          // And this should mean we pass to the sibling.
+                          // We just need to know the new address in the
+                          // next dimension.  What is it?
 
-            // With this setup, the next dimension is in scope
-            // and we know that handle has failed, since we are
-            // inside it's error routine.
+                          val srcDir = sz.address.head
 
-            // Hmmm.  Yeah, but this isn't so great, since there could be
-            // another reason for the failure.  But anyway, I think you
-            // have to finish a first version before you see how to find
-            // an optimal implementation.
-
-            val sgn = fz.sign
-
-            if (sgn) {
-              //  This means we are trying to move forward.
-              (fz.ridgeType, fz.focus.focus) match {
-                case (SrcSrc, SDot(_)) => {
-                  // Okay, first version.
-
-                  // Possible outcomes are SrcTgt and TgtSrc in accordance with
-                  // the requirement that the ridges have opposite sign.
-
-                  // Right, so to get TgtSrc, this means the next guy should be
-                  // a dot and we are passing to a sibling.
-
-                  // For SrcTgt, yes, exactly, this means the next guy should be
-                  // a dot, and you should be passing to a parent.
-
-                  if (fz.focus.hasParent) {
-                    fz.focus.sibling(???) match {
-                      case None => {
-                        // Yeah, umm, this is a problem because it's a *real* error.
-                        // We shouldn't be using return errors to signal how this is
-                        // supposed to work ....
-                        ???
+                          succeed(Some(TgtFacet(sz) :: SrcFacet(gz, srcDir) :: gs))
+                        }
                       }
-                      case Some(s) => {
+                    } else {
+                      // This should mean we are at an external guy.
+                      // No possible way to advance.
+                      succeed(None)
+                    }
 
-                        // Even worst, sibling doesn't really distinguish between
-                        // hitting a leaf and not having a parent.  Fuckbuckets.
+
+                  }
+                  case (TgtFacet(fz), TgtFacet(gz)) => {
+                    fz.focus match {
+                      case SDot(_) => succeed(None) // Blocked
+                      case SBox(_, SLeaf) => {
+                        // Crossing a loop
+                        succeed(Some(SrcFacet(fz, SDir(Nil)) :: TgtFacet(gz) :: gs))
+                      }
+                      case _ => {
+
+                        // Default is now a box with non-trivial canopy
+                        for {
+                          rz <- attempt(fz.visit(SDir(Nil)), "Internal error")
+                        } yield {
+                          // Okay, we remain a target, but with a new focus
+                          // while g keeps its focus but becomes the first src
+                          Some(TgtFacet(rz) :: SrcFacet(gz, SDir(Nil)) :: gs)
+                        }
 
                       }
                     }
-                  } else throwError("")
-
-
+                  }
                 }
-                case (SrcTgt, SDot(_)) => ???
-                case (TgtSrc, SDot(_)) => throwError("")  // These two are blocked.
-                case (TgtTgt, SDot(_)) => throwError("")
-                case (SrcSrc, SBox(_, _)) => ???
-                case (SrcTgt, SBox(_, _)) => ???
-                case (TgtSrc, SBox(_, _)) => ???
-                case (TgtTgt, SBox(_, _)) => ???
+
+              } else {
+                // The only possible way we can move is if the next dimension
+                // is a dot.  So this is the first thing to exclude
+                succeed(None)
               }
 
             } else {
-
-              //  We are trying to move backwards.
-
-              ???
-
+              // If a higher dimension succeeds, we prepend the head in
+              // this dimension.  Hence the length of the flag is always
+              // preserved.
+              succeed(r.map(gr => f :: gr))
             }
+          )
+      }
 
-          })
-        )
+    def prev[A](flagz: FlagZipper[A]): Except[Option[FlagZipper[A]]] =
+      flagz match {
+        case Nil => succeed(None)
+        case _ :: Nil => succeed(None)
+        case f :: g :: gs =>
+          (if (f.isSrc) next(g :: gs) else prev(g :: gs)).flatMap(r => 
+            if (! r.isDefined) {
+              if (g.focus.focus.isDot) {
 
-      } else throwError("")
+                (f, g) match {
+                  case (SrcFacet(fz, d), TgtFacet(gz)) => {
 
-    }
+                    // The case would be entering along a source line
+                    // or a loop.
 
-    // Here is the idea: first, we see if we can raise the dimension.
-    // We recursively call the function: if we can advance in a higher
-    // dimension, we can advance.
-    // If the result is negative for higher dimensions, then we check
-    // the current dimension.
+                    fz.focus match {
+                      case SDot(_) => succeed(None) // Blocked
+                      case SBox(_, SLeaf) => {
+                        // Traverse a loop
+                        succeed(Some(TgtFacet(fz) :: TgtFacet(gz) :: gs))
+                      }
+                      case SBox(a, cn) => {
 
-    // In the current dimension, we will look at the total sign of our
-    // lower piece. This should determine for us which direction we should
-    // go.  Based on this direction, there will be a couple of possibilities
-    // to check.  And that should be it!
+                        // We need to pass to the leaf corresponding to
+                        // the edge we're coming in on ...
 
+                        attempt(
+                          STree.treeFold[SNesting[A], List[SAddr]](cn)((hAddr, vAddr) =>
+                            if (hAddr == d.dir) Some(List(vAddr)) else Some(Nil)
+                          )((_, _, lstTr) => Some(lstTr.toList.flatten)),
+                          "Edge address map calculation failed."
+                        ).flatMap({
+                          case (lfDir :: addr) :: Nil => {
+
+                            // The resulting address splits into the address of
+                            // the box we are looking for and the direction of the
+                            // associated leaf.
+
+                            // We could, of course, be a bit more thorough in checking
+                            // that the result of the calculation is valid ....
+
+                            for {
+                              vz <- attempt(fz.visit(SDir(addr)), "Local visit failed")  
+                            } yield {
+                              Some(SrcFacet(vz, lfDir) :: SrcFacet(gz, SDir(addr)) :: gs)
+                            }
+
+                          }
+                          case _ => throwError("Unexpected address list")
+                        })
+
+                      }
+                    }
+
+                  }
+                  case (TgtFacet(fz), SrcFacet(gz, d)) => {
+
+                    // Pass to either a parent or predecessor
+                    if (fz.hasParent) {
+
+                      fz.predecessor match {
+                        case None => {
+
+                          // Right, so pass to the parent.
+                          for {
+                            pz <- attempt(fz.parent, "No parent")
+                          } yield {
+                            Some(TgtFacet(pz) :: TgtFacet(gz) :: gs)
+                          }
+
+                        }
+                        case Some(pz) => {
+
+                          // And finally, just need to calculate
+                          // the correct address ....
+
+                          val lfAddr = fz.ctxt.g.head._2.g.address.head
+
+                          succeed(Some(SrcFacet(pz, lfAddr) :: SrcFacet(gz, pz.address.head) :: gs))
+
+                        }
+                      }
+
+                    } else {
+                      // We are at a target box. No way to back up.
+                      succeed(None)
+                    }
+
+                  }
+                  case (SrcFacet(fz, d), SrcFacet(gz, _)) => succeed(None)  // Blocked
+                  case (TgtFacet(fz), TgtFacet(gz)) => succeed(None)        // Blocked
+                }
+
+              } else succeed(None)
+            } else succeed(r.map(gr => f :: gr))
+          )
+      }
 
   }
 
 }
-
