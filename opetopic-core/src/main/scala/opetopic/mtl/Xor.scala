@@ -29,5 +29,15 @@ trait XorInstances {
 object Xor extends XorInstances {
   final case class Left[+A](a: A) extends Xor[A, Nothing]
   final case class Right[+B](b: B) extends Xor[Nothing, B]
+
+  implicit class XorOps[A, B](x: Xor[A, B]) {
+
+    def handle(f : A => Xor[A, B]): Xor[A, B] =
+      x match {
+        case Left(a) => f(a)
+        case Right(b) => Right(b)
+      }
+
+  }
 }
 
