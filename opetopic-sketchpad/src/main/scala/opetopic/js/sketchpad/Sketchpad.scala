@@ -279,18 +279,20 @@ object Sketchpad extends JSApp {
         })
 
       import Flags._
+      import FlagZipper._
+      
       var fz = FlagZipper(intFace)
       var done = false
 
       def printFlag(z: FlagZipper[Int]): Unit = {
-        println("Flag: " + z.map(_.focus.focus.baseValue.toString).mkString(", "))
+        println("Flag: " + z.flagStr)
       }
 
       printFlag(fz)
 
       while (! done) {
 
-        FlagZipper.next(fz) match {
+        fz.next match {
           case Xor.Left(msg) => {
             println("Error: " + msg)
             done = true
@@ -306,7 +308,6 @@ object Sketchpad extends JSApp {
         }
 
       }
-
 
       println("Done.")
 

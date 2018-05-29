@@ -15,8 +15,16 @@ object Flags {
     val focus: SNstZipper[A]
     val isSrc: Boolean
   }
-  case class TgtFacet[A](val focus: SNstZipper[A]) extends Facet[A] { val isSrc = false }
-  case class SrcFacet[A](val focus: SNstZipper[A], dir: SDir) extends Facet[A] { val isSrc = true }
+
+  case class TgtFacet[A](val focus: SNstZipper[A]) extends Facet[A] {
+    val isSrc = false
+    override def toString = "+ " ++ focus.focus.baseValue.toString
+  }
+
+  case class SrcFacet[A](val focus: SNstZipper[A], dir: SDir) extends Facet[A] {
+    val isSrc = true
+    override def toString = "- " ++ focus.focus.baseValue.toString
+  }
 
   type FlagZipper[A] = List[Facet[A]]
 
@@ -25,6 +33,19 @@ object Flags {
     // Creating this guy should be as simple as a map
     def apply[A](cmplx: SComplex[A]): FlagZipper[A] =
       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+
+    implicit class FlagZipperOps[A](fz: FlagZipper[A]) {
+
+      def flagStr: String =
+        fz.map(_.toString).mkString(" ")
+
+      def next: Except[Option[FlagZipper[A]]] =
+        FlagZipper.next(fz)
+
+      def prev: Except[Option[FlagZipper[A]]] =
+        FlagZipper.prev(fz)
+
+    }
 
     def next[A](flagz: FlagZipper[A]): Except[Option[FlagZipper[A]]] =
       flagz match {
