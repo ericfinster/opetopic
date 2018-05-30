@@ -85,7 +85,8 @@ object FlagExtruder {
 
         s match {
           case (TgtFacet(lstTgt), TgtFacet(tgt)) :: (SrcFacet(lstDot, _), TgtFacet(dot)) :: _ => {
-            // println("  Pop: " ++ lstTgt.toString)
+             println("  Pop(1): " ++ lstTgt.toString)
+
 
             // This is the case of a possible extrusion.
 
@@ -143,7 +144,7 @@ object FlagExtruder {
           }
           case (SrcFacet(lstTgt, _), TgtFacet(tgt)) :: (TgtFacet(lstDot), TgtFacet(dot)) :: _ => {
 
-            // println("  Loop: " ++ tgt.toString)  // Extrude a loop!
+            println("  Loop(2): " ++ tgt.toString)  // Extrude a loop!
             println("Extruding loop with (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
 
             // Okay, let's finish the loops and we should be good.
@@ -173,29 +174,50 @@ object FlagExtruder {
 
           }
           case (TgtFacet(lstTgt), TgtFacet(tgt)) :: (TgtFacet(lstDot), SrcFacet(dot, _)) :: _ => {
-            // println("  Push: " ++ tgt.toString)
+            println("  Push(3): " ++ tgt.toString)
             push(dim, tgt)
           }
           case (TgtFacet(lstTgt), SrcFacet(tgt, _)) :: (TgtFacet(lstDot), TgtFacet(dot)) :: _ => {
-            // println("  Drop!  ")
+            println("  Drop!(4)  ")
           }
           case (TgtFacet(lstTgt), SrcFacet(tgt, _)) :: (SrcFacet(lstDot, _), SrcFacet(dot, _)) :: _ => {
-            // println("  Pop: " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
+            println("  Pop(5): " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
 
             pop(dim)
             push(dim, tgt)
           }
           case (SrcFacet(lstTgt, _), TgtFacet(tgt)) :: (SrcFacet(lstDot, _), SrcFacet(dot, _)) :: _ => {
-            // println("  Pop: " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
+            println("  Pop(6): " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
+
+            // This appears to be a left-over from vertex neutralization
+            // I'm not sure if this is the best way to handle it, or if
+            // there is something slightly broken with extrusion detection.
+            if (dim == 1 && lstTgt == tgt) {
+              println("Duplicate object detected ...")
+
+              val dupObj = prefix.last.face
+
+              cardinal.extrudeObject(dupObj, tgt) match {
+                case None => println("Object extrusion failed")
+                case Some(c) => {
+                  println("Object extrusion successful")
+                  cardinal = c
+                }
+              }
+
+              cells += (dupObj, tgt)
+              
+            }
+
             pop(dim)
             push(dim, tgt)
           }
           case (SrcFacet(lstTgt, _), SrcFacet(tgt, _)) :: (TgtFacet(lstDot), SrcFacet(dot, _)) :: _ => {
-            // println("  Push: " ++ tgt.toString)
+            println("  Push(7): " ++ tgt.toString)
             push(dim, tgt)
           }
           case (SrcFacet(lstTgt, _), SrcFacet(tgt, _)) :: (SrcFacet(lstDot, _), TgtFacet(dot)) :: _ => {
-            // println("  Pop: " ++ lstTgt.toString)
+            println("  Pop(8): " ++ lstTgt.toString)
             pop(dim)
           }
           case _ => println("Unknown!!!")

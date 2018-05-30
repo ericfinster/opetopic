@@ -189,17 +189,22 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
   private var nextCache: Option[Flag[A]] =
     Some(flagOf(zipper))
 
-  // If we are neutralizing, switch all objects
-  // to be positive (i.e., targets)
+
+  private def toFacet(f: Facet[SNstZipper[A]]): Facet[A] =
+    f.withFace(f.face.focus.baseValue)
+
   private def flagOf(z: FlagZipper[A]): Flag[A] =
     z match {
       case Nil => Nil
-      case f :: fs =>
-        (if (neutralize)
-          TgtFacet(f.face.focus.baseValue)
+      case f :: Nil =>
+        if (neutralize && f.isSrc)
+          toFacet(f.negate()) :: Nil
+        else toFacet(f) :: Nil
+      case a :: f :: fs =>
+        if (neutralize && a.isSrc)
+          toFacet(a.negate()) :: toFacet(f.negate()) :: fs.map(toFacet(_))
         else
-          f.withFace(f.face.focus.baseValue)) ::
-        fs.map(fc => fc.withFace(fc.face.focus.baseValue))
+          toFacet(a) :: toFacet(f) :: fs.map(toFacet(_))
     }
 
   private def forward[A](flagz: FlagZipper[A]): Except[Option[FlagZipper[A]]] =

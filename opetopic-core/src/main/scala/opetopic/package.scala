@@ -61,18 +61,21 @@ package object opetopic extends ComplexTypes with CardinalTypes {
   sealed trait Facet[A] {
     val face: A
     def withFace[B](b: B): Facet[B]
+    def negate(d: SDir = SDir(Nil)): Facet[A]
     val isSrc: Boolean
   }
 
   case class SrcFacet[A](val face: A, dir: SDir) extends Facet[A] {
     val isSrc = true
     def withFace[B](b: B) = SrcFacet(b, dir)
+    def negate(d: SDir) = TgtFacet(face)
     override def toString = "- " ++ face.toString
   }
 
   case class TgtFacet[A](val face: A) extends Facet[A] {
     val isSrc = false
     def withFace[B](b: B) = TgtFacet(b)
+    def negate(d: SDir) = SrcFacet(face, d)
     override def toString = "+ " ++ face.toString
   }
 
