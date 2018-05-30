@@ -270,7 +270,6 @@ object Sketchpad extends JSApp {
 
       println("Attempting flag calculation.")
 
-
       var lbl: Int = -1
       val intFace: SComplex[Int] =
         face.map((om: Option[SimpleMarker]) => {
@@ -293,18 +292,22 @@ object Sketchpad extends JSApp {
       root <- attempt(gallery.selectionRoot, "Nothing selected")
     } yield {
 
-      println("Going to calculate a link of " + root.label.toString)
+      var lbl: Int = -1
+      val intComplex: SComplex[Int] =
+        complex.map((om: Option[SimpleMarker]) => {
+          lbl += 1
+          lbl
+        })
 
-      val calc = new LinkCalculator(root.faceAddress, complex)
+      val linkItr = new FlagIterator(intComplex, Some(root.faceAddress), true, true)
 
-      calc.link match {
-        case Xor.Left(msg) => {
-          println("Link failed with message: " + msg)
-        }
-        case Xor.Right(_) => {
-          println("Link calculation finished!")
-        }
-      }
+      // for { flg <- linkItr } {
+      //   println("Flag: " ++ flg.map(_.toString).mkString(" "))
+      // }
+
+      val c = FlagExtruder.extrudeFrom(linkItr, 0)
+      val csm = c.map(i => Some(SimpleMarker(i.toString)))
+      editor.newEditor(csm)
 
     }
   }

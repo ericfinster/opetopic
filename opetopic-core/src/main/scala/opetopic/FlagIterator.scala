@@ -9,41 +9,140 @@ package opetopic
 
 import mtl._
 
-class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reverse: Boolean = false) extends Iterator[Flag[A]] {
+class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reverse: Boolean = false, neutralize: Boolean = false) extends Iterator[Flag[A]] {
 
   def initZipper: FlagZipper[A] =
     addrOpt match {
       case None => {
-
         // Do an ordinary complex traversal ...
-
         if (reverse) {
-
-          // Seek to the first object.
-          val (objSuite, upper) = cmplx.grab(cmplx.dim)
-
           cmplx.asList match {
             case objNst :: arrNst :: ns => {
               objNst.seek(objNst.firstDotAddr) match {
-                case None => ??? // Ill formed object nesting
+                case None => throw new IllegalStateException("Malformed object nesting")
                 case Some(onz) => {
                   TgtFacet(onz) :: SrcFacet(SNstZipper(arrNst), SDir(Nil)) :: ns.map((n: SNesting[A]) => TgtFacet(SNstZipper(n)))
                 }
               }
             }
-            case _ => {
+            case objNst :: Nil => {
               // Traversing an *object*
-              ???
+              List(TgtFacet(SNstZipper(objNst)))
             }
+            case _ => Nil
           }
-
         } else {
           cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
         }
       }
       case Some(fa) => {
+
+        def forwardSpineFacets(nst: SNesting[A], spAddr: SAddr, nNst: SNesting[A]): Option[(Facet[SNstZipper[A]], Facet[SNstZipper[A]])] =
+          if (spAddr == Nil) Some(TgtFacet(SNstZipper(nst)), TgtFacet(SNstZipper(nNst)))
+          else nst.addrNesting match {
+            case SDot(_) => None
+            case SBox(_, cn) =>
+              cn.spine.flatMap(sp => {
+                if (sp.isLeaf) None
+                else {
+                  sp.seekTo(spAddr.tail).flatMap(z => {
+                    z.focus match {
+                      case SLeaf => None // Check this ...
+                      case SNode(vAddr, _) =>
+                        nst.seek(vAddr).map(nz =>
+                          (SrcFacet(nz, spAddr.head),
+                            SrcFacet(SNstZipper(nNst), SDir(spAddr.tail)))) // Check the address!
+                    }
+                  })
+                }
+              })
+          }
+
+        def nstFacetStr(f: Facet[SNstZipper[A]]): String =
+          (if (f.isSrc) "- " else "+ ") ++ f.face.focus.baseValue.toString
+
         // A link traversal
-        ???
+        cmplx.asList.drop(cmplx.dim - fa.codim) match {
+          case pNst :: nst :: nNst :: ns => {
+            if (reverse) {
+
+              val flagTail = ns.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+
+              // Okay, first thing we need to know is if we are
+              // looking at an external guy. 
+              pNst.seek(fa.address).map(_.focus.isDot) match {
+                case None => throw new IllegalStateException("Bad address")
+                case Some(true) => {
+
+
+                  if (pNst.isDot)
+                    SrcFacet(SNstZipper(nst), SDir(Nil)) :: TgtFacet(SNstZipper(nNst)) :: flagTail
+                  else {
+
+                    // Would prefer to use nesting fold, but it looks like
+                    // it still has a bug !!!
+                    STree.treeFold(pNst.toTree)({
+                      case (hAddr, vAddr) => 
+                        if (vAddr == fa.address)
+                          Some(List(hAddr))
+                        else Some(Nil)
+                    })({ case (_, _, t) => Some(t.toList.flatten) }) match {
+                      case Some(hAddr :: Nil) => {
+                        // Make sure the addres is correct here !!!
+                        SrcFacet(SNstZipper(nst), SDir(hAddr)) :: TgtFacet(SNstZipper(nNst)) :: flagTail 
+                      }
+                      case blorp => {
+                        println("Blorp: " ++ blorp.toString)
+                        ???  // Something went wrong
+                      }
+                    }
+
+                  }
+
+                }
+                case Some(false) => {
+
+                  nst.addrNesting match {
+                    case SDot(_) => TgtFacet(SNstZipper(nst)) :: SrcFacet(SNstZipper(nNst), SDir(Nil)) :: flagTail
+                    case SBox(_, cn) =>
+                      cn.spine.flatMap(sp =>
+                        sp.seekTo(fa.address).flatMap(z =>
+                          z.focus match {
+                            case SLeaf => None
+                            case SNode(vAddr, _) =>
+                              nst.seek(vAddr).map(nz =>
+                                (TgtFacet(nz), SrcFacet(SNstZipper(nNst), SDir(fa.address))))  // Check the address?
+                          })) match {
+                        case None => {
+                          println("Unknown")
+                          ???
+                        }
+                        case Some((ff, sf)) => ff :: sf :: flagTail
+                      }
+                  }
+
+                }
+              }
+
+            } else {
+              forwardSpineFacets(nst, fa.address, nNst) match {
+                case Some((ff, sf)) => {
+                  println("InitialFacets: " ++ nstFacetStr(ff) ++ ", " ++ nstFacetStr(sf))
+                  ff :: sf :: ns.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+                }
+                case _ => {
+                  println("Failed to create forward facets")
+                  ???
+                }
+              }
+            }
+
+          }
+          case _ => {
+            println("Two few nestings!")
+            ???
+          }
+        }
       }
     }
 
@@ -54,7 +153,7 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
   def hasNext: Boolean =
     if (nextCache.isDefined) true else {
       (if (reverse) back(zipper) else forward(zipper)) match {
-        case Xor.Left(_) => throw new IllegalStateException
+        case Xor.Left(msg) => throw new IllegalStateException(msg)
         case Xor.Right(None) => false
         case Xor.Right(Some(nz)) => {
           zipper = nz
@@ -72,7 +171,7 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
       }
       case None => 
         (if (reverse) back(zipper) else forward(zipper)) match {
-          case Xor.Left(_) => throw new IllegalStateException
+          case Xor.Left(msg) => throw new IllegalStateException(msg)
           case Xor.Right(None) => throw new NoSuchElementException
           case Xor.Right(Some(nz)) => {
             zipper = nz
@@ -90,9 +189,18 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
   private var nextCache: Option[Flag[A]] =
     Some(flagOf(zipper))
 
-  // Needs to handle vertex neutralization
-  private def flagOf(z: FlagZipper[A]): Flag[A] = 
-    z.map(fc => fc.withFace(fc.face.focus.baseValue))
+  // If we are neutralizing, switch all objects
+  // to be positive (i.e., targets)
+  private def flagOf(z: FlagZipper[A]): Flag[A] =
+    z match {
+      case Nil => Nil
+      case f :: fs =>
+        (if (neutralize)
+          TgtFacet(f.face.focus.baseValue)
+        else
+          f.withFace(f.face.focus.baseValue)) ::
+        fs.map(fc => fc.withFace(fc.face.focus.baseValue))
+    }
 
   private def forward[A](flagz: FlagZipper[A]): Except[Option[FlagZipper[A]]] =
     flagz match {
@@ -296,56 +404,4 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
 
 
 }
-
-// Hmmm, yeah, maybe these guys aren't so different after all.
-// But anyway, let's think about it just a bit ....
-
-// class ComplexFlagIterator[A](cmplx: SComplex[A], reverse: Boolean = false)
-//     extends FlagIterator[A](ComplexFlagIterator(cmplx, reverse), reverse) {
-
-//   protected def flagOf(z: FlagZipper[A]): Flag[A] =
-//     z.map(fc => fc.withFace(fc.face.focus.baseValue))
-
-// }
-
-// object ComplexFlagIterator {
-
-//   def apply[A](cmplx: SComplex[A], reverse: Boolean): FlagZipper[A] =
-//     if (reverse) {
-//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
-//     } else {
-//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
-//     }
-
-// }
-
-
-// class LinkFlagIterator[A](cmplx: SComplex[A], fa: FaceAddr, reverse: Boolean)
-//     extends FlagIterator[A](LinkFlagIterator(cmplx, fa, reverse), reverse) {
-
-//   // Here we should perform vertex neutralization
-//   protected def flagOf(z: FlagZipper[A]): Flag[A] =
-//     z.map(fc => fc.withFace(fc.face.focus.baseValue))
-
-// }
-
-// object LinkFlagIterator {
-
-//   def apply[A](cmplx: SComplex[A], fa: FaceAddr, reverse: Boolean): FlagZipper[A] =
-//     if (reverse) {
-//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
-//     } else {
-//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
-//     }
-
-//   // So, what's the main idea?  The idea is that you are going to
-//   // seek to an external cell.  If the direction is supposed to be
-//   // forward, then you need an address (which could be defaulted in
-//   // certain cases).
-
-//   // Right.  From this perspective the two can be unified.  So I agree
-//   // that's what you should do.
-
-// }
-
 

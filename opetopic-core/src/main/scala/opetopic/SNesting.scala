@@ -386,6 +386,12 @@ object SNesting {
     // Nesting Fold
     //
 
+    //
+    //  WARNING!!!!  This routine still has a bug related to vertical
+    //  address calculation.  I noticed it when traversing, in particular,
+    //  over object nestings.  Might be some race case.  Have to check it out.
+    //
+
     def nestingFold[B](dotRec: (SAddr, SAddr, A) => Option[B])(boxRec: (SAddr, A, STree[B]) => Option[B]): Option[B] = {
 
       def foldPass(canopy : STree[SNesting[A]], spineAddr: SAddr, addrDeriv: SDeriv[SAddr])(lclAddr: SAddr, vertAddr: SAddr): Option[(STree[B], STree[SAddr])] =
@@ -452,7 +458,6 @@ object SNesting {
       }
 
     }
-
 
     // Okay, despite the implementation of the nesting fold function, the
     // bond traversal barely improved.

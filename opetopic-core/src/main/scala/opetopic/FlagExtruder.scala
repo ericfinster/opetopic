@@ -73,7 +73,7 @@ object FlagExtruder {
 
       for { flg <- itr } {
 
-        // print("Passing flag: " ++ flg.map(_.toString).mkString(" "))
+        print("Passing flag: " ++ flg.map(_.toString).mkString(" "))
 
         val (p, s) = (last, flg).zipped.span({
           case (f, g) => f == g
