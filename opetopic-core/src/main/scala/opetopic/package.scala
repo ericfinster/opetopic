@@ -83,4 +83,7 @@ package object opetopic extends ComplexTypes with CardinalTypes {
   type Flag[A] = List[Facet[A]]
   type FlagZipper[A] = Flag[SNstZipper[A]]
 
+  def flagStr[A](f: Flag[A]) =
+    f.map(_.toString).mkString(" ")
+  
 }

@@ -23,6 +23,11 @@ trait CardinalTypes {
   type SCardNst[+A] = MTree[SNesting[A]]
   type SCardinal[+A] = Suite[SCardNst[A]]
 
+  def rootCardinalAddr(dim: Int): SCardAddr = {
+    val ba: MAddr = List.fill(dim)(Nil)
+    SCardAddr(ba, Nil, Nil)
+  }
+
   case class SCardAddr(
     val branchAddr: MAddr = Nil,  // Find the correct branch
     val canopyAddr: SAddr = Nil,  // The address in the canopy there

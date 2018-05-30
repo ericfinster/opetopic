@@ -280,13 +280,10 @@ object Sketchpad extends JSApp {
 
       val flagItr = new FlagIterator(intFace)
 
-      // while(flagItr.hasNext) {
-      //   val f = flagItr.next
-      //   println(f.map(_.toString).mkString(" "))
-      // }
+      val c = FlagExtruder.extrudeFrom(flagItr, 0)
+      val csm = c.map(i => Some(SimpleMarker(i.toString)))
+      editor.newEditor(csm)
 
-      FlagExtruder.extrudeFrom(flagItr)
-      
     }
 
   def onLink: Except[Unit] = {
