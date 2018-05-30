@@ -278,7 +278,7 @@ object Sketchpad extends JSApp {
           lbl
         })
 
-      val flagItr = new FlagIterator(intFace)
+      val flagItr = new FlagIterator(intFace, reverse = true)
 
       val c = FlagExtruder.extrudeFrom(flagItr, 0)
       val csm = c.map(i => Some(SimpleMarker(i.toString)))

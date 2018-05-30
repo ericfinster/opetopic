@@ -9,10 +9,43 @@ package opetopic
 
 import mtl._
 
-class FlagIterator[A](initZip: FlagZipper[A], reverse: Boolean) extends Iterator[Flag[A]] {
+class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reverse: Boolean = false) extends Iterator[Flag[A]] {
 
-  def this(cmplx: SComplex[A]) =
-    this(cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n))), false)
+  def initZipper: FlagZipper[A] =
+    addrOpt match {
+      case None => {
+
+        // Do an ordinary complex traversal ...
+
+        if (reverse) {
+
+          // Seek to the first object.
+          val (objSuite, upper) = cmplx.grab(cmplx.dim)
+
+          cmplx.asList match {
+            case objNst :: arrNst :: ns => {
+              objNst.seek(objNst.firstDotAddr) match {
+                case None => ??? // Ill formed object nesting
+                case Some(onz) => {
+                  TgtFacet(onz) :: SrcFacet(SNstZipper(arrNst), SDir(Nil)) :: ns.map((n: SNesting[A]) => TgtFacet(SNstZipper(n)))
+                }
+              }
+            }
+            case _ => {
+              // Traversing an *object*
+              ???
+            }
+          }
+
+        } else {
+          cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+        }
+      }
+      case Some(fa) => {
+        // A link traversal
+        ???
+      }
+    }
 
   //============================================================================================
   // ITERATOR INTERFACE
@@ -52,12 +85,13 @@ class FlagIterator[A](initZip: FlagZipper[A], reverse: Boolean) extends Iterator
   // PRIVATE IMPLEMENTATION
   //
 
-  private var zipper: FlagZipper[A] = initZip
+  private var zipper: FlagZipper[A] = initZipper
 
   private var nextCache: Option[Flag[A]] =
     Some(flagOf(zipper))
 
-  private def flagOf(z: FlagZipper[A]): Flag[A] =
+  // Needs to handle vertex neutralization
+  private def flagOf(z: FlagZipper[A]): Flag[A] = 
     z.map(fc => fc.withFace(fc.face.focus.baseValue))
 
   private def forward[A](flagz: FlagZipper[A]): Except[Option[FlagZipper[A]]] =
@@ -262,3 +296,56 @@ class FlagIterator[A](initZip: FlagZipper[A], reverse: Boolean) extends Iterator
 
 
 }
+
+// Hmmm, yeah, maybe these guys aren't so different after all.
+// But anyway, let's think about it just a bit ....
+
+// class ComplexFlagIterator[A](cmplx: SComplex[A], reverse: Boolean = false)
+//     extends FlagIterator[A](ComplexFlagIterator(cmplx, reverse), reverse) {
+
+//   protected def flagOf(z: FlagZipper[A]): Flag[A] =
+//     z.map(fc => fc.withFace(fc.face.focus.baseValue))
+
+// }
+
+// object ComplexFlagIterator {
+
+//   def apply[A](cmplx: SComplex[A], reverse: Boolean): FlagZipper[A] =
+//     if (reverse) {
+//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+//     } else {
+//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+//     }
+
+// }
+
+
+// class LinkFlagIterator[A](cmplx: SComplex[A], fa: FaceAddr, reverse: Boolean)
+//     extends FlagIterator[A](LinkFlagIterator(cmplx, fa, reverse), reverse) {
+
+//   // Here we should perform vertex neutralization
+//   protected def flagOf(z: FlagZipper[A]): Flag[A] =
+//     z.map(fc => fc.withFace(fc.face.focus.baseValue))
+
+// }
+
+// object LinkFlagIterator {
+
+//   def apply[A](cmplx: SComplex[A], fa: FaceAddr, reverse: Boolean): FlagZipper[A] =
+//     if (reverse) {
+//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+//     } else {
+//       cmplx.asList.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
+//     }
+
+//   // So, what's the main idea?  The idea is that you are going to
+//   // seek to an external cell.  If the direction is supposed to be
+//   // forward, then you need an address (which could be defaulted in
+//   // certain cases).
+
+//   // Right.  From this perspective the two can be unified.  So I agree
+//   // that's what you should do.
+
+// }
+
+

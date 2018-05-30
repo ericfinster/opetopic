@@ -277,6 +277,16 @@ object SNesting {
         case SBox(a, _) => a
       }
 
+    def initBoxDepth: Int =
+      nst match {
+        case SDot(a) => 0
+        case SBox(_, SLeaf) => 1
+        case SBox(_, SNode(n, _)) => n.initBoxDepth + 1
+      }
+
+    def firstDotAddr: SAddr =
+      List.fill(initBoxDepth)(SDir(Nil))
+
     def firstDotValue: Option[A] =
       nst match {
         case SDot(a) => Some(a)
