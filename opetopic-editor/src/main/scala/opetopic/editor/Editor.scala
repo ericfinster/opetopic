@@ -7,28 +7,34 @@
 
 package opetopic.editor
 
-import scala.scalajs.{js => sjs}
-import sjs.Dynamic.{literal => lit}
-import scala.scalajs.js.JSApp
-import org.scalajs.dom
-import org.scalajs.dom._
-import org.scalajs.jquery._
-import scalatags.JsDom.all._
+import scala.scalajs.js
+import js.Dynamic.{literal => obj}
+import webix._
+import webix.ui._
 
-import scalajs.concurrent.JSExecutionContext.Implicits.queue
-
-import opetopic._
-import opetopic.ui._
-import opetopic.js._
-import mtl._
-
-import JsDomFramework._
-import JQuerySemanticUI._
-
-object Editor extends JSApp {
+object Editor {
 
   def main: Unit = {
-    println("Hello, world!")
+    Webix.ready({ () =>
+
+      val layoutObj =
+        obj(
+          cols = js.Array(
+            obj(template = "Properties", width = 300),
+            obj(view = "resizer"),
+            obj(rows = js.Array(
+              obj(template = "Editor"),
+              obj(view = "resizer"),
+              obj(template = "FaceViewer")
+            ))
+          )
+        )
+
+      val layout = Webix.ui(layoutObj).asInstanceOf[Layout]
+
+      println("Ready.")
+
+    })
   }
 
 }

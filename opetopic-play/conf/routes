@@ -22,6 +22,8 @@ POST        /renderSketch                    controllers.SketchController.render
 POST        /deleteSketch                    controllers.SketchController.deleteSketch
 POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
 
+# Editor
+GET         /editor                          controllers.ApplicationController.editor
 
 #GET         /password/forgot                 controllers.ForgotPasswordController.view
 #POST        /password/forgot                 controllers.ForgotPasswordController.submit

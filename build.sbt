@@ -74,6 +74,7 @@ lazy val opetopicEditor = (project in file("opetopic-editor")).
   settings(commonSettings: _*).
   settings(
     scalaJSUseMainModuleInitializer := true,
+    mainClass in Compile := Some("opetopic.editor.Editor"),
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,

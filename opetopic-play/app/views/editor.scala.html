@@ -17,82 +17,10 @@
     @webJarsUtil.locate("jquery.js").script()
     @webJarsUtil.locate("webix.js").script()
     @webJarsUtil.locate("webix.css").css()
-    
-    <style>
-      body{
-        background: #faf6ed;
-      }
-
-      #areaA, #areaB{
-        margin: 50px;
-        width:700px; height:110px;
-      }
-    </style>
 
   </head>
 
   <body>
-
-
-    <div id="areaA">
-    </div>
-    <br><hr><br>
-    <div id="areaB">
-    </div>
-
-    <script type="text/javascript" charset="utf-8">
-
-			webix.ui({
-				container:"areaA",
-				view:"menu",
-			        data:[
-					{ id:"1",value:"Translate...", submenu:[
-						"English", 
-						{ value:"Slavic...", submenu:[
-							"Belarusian", "Ukrainian", {value:"Russian", submenu:["East", "West"]}
-						]},
-						"German"
-					]},
-					{ id:"2",value:"Post...", submenu:[ "Facebook", "Google+", "Twitter" ]},
-					{ id:"3",value:"Info" }
-				],
-				on:{
-					onMenuItemClick:function(id){
-						webix.message("Click: "+this.getMenuItem(id).value);
-					}
-				},
-			        type:{
-			          subsign:true
-			        }
-			});	
-
-			webix.ui({
-				container:"areaB",
-			        view:"menu",
-				width:150,
-				layout:"y",
-				subMenuPos:"right",
-				data:[
-					{ value:"Translate...", submenu:[ 
-						"English", 
-						{ value:"Slavic...", submenu:[
-							"Belarusian", "Russian", {value:"Ukrainian", submenu:["1", "2"]}
-						]},
-						"German"
-					]},
-					{ value:"Post...", submenu:[ "Facebook", "Google+", "Twitter" ]},
-					{ $template:"Separator" },
-					{ value:"Info" }
-				],
-				on:{
-					onMenuItemClick:function(id){
-						webix.message("Click: "+this.getMenuItem(id).value);
-					}
-				}
-			});	
-
-			
-    </script>
     
   </body>
 
@@ -101,8 +29,6 @@
   } else {
     <script src='@routes.Assets.at("opetopiceditor-opt.js")' type="text/javascript"></script>
   }
-
-  <script src='@routes.Assets.at("opetopiceditor-launcher.js")' type="text/javascript"></script>
   
 </html>
 

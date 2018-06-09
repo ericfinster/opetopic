@@ -7,6 +7,7 @@ import com.mohiva.play.silhouette.api.{ LogoutEvent, Silhouette }
 import org.webjars.play.WebJarsUtil
 import play.api.i18n.I18nSupport
 import play.api.mvc.{ AbstractController, AnyContent, ControllerComponents }
+import play.Environment
 import utils.auth.DefaultEnv
 
 import scala.concurrent.Future
@@ -25,7 +26,8 @@ class ApplicationController @Inject() (
 )(
   implicit
   webJarsUtil: WebJarsUtil,
-  assets: AssetsFinder
+  assets: AssetsFinder,
+  env: Environment
 ) extends AbstractController(components) with I18nSupport {
 
   /**
@@ -37,6 +39,10 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.index()(request.identity, webJarsUtil)))
   }
 
+  // An editor action to start working on new ui
+  def editor = silhouette.UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.editor(env.isDev)(request.identity, webJarsUtil)))
+  }
 
   /**
    * Handles the Sign Out action.
