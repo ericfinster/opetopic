@@ -1,9 +1,11 @@
-@()(implicit userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
 
-@greeting(uo: Option[User]) = @{
+@()(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
+
+@greeting(uOpt: Option[User]) = @{
   (for {
-    user <- uo
-    fn <- user.firstName
+    u <- uOpt
+    fn <- u.firstName
   } yield { "Welcome to Opetopic, " + fn + "!" }).getOrElse({
     "Welcome to Opetopic!"
   })

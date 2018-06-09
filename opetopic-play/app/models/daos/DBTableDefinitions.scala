@@ -10,7 +10,7 @@ package models.daos
 import java.util.UUID
 
 import com.mohiva.play.silhouette.api.LoginInfo
-import slick.driver.JdbcProfile
+import slick.jdbc.JdbcProfile
 import slick.lifted.ProvenShape.proveShapeOf
 
 trait DBTableDefinitions {

@@ -1,20 +1,20 @@
 package models.daos
 
 import com.mohiva.play.silhouette.api.LoginInfo
-import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
+import com.mohiva.play.silhouette.persistence.daos.DelegableAuthInfoDAO
 import com.mohiva.play.silhouette.impl.providers.OAuth1Info
 import javax.inject.Inject
-import play.api.libs.concurrent.Execution.Implicits._
+
 import play.api.db.slick.DatabaseConfigProvider
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * The DAO to store the OAuth1 information.
  */
-class OAuth1InfoDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+class OAuth1InfoDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
     extends DelegableAuthInfoDAO[OAuth1Info] with DAOSlick {
 
-  import driver.api._
+  import profile.api._
 
   protected def oAuth1InfoQuery(loginInfo: LoginInfo) = for {
     dbLoginInfo <- loginInfoQuery(loginInfo)

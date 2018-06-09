@@ -1,6 +1,6 @@
-@()(implicit userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
 
-@import play.api.Play
+@(isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
 
 @main("AddrExplorer") {
 
@@ -37,10 +37,10 @@
     
   </div>
 
-  @if(Play.isProd(Play.current)) {
-  <script src='@routes.Assets.at("opetopicaddrexplorer-opt.js")' type="text/javascript"></script>
+  @if(isDev) {
+    <script src='@routes.Assets.at("opetopicaddrexplorer-fastopt.js")' type="text/javascript"></script>
   } else {
-  <script src='@routes.Assets.at("opetopicaddrexplorer-fastopt.js")' type="text/javascript"></script>
+    <script src='@routes.Assets.at("opetopicaddrexplorer-opt.js")' type="text/javascript"></script>
   }
 
   <script src='@routes.Assets.at("opetopicaddrexplorer-launcher.js")' type="text/javascript"></script>

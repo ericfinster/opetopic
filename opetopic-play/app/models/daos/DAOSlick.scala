@@ -7,7 +7,7 @@
 
 package models.daos
 
-import slick.driver.JdbcProfile
+import slick.jdbc.JdbcProfile
 import play.api.db.slick.HasDatabaseConfigProvider
 
 /**

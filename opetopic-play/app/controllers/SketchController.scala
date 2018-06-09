@@ -9,12 +9,16 @@ package controllers
 
 import java.util.UUID
 import javax.inject.Inject
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
+import play.api.mvc.{ AbstractController, AnyContent, ControllerComponents }
 import play.api.i18n.{ MessagesApi, Messages }
-import play.api.libs.concurrent.Execution.Implicits._
+import play.api.i18n.I18nSupport
+import play.Environment
+import org.webjars.play.WebJarsUtil
+import utils.auth.DefaultEnv
 
 import models.User
 import models.Sketch
@@ -28,28 +32,42 @@ import opetopic._
 import opetopic.ui._
 import opetopic.net._
 
+/**
+ * The SketchPad controller
+ *
+ * @param components  The Play controller components.
+ * @param silhouette  The Silhouette stack.
+ * @param sketchDAO   The Sketch data access object
+ * @param webJarsUtil The webjar util.
+ * @param assets      The Play assets finder.
+ */
 class SketchController @Inject() (
-  val messagesApi: MessagesApi,
-  val env: Environment[User, CookieAuthenticator],
-  userService: UserService,
-  sketchDAO: SketchDAO
-) extends Silhouette[User, CookieAuthenticator] {
+  components: ControllerComponents,
+  silhouette: Silhouette[DefaultEnv],
+  sketchDAO: SketchDAO,
+  env: Environment
+)(
+  implicit
+  webJarsUtil: WebJarsUtil,
+  assets: AssetsFinder,
+  ec: ExecutionContext
+) extends AbstractController(components) with I18nSupport {
 
-  def sketchpad = UserAwareAction.async { implicit request => 
+  def sketchpad = silhouette.UserAwareAction.async { implicit request => 
 
     request.identity match {
       case Some(user) => 
         sketchDAO.userSketches(user).map { sketches =>
-          Ok(views.html.sketchpad(RenderSketchForm.form, sketches)(request, Some(user)))
+          Ok(views.html.sketchpad(RenderSketchForm.form, sketches, env.isDev)(request, Some(user), webJarsUtil))
         }
       case None => Future.successful {
-        Ok(views.html.sketchpad(RenderSketchForm.form, Seq())(request, None))
+        Ok(views.html.sketchpad(RenderSketchForm.form, Seq(), env.isDev)(request, None, webJarsUtil))
       }
     }
 
   }
 
-  def getSketch = SecuredAction.async { implicit request => 
+  def getSketch = silhouette.SecuredAction.async { implicit request => 
 
     request.body.asText.map { text =>
 
@@ -67,7 +85,7 @@ class SketchController @Inject() (
 
   }
 
-  def deleteSketch = SecuredAction.async { implicit request => 
+  def deleteSketch = silhouette.SecuredAction.async { implicit request => 
 
     request.body.asText.map { text => 
 
@@ -81,7 +99,7 @@ class SketchController @Inject() (
 
   }
 
-  def saveSketch = SecuredAction.async { implicit request => 
+  def saveSketch = silhouette.SecuredAction.async { implicit request => 
 
     request.body.asText.map { text => 
 
@@ -107,7 +125,7 @@ class SketchController @Inject() (
 
   }
 
-  def renderSketch = UserAwareAction.async { implicit request => 
+  def renderSketch = silhouette.UserAwareAction.async { implicit request => 
 
     RenderSketchForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest("Bad render reqeust")),
@@ -134,7 +152,7 @@ class SketchController @Inject() (
 
   }
 
-  def renderAddrProof = UserAwareAction.async { implicit request =>
+  def renderAddrProof = silhouette.UserAwareAction.async { implicit request =>
 
     RenderSketchForm.form.bindFromRequest.fold(
       form => Future.successful(BadRequest("Bad render reqeust")),

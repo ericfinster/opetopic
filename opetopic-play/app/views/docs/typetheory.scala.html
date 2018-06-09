@@ -1,6 +1,8 @@
-@()(implicit userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
 
-@doc("typetheory") {
+@(isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
+
+@doc("typetheory", isDev) {
 
   <div class="ui raised segment">
     <h2 class="ui dividing header">Type Theory</h2>

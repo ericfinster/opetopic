@@ -5,32 +5,34 @@ import javax.inject.Inject
 import com.mohiva.play.silhouette.api._
 import com.mohiva.play.silhouette.api.exceptions.ProviderException
 import com.mohiva.play.silhouette.api.repositories.AuthInfoRepository
-import com.mohiva.play.silhouette.impl.authenticators.CookieAuthenticator
 import com.mohiva.play.silhouette.impl.providers._
-import models.User
 import models.services.UserService
-import play.api.i18n.{ MessagesApi, Messages }
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.Action
+import play.api.i18n.{ I18nSupport, Messages }
+import play.api.mvc.{ AbstractController, AnyContent, ControllerComponents, Request }
+import utils.auth.DefaultEnv
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 /**
  * The social auth controller.
  *
- * @param messagesApi The Play messages API.
- * @param env The Silhouette environment.
- * @param userService The user service implementation.
- * @param authInfoRepository The auth info service implementation.
+ * @param components             The Play controller components.
+ * @param silhouette             The Silhouette stack.
+ * @param userService            The user service implementation.
+ * @param authInfoRepository     The auth info service implementation.
  * @param socialProviderRegistry The social provider registry.
+ * @param ex                     The execution context.
  */
 class SocialAuthController @Inject() (
-  val messagesApi: MessagesApi,
-  val env: Environment[User, CookieAuthenticator],
+  components: ControllerComponents,
+  silhouette: Silhouette[DefaultEnv],
   userService: UserService,
   authInfoRepository: AuthInfoRepository,
-  socialProviderRegistry: SocialProviderRegistry)
-  extends Silhouette[User, CookieAuthenticator] with Logger {
+  socialProviderRegistry: SocialProviderRegistry
+)(
+  implicit
+  ex: ExecutionContext
+) extends AbstractController(components) with I18nSupport with Logger {
 
   /**
    * Authenticates a user against a social provider.
@@ -38,7 +40,7 @@ class SocialAuthController @Inject() (
    * @param provider The ID of the provider to authenticate against.
    * @return The result to display.
    */
-  def authenticate(provider: String) = Action.async { implicit request =>
+  def authenticate(provider: String) = Action.async { implicit request: Request[AnyContent] =>
     (socialProviderRegistry.get[SocialProvider](provider) match {
       case Some(p: SocialProvider with CommonSocialProfileBuilder) =>
         p.authenticate().flatMap {
@@ -47,11 +49,11 @@ class SocialAuthController @Inject() (
             profile <- p.retrieveProfile(authInfo)
             user <- userService.save(profile)
             authInfo <- authInfoRepository.save(profile.loginInfo, authInfo)
-            authenticator <- env.authenticatorService.create(profile.loginInfo)
-            value <- env.authenticatorService.init(authenticator)
-            result <- env.authenticatorService.embed(value, Redirect(routes.ApplicationController.index()))
+            authenticator <- silhouette.env.authenticatorService.create(profile.loginInfo)
+            value <- silhouette.env.authenticatorService.init(authenticator)
+            result <- silhouette.env.authenticatorService.embed(value, Redirect(routes.ApplicationController.index()))
           } yield {
-            env.eventBus.publish(LoginEvent(user, request, request2Messages))
+            silhouette.env.eventBus.publish(LoginEvent(user, request))
             result
           }
         }
@@ -59,7 +61,7 @@ class SocialAuthController @Inject() (
     }).recover {
       case e: ProviderException =>
         logger.error("Unexpected provider error", e)
-        Redirect(routes.ApplicationController.signIn()).flashing("error" -> Messages("could.not.authenticate"))
+        Redirect(routes.SignInController.view()).flashing("error" -> Messages("could.not.authenticate"))
     }
   }
 }

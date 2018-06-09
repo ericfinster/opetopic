@@ -2,20 +2,18 @@ package models.daos
 
 import com.mohiva.play.silhouette.api.LoginInfo
 import com.mohiva.play.silhouette.api.util.PasswordInfo
-import com.mohiva.play.silhouette.impl.daos.DelegableAuthInfoDAO
-import play.api.libs.concurrent.Execution.Implicits._
+import com.mohiva.play.silhouette.persistence.daos.DelegableAuthInfoDAO
 import javax.inject.Inject
-import play.api.libs.concurrent.Execution.Implicits._
 import play.api.db.slick.DatabaseConfigProvider
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
 /**
  * The DAO to store the password information.
  */
-class PasswordInfoDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+class PasswordInfoDAO @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
     extends DelegableAuthInfoDAO[PasswordInfo] with DAOSlick {
 
-  import driver.api._
+  import profile.api._
 
   protected def passwordInfoQuery(loginInfo: LoginInfo) = for {
     dbLoginInfo <- loginInfoQuery(loginInfo)

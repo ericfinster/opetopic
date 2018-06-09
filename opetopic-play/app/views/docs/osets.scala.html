@@ -1,6 +1,8 @@
-@()(implicit userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
 
-@doc("diagrams/osets") {
+@(isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
+
+@doc("diagrams/osets", isDev) {
 
   <div class="ui raised segment">
     <h2 class="ui dividing header">Opetopic Sets</h2>

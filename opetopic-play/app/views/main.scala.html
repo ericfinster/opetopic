@@ -1,4 +1,6 @@
-@(subnav: String)(content: Html)(implicit userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
+
+@(subnav: String)(content: Html)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
 
 @import play.api.Play
 
@@ -15,8 +17,8 @@
 
     <link rel='stylesheet' href='@routes.Assets.at("stylesheets/opetopic.css")'>
 
-    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("jquery.js"))'></script>
-    <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.locate("semantic.js"))'></script>
+    @webJarsUtil.locate("jquery.js").script()
+    @webJarsUtil.locate("semantic.js").script()
 
   </head>
 

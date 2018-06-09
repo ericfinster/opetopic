@@ -1,4 +1,6 @@
-@(renderForm: Form[forms.RenderSketchForm.Data], sketches: Seq[models.Sketch])(implicit request: RequestHeader, userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
+
+@(renderForm: Form[forms.RenderSketchForm.Data], sketches: Seq[models.Sketch], isDev: Boolean)(implicit request: RequestHeader, userOpt: Option[User], webJarsUtil: WebJarsUtil)
 
 @import play.api.Play
 @import models.Sketch
@@ -204,10 +206,10 @@
     </div>
   </div>
 
-  @if(Play.isProd(Play.current)) {
-  <script src='@routes.Assets.at("opetopicsketchpad-opt.js")' type="text/javascript"></script>
+  @if(isDev) {
+    <script src='@routes.Assets.at("opetopicsketchpad-fastopt.js")' type="text/javascript"></script>
   } else {
-  <script src='@routes.Assets.at("opetopicsketchpad-fastopt.js")' type="text/javascript"></script>
+    <script src='@routes.Assets.at("opetopicsketchpad-opt.js")' type="text/javascript"></script>
   }
 
   <script src='@routes.Assets.at("opetopicsketchpad-launcher.js")' type="text/javascript"></script>

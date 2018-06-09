@@ -1,4 +1,9 @@
-@(signUpForm: Form[forms.SignUpForm.Data])(implicit request: RequestHeader, messages: Messages, userOpt: Option[User])
+@import play.api.data.Form
+@import play.api.mvc.RequestHeader
+@import org.webjars.play.WebJarsUtil
+@import forms.SignUpForm.Data
+
+@(signUpForm: Form[Data])(implicit userOpt: Option[User], request: RequestHeader, messages: Messages, webJarsUtil: WebJarsUtil)
 
 @import semantic.semantic._
 
@@ -12,7 +17,7 @@
 	<div class="ui segment">
 	  <h3 class="ui dividing header">Sign Up</h3>
 
-	  @helper.form(action = routes.SignUpController.signUp(), args = 'class -> "ui form") {
+	  @helper.form(action = routes.SignUpController.submit(), args = 'class -> "ui form") {
 	  
           @helper.CSRF.formField
           @helper.inputText(signUpForm("firstName"), '_label -> "First Name")

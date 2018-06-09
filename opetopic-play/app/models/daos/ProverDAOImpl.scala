@@ -10,15 +10,15 @@ package models.daos
 import java.util.UUID
 import models.User
 import models.Module
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.dbio.DBIOAction
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
-class ProverDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends ProverDAO with DAOSlick {
+class ProverDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+    extends ProverDAO with DAOSlick {
 
-  import driver.api._
+  import profile.api._
 
   def userModules(user: User) : Future[Seq[Module]] = {
 

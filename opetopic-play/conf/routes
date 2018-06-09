@@ -2,26 +2,17 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+
 # Home page
 GET         /                                controllers.ApplicationController.index
-GET         /signIn                          controllers.ApplicationController.signIn
-GET         /signUp                          controllers.ApplicationController.signUp
 GET         /signOut                         controllers.ApplicationController.signOut
 GET         /authenticate/:provider          controllers.SocialAuthController.authenticate(provider)
-POST        /authenticate/credentials        controllers.CredentialsAuthController.authenticate
-POST        /signUp                          controllers.SignUpController.signUp
 
-# Prover
-GET         /prover                          controllers.ProverController.prover
-POST        /saveModule                      controllers.ProverController.saveModule
-POST        /getModule                       controllers.ProverController.getModule
-POST        /deleteModule                    controllers.ProverController.deleteModule
+GET         /signUp                          controllers.SignUpController.view
+POST        /signUp                          controllers.SignUpController.submit
 
-# Auxillary
-GET         /multiedit                       controllers.ApplicationController.multiedit
-GET         /coloredit                       controllers.ApplicationController.coloredit
-GET         /addrexplorer                    controllers.ApplicationController.addrexplorer
-GET         /editor                          controllers.ApplicationController.editor
+GET         /signIn                          controllers.SignInController.view
+POST        /signIn                          controllers.SignInController.submit
 
 # Sketchpad 
 GET         /sketchpad                       controllers.SketchController.sketchpad
@@ -31,17 +22,20 @@ POST        /renderSketch                    controllers.SketchController.render
 POST        /deleteSketch                    controllers.SketchController.deleteSketch
 POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
 
-# Stable Editor
-GET         /stable                          controllers.ApplicationController.stable
 
-# Documentation
-GET         /docs                            controllers.DocsController.showDoc(page = "intro")
-GET         /docs/*page                      controllers.DocsController.showDoc(page)
-GET         /tutorial                        controllers.DocsController.tutorial
+#GET         /password/forgot                 controllers.ForgotPasswordController.view
+#POST        /password/forgot                 controllers.ForgotPasswordController.submit
+#GET         /password/reset/:token           controllers.ResetPasswordController.view(token: java.util.UUID)
+#POST        /password/reset/:token           controllers.ResetPasswordController.submit(token: java.util.UUID)
+#GET         /password/change                 controllers.ChangePasswordController.view
+#POST        /password/change                 controllers.ChangePasswordController.submit
+
+#GET         /account/email/:email            controllers.ActivateAccountController.send(email: String)
+#GET         /account/activate/:token         controllers.ActivateAccountController.activate(token: java.util.UUID)
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /assets/*file                    controllers.Assets.at(path="/public", file)
-GET         /webjars/*file                   controllers.WebJarAssets.at(file)
+GET         /assets/*file                     controllers.Assets.at(path="/public", file)
+->          /webjars                          webjars.Routes
 
 
 

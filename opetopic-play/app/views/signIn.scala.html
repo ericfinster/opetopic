@@ -1,8 +1,15 @@
-@(signInForm: Form[forms.SignInForm.Data], socialProviders: com.mohiva.play.silhouette.impl.providers.SocialProviderRegistry)(implicit request: RequestHeader, messages: Messages, userOpt: Option[User])
+@import play.api.data.Form
+@import play.api.i18n.Messages
+@import play.api.mvc.RequestHeader
+@import org.webjars.play.WebJarsUtil
+@import com.mohiva.play.silhouette.impl.providers.SocialProviderRegistry
+@import forms.SignInForm.Data
+
+@(signInForm: Form[Data], socialProviders: SocialProviderRegistry)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil, request: RequestHeader, messages: Messages)
 
 @import semantic.semantic._
 
-@main(Messages("sign.in.title")) {
+@main("Sign In") {
 
   <div class="ui container" style="padding-top: 60px">
     <div class="ui grid">
@@ -12,7 +19,7 @@
 	<div class="ui segment">
 	  <h3 class="ui dividing header">Sign In</h3>
 
-	  @helper.form(action = routes.CredentialsAuthController.authenticate(), args = 'class -> "ui form") {
+	  @helper.form(action = routes.SignInController.submit(), args = 'class -> "ui form") {
 	  
           @helper.CSRF.formField
           @helper.inputText(signInForm("email"), '_label -> "Email")

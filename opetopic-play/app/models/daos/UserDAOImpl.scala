@@ -10,18 +10,18 @@ package models.daos
 import java.util.UUID
 import com.mohiva.play.silhouette.api.LoginInfo
 import models.User
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.dbio.DBIOAction
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
 /**
  * Give access to the user object using Slick
  */
-class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends UserDAO with DAOSlick {
+class UserDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+    extends UserDAO with DAOSlick {
 
-  import driver.api._
+  import profile.api._
 
   /**
    * Finds a user by its login info.

@@ -10,15 +10,15 @@ package models.daos
 import java.util.UUID
 import models.User
 import models.Sketch
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.dbio.DBIOAction
 import javax.inject.Inject
 import play.api.db.slick.DatabaseConfigProvider
-import scala.concurrent.Future
+import scala.concurrent.{Future, ExecutionContext}
 
-class SketchDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider) extends SketchDAO with DAOSlick {
+class SketchDAOImpl @Inject()(protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+    extends SketchDAO with DAOSlick {
 
-  import driver.api._
+  import profile.api._
 
   def save(user: User, sketch: Sketch) : Future[Sketch] = {
 

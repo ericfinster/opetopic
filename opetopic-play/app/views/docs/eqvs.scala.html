@@ -1,6 +1,8 @@
-@()(implicit userOpt: Option[User])
+@import org.webjars.play.WebJarsUtil
 
-@doc("theory/eqvs") {
+@(isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
+
+@doc("theory/eqvs", isDev) {
 
   <div class="ui raised segment">
     <h2 class="ui dividing header">Equivalences</h2>
