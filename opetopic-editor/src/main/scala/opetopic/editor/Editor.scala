@@ -15,6 +15,12 @@ import paperjs._
 
 object Editor {
 
+  // Okay, so I think the next step is that we need to associate
+  // a new "project" somehow with each instance of the paper view.
+  // Then I guess the point is that you have to instantiate your
+  // UIFramework class with an encapsulated project so that all
+  // rendering is sent to the appropriate canvas.
+
   def main: Unit = {
     Webix.ready({ () =>
 
@@ -63,10 +69,6 @@ object Editor {
 
       val layout = Webix.ui(layoutObj).asInstanceOf[ui.Layout]
       val paperView = WebixView("editor-paper").asInstanceOf[ui.Paper]
-
-      // paperView.attachEvent("onViewResize", () => {
-      //   println("Paper is resized ...")
-      // })
 
       Paper.setup(paperView.canvas)
       paperView.isSetup = true
