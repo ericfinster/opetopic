@@ -26,3 +26,8 @@ trait Template extends View
   def setValues(obj: js.Object, update: Boolean = false): Unit = js.native
 }
 
+object Template {
+  def apply(template: String, parent: View): Template =
+    Webix.ui(lit(view = "template", template = template), parent).
+      asInstanceOf[Template]
+}

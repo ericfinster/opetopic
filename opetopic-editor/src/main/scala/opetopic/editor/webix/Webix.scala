@@ -18,8 +18,16 @@ import ui.View
 @JSGlobal("webix")
 object Webix extends js.Object {
   def ready(f: js.Function0[Unit]): Unit = js.native
-  def ui(obj: js.Object): View = js.native
   val ui: WebixUIHelper = js.native
+  def ui(cfg: js.Object): View = js.native
+  def ui(cfg: js.Object, parent: View): View = js.native
+  def protoUI(tgt: js.Object, mixins: js.Object*): View = js.native
+}
+
+@js.native
+@JSGlobal("$$")
+object WebixView extends js.Object {
+  def apply(id: String): View = js.native
 }
 
 @js.native

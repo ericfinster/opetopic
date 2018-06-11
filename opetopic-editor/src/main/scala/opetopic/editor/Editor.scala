@@ -10,31 +10,106 @@ package opetopic.editor
 import scala.scalajs.js
 import js.Dynamic.{literal => obj}
 import webix._
-import webix.ui._
+
+import paperjs._
 
 object Editor {
 
   def main: Unit = {
     Webix.ready({ () =>
 
-      val layoutObj =
+      setupPaperView
+
+      val toolbar =
         obj(
+          view = "toolbar",
+          paddingY = 0,
           cols = js.Array(
-            obj(template = "Properties", width = 300),
-            obj(view = "resizer"),
-            obj(rows = js.Array(
-              obj(template = "Editor"),
-              obj(view = "resizer"),
-              obj(template = "FaceViewer")
-            ))
+            obj(view = "label", label = "Login", width = 60)
           )
         )
 
-      val layout = Webix.ui(layoutObj).asInstanceOf[Layout]
+      val menu = 
+        obj(
+          view = "menu",
+          data = js.Array(
+            obj(id = "1", value = "Home"),
+            obj(id = "2", value = "Sketch"),
+            obj(id = "3", value = "Export")
+          ),
+          css = "blue"
+        )
+
+      val layoutObj =
+        obj(
+          rows = js.Array(
+            obj(`type` = "clean",
+              cols = js.Array(menu, toolbar)
+            ),
+            obj(
+              cols = js.Array(
+                obj(template = "Properties", width = 300),
+                obj(view = "resizer"),
+                obj(rows = js.Array(
+                  obj(view = "paper", id = "editor-paper", canvas = "editor-canvas"),
+                  // obj(template = "EditorViewer"),
+                  obj(view = "resizer"),
+                  obj(template = "FaceViewer")
+                ))
+              )
+            )
+          )
+        )
+
+      val layout = Webix.ui(layoutObj).asInstanceOf[ui.Layout]
+      val paperView = WebixView("editor-paper").asInstanceOf[ui.Paper]
+
+      Paper.setup(paperView.canvas)
+
+      import paperjs.Basic._
+      import paperjs.Paths._
+      import paperjs.Styling._
+
+      val p0 = Point(20, 20)
+      val p1 = Point(50, 50)
+
+      val r = Rect(20, 20, 200, 200)
+      val pth = Path.Rectangle(r)
+      pth.strokeColor = new Color("black")
+
+      Paper.view.draw()
 
       println("Ready.")
 
     })
+  }
+
+
+  // Install a "paper" view element ....
+  def setupPaperView: Unit = {
+
+    val webix = js.Dynamic.global.webix
+    val doc = js.Dynamic.global.document
+
+    Webix.protoUI(obj(
+      name = "paper",
+      $init = { (papr: js.Dynamic, config: js.Dynamic) => {
+
+        val elm = doc.createElement("canvas");
+        elm.id  = config.canvas;
+        papr.canvas = papr.$view.appendChild(elm);
+
+      }} : js.ThisFunction1[js.Dynamic, js.Dynamic, Unit],
+      $setSize = { (papr: js.Dynamic, x: Double, y: Double) => {
+
+        if (webix.ui.view.prototype.$setSize.call(papr, x,y).asInstanceOf[Boolean]){
+            papr.canvas.width = x;
+            papr.canvas.height = y;
+        }
+        
+      }} : js.ThisFunction2[js.Dynamic, Double, Double, Unit]
+    ), js.Dynamic.global.webix.ui.view.asInstanceOf[js.Object])
+
   }
 
 }

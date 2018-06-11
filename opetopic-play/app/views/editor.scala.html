@@ -14,13 +14,20 @@
 
     <title>Opetopic Editor</title>
 
-    @webJarsUtil.locate("jquery.js").script()
-    @webJarsUtil.locate("webix.js").script()
-    @webJarsUtil.locate("webix.css").css()
-
+    <!-- @webJarsUtil.locate("jquery", "jquery.js").script() -->
+    @webJarsUtil.locate("paper", "paper.js").script()
+    @webJarsUtil.locate("webix", "webix.js").script()
+    @webJarsUtil.locate("webix", "webix.css").css()
+    
   </head>
 
   <body>
+
+    <style>
+      .blue.webix_menu-x{
+        background:#3498DB;
+      }      
+    </style>
     
   </body>
 
