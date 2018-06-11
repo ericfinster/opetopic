@@ -64,7 +64,12 @@ object Editor {
       val layout = Webix.ui(layoutObj).asInstanceOf[ui.Layout]
       val paperView = WebixView("editor-paper").asInstanceOf[ui.Paper]
 
+      // paperView.attachEvent("onViewResize", () => {
+      //   println("Paper is resized ...")
+      // })
+
       Paper.setup(paperView.canvas)
+      paperView.isSetup = true
 
       import paperjs.Basic._
       import paperjs.Paths._
@@ -98,17 +103,22 @@ object Editor {
         val elm = doc.createElement("canvas");
         elm.id  = config.canvas;
         papr.canvas = papr.$view.appendChild(elm);
+        papr.isSetup = false
 
       }} : js.ThisFunction1[js.Dynamic, js.Dynamic, Unit],
       $setSize = { (papr: js.Dynamic, x: Double, y: Double) => {
 
         if (webix.ui.view.prototype.$setSize.call(papr, x,y).asInstanceOf[Boolean]){
-            papr.canvas.width = x;
-            papr.canvas.height = y;
+          if (papr.isSetup.asInstanceOf[Boolean]) {
+            Paper.view.viewSize = paperjs.Basic.Size(x, y)
+          } else {
+            papr.canvas.width = x
+            papr.canvas.height = y
+          }
         }
-        
+
       }} : js.ThisFunction2[js.Dynamic, Double, Double, Unit]
-    ), js.Dynamic.global.webix.ui.view.asInstanceOf[js.Object])
+    ), webix.ui.view.asInstanceOf[js.Object])
 
   }
 

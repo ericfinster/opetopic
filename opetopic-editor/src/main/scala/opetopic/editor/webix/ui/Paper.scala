@@ -20,4 +20,5 @@ import opetopic.editor.webix._
 @js.native
 trait Paper extends View {
   val canvas: html.Canvas = js.native
+  var isSetup: Boolean = js.native
 }
