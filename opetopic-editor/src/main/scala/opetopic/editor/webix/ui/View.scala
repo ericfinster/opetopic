@@ -34,6 +34,10 @@ trait BaseView extends js.Object
   def queryView(config: js.Object, mode: String = ""): js.Object = js.native // ???
   def resize(): Unit = js.native
   def show(force: Boolean = false, animation: Boolean = false): Unit = js.native
+
+  val $width: Int = js.native
+  val $height: Int = js.native
+  
 }
 
 @js.native

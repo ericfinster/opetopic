@@ -57,7 +57,6 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
       "org.webjars" % "codemirror" % codeMirrorVersion,
       "org.webjars.bower" % "snap.svg" % "0.4.1",
       "org.webjars.bower" % "reveal.js" % "3.3.0",
-      "org.webjars.npm" % "paper" % "0.11.5",
       "org.postgresql" % "postgresql" % "9.4-1200-jdbc41",
       "com.typesafe.play" %% "play-slick" % "3.0.0",
       ehcache,
@@ -82,8 +81,7 @@ lazy val opetopicEditor = (project in file("opetopic-editor")).
       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion,
-      "com.github.yoeluk" %%% "paper-scala-js" % "0.5-SNAPSHOT"
+      "com.lihaoyi" %%% "upickle" % upickleVersion
     )
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)

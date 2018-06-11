@@ -12,6 +12,8 @@ import scala.scalajs.js.annotation.JSGlobal
 import scala.scalajs.js.annotation.JSName
 import scala.scalajs.js.Dynamic.{literal => lit}
 
+import ui.View
+
 @js.native
 trait ActiveContent extends js.Object {
   var activeContent: js.Object = js.native
@@ -105,6 +107,24 @@ trait Settings extends js.Object {
 @js.native
 trait UIExtension extends js.Object
 
+@js.native
+trait UIManager extends js.Object {
+
+  def addHotKey(key: String, handler: js.Function0[Unit]): Unit = js.native
+  def addHotKey(key: String, handler: js.Function0[Unit], obj: js.Object): Unit = js.native
+  def applyChanges(): Unit = js.native
+  def canFocus(id: String): Boolean = js.native   // id type?
+  def destructor(): Unit = js.native
+  def getView(): View = js.native
+  def getNext(view: View): View = js.native  // return type?
+  def getPrev(view: View): View = js.native  // return type?
+  def getTop(id: String): js.Object = js.native // type?
+  def hasFocus(id: String): Boolean = js.native // type?
+  def removeHotKey(key: String): Unit = js.native
+  def removeHotKey(key: String, handler: js.Function0[Unit]): Unit = js.native
+  def removeHotKey(key: String, handler: js.Function0[Unit], obj: js.Object): Unit = js.native
+
+}
 
 
 

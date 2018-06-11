@@ -22,6 +22,7 @@ object Webix extends js.Object {
   def ui(cfg: js.Object): View = js.native
   def ui(cfg: js.Object, parent: View): View = js.native
   def protoUI(tgt: js.Object, mixins: js.Object*): View = js.native
+  val UIManager: UIManager = js.native
 }
 
 @js.native

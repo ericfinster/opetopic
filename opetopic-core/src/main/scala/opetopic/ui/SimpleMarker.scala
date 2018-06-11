@@ -95,5 +95,10 @@ object SimpleMarker {
     }
   }
 
+  implicit object SimpleMarkerHasDefault extends HasDefault[SimpleMarker] {
+    val default: SimpleMarker =
+      SimpleMarker("")
+  }
+
 }
 

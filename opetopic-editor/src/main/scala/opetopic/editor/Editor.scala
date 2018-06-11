@@ -11,20 +11,16 @@ import scala.scalajs.js
 import js.Dynamic.{literal => obj}
 import webix._
 
-import paperjs._
+import opetopic._
+import opetopic.ui._
+import opetopic.js.JsDomFramework
 
 object Editor {
 
-  // Okay, so I think the next step is that we need to associate
-  // a new "project" somehow with each instance of the paper view.
-  // Then I guess the point is that you have to instantiate your
-  // UIFramework class with an encapsulated project so that all
-  // rendering is sent to the appropriate canvas.
+  type EditorType = CardinalEditor[SimpleMarker, JsDomFramework.type]
 
   def main: Unit = {
     Webix.ready({ () =>
-
-      setupPaperView
 
       val toolbar =
         obj(
@@ -34,6 +30,20 @@ object Editor {
             obj(view = "label", label = "Login", width = 60)
           )
         )
+
+      val properties =
+        obj(
+          view = "property",
+          id = "property-view",
+          width = 300,
+          elements = js.Array(
+            obj(label = "Properties", `type` = "label"),
+            obj(label = "Label", `type` = "text"),
+            obj(label = "Stroke", `type` = "color", cols = 20, rows = 20),
+            obj(label = "Fill", `type` = "color", cols = 20, rows = 20)
+          )
+        )
+
 
       val menu = 
         obj(
@@ -54,74 +64,49 @@ object Editor {
             ),
             obj(
               cols = js.Array(
-                obj(template = "Properties", width = 300),
-                obj(view = "resizer"),
-                obj(rows = js.Array(
-                  obj(view = "paper", id = "editor-paper", canvas = "editor-canvas"),
-                  // obj(template = "EditorViewer"),
-                  obj(view = "resizer"),
-                  obj(template = "FaceViewer")
-                ))
+                obj(template = "Cell Stack", width = 300),
+                obj(
+                  rows = js.Array(
+                    obj(template = "EditorViewer", id = "editor-view"),
+                    obj(view = "resizer"),
+                    obj(
+                      cols = js.Array(
+                        obj(template = "FaceViewer"),
+                        properties
+                      )
+                    )
+                  )
+                )
               )
             )
           )
         )
 
-      val layout = Webix.ui(layoutObj).asInstanceOf[ui.Layout]
-      val paperView = WebixView("editor-paper").asInstanceOf[ui.Paper]
+      val layout = Webix.ui(layoutObj).asInstanceOf[webix.ui.Layout]
+      val editorView = WebixView("editor-view").asInstanceOf[webix.ui.Template]
 
-      Paper.setup(paperView.canvas)
-      paperView.isSetup = true
+      // Now create an editor
+      val editor = CardinalEditor[SimpleMarker, JsDomFramework.type](JsDomFramework)
 
-      import paperjs.Basic._
-      import paperjs.Paths._
-      import paperjs.Styling._
+      editor.layoutWidth = bnds => editorView.$width
+      editor.layoutHeight = bnds => editorView.$height
 
-      val p0 = Point(20, 20)
-      val p1 = Point(50, 50)
+      editorView.setContent(editor.element.uiElement)
 
-      val r = Rect(20, 20, 200, 200)
-      val pth = Path.Rectangle(r)
-      pth.strokeColor = new Color("black")
+      editorView.attachEvent("onViewResize", () => {
+        editor.galleryViewport.width = editorView.$width
+        editor.galleryViewport.height = editorView.$height
+      })
 
-      Paper.view.draw()
+      Webix.UIManager.addHotKey("e", () => { editor.extrudeSelection }, editorView)
+      Webix.UIManager.addHotKey("d", () => { editor.loopAtSelection }, editorView)
+      Webix.UIManager.addHotKey("s", () => { editor.sproutAtSelection }, editorView)
+      
+      editor.renderAll
 
       println("Ready.")
 
     })
-  }
-
-
-  // Install a "paper" view element ....
-  def setupPaperView: Unit = {
-
-    val webix = js.Dynamic.global.webix
-    val doc = js.Dynamic.global.document
-
-    Webix.protoUI(obj(
-      name = "paper",
-      $init = { (papr: js.Dynamic, config: js.Dynamic) => {
-
-        val elm = doc.createElement("canvas");
-        elm.id  = config.canvas;
-        papr.canvas = papr.$view.appendChild(elm);
-        papr.isSetup = false
-
-      }} : js.ThisFunction1[js.Dynamic, js.Dynamic, Unit],
-      $setSize = { (papr: js.Dynamic, x: Double, y: Double) => {
-
-        if (webix.ui.view.prototype.$setSize.call(papr, x,y).asInstanceOf[Boolean]){
-          if (papr.isSetup.asInstanceOf[Boolean]) {
-            Paper.view.viewSize = paperjs.Basic.Size(x, y)
-          } else {
-            papr.canvas.width = x
-            papr.canvas.height = y
-          }
-        }
-
-      }} : js.ThisFunction2[js.Dynamic, Double, Double, Unit]
-    ), webix.ui.view.asInstanceOf[js.Object])
-
   }
 
 }
