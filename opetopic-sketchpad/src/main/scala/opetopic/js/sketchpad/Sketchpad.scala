@@ -279,9 +279,13 @@ object Sketchpad extends JSApp {
 
       val flagItr = new FlagIterator(intFace, reverse = true)
 
-      val c = FlagExtruder.extrudeFrom(flagItr, 0)
-      val csm = c.map(i => Some(SimpleMarker(i.toString)))
-      editor.newEditor(csm)
+      for { flg <- flagItr } {
+        println("Flag: " ++ flg.map(_.toString).mkString(" "))
+      }
+
+      // val c = FlagExtruder.extrudeFrom(flagItr, 0)
+      // val csm = c.map(i => Some(SimpleMarker(i.toString)))
+      // editor.newEditor(csm)
 
     }
 

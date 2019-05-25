@@ -14,14 +14,14 @@ import opetopic.mtl._
 // But this seems clunky and undesirable.
 // Here is a version without that assumption.
 
-trait HasDefault[A] {
-  def default: A
+trait Pointed[A] {
+  def pt: A
 }
 
 class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
   implicit
     r: Renderable[A],
-    d: HasDefault[A]
+    p: Pointed[A]
 ) extends ActiveStableGallery[F](frmwk)  {
 
   import framework._
@@ -96,8 +96,8 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
       case ||(cn) => {
         val bn = Traverse[MTree].map(cn)(buildCells(0, _))
 
-        val inEdge = new NeutralCell(-1, d.default, true)
-        val outEdge = new NeutralCell(-1, d.default, false)
+        val inEdge = new NeutralCell(-1, p.pt, true)
+        val outEdge = new NeutralCell(-1, p.pt, false)
         val en = SBox(outEdge, STree.obj(SDot(inEdge)))
 
         (||(new EditorPanel(0, bn, Right(en))), 0)
@@ -154,7 +154,7 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
 
     val ncn : MTree[STree[SNesting[NeutralCell]]] = 
       Traverse[MTree].map(ps.head.cardinalNesting)(
-        nst => nst.toTreeWith(_ => SDot(new NeutralCell(ps.head.dim + 1, d.default, true)))
+        nst => nst.toTreeWith(_ => SDot(new NeutralCell(ps.head.dim + 1, p.pt, true)))
       )
 
     val newPanel = new EditorPanel(ps.head.dim + 1, MFix(ncn), Left(ps.head))
@@ -223,7 +223,7 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
     }
 
   def extrudeSelection: Unit =
-    extrudeSelectionWith(d.default, d.default)
+    extrudeSelectionWith(p.pt, p.pt)
 
   def loopAtSelectionWith(tgtVal: A, fillVal: A) : Option[SCardAddr] = 
     selectionRoot match {
@@ -272,7 +272,7 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
     }
 
   def loopAtSelection : Unit = {
-    loopAtSelectionWith(d.default, d.default)
+    loopAtSelectionWith(p.pt, p.pt)
   }
 
   def sproutAtSelectionWith(srcVal: A, fillVal: A): Option[SCardAddr] = 
@@ -320,7 +320,7 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
     }
 
   def sproutAtSelection: Unit = {
-    sproutAtSelectionWith(d.default, d.default)
+    sproutAtSelectionWith(p.pt, p.pt)
   }
 
   //============================================================================================
@@ -431,7 +431,7 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
 
   class NegativeCell(val dim: Int) extends PolarizedCell {
 
-    var label: A = d.default
+    var label: A = p.pt
     var isExternal: Boolean = true
 
     val cellRendering: CellRendering = 
@@ -443,7 +443,7 @@ class CardinalEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[A])(
 
   class PositiveCell(val dim: Int) extends PolarizedCell {
 
-    var label: A = d.default
+    var label: A = p.pt
     var isExternal: Boolean = false
 
     val cellRendering: CellRendering = 
@@ -460,15 +460,15 @@ object CardinalEditor {
   // def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(
   //   implicit
   //     r: Renderable[A],
-  //     d: HasDefault[A]
+  //     d: Pointed[A]
   // ): CardinalEditor[A, F] =
   //   new CardinalEditor(f)(SCardinal(c))
 
   def apply[A, F <: ActiveFramework](f: F)(
     implicit
       r: Renderable[A],
-      d: HasDefault[A]
+      p: Pointed[A]
   ): CardinalEditor[A, F] =
-    new CardinalEditor(f)(SCardinal(d.default))
+    new CardinalEditor(f)(SCardinal(p.pt))
   
 }

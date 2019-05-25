@@ -30,7 +30,7 @@ class JsStableEditor[A: Renderable] {
   // TAB CLASS
   //
 
-  class EditorTab(c: SCardinal[Option[A]]) {
+  class EditorTab(c: SCardinal[Option[A]], tabName: String) {
 
     val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(c)
 
@@ -50,6 +50,11 @@ class JsStableEditor[A: Renderable] {
 
     editor.renderAll
     refreshDimensions
+
+    val tabItem = a(cls := "item", attr("data-tab") := "tab-" ++ tabName)(tabName).render
+    val tab = div(cls := "ui tab", attr("data-tab") := "tab-" ++ tabName)(
+      editor.element.uiElement
+    ).render
 
   }
 
@@ -188,26 +193,19 @@ class JsStableEditor[A: Renderable] {
   def newEditor: Unit = newEditor(SCardinal[A]())
   def newEditor(c: SCardinal[Option[A]]) : Unit = {
 
-    val editorTab = new EditorTab(c)
+    // Name is just the count ...
+    val editorTab = new EditorTab(c, tabCount.toString)
     tabs += editorTab
     tabCount += 1
+    
+    jQuery(paginationMenu).append(editorTab.tabItem)
+    jQuery(tabPane).append(editorTab.tab)
 
-    val cntStr = tabCount.toString
-    val tabName = "tab-" ++ cntStr
-
-    val tabItem = a(cls := "item", attr("data-tab") := tabName)(cntStr).render
-    val tab = div(cls := "ui tab", attr("data-tab") := tabName)(
-      editorTab.editor.element.uiElement
-    ).render
-
-    jQuery(paginationMenu).append(tabItem)
-    jQuery(tabPane).append(tab)
-
-    jQuery(tabItem).tab(lit(
+    jQuery(editorTab.tabItem).tab(lit(
       onVisible = (s: String) => { activeTab = Some(editorTab) }
     ))
 
-    jQuery(tabItem).click()
+    jQuery(editorTab.tabItem).click()
 
   }
 
@@ -216,44 +214,63 @@ class JsStableEditor[A: Renderable] {
       tab <- activeTab
     } { tab.editor.renderAll }
 
+  def closeEditor: Unit =
+    for {
+      tab <- activeTab
+    } {
+
+      jQuery(tab.tabItem).remove
+      jQuery(tab.tab).remove
+      tabs -= tab
+
+      if (tabs.length > 0) {
+        jQuery(tabs.head.tabItem).click()
+      }
+
+    }
+
   //============================================================================================
   // UI ELEMENTS
   //
 
-  val tabPane = div(cls := "ui middle attached nofocus segment", tabindex := 0, style := "min-height: 350px; background: none").render
+
   val paginationMenu = div(cls := "ui pagination menu").render
-  
-  val topMenu =
-    div(cls := "ui top attached borderless menu", style := "background: none")(
-      div(cls := "item")(
-        div(cls := "ui primary labeled dropdown icon button")(
-          span(cls := "text")("Shape"), i(cls := "dropdown icon"),
-          div(cls := "menu")(
-            div(cls := "item", style := "min-width: 150px", onclick := { () => doExtrude })(span(cls := "description")("e"), "Extrude"),
-            div(cls := "item", onclick := { () => doDrop })(span(cls := "description")("d"), "Drop"),
-            div(cls := "item", onclick := { () => doSprout })(span(cls := "description")("s"), "Sprout"),
-            div(cls := "item", onclick := { () => doExtract })(span(cls := "description")("x"), "Extract")
-          )
-        )
-      )
-    ).render
+
+  val sidebar = div(cls := "ui inverted visible vertical sidebar menu")(
+    div(cls := "item")(
+      div(cls := "ui input")(input(`type`:= "text", placeholder := "Label ..."))
+    )
+  ).render
+
+  val tabPane = div(cls := "ui basic segment", style := "background: grey; min-height: 600px; padding-left: 210px").render
+
+  val container = div(cls := "ui top attached nofocus inverted pushable segment", tabindex := 0)(
+    sidebar, div(cls := "pusher")(tabPane)
+  ).render
 
   val bottomMenu =
-    div(cls := "ui bottom attached segment", style := "background: none")(
+    div(cls := "ui bottom attached inverted segment")(
       div(cls := "ui grid")(
         div(cls := "four column row")(
           div(cls := "left floated column")(
+            // button(cls := "ui icon button", id := "sidebar-toggle")(i(cls := "sidebar icon")),
             paginationMenu
           ),
           div(cls := "right floated right aligned column")(
-            button(cls := "ui icon button", onclick := { () => newEditor })(i(cls := "add icon"))
+            button(cls := "ui icon button", onclick := { () => doExtrude })(i(cls := "square outline icon")),
+            button(cls := "ui icon button", onclick := { () => doDrop })(i(cls := "tint icon")),
+            button(cls := "ui icon button", onclick := { () => doSprout })(i(cls := "leaf outline icon")),
+            button(cls := "ui icon button", onclick := { () => doExtract })(i(cls := "cut icon")),
+
+            button(cls := "ui icon button", onclick := { () => newEditor })(i(cls := "plus icon")),
+            button(cls := "ui icon button", onclick := { () => closeEditor })(i(cls := "minus icon"))
           )
         )
       )
     ).render
 
   val uiElement =
-    div(topMenu, tabPane, bottomMenu).render
+    div(container, bottomMenu).render
 
 
   //============================================================================================
@@ -275,12 +292,10 @@ class JsStableEditor[A: Renderable] {
     tabWidth = jQuery(tabPane).width.toInt
     tabHeight = jQuery(tabPane).height.toInt
 
+    // jQuery(sidebar).sidebar(lit(context = container, dimPage = false, transition = "overlay")).sidebar("attach events", "#sidebar-toggle")
+
     // Install the key handler
     jQuery(uiElement).keypress(handleKeyEvent(_))
-
-    jQuery(topMenu).
-      find(".dropdown.button").
-      dropdown(lit(action = "hide"))
 
     jQuery(dom.window).on("resize", () => { resizeInstances })
 

@@ -44,6 +44,10 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.editor(env.isDev)(request.identity, webJarsUtil)))
   }
 
+  def colorEditor = silhouette.UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.coloredit(true)(request.identity, webJarsUtil)))
+  }
+
   /**
    * Handles the Sign Out action.
    *

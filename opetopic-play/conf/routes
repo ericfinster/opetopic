@@ -25,6 +25,9 @@ POST        /renderAddrProof                 controllers.SketchController.render
 # Editor
 GET         /editor                          controllers.ApplicationController.editor
 
+# Color Editor
+GET         /colorEditor                     controllers.ApplicationController.colorEditor
+
 #GET         /password/forgot                 controllers.ForgotPasswordController.view
 #POST        /password/forgot                 controllers.ForgotPasswordController.submit
 #GET         /password/reset/:token           controllers.ResetPasswordController.view(token: java.util.UUID)

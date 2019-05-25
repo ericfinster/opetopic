@@ -23,40 +23,48 @@
   </head>
 
   <body>
-
-    <div class="ui fixed inverted menu">
-      <div class="header item">Opetopic</div>
-      <a class="item" href="/">Home</a>
-      <div class="ui dropdown item" id="main-dropdown">
-	Tools
-	<i class="dropdown icon"></i>
-	<div class="menu">
-	  <a class="item" href="/sketchpad">SketchPad</a>
-	  <a class="item" href="/multiedit">MultiEdit</a>
-	  <a class="item" href="/coloredit">ColorEdit</a>
-	  <a class="item" href="/addrexplorer">AddrExplorer</a>
-	  <a class="item" href="/prover">Prover</a>
-	  <a class="item" href="/mtt">Mtt</a>
-	</div>
+    
+    <div class="ui fixed inverted menu" id="opetopic-menubar">
+      <div class="header item">
+	<i class="sidebar icon"></i>
+	Opetopic
       </div>
-      <a class="item" href="/docs">Documentation</a>
+      <!-- <a class="item" href="/">Home</a> -->
+      <!-- <div class="ui dropdown item" id="main-dropdown"> -->
+	<!-- 	Tools -->
+	<!-- 	<i class="dropdown icon"></i> -->
+	<!-- 	<div class="menu"> -->
+	  <!-- 	  <a class="item" href="/sketchpad">SketchPad</a> -->
+	  <!-- 	  <a class="item" href="/multiedit">MultiEdit</a> -->
+	  <!-- 	  <a class="item" href="/coloredit">ColorEdit</a> -->
+	  <!-- 	  <a class="item" href="/addrexplorer">AddrExplorer</a> -->
+	  <!-- 	  <a class="item" href="/prover">Prover</a> -->
+	  <!-- 	  <a class="item" href="/mtt">Mtt</a> -->
+	  <!-- 	</div> -->
+	<!-- </div> -->
+      <!-- <a class="item" href="/docs">Documentation</a> -->
       <div class="right menu">
 	@userOpt match {
-	  case None => { <a class="item" href="/signIn" id="login-btn">Log In</a> }
-	  case Some(user) => { <a class="item" href="/signOut" id="logout-btn">Log Out</a> }
+	case None => { <a class="item" href="/signIn" id="login-btn">Log In</a> }
+	case Some(user) => { <a class="item" href="/signOut" id="logout-btn">Log Out</a> }
 	}
       </div>
     </div>
-
+    
     <div class="content">
       @content
     </div>
-
+    
   </body>
 
-  <script type="text/javascript">
-    $("#main-dropdown").dropdown()
-  </script>
+  <style>
+    .content { padding-top: 40px; }
+  </style>
+  
+  <!-- <script type="text/javascript"> -->
+  <!--   $("#main-dropdown").dropdown() -->
+  <!--   $("#opetopic-sidebar").sidebar('attach events', '#sidebar-toggle') -->
+  <!-- </script> -->
 
 </html>
 
