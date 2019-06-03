@@ -18,6 +18,7 @@ import opetopic._
 import opetopic.ui._
 import opetopic.js._
 import opetopic.mtl._
+import opetopic.editor.ui._
 
 import JsDomFramework._
 import JQuerySemanticUI._
@@ -27,95 +28,105 @@ object Editor {
   val editor = new SimpleCardinalEditor[SimpleMarker]()
   val viewer = new SimpleViewer[Option[SimpleMarker]]
 
-  type EditorCell = editor.StableCell
+  val faceViewer = new SimpleViewer[Option[SimpleMarker]]
+  val linkViewer = new SimpleViewer[Option[SimpleMarker]]
 
-  editor.onSelectAsRoot = (c: EditorCell) => {
-    showRootFace
-  }
+  type EditorCell = editor.StableCell
+  type ViewerCell = viewer.CellType
+
+  editor.onSelectAsRoot = (c: EditorCell) => { onEditorSelect(c) }
+  viewer.onSelectAsRoot = (c: ViewerCell) => { onViewerSelect(c) }
 
   // UI Elements
 
-  val topPane =
-    div(id := "top-pane")(
-      div(cls := "ui grey inverted segment", style := "margin-bottom: 0px")(
-        viewer.uiElement
-      ),
-      div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-        a(cls := "item", onclick := { () => onPush })(i(cls := "archive icon"), "Push")
-      )
-    ).render
-
-  val divider = div(id := "divider",
-    style := "min-height: 5px; background: #36383a; cursor: ns-resize;"
-  ).render
-
-  val bottomMenu = div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-    a(cls := "item", onclick := { () => onNew })(i(cls := "file outline icon"), "New"),
-    a(cls := "item", onclick := { () => editor.editor.extrudeSelection })(i(cls := "square outline icon"), "Extrude"),
-    a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
-    a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
-    div(cls := "item")(
-      div(cls := "ui input")(input(`type` := "text", id := "label-input", placeholder := "Label ..."))
-    ),
-    div(cls := "ui dropdown item")(
-      div(cls := "text")("Auto Label"),
-      i(cls := "dropdown icon"),
-      div(cls := "menu")(
-        div(cls := "header")("Type"),
-        div(cls := "item", onclick := { () => autoLabel(false) })("Numeric"),
-        div(cls := "item", onclick := { () => autoLabel(true) })("Alphabetic")
-      )
-    ),
-    div(cls := "right menu")(
-      a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
-      a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
+  val viewerPane =
+    new FixedBottomPane(
+      viewer,
+      PlainComponent(
+        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
+          a(cls := "item", onclick := { () => onPush })(i(cls := "archive icon"), "Push")
+        ).render)
     )
-  ).render
 
-  val bottomPane = 
-    div(id := "bottom-pane")(
-      div(cls := "ui grey inverted segment", style := "margin-bottom: 0;")(
-        editor.uiElement
-      ),
-      bottomMenu
-    ).render
+  val editorPane =
+    new FixedBottomPane(
+      editor,
+      PlainComponent(
+        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
+          a(cls := "item", onclick := { () => onNew })(i(cls := "file outline icon"), "New"),
+          a(cls := "item", onclick := { () => editor.editor.extrudeSelection })(i(cls := "square outline icon"), "Extrude"),
+          a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
+          a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
+          div(cls := "item")(
+            div(cls := "ui input")(input(`type` := "text", id := "label-input", placeholder := "Label ..."))
+          ),
+          div(cls := "ui dropdown item")(
+            div(cls := "text")("Auto Label"),
+            i(cls := "dropdown icon"),
+            div(cls := "menu")(
+              div(cls := "header")("Type"),
+              div(cls := "item", onclick := { () => autoLabel(false) })("Numeric"),
+              div(cls := "item", onclick := { () => autoLabel(true) })("Alphabetic")
+            )
+          ),
+          div(cls := "right menu")(
+            a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
+            a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
+          )
+        ).render)
+    )
 
-  val uiElement =
-    div(cls := "split-pane", style := "height: 100%;")(
-      topPane,
-      divider,
-      bottomPane
-    ).render
+  val inspectorPane = 
+    new FixedBottomPane(
+      new VerticalSplitPane(faceViewer, linkViewer),
+      PlainComponent(
+        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
+          a(cls := "item", onclick := { () => () })(i(cls := "question circle outline icon"), "Something")
+        ).render)
+    )
 
-  def showRootFace: Unit =
-    for {
-      root <- editor.editor.selectionRoot
-      face <- root.face
-    } {
+  val editorTab = new Tab("editor-tab", editorPane, true)
+  val inspectorTab = new Tab("inspector-tab", inspectorPane)
+  val colorTab = new Tab("color-tab", PlainComponent(p("This is the coloring tab").render))
+
+  val tabPane = new TabPane(editorTab, inspectorTab, colorTab)
+
+  val vertSplitPane =
+    new VerticalSplitPane(viewerPane, tabPane)
+
+  def onEditorSelect(c: EditorCell): Unit =
+    for { face <- c.face } {
       viewer.complex = Some(face)
-      // Have to resize the viewer here, since it will be overwritten ...
+    }
+
+  def onViewerSelect(c: ViewerCell): Unit =
+    for { cmplx <- viewer.complex ; face <- c.face } {
+
+      faceViewer.complex = Some(face)
+
+      val linkItr = new FlagIterator[Option[SimpleMarker]](cmplx, Some(c.faceAddress), true, true)
+
+      //  Hacky.  SCardinal needs a method for extracting a face ....
+      val s = Suite.fromList(List.fill(face.dim + 2)((None, None))).get
+      val card = FlagExtruder.extrudeFrom(linkItr, None)
+
+      val res = card.cardinalComplex.map({
+        case Positive() => None
+        case Negative() => None
+        case Neutral(o) => o
+      })
+
+      linkViewer.complex = res.sourceAt(rootCardinalAddr(card.dim).complexAddress)
+
     }
 
   def handleResize: Unit = {
 
-    val uiWidth = jQuery(uiElement).width.toInt
+    val uiWidth = jQuery("#editor-div").width.toInt
     val uiHeight = jQuery(".content").first.height.toInt
 
-    val topInnerHeight = .5 * uiHeight
-
-    jQuery(viewer.uiElement).width(uiWidth)
-    jQuery(viewer.uiElement).height(.4 * uiHeight)
-    viewer.resizeViewport
-
-    val usedHeight = jQuery(topPane).height() + jQuery(divider).height()
-    val bottomMenuHeight = jQuery(bottomMenu).height.toInt
-
-    jQuery(editor.uiElement).width(uiWidth)
-    // This is pretty hacky.  The 28 comes from the padding on the segment you've
-    // used.  But maybe just fix the background color instead so you can remove
-    // the extra segment?  Dunno ...
-    jQuery(editor.uiElement).height(uiHeight - usedHeight - bottomMenuHeight - 28)
-    editor.resizeViewport
+    vertSplitPane.setWidth(uiWidth)
+    vertSplitPane.setHeight(uiHeight)
 
   }
 
@@ -145,7 +156,7 @@ object Editor {
         }
 
       editor.editor.renderAll
-      // showRootFace
+      // onEditorSelect
 
     }
 
@@ -216,17 +227,19 @@ object Editor {
     })
 
     editor.editor.renderAll
-    showRootFace
+    // onEditorSelect
     
   }
 
 
   def main: Unit = {
 
-    jQuery("#editor-div").append(uiElement)
-    jQuery("#label-input").on("input", () => { updateLabel })
+    jQuery("#editor-div").append(vertSplitPane.uiElement)
 
+    jQuery("#label-input").on("input", () => { updateLabel })
     jQuery(".ui.dropdown.item").dropdown(lit(direction = "upward", action = "hide"))
+    // kind of a hack to make the tab resize correctly....
+    jQuery(".ui.sidebar.menu .item").tab(lit(onVisible = { () => jQuery(dom.window).trigger("resize") }))
 
     jQuery("#editor-left-sidebar").accordion()
 

@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.editor
+package opetopic.editor.ui
 
 import org.scalajs.dom
 import org.scalajs.jquery._
@@ -18,7 +18,7 @@ import opetopic.ui._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class SimpleViewer[A: Renderable] {
+class SimpleViewer[A: Renderable] extends Component {
 
   type GalleryType = SimpleActiveGallery[A, JsDomFramework.type]
   type CellType = GalleryType#SimpleActiveCell
@@ -65,7 +65,6 @@ class SimpleViewer[A: Renderable] {
         activeComplex = Some(cc)
 
         g.renderAll
-        resizeViewport
 
       }
     }
@@ -73,13 +72,19 @@ class SimpleViewer[A: Renderable] {
   val uiElement = 
     div().render
 
-  def resizeViewport: Unit =
+  override def setWidth(w: Int): Unit = {
+    super.setWidth(w)
     for { g <- activeGallery } {
-      g.galleryViewport.width =
-        jQuery(uiElement).width.toInt
-      g.galleryViewport.height =
-        jQuery(uiElement).height.toInt
+      g.galleryViewport.width = w
     }
+  }
+
+  override def setHeight(h: Int): Unit = {
+    super.setHeight(h)
+    for {g <- activeGallery } {
+      g.galleryViewport.height = h
+    }
+  }
 
   def setViewport(bnds: Bounds): Bounds = {
 

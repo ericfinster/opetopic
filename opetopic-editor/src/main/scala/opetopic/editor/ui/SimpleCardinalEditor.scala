@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.editor
+package opetopic.editor.ui
 
 import scala.collection.mutable.Buffer
 
@@ -21,7 +21,7 @@ import opetopic.mtl._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A]()) {
+class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A]()) extends Component {
 
   type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
 
@@ -42,16 +42,19 @@ class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A
       editor.element.uiElement
     ).render
 
+  override def setWidth(w: Int): Unit = {
+    super.setWidth(w)
+    editor.galleryViewport.width = w
+  }
+
+  override def setHeight(h: Int): Unit = {
+    super.setHeight(h)
+    editor.galleryViewport.height = h
+  }
+
   //============================================================================================
   // EVENT HANDLERS
   //
-
-  def resizeViewport: Unit = {
-    editor.galleryViewport.width =
-      jQuery(uiElement).width.toInt
-    editor.galleryViewport.height = 
-      jQuery(uiElement).height.toInt
-  }
 
   def handleKeyEvent(ev: JQueryEventObject): Unit = {
     ev.which match {
