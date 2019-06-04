@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.editor.ui
+package opetopic.studio.ui
 
 import scala.collection.mutable.Buffer
 

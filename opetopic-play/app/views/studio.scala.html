@@ -1,19 +1,28 @@
 @import org.webjars.play.WebJarsUtil
 @import play.api.Play
+@import models.Sketch
 
-@(isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
+@(sketches: Seq[Sketch], isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
 
-@main("Editor") {
+@main("Studio") {
 
   <div class="ui basic pushable segment" style="margin-bottom: 0px">
   
     <div class="ui left vertical visible inverted sidebar accordion menu" id="editor-left-sidebar">
+      @if(userOpt.isDefined) {
+        @for(s <- sketches) {
+          <div class="item">
+	    <a class="title"><i class="dropdown icon"></i>@s.name</a>
+	    <div class="content" data-name="@s.name" data-id="@s.sketchId.toString" data-loaded="false"></div>
+	  </div>
+	}
+      } 
     </div>
 
     <div class="ui right inverted visible labeled inline vertical sidebar icon menu">
       <a class="active item" data-tab="editor-tab">
 	<i class="pencil icon"></i>
-	Create
+	Edit
       </a>
       <a class="item" data-tab="inspector-tab">
 	<i class="eye icon"></i>
@@ -23,10 +32,6 @@
 	<i class="paint brush icon"></i>
 	Color
       </a>
-      <!-- <a class="item"> -->
-      <!-- 	<i class="adjust icon"></i> -->
-      <!-- 	Tensor -->
-      <!-- </a> -->
     </div>
     
     <div class="pusher">
@@ -36,9 +41,9 @@
   </div>
 
   @if(isDev) {
-    <script src='@routes.Assets.at("opetopiceditor-fastopt.js")' type="text/javascript"></script>
+    <script src='@routes.Assets.at("opetopicstudio-fastopt.js")' type="text/javascript"></script>
   } else {
-    <script src='@routes.Assets.at("opetopiceditor-opt.js")' type="text/javascript"></script>
+    <script src='@routes.Assets.at("opetopicstudio-opt.js")' type="text/javascript"></script>
   }
 
 }

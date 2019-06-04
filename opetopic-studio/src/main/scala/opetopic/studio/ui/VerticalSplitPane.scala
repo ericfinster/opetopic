@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.editor.ui
+package opetopic.studio.ui
 
 import org.scalajs.jquery._
 import scalatags.JsDom.all._

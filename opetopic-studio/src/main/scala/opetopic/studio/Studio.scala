@@ -1,18 +1,23 @@
 /**
-  * Editor.scala - Playing with a new editor interface
+  * Studio.scala - The opetopic studio 
   * 
   * @author Eric Finster
   * @version 0.1 
   */
 
-package opetopic.editor
+package opetopic.studio
+
+import scala.collection.mutable.Buffer
 
 import scala.scalajs.js
 import scala.scalajs.js.timers._
 import org.scalajs.jquery._
 import org.scalajs.dom
+import org.scalajs.dom.Element
 import scalatags.JsDom.all._
 import js.Dynamic.{literal => lit}
+
+import scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import opetopic._
 import opetopic.ui._
@@ -23,7 +28,7 @@ import opetopic.editor.ui._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-object Editor {
+object Studio {
 
   val editor = new SimpleCardinalEditor[SimpleMarker]()
   val viewer = new SimpleViewer[Option[SimpleMarker]]
@@ -185,7 +190,7 @@ object Editor {
     val uiElement =
       div(cls := "item")(
         a(cls := "active title")(i(cls := "dropdown icon"), "Untitled"),
-        div(cls := "active content")(
+        div(cls := "active content", attr("data-loaded") := true)(
           div(cls := "ui grey inverted segment")(previewPane.uiElement)
         )
       ).render
@@ -212,6 +217,57 @@ object Editor {
 
     }
 
+  }
+
+  class SketchEntry(val name: String, val id: String) {
+    val previewPane = new SimpleViewer[Option[SimpleMarker]]
+    previewPane.scale = 1.0
+    val uiElement = div(cls := "ui grey inverted segment")(previewPane.uiElement).render
+  }
+
+  val loadedSketches: Buffer[SketchEntry] = Buffer()
+
+  def onOpenSketch(content: Element): Unit = {
+    for { isLoadedStr <- jQuery(content).attr("data-loaded").toOption } {
+      if (! isLoadedStr.toBoolean) {
+        for {
+          id <- jQuery(content).attr("data-id").toOption
+          nm <- jQuery(content).attr("data-name").toOption
+        } {
+
+          import upickle.default._
+          import opetopic.net.LoadSketchRequest
+
+          val req = LoadSketchRequest(id)
+
+          dom.ext.Ajax.post(
+            url = "/getSketch",
+            data = write(req),
+            headers = Map(
+              ("X-Requested-With" -> "*"),
+              ("CSRF-Token" -> "nocheck")
+            ),
+            withCredentials = true
+          ).map(_.responseText).foreach(json => {
+
+            val c : SComplex[Option[SimpleMarker]] =
+              complexFromJson[Option[SimpleMarker]](upickle.json.read(json))
+
+            val entry = new SketchEntry(nm, id)
+
+            jQuery(content).append(entry.uiElement)
+            jQuery(entry.previewPane.uiElement).height(75)
+            jQuery(entry.previewPane.uiElement).width(200)
+            entry.previewPane.complex = Some(c)
+
+            jQuery(content).attr("data-loaded", true)
+            loadedSketches += entry
+
+          })
+
+        }
+      }
+    }
   }
 
   def autoLabel(letters: Boolean): Unit = {
@@ -241,7 +297,9 @@ object Editor {
     // kind of a hack to make the tab resize correctly....
     jQuery(".ui.sidebar.menu .item").tab(lit(onVisible = { () => jQuery(dom.window).trigger("resize") }))
 
-    jQuery("#editor-left-sidebar").accordion()
+    jQuery("#editor-left-sidebar").accordion(
+      lit(onOpening = { (content: Element) =>
+        onOpenSketch(content) } : js.ThisFunction))
 
     // Install the resize handler and trigger the event
     // to set defaults ...

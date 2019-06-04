@@ -5,7 +5,7 @@
   * @version 0.1 
   */
 
-package opetopic.editor.ui
+package opetopic.studio.ui
 
 import org.scalajs.dom.html._
 import org.scalajs.jquery._

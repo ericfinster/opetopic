@@ -22,8 +22,11 @@ POST        /renderSketch                    controllers.SketchController.render
 POST        /deleteSketch                    controllers.SketchController.deleteSketch
 POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
 
-# Editor
-GET         /editor                          controllers.ApplicationController.editor
+# Studio
+GET         /studio                          controllers.StudioController.studio
+POST        /saveSketch                      controllers.StudioController.saveSketch
+POST        /getSketch                       controllers.StudioController.getSketch
+POST        /deleteSketch                    controllers.StudioController.deleteSketch
 
 # Color Editor
 GET         /colorEditor                     controllers.ApplicationController.colorEditor

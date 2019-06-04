@@ -39,11 +39,6 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.index()(request.identity, webJarsUtil)))
   }
 
-  // An editor action to start working on new ui
-  def editor = silhouette.UserAwareAction.async { implicit request =>
-    Future.successful(Ok(views.html.editor(env.isDev)(request.identity, webJarsUtil)))
-  }
-
   def colorEditor = silhouette.UserAwareAction.async { implicit request =>
     Future.successful(Ok(views.html.coloredit(true)(request.identity, webJarsUtil)))
   }

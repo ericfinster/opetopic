@@ -30,7 +30,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicEditor, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicStudio, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -67,11 +67,11 @@ lazy val opetopicPlay = (project in file("opetopic-play")).
   aggregate(clients.map(projectToRef): _*).
   dependsOn(opetopicCoreJvm)
 
-lazy val opetopicEditor = (project in file("opetopic-editor")).
+lazy val opetopicStudio = (project in file("opetopic-studio")).
   settings(commonSettings: _*).
   settings(
     scalaJSUseMainModuleInitializer := true,
-    mainClass in Compile := Some("opetopic.editor.Editor"),
+    mainClass in Compile := Some("opetopic.studio.Studio"),
     resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(
