@@ -220,9 +220,37 @@ object Studio {
   }
 
   class SketchEntry(val name: String, val id: String) {
+
     val previewPane = new SimpleViewer[Option[SimpleMarker]]
     previewPane.scale = 1.0
-    val uiElement = div(cls := "ui grey inverted segment")(previewPane.uiElement).render
+
+    val uiElement =
+      div(
+        div(cls := "ui grey inverted top attached segment")(
+          previewPane.uiElement
+        ),
+        div(cls := "ui grey inverted bottom attached right aligned segment", style := "padding: 3px;")(
+          button(cls := "ui mini icon button", onclick := { () => onEditEntry })(i(cls := "pencil icon")),
+          button(cls := "ui mini icon button", onclick := { () => onInspectEntry })(i(cls := "eye icon")),
+          button(cls := "ui mini icon button", onclick := { () => onDeleteEntry })(i(cls := "trash icon"))
+        )
+      ).render
+
+    def onInspectEntry: Unit = {
+      viewer.complex = previewPane.complex
+    }
+
+    def onEditEntry: Unit =
+      for { c <- previewPane.complex } {
+        // Show also switch modes here ....
+        editor.editor.cardinal = SCardinal(c)
+        editor.editor.renderAll
+      }
+
+    def onDeleteEntry: Unit = {
+      // Nothing here yet
+    }
+
   }
 
   val loadedSketches: Buffer[SketchEntry] = Buffer()
