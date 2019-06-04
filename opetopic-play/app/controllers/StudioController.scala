@@ -90,10 +90,7 @@ class StudioController @Inject() (
     request.body.asText.map { text => 
 
       val req = read[DeleteSketchRequest](text)
-
-      sketchDAO.deleteSketch(UUID.fromString(req.id)).map {
-        (i: Int) => Ok("Deleted " + i.toString + " sketch")
-      }
+      sketchDAO.deleteSketch(UUID.fromString(req.id)).map(_ => Ok("ok"))
 
     } getOrElse Future.successful(BadRequest("Bad delete request"))
 
@@ -118,8 +115,8 @@ class StudioController @Inject() (
       )
 
       for {
-        _ <- sketchDAO.save(request.identity, sketch)
-      } yield Ok("Save complete")
+        s <- sketchDAO.save(request.identity, sketch)
+      } yield Ok("ok " + s.sketchId.toString)
 
     } getOrElse Future.successful(BadRequest("Bad save request"))
 

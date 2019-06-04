@@ -15,12 +15,12 @@ GET         /signIn                          controllers.SignInController.view
 POST        /signIn                          controllers.SignInController.submit
 
 # Sketchpad 
-GET         /sketchpad                       controllers.SketchController.sketchpad
-POST        /saveSketch                      controllers.SketchController.saveSketch
-POST        /getSketch                       controllers.SketchController.getSketch
-POST        /renderSketch                    controllers.SketchController.renderSketch
-POST        /deleteSketch                    controllers.SketchController.deleteSketch
-POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
+#GET         /sketchpad                       controllers.SketchController.sketchpad
+#POST        /saveSketch                      controllers.SketchController.saveSketch
+#POST        /getSketch                       controllers.SketchController.getSketch
+#POST        /renderSketch                    controllers.SketchController.renderSketch
+#POST        /deleteSketch                    controllers.SketchController.deleteSketch
+#POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
 
 # Studio
 GET         /studio                          controllers.StudioController.studio

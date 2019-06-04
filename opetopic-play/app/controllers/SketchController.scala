@@ -106,7 +106,7 @@ class SketchController @Inject() (
       val req = read[SaveSketchRequest](text)
       val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(req.data))
 
-      println("Read a complex: " ++ c.toString)
+      // println("Read a complex: " ++ c.toString)
 
       val sketch = Sketch(
         UUID.randomUUID(),
@@ -118,8 +118,8 @@ class SketchController @Inject() (
       )
 
       for {
-        _ <- sketchDAO.save(request.identity, sketch)
-      } yield Ok("Save complete")
+        s <- sketchDAO.save(request.identity, sketch)
+      } yield Ok("save ok")
 
     } getOrElse Future.successful(BadRequest("Bad save request"))
 

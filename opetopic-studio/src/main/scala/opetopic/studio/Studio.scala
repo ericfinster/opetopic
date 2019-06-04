@@ -49,7 +49,12 @@ object Studio {
       viewer,
       PlainComponent(
         div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-          a(cls := "item", onclick := { () => onPush })(i(cls := "archive icon"), "Push")
+          div(cls := "item")(
+            div(cls := "ui action input")(
+              input(id := "sketch-name-input", `type` := "text", placeholder := "Name ...", onchange := { () => onSaveSketch }),
+              button(cls := "ui button")("Save")
+            )
+          )
         ).render)
     )
 
@@ -135,6 +140,23 @@ object Studio {
 
   }
 
+  def autoLabel(letters: Boolean): Unit = {
+    var lbl: Int = 0
+    val card = editor.editor.cardinal
+    card.map((n: editor.editor.NeutralCell) => {
+      n.label = if (letters) {
+        Some(SimpleMarker((lbl + 97).toChar.toString))
+      } else {
+        Some(SimpleMarker(lbl.toString))
+      }
+      lbl += 1
+    })
+
+    editor.editor.renderAll
+    // onEditorSelect
+    
+  }
+
   def updateLabel: Unit =
     for {
       root <- editor.editor.selectionRoot
@@ -180,45 +202,6 @@ object Studio {
     editor.editor.renderAll
   }
 
-  // Helper classes for the cell stack
-
-  class CellEntry {
-
-    val previewPane = new SimpleViewer[Option[SimpleMarker]]
-    previewPane.scale = 1.0
-
-    val uiElement =
-      div(cls := "item")(
-        a(cls := "active title")(i(cls := "dropdown icon"), "Untitled"),
-        div(cls := "active content", attr("data-loaded") := true)(
-          div(cls := "ui grey inverted segment")(previewPane.uiElement)
-        )
-      ).render
-
-  }
-
-  def onPush: Unit = {
-
-    // So, the point here should be to add the currect face to the
-    // face list.  So we need to make a little preview pane for it
-    // with some controls for inspecting and so on and push it to
-    // the list.
-
-    for {
-      face <- viewer.complex
-    } {
-
-      val cellEntry = new CellEntry
-
-      jQuery("#editor-left-sidebar").append(cellEntry.uiElement)
-      jQuery(cellEntry.previewPane.uiElement).height(75)
-      jQuery(cellEntry.previewPane.uiElement).width(200)
-      cellEntry.previewPane.complex = Some(face)
-
-    }
-
-  }
-
   class SketchEntry(val name: String, val id: String) {
 
     val previewPane = new SimpleViewer[Option[SimpleMarker]]
@@ -230,8 +213,8 @@ object Studio {
           previewPane.uiElement
         ),
         div(cls := "ui grey inverted bottom attached right aligned segment", style := "padding: 3px;")(
-          button(cls := "ui mini icon button", onclick := { () => onEditEntry })(i(cls := "pencil icon")),
           button(cls := "ui mini icon button", onclick := { () => onInspectEntry })(i(cls := "eye icon")),
+          button(cls := "ui mini icon button", onclick := { () => onEditEntry })(i(cls := "pencil icon")),
           button(cls := "ui mini icon button", onclick := { () => onDeleteEntry })(i(cls := "trash icon"))
         )
       ).render
@@ -248,7 +231,7 @@ object Studio {
       }
 
     def onDeleteEntry: Unit = {
-      // Nothing here yet
+      onDeleteSketch(this)
     }
 
   }
@@ -298,23 +281,91 @@ object Studio {
     }
   }
 
-  def autoLabel(letters: Boolean): Unit = {
-    var lbl: Int = 0
-    val card = editor.editor.cardinal
-    card.map((n: editor.editor.NeutralCell) => {
-      n.label = if (letters) {
-        Some(SimpleMarker((lbl + 97).toChar.toString))
-      } else {
-        Some(SimpleMarker(lbl.toString))
-      }
-      lbl += 1
-    })
+  def onDeleteSketch(entry: SketchEntry): Unit = {
 
-    editor.editor.renderAll
-    // onEditorSelect
-    
+      import upickle.default._
+      import opetopic.net.DeleteSketchRequest
+
+      val req = DeleteSketchRequest(entry.id)
+
+      dom.ext.Ajax.post(
+        url = "/deleteSketch",
+        data = write(req),
+        headers = Map(
+          ("X-Requested-With" -> "*"),
+          ("CSRF-Token" -> "nocheck")
+        ),
+        withCredentials = true
+      ).map(_.responseText).foreach(text => {
+        text match {
+          case "ok" => {
+
+            jQuery(entry.uiElement).parent.parent.remove
+            loadedSketches -= entry
+
+          }
+          case _ => { println("delete failed") }
+        }
+      })
+
   }
 
+
+  def onSaveSketch: Unit =
+    for { cmplx <- viewer.complex } {
+
+      import org.scalajs.dom
+      import upickle.default._
+      import opetopic.net.SaveSketchRequest
+
+      val name =
+        jQuery("#sketch-name-input").value.asInstanceOf[String] match {
+          case "" => "Untitled"
+          case s => s
+        }
+
+      val req = SaveSketchRequest(name, "", "", complexToJson(cmplx))
+
+      dom.ext.Ajax.post(
+        url = "/saveSketch",
+        data = write(req),
+        headers = Map(
+          ("X-Requested-With" -> "*"),
+          ("CSRF-Token" -> "nocheck")
+        ),
+        withCredentials = true
+      ).map(_.responseText).foreach(resp => {
+        val strs = resp.split(" ")
+        if (strs.length > 1) {
+          strs(0) match {
+            case "ok" => {
+              println("save success, id: " ++ strs(1))
+
+              val entry = new SketchEntry(name, strs(1))
+              
+              val uiEl = div(cls := "item")(
+                a(cls := "title")(i(cls := "dropdown icon"), name),
+                div(cls := "content", attr("data-name") := name,
+                  attr("data-id") := strs(1),
+                  attr("data-loaded") := true)( 
+                  entry.uiElement
+                )
+              ).render
+              
+              jQuery("#editor-left-sidebar").append(uiEl)
+              jQuery(entry.previewPane.uiElement).height(75)
+              jQuery(entry.previewPane.uiElement).width(200)
+              entry.previewPane.complex = Some(cmplx)
+
+              loadedSketches += entry
+              
+            }
+            case _ => println("save failed: " ++ resp)
+          }
+        }
+      })
+
+    }
 
   def main: Unit = {
 
