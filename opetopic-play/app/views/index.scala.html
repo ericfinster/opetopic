@@ -12,37 +12,21 @@
 }
 
 @main("Home") {
-
-  <style>
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-    }
-  </style>
-
+	  
   <div class="main">
     <div class="ui container" style="margin-top: 60px;">
 
-      <div class="ui inverted raised segment">
+      <div class="ui inverted grey raised segment">
 
 	<h2 class="ui dividing header">@greeting(userOpt)</h2>
 
-	<p>
-	  Opetopic is an experimental graphical proof assistant for 
-	  higher category theory. 
-	</p>
-
-	<div class="ui basic center aligned inverted grey segment">
+	<div class="ui center aligned inverted grey segment">
 	  @svgs.unitright()
 	</div>
 
-	<p>
-	  The above diagram is a diagrammatic proof of the right unit
-	  law for morphisms in a higher category.  For an explanation
-	  of what this means, see
-	  the <a href="/docs">documentation</a>.
-	</p>
-
+	<div class="ui bottom attach center aligned inverted grey segment">
+	  <a class = "ui green button" href="/studio">Launch the Studio!</a>
+	</div>
       </div>
 
     </div>

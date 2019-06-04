@@ -70,7 +70,7 @@ class SimpleViewer[A: Renderable] extends Component {
     }
 
   val uiElement = 
-    div().render
+    div(cls := "ui inverted grey plain segment", style := "margin: 0; padding: 0").render
 
   override def setWidth(w: Int): Unit = {
     super.setWidth(w)

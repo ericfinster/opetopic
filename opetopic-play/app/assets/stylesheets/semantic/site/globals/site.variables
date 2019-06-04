@@ -6,7 +6,7 @@
         Page
 --------------------*/
 
-@pageBackground      : grey; 
+@pageBackground      : black; 
 
 /*-------------------
         Paths

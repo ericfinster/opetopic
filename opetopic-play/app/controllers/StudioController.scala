@@ -103,7 +103,7 @@ class StudioController @Inject() (
       val req = read[SaveSketchRequest](text)
       val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(req.data))
 
-      println("Read a complex: " ++ c.toString)
+      // println("Read a complex: " ++ c.toString)
 
       val sketch = Sketch(
         UUID.randomUUID(),

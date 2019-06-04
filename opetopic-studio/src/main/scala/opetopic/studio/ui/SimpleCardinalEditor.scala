@@ -37,8 +37,8 @@ class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A
   // UI ELEMENTS
   //
 
-  val uiElement =
-    div(tabindex := 0, cls := "nofocus")(
+  val uiElement = 
+    div(tabindex := 0, cls := "ui inverted grey nofocus plain segment", style := "margin: 0; padding: 0;")(
       editor.element.uiElement
     ).render
 

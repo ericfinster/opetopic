@@ -8,6 +8,7 @@
 package opetopic.studio
 
 import scala.collection.mutable.Buffer
+import scala.concurrent.Future
 
 import scala.scalajs.js
 import scala.scalajs.js.timers._
@@ -23,7 +24,7 @@ import opetopic._
 import opetopic.ui._
 import opetopic.js._
 import opetopic.mtl._
-import opetopic.editor.ui._
+import opetopic.studio.ui._
 
 import JsDomFramework._
 import JQuerySemanticUI._
@@ -238,6 +239,11 @@ object Studio {
 
   val loadedSketches: Buffer[SketchEntry] = Buffer()
 
+  def isLoggedIn: Boolean = {
+    jQuery("#login-status").attr("data-connected").
+      toOption.map(_.toBoolean).getOrElse(false)
+  }
+
   def onOpenSketch(content: Element): Unit = {
     for { isLoadedStr <- jQuery(content).attr("data-loaded").toOption } {
       if (! isLoadedStr.toBoolean) {
@@ -286,6 +292,8 @@ object Studio {
       import upickle.default._
       import opetopic.net.DeleteSketchRequest
 
+    (if (isLoggedIn) {
+
       val req = DeleteSketchRequest(entry.id)
 
       dom.ext.Ajax.post(
@@ -296,17 +304,17 @@ object Studio {
           ("CSRF-Token" -> "nocheck")
         ),
         withCredentials = true
-      ).map(_.responseText).foreach(text => {
-        text match {
-          case "ok" => {
-
-            jQuery(entry.uiElement).parent.parent.remove
-            loadedSketches -= entry
-
-          }
-          case _ => { println("delete failed") }
-        }
+      ).map(_.responseText).map({
+        case "ok" => true
+        case _ => false
       })
+
+    } else Future { true }).foreach(removeUi => {
+      if (removeUi) {
+        jQuery(entry.uiElement).parent.parent.remove
+        loadedSketches -= entry
+      }
+    })
 
   }
 
@@ -324,45 +332,46 @@ object Studio {
           case s => s
         }
 
-      val req = SaveSketchRequest(name, "", "", complexToJson(cmplx))
+      (if (isLoggedIn) {
 
-      dom.ext.Ajax.post(
-        url = "/saveSketch",
-        data = write(req),
-        headers = Map(
-          ("X-Requested-With" -> "*"),
-          ("CSRF-Token" -> "nocheck")
-        ),
-        withCredentials = true
-      ).map(_.responseText).foreach(resp => {
-        val strs = resp.split(" ")
-        if (strs.length > 1) {
-          strs(0) match {
-            case "ok" => {
-              println("save success, id: " ++ strs(1))
+        val req = SaveSketchRequest(name, "", "", complexToJson(cmplx))
 
-              val entry = new SketchEntry(name, strs(1))
-              
-              val uiEl = div(cls := "item")(
-                a(cls := "title")(i(cls := "dropdown icon"), name),
-                div(cls := "content", attr("data-name") := name,
-                  attr("data-id") := strs(1),
-                  attr("data-loaded") := true)( 
-                  entry.uiElement
-                )
-              ).render
-              
-              jQuery("#editor-left-sidebar").append(uiEl)
-              jQuery(entry.previewPane.uiElement).height(75)
-              jQuery(entry.previewPane.uiElement).width(200)
-              entry.previewPane.complex = Some(cmplx)
-
-              loadedSketches += entry
-              
-            }
-            case _ => println("save failed: " ++ resp)
+        dom.ext.Ajax.post(
+          url = "/saveSketch",
+          data = write(req),
+          headers = Map(
+            ("X-Requested-With" -> "*"),
+            ("CSRF-Token" -> "nocheck")
+          ),
+          withCredentials = true
+        ).map(req => {
+          req.responseText.split(" ").toList match {
+            case "ok" :: id :: Nil => Some(id)
+            case _ => None
           }
-        }
+        })
+
+      } else Future { None }).map(idOpt => {
+
+        val id = idOpt getOrElse ""
+        val entry = new SketchEntry(name, id)
+        
+        val uiEl = div(cls := "item")(
+          a(cls := "title")(i(cls := "dropdown icon"), name),
+          div(cls := "content", attr("data-name") := name,
+            attr("data-id") := id,
+            attr("data-loaded") := true)(
+            entry.uiElement
+          )
+        ).render
+        
+        jQuery("#editor-left-sidebar").append(uiEl)
+        jQuery(entry.previewPane.uiElement).height(75)
+        jQuery(entry.previewPane.uiElement).width(200)
+        entry.previewPane.complex = Some(cmplx)
+
+        loadedSketches += entry
+
       })
 
     }
