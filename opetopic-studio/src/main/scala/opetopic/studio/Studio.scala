@@ -115,19 +115,24 @@ object Studio {
 
       faceViewer.complex = Some(face)
 
-      val linkItr = new FlagIterator[Option[SimpleMarker]](cmplx, Some(c.faceAddress), true, true)
+      // No link if we selected the principal face ...
+      if (cmplx.dim - face.dim > 0) {
 
-      //  Hacky.  SCardinal needs a method for extracting a face ....
-      val s = Suite.fromList(List.fill(face.dim + 2)((None, None))).get
-      val card = FlagExtruder.extrudeFrom(linkItr, None)
+        val linkItr = new FlagIterator[Option[SimpleMarker]](cmplx, Some(c.faceAddress), true, true)
 
-      val res = card.cardinalComplex.map({
-        case Positive() => None
-        case Negative() => None
-        case Neutral(o) => o
-      })
+        //  Hacky.  SCardinal needs a method for extracting a face ....
+        val s = Suite.fromList(List.fill(face.dim + 2)((None, None))).get
+        val card = FlagExtruder.extrudeFrom(linkItr, None)
 
-      linkViewer.complex = res.sourceAt(rootCardinalAddr(card.dim).complexAddress)
+        val res = card.cardinalComplex.map({
+          case Positive() => None
+          case Negative() => None
+          case Neutral(o) => o
+        })
+
+        linkViewer.complex = res.sourceAt(rootCardinalAddr(card.dim).complexAddress)
+
+      } else linkViewer.complex = None
 
     }
 

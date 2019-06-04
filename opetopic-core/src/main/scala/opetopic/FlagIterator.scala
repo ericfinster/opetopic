@@ -74,7 +74,6 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
                 case None => throw new IllegalStateException("Bad address")
                 case Some(true) => {
 
-
                   if (pNst.isDot)
                     SrcFacet(SNstZipper(nst), SDir(Nil)) :: TgtFacet(SNstZipper(nNst)) :: flagTail
                   else {
@@ -91,10 +90,7 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
                         // Make sure the addres is correct here !!!
                         SrcFacet(SNstZipper(nst), SDir(hAddr)) :: TgtFacet(SNstZipper(nNst)) :: flagTail 
                       }
-                      case blorp => {
-                        println("Blorp: " ++ blorp.toString)
-                        ???  // Something went wrong
-                      }
+                      case _ => throw new IllegalStateException("Something went wrong ...")
                     }
 
                   }
@@ -113,10 +109,7 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
                               nst.seek(vAddr).map(nz =>
                                 (TgtFacet(nz), SrcFacet(SNstZipper(nNst), SDir(fa.address))))  // Check the address?
                           })) match {
-                        case None => {
-                          println("Unknown")
-                          ???
-                        }
+                        case None => throw new IllegalStateException("Something went wrong ...")
                         case Some((ff, sf)) => ff :: sf :: flagTail
                       }
                   }
@@ -127,21 +120,18 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
             } else {
               forwardSpineFacets(nst, fa.address, nNst) match {
                 case Some((ff, sf)) => {
-                  println("InitialFacets: " ++ nstFacetStr(ff) ++ ", " ++ nstFacetStr(sf))
+                  // println("InitialFacets: " ++ nstFacetStr(ff) ++ ", " ++ nstFacetStr(sf))
                   ff :: sf :: ns.map((n : SNesting[A]) => TgtFacet(SNstZipper(n)))
                 }
-                case _ => {
-                  println("Failed to create forward facets")
-                  ???
-                }
+                case _ => throw new IllegalStateException("Failed to create forward facets")
               }
             }
 
           }
-          case _ => {
-            println("Two few nestings!")
-            ???
+          case frmNst :: cellNst :: Nil => {
+            List(TgtFacet(SNstZipper(cellNst)))
           }
+          case _ => Nil
         }
       }
     }
@@ -187,8 +177,10 @@ class FlagIterator[A](cmplx: SComplex[A], addrOpt: Option[FaceAddr] = None, reve
   private var zipper: FlagZipper[A] = initZipper
 
   private var nextCache: Option[Flag[A]] =
-    Some(flagOf(zipper))
-
+    if (zipper.length > 0) 
+      Some(flagOf(zipper))
+    else
+      None
 
   private def toFacet(f: Facet[SNstZipper[A]]): Facet[A] =
     f.withFace(f.face.focus.baseValue)

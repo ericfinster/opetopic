@@ -13,6 +13,11 @@ import scala.collection.mutable.Set
 
 object FlagExtruder {
 
+  val debug: Boolean = false
+
+  def log(str: String): Unit =
+    if (debug) println(str) else ()
+
   // Assumes the iterator is iterating in the "extrusion order", which
   // is with the reversed flag set to true.
   def extrudeFrom[A](itr: FlagIterator[A], dummy: A): SCardinal[A] = {
@@ -26,7 +31,7 @@ object FlagExtruder {
       val initFlag = itr.next
       val dim = initFlag.length
 
-      println("Initial flag: " ++ initFlag.map(_.toString).mkString(" "))
+      log("Initial flag: " ++ initFlag.map(_.toString).mkString(" "))
 
       // The predecessor map (think of a different name ....
       val predMap: Map[A, Set[A]] = Map[A, Set[A]]()
@@ -73,7 +78,7 @@ object FlagExtruder {
 
       for { flg <- itr } {
 
-        print("Passing flag: " ++ flg.map(_.toString).mkString(" "))
+        log("Passing flag: " ++ flg.map(_.toString).mkString(" "))
 
         val (p, s) = (last, flg).zipped.span({
           case (f, g) => f == g
@@ -85,7 +90,7 @@ object FlagExtruder {
 
         s match {
           case (TgtFacet(lstTgt), TgtFacet(tgt)) :: (SrcFacet(lstDot, _), TgtFacet(dot)) :: _ => {
-             println("  Pop(1): " ++ lstTgt.toString)
+             log("  Pop(1): " ++ lstTgt.toString)
 
 
             // This is the case of a possible extrusion.
@@ -102,8 +107,8 @@ object FlagExtruder {
                 val srcSet = predMap(tgt)
                 val rAddr = rootCardinalAddr(dim)
                 
-                println("Extrusion about " ++ srcSet.toString ++ " with (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
-                // println("Extrusion address is: " ++ rAddr.toString)
+                log("Extrusion about " ++ srcSet.toString ++ " with (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
+                // log("Extrusion address is: " ++ rAddr.toString)
 
                 val extrudeCardinal =
                   if (cardinal.dim < dim + 1)
@@ -112,10 +117,10 @@ object FlagExtruder {
                     cardinal
 
                 extrudeCardinal.extrude(rAddr, tgt, dot)(a => srcSet.contains(a)) match {
-                  case None => println("Extrusion failed")
+                  case None => log("Extrusion failed")
                   case Some(c) => {
-                    println("Extrusion successful")
-                    // println("Excised tree: " ++ c._2.toString)
+                    log("Extrusion successful")
+                    // log("Excised tree: " ++ c._2.toString)
                     cardinal = c._1
                   }
                 }
@@ -126,12 +131,12 @@ object FlagExtruder {
 
             } else {
 
-              println("Object extrusion (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
+              log("Object extrusion (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
 
               cardinal.extrudeObject(tgt, dot) match {
-                case None => println("Object extrusion failed")
+                case None => log("Object extrusion failed")
                 case Some(c) => {
-                  println("Object extrusion successful")
+                  log("Object extrusion successful")
                   cardinal = c
                 }
               }
@@ -144,8 +149,8 @@ object FlagExtruder {
           }
           case (SrcFacet(lstTgt, _), TgtFacet(tgt)) :: (TgtFacet(lstDot), TgtFacet(dot)) :: _ => {
 
-            println("  Loop(2): " ++ tgt.toString)  // Extrude a loop!
-            println("Extruding loop with (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
+            log("  Loop(2): " ++ tgt.toString)  // Extrude a loop!
+            log("Extruding loop with (" ++ tgt.toString ++ ", " ++ dot.toString ++ ")")
 
             // Okay, let's finish the loops and we should be good.
 
@@ -163,9 +168,9 @@ object FlagExtruder {
             val rAddr = rootCardinalAddr(dim - 1)
 
             extrudeCardinal.extrudeLoop(rAddr, tgt, dot) match {
-              case None => println("Loop extrusion failed.")
+              case None => log("Loop extrusion failed.")
               case Some(c) => {
-                println("Loop extrusion successful")
+                log("Loop extrusion successful")
                 cardinal = c
               }
             }
@@ -174,33 +179,33 @@ object FlagExtruder {
 
           }
           case (TgtFacet(lstTgt), TgtFacet(tgt)) :: (TgtFacet(lstDot), SrcFacet(dot, _)) :: _ => {
-            println("  Push(3): " ++ tgt.toString)
+            log("  Push(3): " ++ tgt.toString)
             push(dim, tgt)
           }
           case (TgtFacet(lstTgt), SrcFacet(tgt, _)) :: (TgtFacet(lstDot), TgtFacet(dot)) :: _ => {
-            println("  Drop!(4)  ")
+            log("  Drop!(4)  ")
           }
           case (TgtFacet(lstTgt), SrcFacet(tgt, _)) :: (SrcFacet(lstDot, _), SrcFacet(dot, _)) :: _ => {
-            println("  Pop(5): " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
+            log("  Pop(5): " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
 
             pop(dim)
             push(dim, tgt)
           }
           case (SrcFacet(lstTgt, _), TgtFacet(tgt)) :: (SrcFacet(lstDot, _), SrcFacet(dot, _)) :: _ => {
-            println("  Pop(6): " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
+            log("  Pop(6): " ++ lstTgt.toString ++ " / Push: " ++ tgt.toString)
 
             // This appears to be a left-over from vertex neutralization
             // I'm not sure if this is the best way to handle it, or if
             // there is something slightly broken with extrusion detection.
             if (dim == 1 && lstTgt == tgt) {
-              println("Duplicate object detected ...")
+              log("Duplicate object detected ...")
 
               val dupObj = prefix.last.face
 
               cardinal.extrudeObject(dupObj, tgt) match {
-                case None => println("Object extrusion failed")
+                case None => log("Object extrusion failed")
                 case Some(c) => {
-                  println("Object extrusion successful")
+                  log("Object extrusion successful")
                   cardinal = c
                 }
               }
@@ -213,14 +218,14 @@ object FlagExtruder {
             push(dim, tgt)
           }
           case (SrcFacet(lstTgt, _), SrcFacet(tgt, _)) :: (TgtFacet(lstDot), SrcFacet(dot, _)) :: _ => {
-            println("  Push(7): " ++ tgt.toString)
+            log("  Push(7): " ++ tgt.toString)
             push(dim, tgt)
           }
           case (SrcFacet(lstTgt, _), SrcFacet(tgt, _)) :: (SrcFacet(lstDot, _), TgtFacet(dot)) :: _ => {
-            println("  Pop(8): " ++ lstTgt.toString)
+            log("  Pop(8): " ++ lstTgt.toString)
             pop(dim)
           }
-          case _ => println("Unknown!!!")
+          case _ => log("Unknown!!!")
         }
 
         last = flg
