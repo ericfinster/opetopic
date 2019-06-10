@@ -55,6 +55,12 @@ object Studio {
               input(id := "sketch-name-input", `type` := "text", placeholder := "Name ...", onchange := { () => onSaveSketch }),
               button(cls := "ui button")("Save")
             )
+          ),
+          div(cls := "item")(
+            div(cls := "ui action input")(
+              input(id := "download-input", `type` := "text", placeholder := "Filename ...", onchange := { () => onDownloadSketch }),
+              button(cls := "ui button", onclick := { () => onDownloadSketch })("Download")
+            )
           )
         ).render)
     )
@@ -379,6 +385,22 @@ object Studio {
 
       })
 
+    }
+
+  def onDownloadSketch: Unit =
+    for { cmplx <- viewer.complex } {
+
+      import upickle.default._
+      import opetopic.net._
+
+      val renderData : String = complexToJson(cmplx)
+      val sizingMethod : String = write(Percentage(0.05))
+
+      jQuery("#sketch-file").value(jQuery("#download-input").value.asInstanceOf[String])
+      jQuery("#render-data").value(renderData)
+      jQuery("#sizing-mthd").value(sizingMethod)
+      jQuery("#render-request-form").submit()
+      
     }
 
   def main: Unit = {

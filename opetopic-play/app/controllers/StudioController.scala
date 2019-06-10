@@ -58,10 +58,10 @@ class StudioController @Inject() (
     request.identity match {
       case Some(user) => 
         sketchDAO.userSketches(user).map { sketches =>
-          Ok(views.html.studio(sketches, env.isDev)(Some(user), webJarsUtil))
+          Ok(views.html.studio(RenderSketchForm.form, sketches, env.isDev)(request, Some(user), webJarsUtil))
         }
       case None => Future.successful {
-        Ok(views.html.studio(Seq(), env.isDev)(None, webJarsUtil))
+        Ok(views.html.studio(RenderSketchForm.form, Seq(), env.isDev)(request, None, webJarsUtil))
       }
     }
 
@@ -122,32 +122,62 @@ class StudioController @Inject() (
 
   }
 
-  // def renderSketch = silhouette.UserAwareAction.async { implicit request => 
+  def renderSketch = silhouette.UserAwareAction.async { implicit request => 
 
-  //   RenderSketchForm.form.bindFromRequest.fold(
-  //     form => Future.successful(BadRequest("Bad render reqeust")),
-  //     data => {
+    RenderSketchForm.form.bindFromRequest.fold(
+      form => Future.successful(BadRequest("Bad render reqeust")),
+      data => {
 
-  //       import ScalatagsTextFramework._
+        import ScalatagsTextFramework._
 
-  //       val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(data.renderData))
+        val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(data.renderData))
 
-  //       val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(c)
+        val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(c)
 
-  //       val maxWidth = 725
-  //       val maxHeight = 260
+        val maxWidth = 725
+        val maxHeight = 260
 
-  //       val fct = 0.02
-  //       staticGallery.layoutWidth = (b: Bounds) => { val fw = (b.width * fct).toInt ; if (fw > maxWidth) maxWidth else fw }
-  //       staticGallery.layoutHeight = (b: Bounds) => { val fh = (b.height * fct).toInt ; if (fh > maxHeight) maxHeight else fh }
+        val fct = 0.02
+        staticGallery.layoutWidth = (b: Bounds) => { val fw = (b.width * fct).toInt ; if (fw > maxWidth) maxWidth else fw }
+        staticGallery.layoutHeight = (b: Bounds) => { val fh = (b.height * fct).toInt ; if (fh > maxHeight) maxHeight else fh }
 
-  //       val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
-  //       Future.successful(Ok(xmlHeader + "\n" + staticGallery.element.toString).as("image/svg+xml"))
+        val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+        Future.successful(
+          Ok(xmlHeader + "\n" + staticGallery.element.toString).
+            as("image/svg.xml").
+            withHeaders(
+              CONTENT_TYPE -> "image/svg+xml",
+              CONTENT_DISPOSITION -> ("attachment; filename=" ++ data.fileName)
+            )
+        )
 
-  //     }
-  //   )
+      }
+    )
 
-  // }
+    // request.body.asText.map { requestText => 
+
+    //   import ScalatagsTextFramework._
+      
+    //   val req = read[RenderSketchRequest](requestText)
+    //   val c = complexFromJson[Option[SimpleMarker]](upickle.json.read(req.data))
+
+    //   println("Rendering complex: " ++ c.toString)
+
+    //   val staticGallery = new SimpleStaticGallery(ScalatagsTextFramework)(c)
+
+    //   val maxWidth = 725
+    //   val maxHeight = 260
+
+    //   val fct = 0.02
+    //   staticGallery.layoutWidth = (b: Bounds) => { val fw = (b.width * fct).toInt ; if (fw > maxWidth) maxWidth else fw }
+    //   staticGallery.layoutHeight = (b: Bounds) => { val fh = (b.height * fct).toInt ; if (fh > maxHeight) maxHeight else fh }
+
+    //   val xmlHeader: String = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"
+    //   Future.successful(Ok(xmlHeader + "\n" + staticGallery.element.toString).as("image/svg+xml"))
+
+    // } getOrElse Future.successful(BadRequest("Bad render request"))
+
+  }
 
   // def renderAddrProof = silhouette.UserAwareAction.async { implicit request =>
 

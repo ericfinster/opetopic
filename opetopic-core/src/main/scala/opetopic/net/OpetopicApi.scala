@@ -22,6 +22,11 @@ case class DeleteSketchRequest(
   val id: String
 )
 
+case class RenderSketchRequest(
+  val name: String,
+  val data: String
+)
+
 case class SaveModuleRequest(
   val moduleId: Option[String],
   val name: String,

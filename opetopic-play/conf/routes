@@ -14,22 +14,15 @@ POST        /signUp                          controllers.SignUpController.submit
 GET         /signIn                          controllers.SignInController.view
 POST        /signIn                          controllers.SignInController.submit
 
-# Sketchpad 
-#GET         /sketchpad                       controllers.SketchController.sketchpad
-#POST        /saveSketch                      controllers.SketchController.saveSketch
-#POST        /getSketch                       controllers.SketchController.getSketch
-#POST        /renderSketch                    controllers.SketchController.renderSketch
-#POST        /deleteSketch                    controllers.SketchController.deleteSketch
-#POST        /renderAddrProof                 controllers.SketchController.renderAddrProof
-
 # Studio
 GET         /studio                          controllers.StudioController.studio
 POST        /saveSketch                      controllers.StudioController.saveSketch
 POST        /getSketch                       controllers.StudioController.getSketch
 POST        /deleteSketch                    controllers.StudioController.deleteSketch
+POST	    /renderSketch                    controllers.StudioController.renderSketch
 
-# Color Editor
-GET         /colorEditor                     controllers.ApplicationController.colorEditor
+# Documentation
+GET         /docs/*docname                    controllers.DocsController.showDoc(docname)
 
 #GET         /password/forgot                 controllers.ForgotPasswordController.view
 #POST        /password/forgot                 controllers.ForgotPasswordController.submit
