@@ -114,6 +114,20 @@ object Studio {
   def onEditorSelect(c: EditorCell): Unit =
     for { face <- c.face } {
       viewer.complex = Some(face)
+
+      c.label match {
+        case None => {
+          // showFill("white")
+          // showStroke("black")
+          jQuery("#label-input").value("")
+        }
+        case Some(mk) => {
+          // showFill(mk.colorSpec.fillColor)
+          // showStroke(mk.colorSpec.strokeColor)
+          jQuery("#label-input").value(mk.lbl)
+        }
+      }
+      
     }
 
   def onViewerSelect(c: ViewerCell): Unit =
