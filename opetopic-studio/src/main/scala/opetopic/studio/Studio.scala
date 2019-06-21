@@ -87,6 +87,9 @@ object Studio {
             )
           ),
           div(cls := "right menu")(
+            div(cls := "item")(
+              div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "check icon", id := "follow-icon"), "Follow Selection")
+            ),
             a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
             a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
           )
@@ -113,7 +116,10 @@ object Studio {
 
   def onEditorSelect(c: EditorCell): Unit =
     for { face <- c.face } {
-      viewer.complex = Some(face)
+
+      if (followSelection) {
+        viewer.complex = Some(face)
+      }
 
       c.label match {
         case None => {
@@ -226,6 +232,20 @@ object Studio {
   def zoomOut: Unit = {
     editor.scale -= 0.1
     editor.editor.renderAll
+  }
+
+  var followSelection: Boolean = true
+
+  def onFollowToggle: Unit = {
+    if (followSelection) {
+      followSelection = false
+      jQuery("#follow-icon").removeClass("check")
+      jQuery("#follow-icon").addClass("close")
+    } else {
+      followSelection = true
+      jQuery("#follow-icon").removeClass("close")
+      jQuery("#follow-icon").addClass("check")
+    }
   }
 
   def onNew: Unit = {
