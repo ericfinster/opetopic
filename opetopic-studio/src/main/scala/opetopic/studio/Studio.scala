@@ -155,13 +155,18 @@ object Studio {
   def autoLabel(letters: Boolean): Unit = {
     var lbl: Int = 0
     val card = editor.editor.cardinal
-    card.map((n: editor.editor.NeutralCell) => {
-      n.label = if (letters) {
-        Some(SimpleMarker((lbl + 97).toChar.toString))
-      } else {
-        Some(SimpleMarker(lbl.toString))
+
+    Traverse[Suite].map(card)((nst: SCardNst[editor.editor.NeutralCell]) => {
+
+      for { n <- nst.toList.reverse } {
+        n.label = if (letters) {
+          Some(SimpleMarker((lbl + 97).toChar.toString))
+        } else {
+          Some(SimpleMarker(lbl.toString))
+        }
+        lbl += 1
       }
-      lbl += 1
+
     })
 
     editor.editor.renderAll
