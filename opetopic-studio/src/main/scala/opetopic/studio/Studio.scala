@@ -96,9 +96,15 @@ object Studio {
         ).render)
     )
 
+  val flagList =
+    div(cls := "ui list").render
+
   val inspectorPane = 
     new FixedBottomPane(
-      new VerticalSplitPane(faceViewer, linkViewer),
+      new HorizontalSplitPane(
+        new VerticalSplitPane(faceViewer, linkViewer),
+        PlainComponent(div(cls := "ui inverted grey segment", style := "padding: 0; margin: 0;")(flagList).render)
+      ),
       PlainComponent(
         div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
           a(cls := "item", onclick := { () => () })(i(cls := "question circle outline icon"), "Something")
@@ -159,6 +165,15 @@ object Studio {
         linkViewer.complex = res.sourceAt(rootCardinalAddr(card.dim).complexAddress)
 
       } else linkViewer.complex = None
+
+      // Display a list of flags ...
+      val flagItr = new FlagIterator(cmplx, Some(c.faceAddress))
+      jQuery(flagList).empty()
+
+      for { f <- flagItr } {
+        val item = div(cls := "item")(flagStr(f)).render
+        jQuery(flagList).append(item)
+      }
 
     }
 
