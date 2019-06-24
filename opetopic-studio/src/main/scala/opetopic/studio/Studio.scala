@@ -170,8 +170,16 @@ object Studio {
       jQuery(flagList).empty()
 
       for { f <- flagItr } {
-        val item = a(cls := "item")(flagStr(f)).render
+
+        val strFlag : Flag[String] =
+          f.map({
+            case SrcFacet(f , d) => SrcFacet(f.map(_.lbl).getOrElse(""), d)
+            case TgtFacet(f) => TgtFacet(f.map(_.lbl).getOrElse(""))
+          })
+
+        val item = a(cls := "item")(flagStr(strFlag)).render
         jQuery(flagList).append(item)
+
       }
 
     }
