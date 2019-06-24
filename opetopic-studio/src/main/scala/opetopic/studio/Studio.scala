@@ -56,10 +56,12 @@ object Studio {
               button(cls := "ui button")("Save")
             )
           ),
-          div(cls := "item")(
-            div(cls := "ui action input")(
-              input(id := "download-input", `type` := "text", placeholder := "Filename ...", onchange := { () => onDownloadSketch }),
-              button(cls := "ui button", onclick := { () => onDownloadSketch })("Download")
+          div(cls := "right menu")(
+            div(cls := "item")(
+              div(cls := "ui action input")(
+                input(id := "download-input", `type` := "text", placeholder := "Filename ...", onchange := { () => onDownloadSketch }),
+                button(cls := "ui button", onclick := { () => onDownloadSketch })("Download")
+              )
             )
           )
         ).render)
@@ -97,18 +99,15 @@ object Studio {
     )
 
   val flagList =
-    div(cls := "ui list").render
+    div(cls := "ui fluid inverted vertical menu").render
 
   val inspectorPane = 
     new FixedBottomPane(
       new HorizontalSplitPane(
         new VerticalSplitPane(faceViewer, linkViewer),
-        PlainComponent(div(cls := "ui inverted grey segment", style := "padding: 0; margin: 0;")(flagList).render)
+        PlainComponent(div(cls := "ui inverted segment", style := "padding: 0; margin: 0; overflow-y: scroll; overflow-x: hidden;")(flagList).render)
       ),
-      PlainComponent(
-        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-          a(cls := "item", onclick := { () => () })(i(cls := "question circle outline icon"), "Something")
-        ).render)
+      PlainComponent(div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;").render)
     )
 
   val editorTab = new Tab("editor-tab", editorPane, true)
@@ -167,11 +166,11 @@ object Studio {
       } else linkViewer.complex = None
 
       // Display a list of flags ...
-      val flagItr = new FlagIterator(cmplx, Some(c.faceAddress))
+      val flagItr = new FlagIterator(face)
       jQuery(flagList).empty()
 
       for { f <- flagItr } {
-        val item = div(cls := "item")(flagStr(f)).render
+        val item = a(cls := "item")(flagStr(f)).render
         jQuery(flagList).append(item)
       }
 
@@ -287,13 +286,15 @@ object Studio {
 
     def onInspectEntry: Unit = {
       viewer.complex = previewPane.complex
+      jQuery("#inspector-link").click()
     }
-
+    
     def onEditEntry: Unit =
       for { c <- previewPane.complex } {
         // Show also switch modes here ....
         editor.editor.cardinal = SCardinal(c)
         editor.editor.renderAll
+        jQuery("#editor-link").click()
       }
 
     def onDeleteEntry: Unit = {
