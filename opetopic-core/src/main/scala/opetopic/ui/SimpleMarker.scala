@@ -34,6 +34,9 @@ case class SimpleMarker(
   def removeSourceDec(addr: SAddr) = 
     this.copy(sourceDec = this.sourceDec - addr)
 
+  def withoutDecorations: SimpleMarker =
+    this.copy(sourceDec = Map(), targetDec = None)
+
   override def toString = lbl
   
 }

@@ -182,6 +182,19 @@ trait ComplexTypes {
         case _ => false
       }
 
+    // Update the the value at the given address
+    def applyAt(fa: FaceAddr)(f : A => A): Option[SComplex[A]] = {
+
+      val (tail, top) = c.grab(fa.codim)
+
+      for {
+        z <- SCmplxZipper(tail).seek(fa.address)
+        zz = z.withFocus(z.focus.withBase(f(z.focus.baseValue)))
+      } yield zz.close ++ top
+
+    }
+
+
     def isCFreeFace(fa: FaceAddr): Option[Boolean] = {
 
       val codim = fa.codim

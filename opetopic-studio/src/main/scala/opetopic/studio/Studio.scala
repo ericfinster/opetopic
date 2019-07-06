@@ -166,21 +166,46 @@ object Studio {
       } else linkViewer.complex = None
 
       // Display a list of flags ...
-      val flagItr = new FlagIterator(face)
+      val flagItr = new FlagIterator(face.withFaceAddresses)
       jQuery(flagList).empty()
 
       for { f <- flagItr } {
 
         val strFlag : Flag[String] =
           f.map({
-            case SrcFacet(f , d) => SrcFacet(f.map(_.lbl).getOrElse(""), d)
-            case TgtFacet(f) => TgtFacet(f.map(_.lbl).getOrElse(""))
+            case SrcFacet((f , _) , d) => SrcFacet(f.map(_.lbl).getOrElse(""), d)
+            case TgtFacet((f , _)) => TgtFacet(f.map(_.lbl).getOrElse(""))
           })
 
-        val item = a(cls := "item")(flagStr(strFlag)).render
+        val item = a(cls := "item", onclick := { () => onSelectFlag(f) })(flagStr(strFlag)).render
         jQuery(flagList).append(item)
 
       }
+
+    }
+
+  def onSelectFlag(f: Flag[(Option[SimpleMarker], FaceAddr)]): Unit =
+    for { faceCmplx <- faceViewer.complex } {
+
+      // Uh, the use of state here is kinda hacky
+      var cmplx = faceCmplx.map(
+        _.map(_.withoutDecorations)
+      )
+
+      f.foreach({
+        case SrcFacet((optMk , fa) , dir) =>
+          cmplx.applyAt(fa)({
+            case None => Some(SimpleMarker("", sourceDec = Map(dir.dir -> EdgeDecoration("circle", "red", false))))
+            case Some(mk) => Some(mk.addSourceDec(dir.dir, EdgeDecoration("circle", "red", false)))
+          }).foreach(res => { cmplx = res })
+        case TgtFacet((optMk , fa)) => 
+          cmplx.applyAt(fa)({
+            case None => Some(SimpleMarker("", targetDec = Some(EdgeDecoration("circle", "red"))))
+            case Some(mk) => Some(mk.withTargetDec(Some(EdgeDecoration("circle", "red"))))
+          }).foreach(res => { cmplx = res })
+      })
+
+      faceViewer.complex = Some(cmplx)
 
     }
 
