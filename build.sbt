@@ -30,7 +30,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicSketchpad, opetopicMultiedit, opetopicColoredit, opetopicAddrExplorer, opetopicStudio, opetopicDocs)
+lazy val clients = Seq(opetopicJs, opetopicStudio, opetopicDocs)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -96,64 +96,64 @@ lazy val opetopicDocs = (project in file("opetopic-docs")).
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
 
-lazy val opetopicMultiedit = (project in file("opetopic-multiedit")).
-  settings(commonSettings: _*).
-  settings(
-    scalaJSUseMainModuleInitializer := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
-      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
-      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion,
-      "com.lihaoyi" %%% "fastparse" % fastparseVersion
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
+// lazy val opetopicMultiedit = (project in file("opetopic-multiedit")).
+//   settings(commonSettings: _*).
+//   settings(
+//     scalaJSUseMainModuleInitializer := true,
+//     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+//     libraryDependencies ++= Seq(
+//       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+//       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+//       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+//       "com.lihaoyi" %%% "upickle" % upickleVersion,
+//       "com.lihaoyi" %%% "fastparse" % fastparseVersion
+//     )
+//   ).enablePlugins(ScalaJSPlugin).
+//   dependsOn(opetopicJs)
 
-lazy val opetopicColoredit = (project in file("opetopic-coloredit")).
-  settings(commonSettings: _*).
-  settings(
-    scalaJSUseMainModuleInitializer := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
-      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
-      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion,
-      "com.lihaoyi" %%% "fastparse" % fastparseVersion
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
+// lazy val opetopicColoredit = (project in file("opetopic-coloredit")).
+//   settings(commonSettings: _*).
+//   settings(
+//     scalaJSUseMainModuleInitializer := true,
+//     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+//     libraryDependencies ++= Seq(
+//       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+//       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+//       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+//       "com.lihaoyi" %%% "upickle" % upickleVersion,
+//       "com.lihaoyi" %%% "fastparse" % fastparseVersion
+//     )
+//   ).enablePlugins(ScalaJSPlugin).
+//   dependsOn(opetopicJs)
 
-lazy val opetopicAddrExplorer = (project in file("opetopic-addrexplorer")).
-  settings(commonSettings: _*).
-  settings(
-    scalaJSUseMainModuleInitializer := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
-      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
-      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
+// lazy val opetopicAddrExplorer = (project in file("opetopic-addrexplorer")).
+//   settings(commonSettings: _*).
+//   settings(
+//     scalaJSUseMainModuleInitializer := true,
+//     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+//     libraryDependencies ++= Seq(
+//       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+//       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+//       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+//       "com.lihaoyi" %%% "upickle" % upickleVersion
+//     )
+//   ).enablePlugins(ScalaJSPlugin).
+//   dependsOn(opetopicJs)
 
-lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
-  settings(commonSettings: _*).
-  settings(
-    scalaJSUseMainModuleInitializer := true,
-    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
-      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
-      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
-      "com.lihaoyi" %%% "upickle" % upickleVersion,
-      "com.lihaoyi" %%% "fastparse" % fastparseVersion
-    )
-  ).enablePlugins(ScalaJSPlugin).
-  dependsOn(opetopicJs)
+// lazy val opetopicSketchpad = (project in file("opetopic-sketchpad")).
+//   settings(commonSettings: _*).
+//   settings(
+//     scalaJSUseMainModuleInitializer := true,
+//     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+//     libraryDependencies ++= Seq(
+//       "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+//       "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+//       "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+//       "com.lihaoyi" %%% "upickle" % upickleVersion,
+//       "com.lihaoyi" %%% "fastparse" % fastparseVersion
+//     )
+//   ).enablePlugins(ScalaJSPlugin).
+//   dependsOn(opetopicJs)
 
 lazy val opetopicJs = (project in file("opetopic-js")).
   settings(commonSettings: _*).
