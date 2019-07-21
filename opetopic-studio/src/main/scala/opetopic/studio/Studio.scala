@@ -98,16 +98,28 @@ object Studio {
         ).render)
     )
 
-  val flagList =
-    div(cls := "ui fluid inverted vertical menu").render
+
+  val flagList = div(cls := "ui fluid inverted vertical menu").render
+  val flagTab = new Tab("flag-tab", PlainComponent(div(cls := "ui inverted segment", style := "padding: 0; margin: 0; overflow-y: auto; overflow-x: hidden;")(flagList).render), true)
+
+  val syntaxPre = pre().render
+  val syntaxTab = new Tab("syntax-tab", PlainComponent(div(cls := "ui inverted segment", style := "padding: 0; margin: 0; overflow-x: auto;")(syntaxPre).render))
+
+  val infoPane = new TabPane(flagTab, syntaxTab)
 
   val inspectorPane = 
     new FixedBottomPane(
       new HorizontalSplitPane(
         new VerticalSplitPane(faceViewer, linkViewer),
-        PlainComponent(div(cls := "ui inverted segment", style := "padding: 0; margin: 0; overflow-y: scroll; overflow-x: hidden;")(flagList).render)
+        infoPane
+        // 
       ),
-      PlainComponent(div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;").render)
+      PlainComponent(div(cls := "ui inverted inspector menu", style := "margin-top: 0; border-radius: 0;")(
+        div(cls := "right menu")(
+          a(cls := "active item", attr("data-tab") := "flag-tab")(i(cls := "flag outline icon"), "Flags"),
+          a(cls := "item", attr("data-tab") := "syntax-tab")(i(cls := "file outline icon"), "Syntax")
+        )
+      ).render)
     )
 
   val editorTab = new Tab("editor-tab", editorPane, true)
@@ -180,6 +192,27 @@ object Studio {
         val item = a(cls := "item", onclick := { () => onSelectFlag(f) })(flagStr(strFlag)).render
         jQuery(flagList).append(item)
 
+      }
+
+      // Show the syntax ...
+      import syntax.SyntaxExport
+      import syntax.PrettyPrinter
+
+      SyntaxExport.complexToTerm(face) match {
+        case Xor.Left(msg) => jQuery(syntaxPre).text(msg)
+        case Xor.Right(tm) => {
+
+          jQuery(syntaxPre).empty
+
+          val strItr = PrettyPrinter.prettyPrint(
+            SyntaxExport.toPrintTree(tm), 80, 2
+          )
+
+          for { str <- strItr } {
+            jQuery(syntaxPre).append(str)
+          }
+
+        }
       }
 
     }
@@ -499,6 +532,7 @@ object Studio {
     jQuery(".ui.dropdown.item").dropdown(lit(direction = "upward", action = "hide"))
     // kind of a hack to make the tab resize correctly....
     jQuery(".ui.sidebar.menu .item").tab(lit(onVisible = { () => jQuery(dom.window).trigger("resize") }))
+    jQuery(".ui.inspector.menu .item").tab()
 
     jQuery("#editor-left-sidebar").accordion(
       lit(onOpening = { (content: Element) =>
