@@ -75,14 +75,17 @@ object FlagExtruder {
         stacks(i) = stacks(i).tail
       }
 
-
       for { flg <- itr } {
 
         log("Passing flag: " ++ flg.map(_.toString).mkString(" "))
+        val flgLen = flg.length
 
-        val (p, s) = (last, flg).zipped.span({
-          case (f, g) => f == g
-        })
+        val (p, s) =
+          (last, flg).zipped.span({
+            // Case of length 2 is special, corresponding to the
+            // extrusion of an arrow.  Put everything in the suffix list ....
+            case (f, g) => (flgLen > 2) && (f == g)
+          })
 
         val (prefix, suffix) = (p.unzip._2.toList, s.unzip._2.toList)
 
@@ -225,7 +228,7 @@ object FlagExtruder {
             log("  Pop(8): " ++ lstTgt.toString)
             pop(dim)
           }
-          case _ => log("Unknown!!!")
+          case _ => log("Unknown facet configuration.")
         }
 
         last = flg

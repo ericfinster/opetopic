@@ -179,6 +179,8 @@ object Studio {
 
       // Display a list of flags ...
       val flagItr = new FlagIterator(face.withFaceAddresses)
+      // This prints the link flag list ....
+      // val flagItr = new FlagIterator(cmplx.withFaceAddresses, Some(c.faceAddress), true, true)
       jQuery(flagList).empty()
 
       for { f <- flagItr } {
