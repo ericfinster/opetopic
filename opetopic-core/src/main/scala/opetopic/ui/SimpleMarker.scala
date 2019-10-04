@@ -9,12 +9,21 @@ package opetopic.ui
 
 import opetopic.SAddr
 
-case class SimpleMarker(
+class SimpleMarker(
   val lbl: String,
   val colorSpec: ColorSpec = DefaultColorSpec,
   val targetDec: Option[EdgeDecoration] = None,
   val sourceDec: Map[SAddr, EdgeDecoration] = Map()
 ) {
+
+  override def toString = lbl
+
+  def copy(
+    lbl: String = this.lbl,
+    colorSpec: ColorSpec = this.colorSpec,
+    targetDec: Option[EdgeDecoration] = this.targetDec,
+    sourceDec: Map[SAddr, EdgeDecoration] = this.sourceDec): SimpleMarker =
+    new SimpleMarker(lbl, colorSpec, targetDec, sourceDec)
 
   def withLabel(l: String): SimpleMarker = 
     this.copy(lbl = l)
@@ -37,8 +46,6 @@ case class SimpleMarker(
   def withoutDecorations: SimpleMarker =
     this.copy(sourceDec = Map(), targetDec = None)
 
-  override def toString = lbl
-  
 }
 
 case class EdgeDecoration(val shape: String, val color: String, val tgt: Boolean = true) {
@@ -76,6 +83,16 @@ case class EdgeDecoration(val shape: String, val color: String, val tgt: Boolean
 
 object SimpleMarker {
 
+  def apply(
+    lbl: String,
+    colorSpec: ColorSpec = DefaultColorSpec,
+    targetDec: Option[EdgeDecoration] = None,
+    sourceDec: Map[SAddr, EdgeDecoration] = Map()
+  ): SimpleMarker = new SimpleMarker(lbl, colorSpec, targetDec, sourceDec)
+
+  def unapply(mk: SimpleMarker): Option[(String, ColorSpec, Option[EdgeDecoration], Map[SAddr, EdgeDecoration])] =
+    Some(mk.lbl, mk.colorSpec, mk.targetDec, mk.sourceDec)
+
   implicit object SimpleMarkerRenderable extends Renderable[SimpleMarker] {
     def render(f: UIFramework)(mk: SimpleMarker): f.CellRendering = {
 
@@ -99,8 +116,7 @@ object SimpleMarker {
   }
 
   implicit object SimpleMarkerPointed extends Pointed[SimpleMarker] {
-    val pt: SimpleMarker =
-      SimpleMarker("")
+    val pt: SimpleMarker = new SimpleMarker("")
   }
 
 }

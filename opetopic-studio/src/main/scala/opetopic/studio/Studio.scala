@@ -227,7 +227,7 @@ object Studio {
 
       // Uh, the use of state here is kinda hacky
       var cmplx = faceCmplx.map(
-        _.map(_.withoutDecorations)
+        _.map(_.copy(sourceDec = Map(), targetDec = None))
       )
 
       f.foreach({
