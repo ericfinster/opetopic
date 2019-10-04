@@ -102,9 +102,15 @@ trait ComplexTypes {
     //
 
     // This is only here because the complex traverse instance seems to have lower priority
-    // that the suite instance.  You should see if you can fix this ...
+    // that the suite instance.  Yeah, but frankly, you should probably just remove the
+    // traverse instance for Suite since I do not think you every use suite outside of the
+    // notion of a complex.
+
     def traverseComplex[G[_], B](f: A => G[B])(implicit isAp: Applicative[G]): G[SComplex[B]] =
       ComplexTraverse.traverse(c)(f)
+
+    def mapComplex[B](f: A => B): SComplex[B] =
+      ComplexTraverse.map(c)(f)
 
     def traverseWithAddr[G[_], B](f: (A, FaceAddr) => G[B], codim: Int = 0)(implicit isAp: Applicative[G]): G[SComplex[B]] = {
 

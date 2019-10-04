@@ -75,8 +75,8 @@ case class ColorSpec(
 
 object DefaultColorSpec extends ColorSpec(
   fill = "#FFFFFF",
-  fillHovered = "#DB2828", // "#F3F4F5",
-  fillSelected = "#DCDDDE",
+  fillHovered = "#ffa8a8", // "#F3F4F5",
+  fillSelected = "#ff7d7d",
   stroke = "#000000",
   strokeHovered = "#000000",
   strokeSelected = "#000000",

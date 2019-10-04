@@ -20,15 +20,15 @@ class LogPane extends Component {
     jQuery(uiElement).append(div(cls := "item")(str).render)
   }
 
-  def logOk(str: String): Unit = {
+  def ok(str: String): Unit = {
     jQuery(uiElement).append(div(cls := "item", color := "green")(str).render)
   }
 
-  def logError(str: String): Unit = {
+  def error(str: String): Unit = {
     jQuery(uiElement).append(div(cls := "item", color := "red")(str).render)
   }
 
-  def logDebug(str: String): Unit = {
+  def debug(str: String): Unit = {
     jQuery(uiElement).append(div(cls := "item", color := "yellow")(str).render)
   }
 

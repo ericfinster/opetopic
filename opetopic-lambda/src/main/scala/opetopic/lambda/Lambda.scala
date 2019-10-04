@@ -40,6 +40,7 @@ object Lambda {
           a(cls := "item", onclick := { () => editor.editor.extrudeSelection })(i(cls := "square outline icon"), "Extrude"),
           a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
           a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
+          a(cls := "item", onclick := { () => onLift })(i(cls := "external alternate icon"), "Lift"),
           div(cls := "right menu")(
             a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
             a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
@@ -117,6 +118,136 @@ object Lambda {
 
   }
 
+  def onLift: Unit =
+    for {
+      root <- editor.editor.selectionRoot
+      face <- root.face
+      bface <- root.boxFace
+    } {
+
+      // Extract a pasting diagram by requiring all expressions
+      // to be present and external
+      def toPd(cn: STree[SNesting[Option[Expr]]]): Option[STree[Expr]] =
+        cn.traverse({
+          case SDot(o) => o
+          case _ => None
+        })
+
+      def emptyAddresses[A](tr: STree[Option[A]]): List[SAddr] = {
+        tr.mapWithAddr({
+          case (Some(a), _) => None
+          case (None, addr) => Some(addr)
+        }).toList.flatten 
+      }
+
+      face match {
+        case tl >> SBox(None, cn) >> SDot(None) => {
+
+          toPd(cn) match {
+            case None => logPane.error("Incomplete lifting problem.")
+            case Some(pd) => {
+
+              if (tl.dim == 0) {
+
+                logPane.debug("Product construction.")
+
+                // Fill the base with objects if this is not
+                // already the case .....
+                val objs : SComplex[Expr] = tl.mapComplex(_ => Obj)
+
+                val prod = Prod(objs, pd)
+                val pair = Pair(objs, pd)
+
+                // Now we'd like to paste these back to the editor
+                logPane.debug("Successful production construction.")
+
+                // These are the target cells in the editor
+                val prodCell: EditorCell = bface.tail.get.head.baseValue
+                val pairCell: EditorCell = bface.head.baseValue
+
+                prodCell.label = Some(prod)
+                pairCell.label = Some(pair)
+
+                // Now re-render and we should be good!!
+                editor.editor.renderAll
+
+              } else if (tl.dim == 1) {
+                logPane.debug("Composite construction.")
+              } else {
+                logPane.debug("Coherence problem.")
+              }
+            }
+          }
+
+        }
+        case tl >> SBox(Some(tgt), cn) >> SDot(None) => {
+
+          logPane.debug("Inverse lifting problem")
+
+          val optTr = cn.map({
+            case SDot(o) => o
+            case _ => None
+          })
+
+          emptyAddresses(optTr) match {
+            case addr :: Nil => {
+              logPane.debug("Valid inverse lifting problem ...")
+
+
+              
+              if (tl.dim == 0) {
+
+                val objs : SComplex[Expr] = tl.mapComplex(_ => Obj)
+
+                for {
+                  z <- optTr.seekTo(addr)
+                  // Remove options in the rest of the tree
+                  noOptZip <- z.ctxt.close(SLeaf).map(_.get).seekTo(addr)
+                  noOptShell = z.focus.nodeOption.get._2.map(_.map(_.get))
+                  deriv = SDeriv(noOptShell, noOptZip.ctxt)
+                } {
+
+                  logPane.debug("Derivative created successfully....")
+
+                  val hom = Hom(objs, deriv, tgt)
+                  val app = App(objs, deriv, tgt)
+
+
+                  val homCell: EditorCell =
+                    (for {
+                      t <- bface.tail
+                      n <- t.head.boxOption
+                      m <- n._2.elementAt(addr)
+                    } yield m.baseValue).get
+
+                  val appCell: EditorCell = bface.head.baseValue
+
+                  homCell.label = Some(hom)
+                  appCell.label = Some(app)
+
+                  // Now re-render and we should be good!!
+                  editor.editor.renderAll
+
+                }
+
+              } else {
+                logPane.error("Unimplemented")
+              }
+
+            }
+            case _ => logPane.error("Inverse lift does not have unique empty source.")
+          }
+
+        }
+        case _ => {
+
+          logPane.error("Malformed lifting condition")
+
+        }
+      }
+
+    }
+
   def onPaste: Unit = 
     for {
       root <- editor.editor.selectionRoot
@@ -125,9 +256,8 @@ object Lambda {
     } {
 
       face.matchWith(cell) match {
-        case None => logPane.logError("Incompatible shape.")
+        case None => logPane.error("Incompatible shape.")
         case Some(pc) => {
-          logPane.logDebug("Shapes are compatible.")
 
           // Verify the equality of all expressions when they
           // are both defined and return the resulting complex
@@ -153,7 +283,7 @@ object Lambda {
             })
 
           m match {
-            case Xor.Left(msg) => logPane.logError(msg)
+            case Xor.Left(msg) => logPane.error(msg)
             case Xor.Right(cmplx) => {
 
               // Now traverse the complex and update the labels.
@@ -163,8 +293,6 @@ object Lambda {
 
               // Now re-render ...
               editor.editor.renderAll
-
-              logPane.logDebug("Paste successful.")
 
             }
           }

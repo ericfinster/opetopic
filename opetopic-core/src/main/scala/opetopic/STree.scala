@@ -227,7 +227,7 @@ object STree {
         case SNode(a, _) => Some(a)
       }
 
-    def nodeOption: Option[(A, Shell[A])] = 
+    def nodeOption: Option[(A, STree[STree[A]])] = 
       st match {
         case SNode(a, sh) => Some(a, sh)
         case _ => None
