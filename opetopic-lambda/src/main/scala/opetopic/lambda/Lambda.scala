@@ -28,6 +28,8 @@ object Lambda {
   val editor = new SimpleCardinalEditor[Expr]()
   val viewer = new SimpleViewer[Option[Expr]]
 
+  editor.onSelectAsRoot = (c: EditorCell) => { onEditorSelect(c) }
+  
   type EditorCell = editor.StableCell
   type ViewerCell = viewer.CellType
   
@@ -41,7 +43,16 @@ object Lambda {
           a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
           a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
           a(cls := "item", onclick := { () => onLift })(i(cls := "external alternate icon"), "Lift"),
+          div(cls := "item")(
+            div(cls := "ui action input")(
+              input(id := "expr-name-input", `type` := "text", placeholder := "Name ...", onchange := { () => onDefineExpr }),
+              button(cls := "ui button")("Save Cell")
+            )
+          ),
           div(cls := "right menu")(
+            div(cls := "item")(
+              div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "close icon", id := "follow-icon"), "Follow Selection")
+            ),
             a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
             a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
           )
@@ -89,6 +100,27 @@ object Lambda {
     editor.editor.renderAll
   }
 
+  var followSelection: Boolean = false
+
+  def onFollowToggle: Unit = {
+    if (followSelection) {
+      followSelection = false
+      jQuery("#follow-icon").removeClass("check")
+      jQuery("#follow-icon").addClass("close")
+    } else {
+      followSelection = true
+      jQuery("#follow-icon").removeClass("close")
+      jQuery("#follow-icon").addClass("check")
+    }
+  }
+
+  def onEditorSelect(c: EditorCell): Unit =
+    for { face <- c.face } {
+      if (followSelection) {
+        viewer.complex = Some(face)
+      }
+    }
+
   def handleResize: Unit = {
 
     val uiWidth = jQuery("#editor-div").width.toInt
@@ -117,6 +149,33 @@ object Lambda {
     environment += (typeName -> entry)
 
   }
+
+  def onDefineExpr: Unit = 
+    for {
+      root <- editor.editor.selectionRoot
+      face <- root.face
+    } {
+
+      val exprs: List[Option[Expr]] = face.toList
+
+      if (exprs.forall(_.isDefined)) {
+        logPane.debug("Ready to save cell")
+
+        val exprName = jQuery("#expr-name-input").value.asInstanceOf[String]
+        val entry = ExprEntry(exprName, face.head.baseValue.get)
+        val uiElement = a(cls := "item",
+          onclick := { () => selectExpr(entry) })(exprName).render
+    
+        jQuery("#editor-left-sidebar").append(uiElement)
+        environment += (exprName -> entry)
+
+        logPane.ok("Defined expression " + exprName)
+
+      } else {
+        logPane.error("Selected cell is not full.")
+      }
+    }
+
 
   def onLift: Unit =
     for {
@@ -212,7 +271,6 @@ object Lambda {
                   val hom = Hom(objs, deriv, tgt)
                   val app = App(objs, deriv, tgt)
 
-
                   val homCell: EditorCell =
                     (for {
                       t <- bface.tail
@@ -222,11 +280,15 @@ object Lambda {
 
                   val appCell: EditorCell = bface.head.baseValue
 
+                  logPane.debug("Found destination cells ....")
+                  
                   homCell.label = Some(hom)
                   appCell.label = Some(app)
 
                   // Now re-render and we should be good!!
                   editor.editor.renderAll
+
+                  logPane.debug("After render ....")
 
                 }
 

@@ -21,15 +21,13 @@ sealed trait Expr {
       case Pair(objs, exprs) =>
         "Pair(" + exprs.toList.map(_.toString).mkString(",") + ")"
       case Hom(objs, deriv, tgt) => {
-        // Ok.  Not quite.  The focus has the empty cell as its root.
-        // So we need to advance once before making the list .....
-        val rights = deriv.sh.toList.map(_.rootValue.get.toString).mkString("<-")
+        val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
         val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
         "(" + lefts + (if (lefts.length > 0) "->" else "") +
           tgt.toString + (if (rights.length > 0) "<-" else "") + rights + ")"
       }
       case App(objs, deriv, tgt) => {
-        val rights = deriv.sh.toList.map(_.rootValue.get.toString).mkString("<-")
+        val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
         val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
         "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
       }
