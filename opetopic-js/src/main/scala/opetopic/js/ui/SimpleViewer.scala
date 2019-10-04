@@ -46,7 +46,7 @@ class SimpleViewer[A: Renderable] extends Component {
         val g: GalleryType =
           new SimpleActiveGallery[A, JsDomFramework.type](JsDomFramework)(cc)
 
-        g.hoverCofaces = true // false
+        g.hoverCofaces = false
         g.firstPanel = firstPanel
         g.lastPanel = lastPanel
 

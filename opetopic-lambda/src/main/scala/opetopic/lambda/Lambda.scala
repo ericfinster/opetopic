@@ -7,6 +7,8 @@
 
 package opetopic.lambda
 
+import scala.collection.mutable.Map
+
 import scalatags.JsDom.all._
 import org.scalajs.jquery._
 import org.scalajs.dom
@@ -16,15 +18,19 @@ import opetopic._
 import opetopic.ui._
 import opetopic.js._
 import opetopic.js.ui._
+import opetopic.mtl._
 
 import JsDomFramework._
 import JQuerySemanticUI._
 
 object Lambda {
 
-  val editor = new SimpleCardinalEditor[SimpleMarker]()
-  val viewer = new SimpleViewer[Option[SimpleMarker]]
+  val editor = new SimpleCardinalEditor[Expr]()
+  val viewer = new SimpleViewer[Option[Expr]]
 
+  type EditorCell = editor.StableCell
+  type ViewerCell = viewer.CellType
+  
   val editorPane =
     new FixedBottomPane(
       editor,
@@ -34,24 +40,33 @@ object Lambda {
           a(cls := "item", onclick := { () => editor.editor.extrudeSelection })(i(cls := "square outline icon"), "Extrude"),
           a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
           a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
-          div(cls := "item")(
-            div(cls := "ui input")(input(`type` := "text", id := "label-input", placeholder := "Label ..."))
-          ),
           div(cls := "right menu")(
-            div(cls := "item")(
-              div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "check icon", id := "follow-icon"), "Follow Selection")
-            ),
             a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
             a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
           )
         ).render)
     )
 
+  val logPane = new LogPane()
+
   val viewerPane =
     new FixedBottomPane(
-      viewer,
+      new HorizontalSplitPane(
+        viewer,
+        logPane
+      ),
       PlainComponent(
-        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;").render
+        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
+          a(cls := "item", onclick := { () => onPaste })(i(cls := "edit outline icon"), "Paste"),
+          div(cls := "right menu")(
+            div(cls := "item")(
+              div(cls := "ui action input")(
+                input(id := "new-type-input", `type` := "text", placeholder := "New Type ...", onchange := { () => onNewType }),
+                button(cls := "ui button", onclick := { () => onNewType })("New Type")
+              )
+            )
+          )
+        ).render
       )
     )
 
@@ -59,7 +74,7 @@ object Lambda {
     new VerticalSplitPane(editorPane, viewerPane)
 
   def onNew: Unit = {
-    editor.editor.cardinal = SCardinal[SimpleMarker]()
+    editor.editor.cardinal = SCardinal[Expr]()
     editor.editor.renderAll
   }
 
@@ -73,20 +88,6 @@ object Lambda {
     editor.editor.renderAll
   }
 
-  var followSelection: Boolean = true
-
-  def onFollowToggle: Unit = {
-    if (followSelection) {
-      followSelection = false
-      jQuery("#follow-icon").removeClass("check")
-      jQuery("#follow-icon").addClass("close")
-    } else {
-      followSelection = true
-      jQuery("#follow-icon").removeClass("close")
-      jQuery("#follow-icon").addClass("check")
-    }
-  }
-
   def handleResize: Unit = {
 
     val uiWidth = jQuery("#editor-div").width.toInt
@@ -96,6 +97,90 @@ object Lambda {
     vertSplitPane.setHeight(uiHeight)
 
   }
+
+  case class ExprEntry(val ident: String, val expr: Expr) {
+    def getComplex: SComplex[Expr] =
+      Expr.toComplex(expr)
+  }
+
+  def onNewType: Unit = {
+
+    val typeName = jQuery("#new-type-input").value.asInstanceOf[String]
+    logPane.log("Creating a new type called " + typeName)
+
+    val entry = ExprEntry(typeName, Var(typeName))
+    val uiElement = a(cls := "item",
+      onclick := { () => selectExpr(entry) })(typeName).render
+    
+    jQuery("#editor-left-sidebar").append(uiElement)
+    environment += (typeName -> entry)
+
+  }
+
+  def onPaste: Unit = 
+    for {
+      root <- editor.editor.selectionRoot
+      face <- root.boxFace
+      cell <- viewer.complex
+    } {
+
+      face.matchWith(cell) match {
+        case None => logPane.logError("Incompatible shape.")
+        case Some(pc) => {
+          logPane.logDebug("Shapes are compatible.")
+
+          // Verify the equality of all expressions when they
+          // are both defined and return the resulting complex
+          // of expressions.
+          val m: Except[SComplex[(EditorCell, Expr)]] =
+            pc.traverseComplex[Except, (EditorCell, Expr)]({
+              case (c, exprOpt) => {
+
+                (c.label, exprOpt) match {
+                  case (Some(e), Some(f)) => {
+                    if (e.equals(f)) {
+                      succeed((c, e))
+                    } else {
+                      throwError("Incompatible expressions.")
+                    }
+                  }
+                  case (None, Some(f)) => succeed((c, f))
+                  case (Some(e), None) => succeed((c, e))
+                  case (None, None) => throwError("Incomplete expression.")
+                }
+
+              }
+            })
+
+          m match {
+            case Xor.Left(msg) => logPane.logError(msg)
+            case Xor.Right(cmplx) => {
+
+              // Now traverse the complex and update the labels.
+              cmplx.foreach({
+                case (c, e) => { c.label = Some(e) }
+              })
+
+              // Now re-render ...
+              editor.editor.renderAll
+
+              logPane.logDebug("Paste successful.")
+
+            }
+          }
+
+        }
+      }
+
+    }
+
+  def selectExpr(entry: ExprEntry): Unit = {
+    val cmplx: SComplex[Option[Expr]] =
+      entry.getComplex.map(Some(_))
+    viewer.complex = Some(cmplx)
+  }
+
+  val environment: Map[String, ExprEntry] = Map()
 
   def main: Unit = {
 
