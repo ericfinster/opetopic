@@ -192,6 +192,7 @@ object Lambda {
           case _ => None
         })
 
+      // Return a list of addresses which are non defined.
       def emptyAddresses[A](tr: STree[Option[A]]): List[SAddr] = {
         tr.mapWithAddr({
           case (Some(a), _) => None
@@ -199,43 +200,68 @@ object Lambda {
         }).toList.flatten 
       }
 
+      def extractDerivative(tr: STree[Option[Expr]]): Except[(SDeriv[Expr], SAddr)] =
+        emptyAddresses(tr) match {
+          case addr :: Nil => {
+            for {
+              z <- attempt(tr.seekTo(addr), "Invalid address")
+              // Remove options in the rest of the tree
+              noOptZip <- attempt(z.ctxt.close(SLeaf).map(_.get).seekTo(addr), "Internal error")
+              noOptShell = z.focus.nodeOption.get._2.map(_.map(_.get))
+              deriv = SDeriv(noOptShell, noOptZip.ctxt)
+            } yield (deriv, addr)
+          }
+          case _ => throwError("Inverse lift does not have unique empty source.")
+        }
+
       face match {
         case tl >> SBox(None, cn) >> SDot(None) => {
 
-          toPd(cn) match {
-            case None => logPane.error("Incomplete lifting problem.")
-            case Some(pd) => {
+          // BUG: this will fail in the case of the identity
+          // on an object.  We need to make sure objects are
+          // always there somehow ....
+          val exprTail = tl.traverseComplex(opt => opt)
+          
+          (toPd(cn), exprTail) match {
+            case (None, _) => logPane.error("Incomplete lifting problem.")
+            case (Some(pd), Some(exprs)) => {
+
+              // The destination cells
+              val tgtCell: EditorCell = bface.tail.get.head.baseValue
+              val fillCell: EditorCell = bface.head.baseValue
 
               if (tl.dim == 0) {
 
                 logPane.debug("Product construction.")
 
-                // Fill the base with objects if this is not
-                // already the case .....
-                val objs : SComplex[Expr] = tl.mapComplex(_ => Obj)
+                val prod = Prod(exprs, pd)
+                val pair = Pair(exprs, pd)
 
-                val prod = Prod(objs, pd)
-                val pair = Pair(objs, pd)
-
-                // Now we'd like to paste these back to the editor
-                logPane.debug("Successful production construction.")
-
-                // These are the target cells in the editor
-                val prodCell: EditorCell = bface.tail.get.head.baseValue
-                val pairCell: EditorCell = bface.head.baseValue
-
-                prodCell.label = Some(prod)
-                pairCell.label = Some(pair)
-
-                // Now re-render and we should be good!!
-                editor.editor.renderAll
+                tgtCell.label = Some(prod)
+                fillCell.label = Some(pair)
 
               } else if (tl.dim == 1) {
+
                 logPane.debug("Composite construction.")
+
+                // Okay, should be ready for this now....
+                val comp = Comp(exprs, pd)
+                val fill = CompFill(exprs, pd)
+
+                tgtCell.label = Some(comp)
+                fillCell.label = Some(fill)
+
               } else {
+
                 logPane.debug("Coherence problem.")
+
               }
+
+              // Now re-render and we should be good!!
+              editor.editor.renderAll
+              
             }
+            case (_, None) => logPane.error("Base complex is not full.")
           }
 
         }
@@ -248,64 +274,41 @@ object Lambda {
             case _ => None
           })
 
-          emptyAddresses(optTr) match {
-            case addr :: Nil => {
-              logPane.debug("Valid inverse lifting problem ...")
+          val exprTail = tl.traverseComplex(opt => opt)
 
+          (extractDerivative(optTr), exprTail)  match {
+            case (Xor.Right((deriv, addr)), Some(exprs)) => {
 
-              
+              val fillCell: EditorCell = bface.head.baseValue
+              val srcCell: EditorCell = (for {
+                t <- bface.tail
+                n <- t.head.boxOption
+                m <- n._2.elementAt(addr)
+              } yield m.baseValue).get
+
               if (tl.dim == 0) {
 
-                val objs : SComplex[Expr] = tl.mapComplex(_ => Obj)
+                // Create a hom/app pair
+                val hom = Hom(exprs, deriv, tgt)
+                val app = App(exprs, deriv, tgt)
+                
+                srcCell.label = Some(hom)
+                fillCell.label = Some(app)
 
-                for {
-                  z <- optTr.seekTo(addr)
-                  // Remove options in the rest of the tree
-                  noOptZip <- z.ctxt.close(SLeaf).map(_.get).seekTo(addr)
-                  noOptShell = z.focus.nodeOption.get._2.map(_.map(_.get))
-                  deriv = SDeriv(noOptShell, noOptZip.ctxt)
-                } {
+                // Now re-render and we should be good!!
+                editor.editor.renderAll
 
-                  logPane.debug("Derivative created successfully....")
-
-                  val hom = Hom(objs, deriv, tgt)
-                  val app = App(objs, deriv, tgt)
-
-                  val homCell: EditorCell =
-                    (for {
-                      t <- bface.tail
-                      n <- t.head.boxOption
-                      m <- n._2.elementAt(addr)
-                    } yield m.baseValue).get
-
-                  val appCell: EditorCell = bface.head.baseValue
-
-                  logPane.debug("Found destination cells ....")
-                  
-                  homCell.label = Some(hom)
-                  appCell.label = Some(app)
-
-                  // Now re-render and we should be good!!
-                  editor.editor.renderAll
-
-                  logPane.debug("After render ....")
-
-                }
-
+              } else if (tl.dim == 1) {
               } else {
-                logPane.error("Unimplemented")
               }
 
             }
-            case _ => logPane.error("Inverse lift does not have unique empty source.")
+            case (Xor.Left(msg), _) => logPane.error(msg)
+            case (_, None) => logPane.error("Base complex is not full.")
           }
 
         }
-        case _ => {
-
-          logPane.error("Malformed lifting condition")
-
-        }
+        case _ => logPane.error("Malformed lifting condition")
       }
 
     }

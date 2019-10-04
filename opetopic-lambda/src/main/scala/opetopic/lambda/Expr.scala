@@ -31,6 +31,8 @@ sealed trait Expr {
         val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
         "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
       }
+      case Comp(base, pd) => "Comp"
+      case CompFill(base, pd) => "CompFill"
       case _ => "Unknown"
     }
 
@@ -45,12 +47,14 @@ case class Prod(val objs: SComplex[Expr], val exprs: STree[Expr]) extends Expr
 case class Hom(val objs: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
 
 // Dim 2
-case class Comp(val cmplx: SComplex[Option[Expr]]) extends Expr
+case class Comp(val base: SComplex[Expr], val exprs: STree[Expr]) extends Expr
 case class Pair(val objs: SComplex[Expr], val exprs: STree[Expr]) extends Expr
 case class App(val objs: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
-case class Lam(val cmplx: SComplex[Option[Expr]]) extends Expr
+case class Lam(val base: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
 
 // Dim >= 3
+case class CompFill(val base: SComplex[Expr], val exprs: STree[Expr]) extends Expr
+case class LamFill(val base: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
 case class Univ(val cmplx: SComplex[Option[Expr]]) extends Expr
 
 object Expr {
@@ -63,6 +67,8 @@ object Expr {
       case Pair(objs, exprs) => objs >> SBox(Prod(objs, exprs), exprs.map(SDot(_))) >> SDot(e)
       case App(objs, deriv, tgt) => objs >> SBox(tgt, deriv.plug(Hom(objs, deriv,tgt)).map(SDot(_))) >> SDot(e)
       case Hom(objs, deriv, tgt) => toComplex(App(objs, deriv, tgt)).target.get
+      case Comp(base, pd) => toComplex(CompFill(base, pd)).target.get
+      case CompFill(base, pd) => base >> SBox(Comp(base, pd), pd.map(SDot(_))) >> SDot(e)
       case _ => ||(SDot(Obj)) // Dummy value ...
     }
 
@@ -82,6 +88,8 @@ object Expr {
         case p:Pair => CellRendering(text(p.toString), colorSpec = PairColorSpec)
         case h:Hom => CellRendering(text(h.toString), colorSpec = HomColorSpec)
         case a:App => CellRendering(text(a.toString), colorSpec = AppColorSpec)
+        case c:Comp => CellRendering(text(c.toString), colorSpec = ProdColorSpec)
+        case c:CompFill => CellRendering(text(c.toString), colorSpec = PairColorSpec)
         case _ => CellRendering(spacer(Bounds(0, 0, 600, 600)))
       }
 
