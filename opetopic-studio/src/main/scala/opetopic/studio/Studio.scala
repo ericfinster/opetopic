@@ -124,9 +124,8 @@ object Studio {
 
   val editorTab = new Tab("editor-tab", editorPane, true)
   val inspectorTab = new Tab("inspector-tab", inspectorPane)
-  val colorTab = new Tab("color-tab", PlainComponent(p("This is the coloring tab").render))
 
-  val tabPane = new TabPane(editorTab, inspectorTab, colorTab)
+  val tabPane = new TabPane(editorTab, inspectorTab)
 
   val vertSplitPane =
     new VerticalSplitPane(viewerPane, tabPane)
