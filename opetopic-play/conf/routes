@@ -21,6 +21,9 @@ POST        /getSketch                       controllers.StudioController.getSke
 POST        /deleteSketch                    controllers.StudioController.deleteSketch
 POST	    /renderSketch                    controllers.StudioController.renderSketch
 
+# Lambda
+GET         /lambda                          controllers.ApplicationController.lambda
+
 # Documentation
 GET         /docs/*docname                    controllers.DocsController.showDoc(docname)
 

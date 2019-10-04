@@ -53,5 +53,10 @@ class ApplicationController @Inject() (
     silhouette.env.eventBus.publish(LogoutEvent(request.identity, request))
     silhouette.env.authenticatorService.discard(request.authenticator, result)
   }
-  
+
+  // The lambda editor
+  def lambda = silhouette.UserAwareAction.async { implicit request => 
+    Future.successful(Ok(views.html.lambda(env.isDev)(request, None, webJarsUtil)))
+  }
+
 }
