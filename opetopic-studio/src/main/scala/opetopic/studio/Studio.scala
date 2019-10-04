@@ -23,8 +23,8 @@ import scalajs.concurrent.JSExecutionContext.Implicits.queue
 import opetopic._
 import opetopic.ui._
 import opetopic.js._
+import opetopic.js.ui._
 import opetopic.mtl._
-import opetopic.studio.ui._
 
 import JsDomFramework._
 import JQuerySemanticUI._
@@ -182,6 +182,7 @@ object Studio {
       // This prints the link flag list ....
       // val flagItr = new FlagIterator(cmplx.withFaceAddresses, Some(c.faceAddress), true, true)
       jQuery(flagList).empty()
+      println("******* Flag List *********")
 
       for { f <- flagItr } {
 
@@ -190,6 +191,8 @@ object Studio {
             case SrcFacet((f , _) , d) => SrcFacet(f.map(_.lbl).getOrElse(""), d)
             case TgtFacet((f , _)) => TgtFacet(f.map(_.lbl).getOrElse(""))
           })
+
+        println(flagStr(strFlag))
 
         val item = a(cls := "item", onclick := { () => onSelectFlag(f) })(flagStr(strFlag)).render
         jQuery(flagList).append(item)

@@ -83,6 +83,22 @@ lazy val opetopicStudio = (project in file("opetopic-studio")).
   ).enablePlugins(ScalaJSPlugin).
   dependsOn(opetopicJs)
 
+lazy val opetopicLambda = (project in file("opetopic-lambda")).
+  settings(commonSettings: _*).
+  settings(
+    scalaJSUseMainModuleInitializer := true,
+    mainClass in Compile := Some("opetopic.lambda.Lambda"),
+    resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
 lazy val opetopicDocs = (project in file("opetopic-docs")).
   settings(commonSettings: _*).
   settings(
