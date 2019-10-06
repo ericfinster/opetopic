@@ -131,17 +131,14 @@ object Lambda {
 
   }
 
-  case class ExprEntry(val ident: String, val expr: Expr) {
-    def getComplex: SComplex[Expr] =
-      Expr.toComplex(expr)
-  }
+  case class ExprEntry(val ident: String, val expr: Expr) 
 
   def onNewType: Unit = {
 
     val typeName = jQuery("#new-type-input").value.asInstanceOf[String]
     logPane.log("Creating a new type called " + typeName)
 
-    val entry = ExprEntry(typeName, Var(typeName))
+    val entry = ExprEntry(typeName, Var(||(SBox(Obj, SNode(SDot(Obj), SLeaf))), typeName))
     val uiElement = a(cls := "item",
       onclick := { () => selectExpr(entry) })(typeName).render
     
@@ -179,172 +176,172 @@ object Lambda {
     }
 
 
-  def onLift: Unit =
-    for {
-      root <- editor.editor.selectionRoot
-      face <- root.face
-      bface <- root.boxFace
-    } {
+  def onLift: Unit = ()
+    // for {
+    //   root <- editor.editor.selectionRoot
+    //   face <- root.face
+    //   bface <- root.boxFace
+    // } {
 
-      // Extract a pasting diagram by requiring all expressions
-      // to be present and external
-      def toPd(cn: STree[SNesting[Option[Expr]]]): Option[STree[Expr]] =
-        cn.traverse({
-          case SDot(o) => o
-          case _ => None
-        })
+    //   // Extract a pasting diagram by requiring all expressions
+    //   // to be present and external
+    //   def toPd(cn: STree[SNesting[Option[Expr]]]): Option[STree[Expr]] =
+    //     cn.traverse({
+    //       case SDot(o) => o
+    //       case _ => None
+    //     })
 
-      // Return a list of addresses which are non defined.
-      def emptyAddresses[A](tr: STree[Option[A]]): List[SAddr] = {
-        tr.mapWithAddr({
-          case (Some(a), _) => None
-          case (None, addr) => Some(addr)
-        }).toList.flatten 
-      }
+    //   // Return a list of addresses which are non defined.
+    //   def emptyAddresses[A](tr: STree[Option[A]]): List[SAddr] = {
+    //     tr.mapWithAddr({
+    //       case (Some(a), _) => None
+    //       case (None, addr) => Some(addr)
+    //     }).toList.flatten 
+    //   }
 
-      def extractDerivative(tr: STree[Option[Expr]]): Except[(SDeriv[Expr], SAddr)] =
-        emptyAddresses(tr) match {
-          case addr :: Nil => {
-            for {
-              z <- attempt(tr.seekTo(addr), "Invalid address")
-              // Remove options in the rest of the tree
-              noOptZip <- attempt(z.ctxt.close(SLeaf).map(_.get).seekTo(addr), "Internal error")
-              noOptShell = z.focus.nodeOption.get._2.map(_.map(_.get))
-              deriv = SDeriv(noOptShell, noOptZip.ctxt)
-            } yield (deriv, addr)
-          }
-          case _ => throwError("Inverse lift does not have unique empty source.")
-        }
+    //   def extractDerivative(tr: STree[Option[Expr]]): Except[(SDeriv[Expr], SAddr)] =
+    //     emptyAddresses(tr) match {
+    //       case addr :: Nil => {
+    //         for {
+    //           z <- attempt(tr.seekTo(addr), "Invalid address")
+    //           // Remove options in the rest of the tree
+    //           noOptZip <- attempt(z.ctxt.close(SLeaf).map(_.get).seekTo(addr), "Internal error")
+    //           noOptShell = z.focus.nodeOption.get._2.map(_.map(_.get))
+    //           deriv = SDeriv(noOptShell, noOptZip.ctxt)
+    //         } yield (deriv, addr)
+    //       }
+    //       case _ => throwError("Inverse lift does not have unique empty source.")
+    //     }
 
-      face match {
-        case tl >> SBox(None, cn) >> SDot(None) => {
+    //   face match {
+    //     case tl >> SBox(None, cn) >> SDot(None) => {
 
-          // BUG: this will fail in the case of the identity
-          // on an object.  We need to make sure objects are
-          // always there somehow ....
-          val exprTail = tl.traverseComplex(opt => opt)
+    //       // BUG: this will fail in the case of the identity
+    //       // on an object.  We need to make sure objects are
+    //       // always there somehow ....
+    //       val exprTail = tl.traverseComplex(opt => opt)
           
-          (toPd(cn), exprTail) match {
-            case (None, _) => logPane.error("Incomplete lifting problem.")
-            case (Some(pd), Some(exprs)) => {
+    //       (toPd(cn), exprTail) match {
+    //         case (None, _) => logPane.error("Incomplete lifting problem.")
+    //         case (Some(pd), Some(exprs)) => {
 
-              // The destination cells
-              val tgtCell: EditorCell = bface.tail.get.head.baseValue
-              val fillCell: EditorCell = bface.head.baseValue
+    //           // The destination cells
+    //           val tgtCell: EditorCell = bface.tail.get.head.baseValue
+    //           val fillCell: EditorCell = bface.head.baseValue
 
-              if (tl.dim == 0) {
+    //           if (tl.dim == 0) {
 
-                logPane.debug("Product construction.")
+    //             logPane.debug("Product construction.")
 
-                val prod = Prod(exprs, pd)
-                val pair = Pair(exprs, pd)
+    //             val prod = Prod(exprs, pd)
+    //             val pair = Pair(exprs, pd)
 
-                tgtCell.label = Some(prod)
-                fillCell.label = Some(pair)
+    //             tgtCell.label = Some(prod)
+    //             fillCell.label = Some(pair)
 
-              } else if (tl.dim == 1) {
+    //           } else if (tl.dim == 1) {
 
-                logPane.debug("Composite construction.")
+    //             logPane.debug("Composite construction.")
 
-                // Okay, should be ready for this now....
-                val comp = Comp(exprs, pd)
-                val fill = CompFill(exprs, pd)
+    //             // Okay, should be ready for this now....
+    //             val comp = Comp(exprs, pd)
+    //             val fill = CompFill(exprs, pd)
 
-                tgtCell.label = Some(comp)
-                fillCell.label = Some(fill)
+    //             tgtCell.label = Some(comp)
+    //             fillCell.label = Some(fill)
 
-              } else {
+    //           } else {
 
-                logPane.debug("Coherence problem.")
+    //             logPane.debug("Coherence problem.")
 
-              }
+    //           }
 
-              // Now re-render and we should be good!!
-              editor.editor.renderAll
+    //           // Now re-render and we should be good!!
+    //           editor.editor.renderAll
               
-            }
-            case (_, None) => logPane.error("Base complex is not full.")
-          }
+    //         }
+    //         case (_, None) => logPane.error("Base complex is not full.")
+    //       }
 
-        }
-        case tl >> SBox(Some(tgt), cn) >> SDot(None) => {
+    //     }
+    //     case tl >> SBox(Some(tgt), cn) >> SDot(None) => {
 
-          logPane.debug("Inverse lifting problem")
+    //       logPane.debug("Inverse lifting problem")
 
-          val optTr = cn.map({
-            case SDot(o) => o
-            case _ => None
-          })
+    //       val optTr = cn.map({
+    //         case SDot(o) => o
+    //         case _ => None
+    //       })
 
-          val exprTail = tl.traverseComplex(opt => opt)
+    //       val exprTail = tl.traverseComplex(opt => opt)
 
-          (extractDerivative(optTr), exprTail)  match {
-            case (Xor.Right((deriv, addr)), Some(exprs)) => {
+    //       (extractDerivative(optTr), exprTail)  match {
+    //         case (Xor.Right((deriv, addr)), Some(exprs)) => {
 
-              val fillCell: EditorCell = bface.head.baseValue
-              val srcCell: EditorCell = (for {
-                t <- bface.tail
-                n <- t.head.boxOption
-                m <- n._2.elementAt(addr)
-              } yield m.baseValue).get
+    //           val fillCell: EditorCell = bface.head.baseValue
+    //           val srcCell: EditorCell = (for {
+    //             t <- bface.tail
+    //             n <- t.head.boxOption
+    //             m <- n._2.elementAt(addr)
+    //           } yield m.baseValue).get
 
-              if (tl.dim == 0) {
+    //           if (tl.dim == 0) {
 
-                // Create a hom/app pair
-                val hom = Hom(exprs, deriv, tgt)
-                val app = App(exprs, deriv, tgt)
+    //             // Create a hom/app pair
+    //             val hom = Hom(exprs, deriv, tgt)
+    //             val app = App(exprs, deriv, tgt)
                 
-                srcCell.label = Some(hom)
-                fillCell.label = Some(app)
+    //             srcCell.label = Some(hom)
+    //             fillCell.label = Some(app)
 
-                // Now re-render and we should be good!!
-                editor.editor.renderAll
+    //             // Now re-render and we should be good!!
+    //             editor.editor.renderAll
 
-              } else if (tl.dim == 1) {
+    //           } else if (tl.dim == 1) {
 
-                def isLiftingContext(g: List[(Expr, SDeriv[STree[Expr]])]): Boolean =
-                  g match {
-                    case Nil => true
-                    case (e, d) :: h =>
-                      Expr.hasSourceLifting(e, d.g.address) &&
-                        d.plug(SLeaf).forall(_.forall(Expr.hasTargetLifting(_))) &&
-                        isLiftingContext(h)
-                  }
+    //             def isLiftingContext(g: List[(Expr, SDeriv[STree[Expr]])]): Boolean =
+    //               g match {
+    //                 case Nil => true
+    //                 case (e, d) :: h =>
+    //                   Expr.hasSourceLifting(e, d.g.address) &&
+    //                     d.plug(SLeaf).forall(_.forall(Expr.hasTargetLifting(_))) &&
+    //                     isLiftingContext(h)
+    //               }
 
-                val shellOk = deriv.sh.forall(_.forall(Expr.hasTargetLifting(_)))
-                val baseOk = isLiftingContext(deriv.g.g)
+    //             val shellOk = deriv.sh.forall(_.forall(Expr.hasTargetLifting(_)))
+    //             val baseOk = isLiftingContext(deriv.g.g)
 
-                if (shellOk && baseOk) {
+    //             if (shellOk && baseOk) {
 
-                  logPane.debug("Valid right lifting")
+    //               logPane.debug("Valid right lifting")
 
-                  val lam = Lam(exprs, deriv, tgt)
-                  val lamFill = LamFill(exprs, deriv, tgt)
+    //               val lam = Lam(exprs, deriv, tgt)
+    //               val lamFill = LamFill(exprs, deriv, tgt)
                   
-                  srcCell.label = Some(lam)
-                  fillCell.label = Some(lamFill)
+    //               srcCell.label = Some(lam)
+    //               fillCell.label = Some(lamFill)
 
-                  // Now re-render and we should be good!!
-                  editor.editor.renderAll
+    //               // Now re-render and we should be good!!
+    //               editor.editor.renderAll
                   
-                } else {
-                  // We need better error reporting here ....
-                  logPane.error("Invalid right lifting problem")
-                }
+    //             } else {
+    //               // We need better error reporting here ....
+    //               logPane.error("Invalid right lifting problem")
+    //             }
 
-              } else {
-              }
+    //           } else {
+    //           }
 
-            }
-            case (Xor.Left(msg), _) => logPane.error(msg)
-            case (_, None) => logPane.error("Base complex is not full.")
-          }
+    //         }
+    //         case (Xor.Left(msg), _) => logPane.error(msg)
+    //         case (_, None) => logPane.error("Base complex is not full.")
+    //       }
 
-        }
-        case _ => logPane.error("Malformed lifting condition")
-      }
+    //     }
+    //     case _ => logPane.error("Malformed lifting condition")
+    //   }
 
-    }
+    // }
 
   def onPaste: Unit = 
     for {
@@ -402,7 +399,7 @@ object Lambda {
 
   def selectExpr(entry: ExprEntry): Unit = {
     val cmplx: SComplex[Option[Expr]] =
-      entry.getComplex.map(Some(_))
+      entry.expr.exprComplex.map(Some(_))
     viewer.complex = Some(cmplx)
   }
 

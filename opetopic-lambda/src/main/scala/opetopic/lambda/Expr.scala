@@ -14,92 +14,93 @@ import opetopic.mtl._
 sealed trait Expr {
 
   override def toString: String =
-    this match {
-      case Var(id) => id
-      case Prod(objs, exprs) =>
-        "(" + exprs.toList.map(_.toString).mkString("x") + ")"
-      case Pair(objs, exprs) =>
-        "Pair(" + exprs.toList.map(_.toString).mkString(",") + ")"
-      case Hom(objs, deriv, tgt) => {
-        val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
-        val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
-        "(" + lefts + (if (lefts.length > 0) "->" else "") +
-          tgt.toString + (if (rights.length > 0) "<-" else "") + rights + ")"
-      }
-      case App(objs, deriv, tgt) => {
-        val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
-        val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
-        "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
-      }
-      case Comp(base, pd) => "Comp"
-      case CompFill(base, pd) => "CompFill"
-      case Lam(base, deriv, tgt) => "Lam"
-      case LamFill(base, deriv, tgt) => "LamFill"
-      case _ => "Unknown"
-    }
+    this.pprint
 
 }
 
-// Dim 0 
 case object Obj extends Expr
-
-// Dim 1
-case class Var(val id: String) extends Expr
-case class Prod(val objs: SComplex[Expr], val exprs: STree[Expr]) extends Expr
-case class Hom(val objs: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
-
-// Dim 2
-case class Comp(val base: SComplex[Expr], val exprs: STree[Expr]) extends Expr
-case class Pair(val objs: SComplex[Expr], val exprs: STree[Expr]) extends Expr
-case class App(val objs: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
-case class Lam(val base: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
-
-// Dim >= 3
-case class CompFill(val base: SComplex[Expr], val exprs: STree[Expr]) extends Expr
-case class LamFill(val base: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
-case class Univ(val cmplx: SComplex[Option[Expr]]) extends Expr
+case class Var(val frame: SComplex[Expr], val id: String) extends Expr
+case class LeftComp(val web: SComplex[Expr], val pd: STree[Expr]) extends Expr
+case class LeftFill(val web: SComplex[Expr], val pd: STree[Expr]) extends Expr
+case class RightComp(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
+case class RightFill(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
 
 object Expr {
 
-  def toComplex(e: Expr): SComplex[Expr] =
-    e match {
-      case Obj => ||(SDot(Obj))
-      case Var(id) => ||(SBox(Obj, SNode(SDot(Obj), SLeaf))) >> SDot(e)
-      case Prod(objs, exprs) => toComplex(Pair(objs, exprs)).target.get
-      case Pair(objs, exprs) => objs >> SBox(Prod(objs, exprs), exprs.map(SDot(_))) >> SDot(e)
-      case Hom(objs, deriv, tgt) => toComplex(App(objs, deriv, tgt)).face(FaceAddr(1, SDir(deriv.g.address) :: Nil)).get
-      case App(objs, deriv, tgt) => objs >> SBox(tgt, deriv.plug(Hom(objs, deriv, tgt)).map(SDot(_))) >> SDot(e)
-      case Comp(base, pd) => toComplex(CompFill(base, pd)).target.get
-      case CompFill(base, pd) => base >> SBox(Comp(base, pd), pd.map(SDot(_))) >> SDot(e)
-      case Lam(base, deriv, tgt) => toComplex(LamFill(base, deriv, tgt)).face(FaceAddr(1, SDir(deriv.g.address) :: Nil)).get
-      case LamFill(base, deriv, tgt) => base >> SBox(tgt, deriv.plug(Lam(base, deriv, tgt)).map(SDot(_))) >> SDot(e)
-      case _ => ||(SDot(Obj)) // Dummy value ...
-    }
 
-  def hasTargetLifting(e: Expr): Boolean =
-    e match {
-      case Obj => false
-      case Var(_) => false
-      case Prod(_, _) => false
-      case Pair(_, _) => true
-      case Hom(_, _, _) => false
-      case App(_, _, _) => false
-      case Comp(_, pd) => pd.forall(hasTargetLifting(_))
-      case CompFill(_, _) => true
-    }
+  implicit class ExprOps[A](e: Expr) {
 
-  def hasSourceLifting(e: Expr, addr: SAddr): Boolean =
-    e match {
-      case Obj => false
-      case Var(_) => false
-      case Prod(_, _) => false
-      case Pair(_, _) => false
-      case Hom(_, _, _) => false
-      // True if the source is the same as the position of the lift
-      case App(_, d, _) => addr == d.g.address
-      case Comp(_, _) => false
-      case CompFill(_, _) => false 
-    }
+    def exprComplex: SComplex[Expr] =
+      e match {
+        case Obj => ||(SDot(Obj))
+        case Var(frame, id) => frame >> SDot(e)
+        case LeftComp(web, pd) => LeftFill(web, pd).exprComplex.target.get
+        case LeftFill(web, pd) => web >> SBox(LeftComp(web, pd), pd.map(SDot(_))) >> SDot(e)
+        case RightComp(web, deriv, tgt) => RightFill(web, deriv, tgt).exprComplex.face(FaceAddr(1, List(SDir(deriv.g.address)))).get
+        case RightFill(web, deriv, tgt) => web >> SBox(tgt, deriv.plug(RightComp(web, deriv, tgt)).map(SDot(_))) >> SDot(e)
+      }
+
+    def pprint: String = 
+      e match {
+        case Obj => ""
+        case Var(frame, id) => ""
+        case LeftComp(web, pd) => ""
+        case LeftFill(web, pd) => ""
+        case RightComp(web, deriv, tgt) => ""
+        case RightFill(web, deriv, tgt) => ""
+      }
+
+    // this match {
+    //   case Var(id) => id
+    //   case Prod(objs, exprs) =>
+    //     "(" + exprs.toList.map(_.toString).mkString("x") + ")"
+    //   case Pair(objs, exprs) =>
+    //     "Pair(" + exprs.toList.map(_.toString).mkString(",") + ")"
+    //   case Hom(objs, deriv, tgt) => {
+    //     val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
+    //     val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
+    //     "(" + lefts + (if (lefts.length > 0) "->" else "") +
+    //       tgt.toString + (if (rights.length > 0) "<-" else "") + rights + ")"
+    //   }
+    //   case App(objs, deriv, tgt) => {
+    //     val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
+    //     val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
+    //     "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
+    //   }
+    //   case Comp(base, pd) => "Comp"
+    //   case CompFill(base, pd) => "CompFill"
+    //   case Lam(base, deriv, tgt) => "Lam"
+    //   case LamFill(base, deriv, tgt) => "LamFill"
+    //   case _ => "Unknown"
+    // }
+
+
+    // def hasTargetLifting(e: Expr): Boolean =
+    //   e match {
+    //     case Obj => false
+    //     case Var(_) => false
+    //     case Prod(_, _) => false
+    //     case Pair(_, _) => true
+    //     case Hom(_, _, _) => false
+    //     case App(_, _, _) => false
+    //     case Comp(_, pd) => pd.forall(hasTargetLifting(_))
+    //     case CompFill(_, _) => true
+    //   }
+
+    // def hasSourceLifting(e: Expr, addr: SAddr): Boolean =
+    //   e match {
+    //     case Obj => false
+    //     case Var(_) => false
+    //     case Prod(_, _) => false
+    //     case Pair(_, _) => false
+    //     case Hom(_, _, _) => false
+    //     // True if the source is the same as the position of the lift
+    //     case App(_, d, _) => addr == d.g.address
+    //     case Comp(_, _) => false
+    //     case CompFill(_, _) => false
+    //   }
+
+  }
 
   implicit object ExprRenderable extends Renderable[Expr] {
     def render(f: UIFramework)(e: Expr): f.CellRendering = {
@@ -113,15 +114,10 @@ object Expr {
       e match {
         case Obj => CellRendering(spacer(Bounds(0, 0, 600, 600)), colorSpec = ObjectColorSpec)
         case v:Var => CellRendering(text(v.toString), colorSpec = VariableColorSpec)
-        case p:Prod => CellRendering(text(p.toString), colorSpec = ProdColorSpec)
-        case p:Pair => CellRendering(text(p.toString), colorSpec = PairColorSpec)
-        case h:Hom => CellRendering(text(h.toString), colorSpec = HomColorSpec)
-        case a:App => CellRendering(text(a.toString), colorSpec = AppColorSpec)
-        case c:Comp => CellRendering(text(c.toString), colorSpec = ProdColorSpec)
-        case c:CompFill => CellRendering(text(c.toString), colorSpec = PairColorSpec)
-        case l:Lam => CellRendering(text(l.toString), colorSpec = HomColorSpec)
-        case l:LamFill => CellRendering(text(l.toString), colorSpec = AppColorSpec)
-        case _ => CellRendering(spacer(Bounds(0, 0, 600, 600)))
+        case lc:LeftComp => CellRendering(text(lc.toString), colorSpec = LeftCompColorSpec)
+        case lf:LeftFill => CellRendering(text(lf.toString), colorSpec = LeftFillColorSpec)
+        case rc:RightComp => CellRendering(text(rc.toString), colorSpec = RightCompColorSpec)
+        case rf:RightFill => CellRendering(text(rf.toString), colorSpec = RightFillColorSpec)
       }
 
     }
@@ -147,7 +143,7 @@ object Expr {
     edgeHovered = "#f19091"
   )
 
-  object ProdColorSpec extends ColorSpec(
+  object LeftCompColorSpec extends ColorSpec(
     fill = "#FFFFFF",
     fillHovered = "#ffa8a8", // "#F3F4F5",
     fillSelected = "#ff7d7d",
@@ -157,7 +153,7 @@ object Expr {
     edgeHovered = "#f19091"
   )
 
-  object PairColorSpec extends ColorSpec(
+  object LeftFillColorSpec extends ColorSpec(
     fill = "#FFFFFF",
     fillHovered = "#ffa8a8", // "#F3F4F5",
     fillSelected = "#ff7d7d",
@@ -167,7 +163,7 @@ object Expr {
     edgeHovered = "#f19091"
   )
 
-  object HomColorSpec extends ColorSpec(
+  object RightCompColorSpec extends ColorSpec(
     fill = "#FFFFFF",
     fillHovered = "#ffa8a8", // "#F3F4F5",
     fillSelected = "#ff7d7d",
@@ -177,7 +173,7 @@ object Expr {
     edgeHovered = "#f19091"
   )
 
-  object AppColorSpec extends ColorSpec(
+  object RightFillColorSpec extends ColorSpec(
     fill = "#FFFFFF",
     fillHovered = "#ffa8a8", // "#F3F4F5",
     fillSelected = "#ff7d7d",
