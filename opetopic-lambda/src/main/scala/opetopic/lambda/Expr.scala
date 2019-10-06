@@ -27,8 +27,17 @@ case class RightFill(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: 
 
 object Expr {
 
-
   implicit class ExprOps[A](e: Expr) {
+
+    def dim: Int =
+      e match {
+        case Obj => 0
+        case Var(frame, id) => frame.dim + 1
+        case LeftComp(web, pd) => web.dim + 1
+        case LeftFill(web, pd) => web.dim + 2
+        case RightComp(web, deriv, tgt) => web.dim + 1
+        case RightFill(web, deriv, tgt) => web.dim + 2
+      }
 
     def exprComplex: SComplex[Expr] =
       e match {
@@ -42,65 +51,118 @@ object Expr {
 
     def pprint: String = 
       e match {
-        case Obj => ""
-        case Var(frame, id) => ""
-        case LeftComp(web, pd) => ""
-        case LeftFill(web, pd) => ""
-        case RightComp(web, deriv, tgt) => ""
-        case RightFill(web, deriv, tgt) => ""
+        case Obj => "Obj"
+        case Var(frame, id) => id
+        case LeftComp(web, pd) =>
+          web.dim match {
+            case 0 =>
+              if (pd.isLeaf) "Unit" else "(" + pd.toList.map(_.toString).mkString("x") + ")"
+            case _ =>
+              if (pd.isLeaf) "Id(" + web.head.baseValue.toString + ")"
+              else "Comp(" + pd.toList.map(_.toString).mkString(",") + ")"
+          }
+        case LeftFill(web, pd) =>
+          web.dim match {
+            case 0 =>
+              if (pd.isLeaf) "tt" else "Pair(" + pd.toList.map(_.toString).mkString(",") + ")"
+            case _ =>
+              if (pd.isLeaf) "Null(" + web.head.baseValue.toString + ")"
+              else "Fill(" + pd.toList.map(_.toString).mkString(",") + ")"
+          }
+        case RightComp(web, deriv, tgt) =>
+          web.dim match {
+            case 0 => {
+              val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
+              val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
+              "(" + lefts + (if (lefts.length > 0) "->" else "") +
+              tgt.toString + (if (rights.length > 0) "<-" else "") + rights + ")"
+            }
+            case 1 => {
+              "Lam(" + tgt.toString + ")"
+            }
+            case _ => {
+              "RightComp(" + tgt.toString + ")"
+            }
+          }
+        case RightFill(web, deriv, tgt) =>
+          web.dim match {
+            case 0 => {
+              val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
+              val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
+              "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
+            }
+            case 1 => {
+              "Beta(" + tgt.toString + ")"
+            }
+            case _ => {
+              "RightFill(" + tgt.toString + ")"
+            }
+          }
       }
 
-    // this match {
-    //   case Var(id) => id
-    //   case Prod(objs, exprs) =>
-    //     "(" + exprs.toList.map(_.toString).mkString("x") + ")"
-    //   case Pair(objs, exprs) =>
-    //     "Pair(" + exprs.toList.map(_.toString).mkString(",") + ")"
-    //   case Hom(objs, deriv, tgt) => {
-    //     val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
-    //     val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
-    //     "(" + lefts + (if (lefts.length > 0) "->" else "") +
-    //       tgt.toString + (if (rights.length > 0) "<-" else "") + rights + ")"
-    //   }
-    //   case App(objs, deriv, tgt) => {
-    //     val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
-    //     val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
-    //     "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
-    //   }
-    //   case Comp(base, pd) => "Comp"
-    //   case CompFill(base, pd) => "CompFill"
-    //   case Lam(base, deriv, tgt) => "Lam"
-    //   case LamFill(base, deriv, tgt) => "LamFill"
-    //   case _ => "Unknown"
-    // }
+    def hasTargetLifting: Boolean =
+      e match {
+        case Obj => false
+        case Var(frame, id) => true // Should really depend on dimension
+        case LeftComp(web, pd) => pd.forall(_.hasTargetLifting)
+        case LeftFill(web, pd) => true
+        case RightComp(web, deriv, tgt) => false
+        case RightFill(web, deriv, tgt) => false
+      }
 
-
-    // def hasTargetLifting(e: Expr): Boolean =
-    //   e match {
-    //     case Obj => false
-    //     case Var(_) => false
-    //     case Prod(_, _) => false
-    //     case Pair(_, _) => true
-    //     case Hom(_, _, _) => false
-    //     case App(_, _, _) => false
-    //     case Comp(_, pd) => pd.forall(hasTargetLifting(_))
-    //     case CompFill(_, _) => true
-    //   }
-
-    // def hasSourceLifting(e: Expr, addr: SAddr): Boolean =
-    //   e match {
-    //     case Obj => false
-    //     case Var(_) => false
-    //     case Prod(_, _) => false
-    //     case Pair(_, _) => false
-    //     case Hom(_, _, _) => false
-    //     // True if the source is the same as the position of the lift
-    //     case App(_, d, _) => addr == d.g.address
-    //     case Comp(_, _) => false
-    //     case CompFill(_, _) => false
-    //   }
+    def hasSourceLiftingAt(addr: SAddr): Boolean =
+      e match {
+        case Obj => false
+        case Var(frame, id) => true // Should depend on dimension
+        case LeftComp(web, pd) => false // Here, I think it should be recursive ...
+        case LeftFill(web, pd) => false
+        case RightComp(web, deriv, tgt) => false
+        case RightFill(web, deriv, tgt) => addr == deriv.g.address
+      }
 
   }
+
+  //
+  //  Semantic Rules
+  //
+
+  // I guess left lifting is always valid?  So maybe this is unnecessary...
+  def validateLeftLift(web: SComplex[Expr], pd: STree[Expr]): Except[Unit] =
+    succeed(())
+
+  // This should be rewritten to have much better error reporting
+  def validateRightLift(web: SComplex[Expr], deriv: SDeriv[Expr], tgt: Expr): Except[Unit] = {
+
+    def checkShell(sh: STree[STree[Expr]]): Except[Unit] =
+      for {
+        _ <- sh.traverse(_.traverse(expr =>
+          verify(expr.hasTargetLifting,
+            "Expression: " + expr.toString + " does not have target lifting."
+          )))
+      } yield ()
+
+    def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
+      g match {
+        case Nil => succeed(())
+        case (e, d) :: h =>
+          for {
+            _ <- verify(e.hasSourceLiftingAt(d.g.address),
+              "Expression: " + e.toString + " does not have source lifting at " + d.g.address)
+            _ <- checkShell(d.plug(SLeaf))
+            _ <- checkCtxt(h)
+          } yield ()
+      }
+
+    for {
+      _ <- checkShell(deriv.sh)
+      _ <- checkCtxt(deriv.g.g)
+    } yield ()
+
+  }
+
+  //
+  //  Renderable instance
+  //
 
   implicit object ExprRenderable extends Renderable[Expr] {
     def render(f: UIFramework)(e: Expr): f.CellRendering = {
