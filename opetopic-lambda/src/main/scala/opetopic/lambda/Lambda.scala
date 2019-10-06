@@ -46,7 +46,7 @@ object Lambda {
           div(cls := "item")(
             div(cls := "ui action input")(
               input(id := "expr-name-input", `type` := "text", placeholder := "Name ...", onchange := { () => onDefineExpr }),
-              button(cls := "ui button")("Save Cell")
+              button(cls := "ui button")("Define Cell")
             )
           ),
           div(cls := "right menu")(
@@ -162,6 +162,8 @@ object Lambda {
         logPane.debug("Ready to save cell")
 
         val exprName = jQuery("#expr-name-input").value.asInstanceOf[String]
+        val expr = face.head.baseValue.get
+        logPane.debug("Expression is: " + expr.toString)
         val entry = ExprEntry(exprName, face.head.baseValue.get)
         val uiElement = a(cls := "item",
           onclick := { () => selectExpr(entry) })(exprName).render
@@ -299,6 +301,37 @@ object Lambda {
                 editor.editor.renderAll
 
               } else if (tl.dim == 1) {
+
+                def isLiftingContext(g: List[(Expr, SDeriv[STree[Expr]])]): Boolean =
+                  g match {
+                    case Nil => true
+                    case (e, d) :: h =>
+                      Expr.hasSourceLifting(e, d.g.address) &&
+                        d.plug(SLeaf).forall(_.forall(Expr.hasTargetLifting(_))) &&
+                        isLiftingContext(h)
+                  }
+
+                val shellOk = deriv.sh.forall(_.forall(Expr.hasTargetLifting(_)))
+                val baseOk = isLiftingContext(deriv.g.g)
+
+                if (shellOk && baseOk) {
+
+                  logPane.debug("Valid right lifting")
+
+                  val lam = Lam(exprs, deriv, tgt)
+                  val lamFill = LamFill(exprs, deriv, tgt)
+                  
+                  srcCell.label = Some(lam)
+                  fillCell.label = Some(lamFill)
+
+                  // Now re-render and we should be good!!
+                  editor.editor.renderAll
+                  
+                } else {
+                  // We need better error reporting here ....
+                  logPane.error("Invalid right lifting problem")
+                }
+
               } else {
               }
 

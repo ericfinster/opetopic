@@ -33,6 +33,8 @@ sealed trait Expr {
       }
       case Comp(base, pd) => "Comp"
       case CompFill(base, pd) => "CompFill"
+      case Lam(base, deriv, tgt) => "Lam"
+      case LamFill(base, deriv, tgt) => "LamFill"
       case _ => "Unknown"
     }
 
@@ -65,11 +67,38 @@ object Expr {
       case Var(id) => ||(SBox(Obj, SNode(SDot(Obj), SLeaf))) >> SDot(e)
       case Prod(objs, exprs) => toComplex(Pair(objs, exprs)).target.get
       case Pair(objs, exprs) => objs >> SBox(Prod(objs, exprs), exprs.map(SDot(_))) >> SDot(e)
-      case App(objs, deriv, tgt) => objs >> SBox(tgt, deriv.plug(Hom(objs, deriv,tgt)).map(SDot(_))) >> SDot(e)
-      case Hom(objs, deriv, tgt) => toComplex(App(objs, deriv, tgt)).target.get
+      case Hom(objs, deriv, tgt) => toComplex(App(objs, deriv, tgt)).face(FaceAddr(1, SDir(deriv.g.address) :: Nil)).get
+      case App(objs, deriv, tgt) => objs >> SBox(tgt, deriv.plug(Hom(objs, deriv, tgt)).map(SDot(_))) >> SDot(e)
       case Comp(base, pd) => toComplex(CompFill(base, pd)).target.get
       case CompFill(base, pd) => base >> SBox(Comp(base, pd), pd.map(SDot(_))) >> SDot(e)
+      case Lam(base, deriv, tgt) => toComplex(LamFill(base, deriv, tgt)).face(FaceAddr(1, SDir(deriv.g.address) :: Nil)).get
+      case LamFill(base, deriv, tgt) => base >> SBox(tgt, deriv.plug(Lam(base, deriv, tgt)).map(SDot(_))) >> SDot(e)
       case _ => ||(SDot(Obj)) // Dummy value ...
+    }
+
+  def hasTargetLifting(e: Expr): Boolean =
+    e match {
+      case Obj => false
+      case Var(_) => false
+      case Prod(_, _) => false
+      case Pair(_, _) => true
+      case Hom(_, _, _) => false
+      case App(_, _, _) => false
+      case Comp(_, pd) => pd.forall(hasTargetLifting(_))
+      case CompFill(_, _) => true
+    }
+
+  def hasSourceLifting(e: Expr, addr: SAddr): Boolean =
+    e match {
+      case Obj => false
+      case Var(_) => false
+      case Prod(_, _) => false
+      case Pair(_, _) => false
+      case Hom(_, _, _) => false
+      // True if the source is the same as the position of the lift
+      case App(_, d, _) => addr == d.g.address
+      case Comp(_, _) => false
+      case CompFill(_, _) => false 
     }
 
   implicit object ExprRenderable extends Renderable[Expr] {
@@ -90,6 +119,8 @@ object Expr {
         case a:App => CellRendering(text(a.toString), colorSpec = AppColorSpec)
         case c:Comp => CellRendering(text(c.toString), colorSpec = ProdColorSpec)
         case c:CompFill => CellRendering(text(c.toString), colorSpec = PairColorSpec)
+        case l:Lam => CellRendering(text(l.toString), colorSpec = HomColorSpec)
+        case l:LamFill => CellRendering(text(l.toString), colorSpec = AppColorSpec)
         case _ => CellRendering(spacer(Bounds(0, 0, 600, 600)))
       }
 

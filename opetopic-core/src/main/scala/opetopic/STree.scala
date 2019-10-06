@@ -366,6 +366,9 @@ object STree {
         }
       }
 
+    def forall(f: A => Boolean): Boolean =
+      treeFold(_ => Some(true))((a, bsh) => Some(bsh.forall(b => b) && f(a))) getOrElse false
+
   }
 
   //============================================================================================
