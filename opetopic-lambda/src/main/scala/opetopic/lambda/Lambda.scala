@@ -50,6 +50,12 @@ object Lambda {
               button(cls := "ui button")("Define Cell")
             )
           ),
+          div(cls := "item")(
+            div(cls := "ui action input")(
+              input(id := "postulate-input", `type` := "text", placeholder := "Id ...", onchange := { () => onPostulate }),
+              button(cls := "ui button")("Postulate")
+            )
+          ),
           div(cls := "right menu")(
             div(cls := "item")(
               div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "close icon", id := "follow-icon"), "Follow Selection")
@@ -69,16 +75,7 @@ object Lambda {
         logPane
       ),
       PlainComponent(
-        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-          div(cls := "right menu")(
-            div(cls := "item")(
-              div(cls := "ui action input")(
-                input(id := "new-type-input", `type` := "text", placeholder := "New Type ...", onchange := { () => onNewType }),
-                button(cls := "ui button", onclick := { () => onNewType })("New Type")
-              )
-            )
-          )
-        ).render
+        div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;").render
       )
     )
 
@@ -147,7 +144,8 @@ object Lambda {
 
   }
 
-  def onDefineExpr: Unit = 
+  def onDefineExpr: Unit = {
+    logPane.debug("In define expr")
     for {
       root <- editor.editor.selectionRoot
       face <- root.face
@@ -158,8 +156,15 @@ object Lambda {
       if (exprs.forall(_.isDefined)) {
         logPane.debug("Ready to save cell")
 
-        val exprName = jQuery("#expr-name-input").value.asInstanceOf[String]
+        val inputName = jQuery("#expr-name-input").value.asInstanceOf[String]
         val expr = face.head.baseValue.get
+
+        // This allows to quickly define a cell by it's summary
+        val exprName =
+          if (inputName == "")
+            expr.toString
+          else inputName
+        
         logPane.debug("Expression is: " + expr.toString)
         val entry = ExprEntry(exprName, face.head.baseValue.get)
         val uiElement = a(cls := "item",
@@ -173,6 +178,43 @@ object Lambda {
       } else {
         logPane.error("Selected cell is not full.")
       }
+    }
+  }
+
+  def onPostulate: Unit =
+    for {
+      root <- editor.editor.selectionRoot
+      face <- root.face
+      bface <- root.boxFace
+    } {
+
+      val ident = jQuery("#postulate-input").value.asInstanceOf[String]
+
+      face match {
+        case ||(_) => logPane.error("Object postulates disallowed.")
+        case tl >> _ => {
+          tl.traverseComplex(o => o) match {
+            case None => logPane.error("Incomplete frame.")
+            case Some(frm) => {
+
+              val expr = Var(frm, ident)
+
+              val entry = ExprEntry(ident, expr)
+              val uiElement = a(cls := "item",
+                onclick := { () => selectExpr(entry) })(ident).render
+              jQuery("#editor-left-sidebar").append(uiElement)
+
+              bface.head.baseValue.label = Some(expr)
+              editor.editor.renderAll
+
+              logPane.ok("Created new postulated cell " + ident)
+
+            }
+          }
+        }
+
+      }
+
     }
 
 
@@ -245,7 +287,7 @@ object Lambda {
               val m = for {
 
                 // Check that the base is full
-                web <- attempt(tl.traverseComplex(o => o), "Incomplete base")
+                web <- attempt(tl.traverseComplex(o => o), "Incomplete frame")
                 
                 // Generate the appropriate derivative
                 z <- attempt(tr.seekTo(addr), "Invalid address")
@@ -357,7 +399,17 @@ object Lambda {
     jQuery("#editor-div").append(vertSplitPane.uiElement)
 
     jQuery(dom.window).on("resize", () => { handleResize })
-    setTimeout(100){ jQuery(dom.window).trigger("resize") }
+    setTimeout(100){
+      jQuery(dom.window).trigger("resize")
+
+      // Add the object to the environment by default
+      val entry = ExprEntry("Obj", Obj)
+      val uiElement = a(cls := "item",
+        onclick := { () => selectExpr(entry) })("Obj").render
+      jQuery("#editor-left-sidebar").append(uiElement)
+    }
+
+
 
     // Render the editor 
     editor.initialize

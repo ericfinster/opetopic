@@ -278,6 +278,22 @@ object STree {
     def graftWith(brs: STree[STree[A]]): Option[STree[A]] =
       graft(st, brs)
 
+
+    // Find the vertical address of the left with a
+    // given horizontal address.
+    def horizToVertAddr(addr: SAddr): Option[SAddr] = {
+
+      STree.treeFold(st)((hAddr, vAddr) =>
+        if (hAddr == addr)
+          Some(Some(vAddr))
+        else Some(None)
+      )((_, _, otr) => Some(otr.toList.flatten.headOption)).flatten
+
+    }
+
+    // def treeFold[A, B](t: STree[A])(leafRec: (SAddr, SAddr) => Option[B])(nodeRec: (A, SAddr, STree[B]) => Option[B]): Option[B] = {
+
+
     // The Kleisli version of join from below ...
     def bind[B](f : (A, SAddr) => Option[STree[B]], addr: SAddr = Nil) : Option[STree[B]] = 
       st match {

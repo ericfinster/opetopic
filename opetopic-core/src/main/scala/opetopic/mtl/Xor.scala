@@ -32,6 +32,18 @@ object Xor extends XorInstances {
 
   implicit class XorOps[A, B](x: Xor[A, B]) {
 
+    def isLeft: Boolean =
+      x match {
+        case Left(_) => true
+        case _ => false
+      }
+
+    def isRight: Boolean =
+      x match {
+        case Right(_) => true
+        case _ => false
+      }
+
     def handle(f : A => Xor[A, B]): Xor[A, B] =
       x match {
         case Left(a) => f(a)

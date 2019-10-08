@@ -103,20 +103,49 @@ object Expr {
     def hasTargetLifting: Boolean =
       e match {
         case Obj => false
-        case Var(frame, id) => true // Should really depend on dimension
+        case Var(frame, id) => frame.dim == 0
         case LeftComp(web, pd) => pd.forall(_.hasTargetLifting)
         case LeftFill(web, pd) => true
-        case RightComp(web, deriv, tgt) => false
+        case RightComp(web, deriv, tgt) => web.dim == 0
         case RightFill(web, deriv, tgt) => false
       }
 
     def hasSourceLiftingAt(addr: SAddr): Boolean =
       e match {
         case Obj => false
-        case Var(frame, id) => true // Should depend on dimension
-        case LeftComp(web, pd) => false // Here, I think it should be recursive ...
-        case LeftFill(web, pd) => false
-        case RightComp(web, deriv, tgt) => false
+        case Var(frame, id) => frame.dim == 0
+        case LeftComp(web, pd) =>
+          if (web.dim == 0) true
+          else if (web.dim > 1) true
+          else {
+
+            def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
+              g match {
+                case Nil => succeed(())
+                case (e, d) :: h =>
+                  for {
+                    _ <- verify(e.hasSourceLiftingAt(d.g.address),
+                      "Expression: " + e.toString + " does not have source lifting at " + d.g.address)
+                    // Taking this out for now, but not sure if it should be included ...
+                    // _ <- checkShell(d.plug(SLeaf))  
+                    _ <- checkCtxt(h)
+                  } yield ()
+              }
+
+            (for {
+              vAddr <- attempt(pd.horizToVertAddr(addr), "Faile to find incoming leaf.")
+              z <- attempt(pd.seekTo(vAddr), "Failed seek for incoming leaf.")
+              u <- checkCtxt(z.ctxt.g)
+            } yield ()).isRight
+
+          }
+        
+        case LeftFill(web, pd) => {
+          // No in lowest dimension, and then we will
+          // be in the Kan range.
+          false
+        }
+        case RightComp(web, deriv, tgt) => web.dim == 0
         case RightFill(web, deriv, tgt) => addr == deriv.g.address
       }
 
@@ -126,11 +155,10 @@ object Expr {
   //  Semantic Rules
   //
 
-  // I guess left lifting is always valid?  So maybe this is unnecessary...
+  // Composites always exist
   def validateLeftLift(web: SComplex[Expr], pd: STree[Expr]): Except[Unit] =
     succeed(())
 
-  // This should be rewritten to have much better error reporting
   def validateRightLift(web: SComplex[Expr], deriv: SDeriv[Expr], tgt: Expr): Except[Unit] = {
 
     def checkShell(sh: STree[STree[Expr]]): Except[Unit] =
@@ -153,7 +181,9 @@ object Expr {
           } yield ()
       }
 
-    for {
+    if (web.dim >= 2)
+      succeed(())  // Kan range ...
+    else for {
       _ <- checkShell(deriv.sh)
       _ <- checkCtxt(deriv.g.g)
     } yield ()
