@@ -42,6 +42,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
   var onCellClick: SelectionType => Unit = { _ => () }
   var onCellCtrlClick: SelectionType => Unit = { _ => () }
+  var onCellShiftClick: SelectionType => Unit = { _ => () }
   var onHover: SelectionType => Unit = { _ => () }
   var onUnhover: SelectionType => Unit = { _ => () }
 
@@ -88,6 +89,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     // Events
     def onClick: Unit = { selectAsRoot ; onCellClick(thisCell) }
     def onCtrlClick: Unit = { select ; onCellCtrlClick(thisCell) }
+    def onShiftClick: Unit = { onCellShiftClick(thisCell) }
 
     def onMouseOver: Unit = {
       if (hoverCofaces) {
@@ -167,7 +169,11 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
       r
     }
 
-    boxRect.onClick = { (e : UIMouseEvent) => if (e.ctrlKey) onCtrlClick else onClick }
+    boxRect.onClick = { (e : UIMouseEvent) =>
+      if (e.ctrlKey) onCtrlClick
+      else if (e.shiftKey) onShiftClick
+      else onClick }
+
     boxRect.onMouseOver = { (e : UIMouseEvent) => onMouseOver }
     boxRect.onMouseOut = { (e : UIMouseEvent) => onMouseOut }
 

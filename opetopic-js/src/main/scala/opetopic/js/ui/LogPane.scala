@@ -11,7 +11,16 @@ import org.scalajs.dom.html._
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
 
-class LogPane extends Component {
+trait Logger {
+
+  def log(str: String): Unit 
+  def ok(str: String): Unit 
+  def error(str: String): Unit
+  def debug(str: String): Unit
+
+}
+
+class LogPane extends Component with Logger {
 
   val uiElement =
     div(cls := "ui inverted vertical menu", style := "overflow-y: auto; overflow-x: auto;").render

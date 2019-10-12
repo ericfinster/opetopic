@@ -54,9 +54,9 @@ class ApplicationController @Inject() (
     silhouette.env.authenticatorService.discard(request.authenticator, result)
   }
 
-  // The lambda editor
-  def lambda = silhouette.UserAwareAction.async { implicit request => 
-    Future.successful(Ok(views.html.lambda(env.isDev)(request, None, webJarsUtil)))
+  // The opetopic logical framework
+  def lf = silhouette.UserAwareAction.async { implicit request => 
+    Future.successful(Ok(views.html.lf(env.isDev)(request, None, webJarsUtil)))
   }
 
 }
