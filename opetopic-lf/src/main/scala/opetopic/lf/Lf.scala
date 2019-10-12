@@ -25,7 +25,7 @@ object Lf {
 
   val logPane = new LogPane()
 
-  var theory: Theory = new MonoidalClosed(logPane)
+  var theory: Theory = new OmegaCat(logPane)
 
   def editor = theory.editor
   def viewer = theory.viewer

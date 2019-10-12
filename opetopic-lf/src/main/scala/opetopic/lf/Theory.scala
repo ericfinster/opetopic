@@ -49,6 +49,14 @@ abstract class Theory(val console: Logger) {
   //  Lift Destructors
   //
 
+  object ObjectFrame {
+    def unapply(c: SComplex[Option[ExprType]]): Boolean =
+      c match {
+        case ||(SDot(None)) => true
+        case _ => false
+      }
+  }
+
   object CompleteFrame {
     def unapply(c: SComplex[Option[ExprType]]): Option[SComplex[ExprType]] =
       c match {

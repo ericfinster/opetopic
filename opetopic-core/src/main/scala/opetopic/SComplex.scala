@@ -200,7 +200,9 @@ trait ComplexTypes {
 
     }
 
-
+    def withValueAt(fa: FaceAddr, a: A): Option[SComplex[A]] =
+      applyAt(fa)(_ => a)
+    
     def isCFreeFace(fa: FaceAddr): Option[Boolean] = {
 
       val codim = fa.codim

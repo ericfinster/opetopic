@@ -43,8 +43,14 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
     cmplx match {
       case OutArrow(_) => throwError("No object lifts")
       case InArrow(_) => throwError("No object lifts")
-      case OutNook(web, pd) => succeed(LeftFill(web, pd))
-      case InNook(web, deriv, tgt) => succeed(RightFill(web, deriv, tgt))
+      case OutNook(web, pd) =>
+        for {
+          _ <- Expr.validateLeftLift(web, pd)
+        } yield LeftFill(web, pd)
+      case InNook(web, deriv, tgt) =>
+        for {
+          _ <- Expr.validateRightLift(web, deriv, tgt)
+        } yield RightFill(web, deriv, tgt)
       case _ => throwError("Invalid lifting configuration")
     }
 
@@ -309,125 +315,6 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
 
 
   }
-
-  //
-  //  Lift definitions
-  //
-
-  // override def onLift: Unit = 
-  //   for {
-  //     root <- editor.editor.selectionRoot
-  //     face <- root.face
-  //     bface <- root.boxFace
-  //   } {
-
-  //     face match {
-
-  //       //
-  //       // Left Lifting
-  //       //
-
-  //       case tl >> SBox(None, cn) >> SDot(None) => {
-
-  //         val m = for {
-
-  //           web <- attempt(tl.traverseComplex(o => o), "Incomplete base")
-  //           pd <-  attempt(cn.traverse({
-  //             case SDot(o) => o
-  //             case _ => None
-  //           }), "Error extracting pasting diagram.")
-  //           _ <- Expr.validateLeftLift(web, pd)
-
-  //         } yield (web, pd)
-
-  //         m match {
-  //           case Xor.Left(msg) => console.error(msg)
-  //           case Xor.Right((web, pd)) => {
-
-  //             console.debug("Finished left lift.")
-
-  //             // The newly created expressions
-  //             val comp = LeftComp(web, pd)
-  //             val fill = LeftFill(web, pd)
-
-  //             // The destination cells
-  //             val compCell = bface.tail.get.head.baseValue
-  //             val fillCell = bface.head.baseValue
-
-  //             compCell.label = Some(comp)
-  //             fillCell.label = Some(fill)
-  //             editor.editor.renderAll
-
-  //           }
-  //         }
-
-  //       }
-
-  //       //
-  //       //  Right Lifting
-  //       //
-
-  //       case tl >> SBox(Some(tgt), cn) >> SDot(None) => {
-
-  //         val tr = cn.map({
-  //           case SDot(o) => o
-  //           case _ => None
-  //         })
-
-  //         tr.mapWithAddr({
-  //           case (Some(e), _) => None
-  //           case (_, addr) => Some(addr)
-  //         }).toList.flatten match {
-  //           case addr :: Nil => {
-
-  //             val m = for {
-
-  //               // Check that the base is full
-  //               web <- attempt(tl.traverseComplex(o => o), "Incomplete frame")
-                
-  //               // Generate the appropriate derivative
-  //               z <- attempt(tr.seekTo(addr), "Invalid address")
-  //               noOptZip <- attempt(z.ctxt.close(SLeaf).map(_.get).seekTo(addr), "Internal error")
-  //               noOptShell = z.focus.nodeOption.get._2.map(_.map(_.get))
-  //               deriv = SDeriv(noOptShell, noOptZip.ctxt)
-
-  //               // Validate the lift
-  //               _ <- Expr.validateRightLift(web, deriv, tgt)
-
-  //             } yield (web, deriv)
-
-  //             m match {
-  //               case Xor.Left(msg) => console.error(msg)
-  //               case Xor.Right((web, deriv)) => {
-
-  //                 // The newly created expressions
-  //                 val comp = RightComp(web, deriv, tgt)
-  //                 val fill = RightFill(web, deriv, tgt)
-
-  //                 // The destination cells
-  //                 val fillCell: EditorCell = bface.head.baseValue
-  //                 val compCell: EditorCell = (for {
-  //                   t <- bface.tail
-  //                   n <- t.head.boxOption
-  //                   m <- n._2.elementAt(addr)
-  //                 } yield m.baseValue).get
-
-  //                 // Set the new labels and re-render
-  //                 compCell.label = Some(comp)
-  //                 fillCell.label = Some(fill)
-  //                 editor.editor.renderAll
-                  
-  //               }
-  //             }
-  //           }
-  //           case _ => console.error("Inverse lifting problem does not have a unique empty source.")
-  //         }
-  //       }
-  //       case _ => console.error("Malformed lifting condition")
-  //     }
-
-  //   }
-  
 
   //
   //  UI Definitions
