@@ -228,17 +228,17 @@ class OmegaCat(console: Logger) extends Theory(console) {
   //  UI Definitions
   //
 
-  type EditorType = SimpleCardinalEditor[Expr]
+  type EditorType = TabbedCardinalEditor[Expr]
   type ViewerType = SimpleViewer[Option[Expr]]
 
   val defaultCardinal: SCardinal[Option[Expr]] =
     SCardinal()
 
   // Editor and viewer instances
-  val editor = new SimpleCardinalEditor[Expr]
+  val editor = new TabbedCardinalEditor[Expr]
   val viewer = new SimpleViewer[Option[Expr]]
 
-  editor.editor.onCellShiftClick = (c: editor.editor.CellType) => {
+  editor.onCellShiftClick = (c: editor.StableCell) => {
     for {
       face <- c.face
     } { viewer.complex = Some(face) }

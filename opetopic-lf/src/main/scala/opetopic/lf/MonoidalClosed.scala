@@ -92,7 +92,7 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
           case LeftComp(web, pd) =>
             web.dim match {
               case 0 =>
-                if (pd.isLeaf) "Unit" else "(" + pd.toList.map(_.toString).mkString("x") + ")"
+                if (pd.isLeaf) "Unit" else "(" + pd.toList.map(_.toString).mkString("⊗") + ")"
               case _ =>
                 if (pd.isLeaf) "Id(" + web.head.baseValue.toString + ")"
                 else "Comp(" + pd.toList.map(_.toString).mkString(",") + ")"
@@ -108,10 +108,10 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
           case RightComp(web, deriv, tgt) =>
             web.dim match {
               case 0 => {
-                val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
-                val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
-                "(" + lefts + (if (lefts.length > 0) "->" else "") +
-                tgt.toString + (if (rights.length > 0) "<-" else "") + rights + ")"
+                val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("←")
+                val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("→")
+                "(" + lefts + (if (lefts.length > 0) "→" else "") +
+                tgt.toString + (if (rights.length > 0) "←" else "") + rights + ")"
               }
               case 1 => {
                 "Lam(" + tgt.toString + ")"
@@ -320,7 +320,7 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
   //  UI Definitions
   //
 
-  type EditorType = LambdaEditor
+  type EditorType = TabbedCardinalEditor[Expr]
   type ViewerType = SimpleViewer[Option[Expr]]
 
   val defaultCardinal: SCardinal[Option[Expr]] =
@@ -353,10 +353,10 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
   }
 
   // Editor and viewer instances
-  val editor = new LambdaEditor
+  val editor = new TabbedCardinalEditor[Expr](defaultCardinal)
   val viewer = new SimpleViewer[Option[Expr]]
 
-  editor.editor.onCellShiftClick = (c: editor.editor.CellType) => {
+  editor.onCellShiftClick = (c: editor.StableCell) => {
     for {
       face <- c.face
     } { viewer.complex = Some(face) }

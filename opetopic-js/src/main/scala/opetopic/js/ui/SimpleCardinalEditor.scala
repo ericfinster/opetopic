@@ -1,9 +1,9 @@
 /**
-  * SimpleCardinalEditor.scala - A Simple Cardinal Editor
-  * 
-  * @author Eric Finster
-  * @version 0.1 
-  */
+ * SimpleCardinalEditor.scala - A Simple Cardinal Editor
+ * 
+ * @author Eric Finster
+ * @version 0.1 
+ */
 
 package opetopic.js.ui
 
@@ -36,9 +36,24 @@ class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A
   //============================================================================================
   // UI ELEMENTS
   //
-
-  val uiElement = 
+  
+  val dropdown =
+    button(cls := "ui grey dropdown icon button", style := "position: absolute; left: 10px; top: 10px;")(
+      i(cls := "chevron circle down icon"),
+      div(cls := "menu")(
+        div(cls := "item", onclick := { () => editor.cardinal = c ; editor.renderAll })("New"),
+        div(cls := "item", onclick := { () => editor.extrudeSelection })("Extrude"),
+        div(cls := "item", onclick := { () => editor.loopAtSelection })("Drop"),
+        div(cls := "item", onclick := { () => editor.sproutAtSelection })("Sprout"),
+        div(cls := "ui divider"),
+        div(cls := "item", onclick := { () => zoomIn })("Zoom in"),
+        div(cls := "item", onclick := { () => zoomOut })("Zoom out")
+      )
+    ).render
+    
+  val uiElement =
     div(tabindex := 0, cls := "ui inverted grey nofocus plain segment", style := "margin: 0; padding: 0;")(
+      dropdown,
       editor.element.uiElement
     ).render
 
@@ -61,8 +76,6 @@ class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A
       case 101 => editor.extrudeSelection
       case 100 => editor.loopAtSelection
       case 115 => editor.sproutAtSelection
-      // case 120 => doExtract
-      // case 99 => doCompose
       case _ => ()
     }
   }
@@ -83,6 +96,16 @@ class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A
 
     Bounds(newX.toInt, newY.toInt, (newHalfWidth * 2).toInt, (newHalfHeight * 2).toInt)
 
+  }
+
+  def zoomIn: Unit = {
+    scale += 0.1
+    editor.renderAll
+  }
+
+  def zoomOut: Unit = {
+    scale -= 0.1
+    editor.renderAll
   }
 
   //============================================================================================
@@ -106,6 +129,7 @@ class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A
 
     // Install the key handler
     jQuery(uiElement).keypress(handleKeyEvent(_))
+    jQuery(dropdown).dropdown()
 
   }
 

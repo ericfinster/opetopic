@@ -22,7 +22,7 @@ abstract class Theory(val console: Logger) {
   type VarType <: ExprType
   type DefType <: ExprType
 
-  type EditorType <: SimpleCardinalEditor[ExprType]
+  type EditorType <: TabbedCardinalEditor[ExprType]
   type ViewerType <: SimpleViewer[Option[ExprType]]
 
   val editor: EditorType
@@ -44,6 +44,11 @@ abstract class Theory(val console: Logger) {
       complexOf(expr).map(Some(_))
     viewer.complex = Some(cmplx)
   }
+
+  // def clearEditor: Unit = {
+  //   editor.editor.cardinal = defaultCardinal
+  //   editor.editor.renderAll
+  // }
 
   //
   //  Lift Destructors
@@ -159,7 +164,8 @@ abstract class Theory(val console: Logger) {
 
   def paste(cell: SComplex[Option[ExprType]]): Except[Unit] = 
     for {
-      root <- attempt(editor.editor.selectionRoot, "Nothing selected")
+      t <- attempt(editor.activeTab, "No active tab")
+      root <- attempt(t.editor.selectionRoot, "Nothing selected")
       face <- attempt(root.boxFace, "Error geting face")
       pc <- attempt(face.matchWith(cell), "Incompatible shape")
       cmplx <- pc.traverseComplex[Except, (EditorCell, ExprType)]({
@@ -189,7 +195,7 @@ abstract class Theory(val console: Logger) {
       })
 
       // and re-render
-      editor.editor.renderAll
+      t.editor.renderAll
 
     }
 
@@ -199,14 +205,15 @@ abstract class Theory(val console: Logger) {
 
   def onDefineExpr: Unit =
     for {
-      root <- editor.editor.selectionRoot
+      t <- editor.activeTab
+      root <- t.editor.selectionRoot
       face <- root.face
     } {
 
       val exprs: List[Option[ExprType]] = face.toList
 
       if (exprs.forall(_.isDefined)) {
-        console.debug("Ready to save cell")
+        // console.debug("Ready to save cell")
 
         val inputName = jQuery("#expr-name-input").value.asInstanceOf[String]
         val expr = face.head.baseValue.get
@@ -233,7 +240,8 @@ abstract class Theory(val console: Logger) {
 
   def doPostulate: Except[Unit] =
     for {
-      root <- attempt(editor.editor.selectionRoot, "Nothing selected")
+      t <- attempt(editor.activeTab, "No active tab")
+      root <- attempt(t.editor.selectionRoot, "Nothing selected")
       face <- attempt(root.face, "Error extracting face")
       bface <- attempt(root.boxFace, "Error extracting face")
       ident = jQuery("#postulate-input").value.asInstanceOf[String]
@@ -246,7 +254,7 @@ abstract class Theory(val console: Logger) {
 
       bface.head.baseValue.label = Some(expr)
 
-      editor.editor.renderAll
+      t.editor.renderAll
 
       console.ok("Created new postulated cell " + ident)
 
@@ -254,7 +262,8 @@ abstract class Theory(val console: Logger) {
 
   def doLift: Except[Unit] =
     for {
-      root <- attempt(editor.editor.selectionRoot, "Nothing selected")
+      t <- attempt(editor.activeTab, "No active tab")
+      root <- attempt(t.editor.selectionRoot, "Nothing selected")
       face <- attempt(root.face, "Error extracting face")
       expr <- lift(face)
       // Yeah, this is a bit wasteful as we already know the expression

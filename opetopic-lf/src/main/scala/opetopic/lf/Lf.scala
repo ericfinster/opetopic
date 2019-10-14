@@ -35,28 +35,20 @@ object Lf {
       editor,
       PlainComponent(
         div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-          a(cls := "item", onclick := { () => onNew })(i(cls := "file outline icon"), "New"),
-          a(cls := "item", onclick := { () => editor.editor.extrudeSelection })(i(cls := "square outline icon"), "Extrude"),
-          a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
-          a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
-          a(cls := "item", onclick := { () => runAction(theory.doLift) })(i(cls := "external alternate icon"), "Lift"),
-          a(cls := "item", onclick := { () => runAction(theory.pasteFromViewer) })(i(cls := "edit outline icon"), "Paste"),
           div(cls := "item")(
             div(cls := "ui action input")(
-              input(id := "expr-name-input", `type` := "text", placeholder := "Name ...", onchange := { () => theory.onDefineExpr }),
+              input(id := "expr-name-input", `type` := "text", placeholder := "Name", onchange := { () => theory.onDefineExpr }),
               button(cls := "ui button")("Define Cell")
             )
           ),
           div(cls := "item")(
             div(cls := "ui action input")(
-              input(id := "postulate-input", `type` := "text", placeholder := "Id ...", onchange := { () => runAction(theory.doPostulate) }),
-              button(cls := "ui button")("Postulate")
+              input(id := "postulate-input", `type` := "text", placeholder := "Name", onchange := { () => runAction(theory.doPostulate) }),
+              button(cls := "ui button")("Postulate Cell")
             )
           ),
-          div(cls := "right menu")(
-            a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
-            a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
-          )
+          a(cls := "item", onclick := { () => runAction(theory.doLift) })(i(cls := "external alternate icon"), "Lift"),
+          a(cls := "item", onclick := { () => runAction(theory.pasteFromViewer) })(i(cls := "edit outline icon"), "Paste")
         ).render)
     )
 
@@ -79,21 +71,6 @@ object Lf {
       case Xor.Left(msg) => logPane.error(msg)
       case Xor.Right(_) => ()
     }
-
-  def onNew: Unit = {
-    // editor.editor.cardinal = theory.defaultCardinal
-    editor.editor.renderAll
-  }
-
-  def zoomIn: Unit = {
-    editor.scale += 0.1
-    editor.editor.renderAll
-  }
-
-  def zoomOut: Unit = {
-    editor.scale -= 0.1
-    editor.editor.renderAll
-  }
 
   def handleResize: Unit = {
 
