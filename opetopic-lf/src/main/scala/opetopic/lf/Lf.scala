@@ -25,7 +25,7 @@ object Lf {
 
   val logPane = new LogPane()
 
-  var theory: Theory = new OmegaCat(logPane)
+  var theory: Theory = new BaezDolanCategory(logPane)
 
   def editor = theory.editor
   def viewer = theory.viewer

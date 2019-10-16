@@ -220,6 +220,12 @@ object STree {
         case SLeaf => true
         case _ => false
       }
+
+    def isCorolla: Boolean =
+      st match {
+        case SNode(_, sh) => sh.forall(_.isLeaf)
+        case _ => false
+      }
     
     def rootValue: Option[A] =
       st match {

@@ -61,7 +61,7 @@ abstract class Theory(val console: Logger) {
         case _ => false
       }
   }
-
+  
   object CompleteFrame {
     def unapply(c: SComplex[Option[ExprType]]): Option[SComplex[ExprType]] =
       c match {

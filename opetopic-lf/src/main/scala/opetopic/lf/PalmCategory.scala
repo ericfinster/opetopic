@@ -1,5 +1,5 @@
 /**
-  * OmegaCat.scala - Theory of an omega category
+  * PalmCategory.scala - Theory of an omega category à la Thorsten Palm
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -14,10 +14,10 @@ import opetopic.ui._
 import opetopic.mtl._
 import opetopic.js.ui._
 
-class OmegaCat(console: Logger) extends Theory(console) {
+class PalmCategory(console: Logger) extends Theory(console) {
 
   //
-  //  Expressions for monoidal closed catgories
+  //  Expressions for omega categories
   //
 
   type ExprType = Expr
@@ -49,7 +49,7 @@ class OmegaCat(console: Logger) extends Theory(console) {
 
         def checkShell(sh: STree[STree[Expr]]): Except[Unit] =
           for {
-            _ <- sh.traverse(_.traverse(expr =>
+            _ <- sh.traverse(_.traverse(expr => 
               verify(expr.isUniversal,
                 "Expression: " + expr.toString + " is not universal"
               )))
@@ -58,14 +58,18 @@ class OmegaCat(console: Logger) extends Theory(console) {
         def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
           g match {
             case Nil => succeed(())
-            case (e, d) :: h =>
+            case (e, d) :: h => {
               for {
                 frm <- attempt(e.exprComplex.mapComplex[Option[Expr]](Some(_)).withValueAt(FaceAddr(0, Nil), None), "Error creating frame")
                 inNook <- attempt(frm.withValueAt(FaceAddr(1, List(SDir(d.g.address))), None), "Error extracting inNook")
+                _ <- verify(e.isUniversal,
+                  "Expression: " + e.toString + " is not universal"
+                )
                 _ <- isExposedNook(inNook)
                 _ <- checkShell(d.plug(SLeaf))
                 _ <- checkCtxt(h)
               } yield ()
+            }
           }
 
         def isExposed(d: SDeriv[Expr]): Except[Unit] =

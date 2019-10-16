@@ -23,7 +23,7 @@ import JQuerySemanticUI._
 
 class TabbedCardinalEditor[A: Renderable](
   defaultCardinal : SCardinal[Option[A]] = SCardinal[A]()
-) extends Component {
+) extends Component { thisEditor =>
 
   type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
 
@@ -52,8 +52,8 @@ class TabbedCardinalEditor[A: Renderable](
       (c: StableCell) => onSelectAsRoot(c)
 
     // Rendering sets the viewport size to that of the parent
-    editor.layoutWidth = bnds => jQuery(uiElement).width.toInt
-    editor.layoutHeight = bnds => jQuery(uiElement).height.toInt
+    editor.layoutWidth = bnds => jQuery(thisEditor.uiElement).width.toInt
+    editor.layoutHeight = bnds => jQuery(thisEditor.uiElement).height.toInt
     editor.layoutViewport = bnds => setViewport(bnds)
     
     def setViewport(bnds: Bounds): Bounds = {
@@ -74,6 +74,14 @@ class TabbedCardinalEditor[A: Renderable](
 
     }
 
+    def setWidth(w: Int): Unit = {
+      editor.galleryViewport.width = w
+    }
+
+    def setHeight(h: Int): Unit = {
+      editor.galleryViewport.height = h
+    }
+    
     val uiElement =
       div(cls := "ui tab", attr("data-tab") := id)(editor.element.uiElement).render
 
@@ -93,10 +101,6 @@ class TabbedCardinalEditor[A: Renderable](
 
     jQuery(tabDiv).append(tab.uiElement)
     tab.editor.renderAll
-
-    // Set the default width and height
-    tab.editor.galleryViewport.width = jQuery(uiElement).width.toInt
-    tab.editor.galleryViewport.height = jQuery(uiElement).height.toInt
     
     jQuery(paginator).append(item)
     jQuery(item).tab()
@@ -118,8 +122,8 @@ class TabbedCardinalEditor[A: Renderable](
     button(cls := "ui grey dropdown icon button", style := "position: absolute; left: 10px; top: 10px;")(
       i(cls := "chevron circle down icon"),
       div(cls := "menu")(
-        div(cls := "item", onclick := { () => newTab })("New Tab"),
-        div(cls := "item", onclick := { () => clearTab })("Reset Tab"),
+        a(cls := "item", onclick := { () => newTab })("New Tab"),
+        a(cls := "item", onclick := { () => clearTab })("Reset Tab"),
         div(cls := "ui divider"),
         div(cls := "item", onclick := { () => doExtrude })("Extrude"),
         div(cls := "item", onclick := { () => doLoop })("Drop"),
@@ -143,16 +147,12 @@ class TabbedCardinalEditor[A: Renderable](
 
   override def setWidth(w: Int): Unit = {
     super.setWidth(w)
-    for { t <- tabs } {
-      t.editor.galleryViewport.width = w
-    }
+    tabs.foreach(_.setWidth(w))
   }
 
   override def setHeight(h: Int): Unit = {
     super.setHeight(h)
-    for { t <- tabs } {
-      t.editor.galleryViewport.height = h
-    }
+    tabs.foreach(_.setHeight(h))
   }
 
   //============================================================================================
@@ -197,7 +197,8 @@ class TabbedCardinalEditor[A: Renderable](
 
     // Install the key handler
     jQuery(uiElement).keypress(handleKeyEvent(_))
-    jQuery(dropdown).dropdown()
+    jQuery(dropdown).dropdown(lit(action = "hide"))
+    
     newTab
 
   }

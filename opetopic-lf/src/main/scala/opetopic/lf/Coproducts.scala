@@ -1,5 +1,5 @@
 /**
-  * MonoidalClosed.scala - Theory of a monoidal closed infinity category
+  * Coproducts.scala - A Category with Coproducts
   * 
   * @author Eric Finster
   * @version 0.1 
@@ -14,10 +14,10 @@ import opetopic.ui._
 import opetopic.mtl._
 import opetopic.js.ui._
 
-class MonoidalClosed(console: Logger) extends Theory(console) {
-  
+class Coproducts(console: Logger) extends Theory(console) {
+
   //
-  //  Expressions for monoidal closed catgories
+  //  Expressions for omega categories
   //
 
   type ExprType = Expr
@@ -39,18 +39,54 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
       case _ => throwError("Incomplete Frame")
     }
 
+  def isExposedNook(cmplx: SComplex[Option[Expr]]): Except[Unit] =
+    cmplx match {
+      case OutArrow(e) => succeed(())
+      case InArrow(e) => succeed(())
+      case OutNook(_, _) => succeed(())
+      case InNook(web, deriv, tgt) => {
+
+        def checkShell(sh: STree[STree[Expr]]): Except[Unit] =
+          for {
+            _ <- sh.traverse(_.traverse(expr =>
+              verify(expr.isUniversal,
+                "Expression: " + expr.toString + " is not universal"
+              )))
+          } yield ()
+
+        def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
+          g match {
+            case Nil => succeed(())
+            case (e, d) :: h =>
+              for {
+                frm <- attempt(e.exprComplex.mapComplex[Option[Expr]](Some(_)).withValueAt(FaceAddr(0, Nil), None), "Error creating frame")
+                inNook <- attempt(frm.withValueAt(FaceAddr(1, List(SDir(d.g.address))), None), "Error extracting inNook")
+                _ <- isExposedNook(inNook)
+                _ <- checkShell(d.plug(SLeaf))
+                _ <- checkCtxt(h)
+              } yield ()
+          }
+
+        def isExposed(d: SDeriv[Expr]): Except[Unit] =
+          for {
+            _ <- checkShell(deriv.sh)
+            _ <- checkCtxt(deriv.g.g)
+          } yield ()
+
+        // Should start the chain of inductive hypotheses...
+        isExposed(deriv)
+        
+      }
+    }
+
   def lift(cmplx: SComplex[Option[Expr]]): Except[Expr] =
     cmplx match {
-      case OutArrow(_) => throwError("No object lifts")
-      case InArrow(_) => throwError("No object lifts")
-      case OutNook(web, pd) =>
-        for {
-          _ <- Expr.validateLeftLift(web, pd)
-        } yield LeftFill(web, pd)
+      case OutArrow(e) => throwError("No object lifts")
+      case InArrow(e) => throwError("No object lifts")
+      case OutNook(web, pd) => succeed(LeftFill(web, pd))
       case InNook(web, deriv, tgt) =>
-        for {
-          _ <- Expr.validateRightLift(web, deriv, tgt)
-        } yield RightFill(web, deriv, tgt)
+        isExposedNook(cmplx).flatMap(_ =>
+          succeed(RightFill(web, deriv, tgt)))
       case _ => throwError("Invalid lifting configuration")
     }
 
@@ -60,6 +96,7 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
   case class LeftFill(val web: SComplex[Expr], val pd: STree[Expr]) extends Expr
   case class RightComp(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
   case class RightFill(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
+  // case class Fold(val frame: SComplex[Expr], val rootExpr: Expr) extends Expr
 
   object Expr {
 
@@ -67,12 +104,23 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
 
       def dim: Int =
         e match {
-          case Obj => 0
+          case Obj => 0 
           case Var(frame, id) => frame.dim + 1
           case LeftComp(web, pd) => web.dim + 1
           case LeftFill(web, pd) => web.dim + 2
           case RightComp(web, deriv, tgt) => web.dim + 1
           case RightFill(web, deriv, tgt) => web.dim + 2
+        }
+
+      // Assumes the expression is well-formed
+      def isUniversal: Boolean =
+        e match {
+          case Obj => false
+          case Var(_, _) => false
+          case LeftComp(_, pd) => pd.forall(_.isUniversal)
+          case LeftFill(_, _) => true
+          case RightComp(_, _, tgt) => tgt.isUniversal
+          case RightFill(_, _, _) => true
         }
 
       def exprComplex: SComplex[Expr] =
@@ -91,143 +139,13 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
           case Var(frame, id) => id
           case LeftComp(web, pd) =>
             web.dim match {
-              case 0 =>
-                if (pd.isLeaf) "Unit" else "(" + pd.toList.map(_.toString).mkString("⊗") + ")"
-              case _ =>
-                if (pd.isLeaf) "Id(" + web.head.baseValue.toString + ")"
-                else "Comp(" + pd.toList.map(_.toString).mkString(",") + ")"
+              case 0 => "(" + pd.toList.map(_.toString).mkString("⊔") + ")"
+              case _ => "Comp(" + pd.toList.map(_.toString).mkString(",") + ")"
             }
-          case LeftFill(web, pd) =>
-            web.dim match {
-              case 0 =>
-                if (pd.isLeaf) "tt" else "Pair(" + pd.toList.map(_.toString).mkString(",") + ")"
-              case _ =>
-                if (pd.isLeaf) "Null(" + web.head.baseValue.toString + ")"
-                else "Fill(" + pd.toList.map(_.toString).mkString(",") + ")"
-            }
-          case RightComp(web, deriv, tgt) =>
-            web.dim match {
-              case 0 => {
-                val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("←")
-                val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("→")
-                "(" + lefts + (if (lefts.length > 0) "→" else "") +
-                tgt.toString + (if (rights.length > 0) "←" else "") + rights + ")"
-              }
-              case 1 => {
-                "Lam(" + tgt.toString + ")"
-              }
-              case _ => {
-                "RightComp(" + tgt.toString + ")"
-              }
-            }
-          case RightFill(web, deriv, tgt) =>
-            web.dim match {
-              case 0 => {
-                val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("<-")
-                val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("->")
-                "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
-              }
-              case 1 => {
-                "Beta(" + tgt.toString + ")"
-              }
-              case _ => {
-                "RightFill(" + tgt.toString + ")"
-              }
-            }
+          case LeftFill(web, pd) => "Fill(" + pd.toList.map(_.toString).mkString(",") + ")"
+          case RightComp(web, deriv, tgt) => "RightComp(" + tgt.toString + ")"
+          case RightFill(web, deriv, tgt) => "RightFill(" + tgt.toString + ")"
         }
-
-      def hasTargetLifting: Boolean =
-        e match {
-          case Obj => false
-          case Var(frame, id) => frame.dim == 0
-          case LeftComp(web, pd) => pd.forall(_.hasTargetLifting)
-          case LeftFill(web, pd) => true
-          case RightComp(web, deriv, tgt) => {
-            (web.dim == 0) || (tgt.hasTargetLifting)
-          }
-          case RightFill(web, deriv, tgt) => false
-        }
-
-      def hasSourceLiftingAt(addr: SAddr): Boolean =
-        e match {
-          case Obj => false
-          case Var(frame, id) => frame.dim == 0
-          case LeftComp(web, pd) =>
-            if (web.dim == 0) true
-            else if (web.dim > 1) true
-            else {
-
-              def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
-                g match {
-                  case Nil => succeed(())
-                  case (e, d) :: h =>
-                    for {
-                      _ <- verify(e.hasSourceLiftingAt(d.g.address),
-                        "Expression: " + e.toString + " does not have source lifting at " + d.g.address)
-                      // Taking this out for now, but not sure if it should be included ...
-                      // _ <- checkShell(d.plug(SLeaf))
-                      _ <- checkCtxt(h)
-                    } yield ()
-                }
-
-              (for {
-                vAddr <- attempt(pd.horizToVertAddr(addr), "Faile to find incoming leaf.")
-                z <- attempt(pd.seekTo(vAddr), "Failed seek for incoming leaf.")
-                u <- checkCtxt(z.ctxt.g)
-              } yield ()).isRight
-
-            }
-            
-          case LeftFill(web, pd) => {
-            // No in lowest dimension, and then we will
-            // be in the Kan range.
-            false
-          }
-          case RightComp(web, deriv, tgt) => web.dim == 0
-          case RightFill(web, deriv, tgt) => addr == deriv.g.address
-        }
-
-    }
-
-    //
-    //  Semantic Rules
-    //
-
-    // Composites always exist
-    def validateLeftLift(web: SComplex[Expr], pd: STree[Expr]): Except[Unit] =
-      succeed(())
-
-    def validateRightLift(web: SComplex[Expr], deriv: SDeriv[Expr], tgt: Expr): Except[Unit] = {
-
-      def checkShell(sh: STree[STree[Expr]]): Except[Unit] =
-        for {
-          _ <- sh.traverse(_.traverse(expr =>
-            verify(expr.hasTargetLifting,
-              "Expression: " + expr.toString + " does not have target lifting."
-            )))
-        } yield ()
-
-      def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
-        g match {
-          case Nil => succeed(())
-          case (e, d) :: h =>
-            for {
-              _ <- verify(e.hasSourceLiftingAt(d.g.address),
-                "Expression: " + e.toString + " does not have source lifting at " + d.g.address)
-              _ <- checkShell(d.plug(SLeaf))
-              _ <- checkCtxt(h)
-            } yield ()
-        }
-
-      // After a bit of thought, I've realized that the Kan condition applied
-      // blindly adds some kind of strong hyptoheses.  So I'm going to disable
-      // it here and we'll have to see it we run into any problems.
-      // if (web.dim >= 2)
-      //   succeed(())  // Kan range ...
-      for {
-        _ <- checkShell(deriv.sh)
-        _ <- checkCtxt(deriv.g.g)
-      } yield ()
 
     }
 
@@ -323,15 +241,15 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
   //  UI Definitions
   //
 
-  type EditorType = LambdaEditor
+  type EditorType = CoproductsEditor
   type ViewerType = SimpleViewer[Option[Expr]]
 
   val defaultCardinal: SCardinal[Option[Expr]] =
     SCardinal(||(SDot(Some(Obj))))
-  
+
   // A simple override of the extrusion commands to ensure we always
   // have an object in the lowest dimension
-  class LambdaEditor extends TabbedCardinalEditor[Expr](defaultCardinal) {
+  class CoproductsEditor extends TabbedCardinalEditor[Expr](defaultCardinal) {
 
     override def doExtrude: Unit =
       for {
@@ -357,8 +275,9 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
     
   }
 
+
   // Editor and viewer instances
-  val editor = new LambdaEditor
+  val editor = new CoproductsEditor
   val viewer = new SimpleViewer[Option[Expr]]
 
   editor.onCellShiftClick = (c: editor.StableCell) => {
@@ -366,5 +285,6 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
       face <- c.face
     } { viewer.complex = Some(face) }
   }
-  
+
+
 }
