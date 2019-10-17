@@ -220,11 +220,11 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
         }
 
       // After a bit of thought, I've realized that the Kan condition applied
-      // blindly adds some kind of strong hyptoheses.  So I'm going to disable
-      // it here and we'll have to see it we run into any problems.
-      // if (web.dim >= 2)
-      //   succeed(())  // Kan range ...
-      for {
+      // blindly might add some strong hypotheses.  I think it's okay here, but
+      // you should do some more checking.
+      if (web.dim >= 2)
+        succeed(())  // Kan range ...
+      else for {
         _ <- checkShell(deriv.sh)
         _ <- checkCtxt(deriv.g.g)
       } yield ()
@@ -244,13 +244,16 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
         implicit def intToUnit(i: Int) : Size =
           fromInt(i)
 
+        def truncate(s: String): String =
+          if (s.length > 10) (s.slice(0,10) + "...") else s
+
         e match {
           case Obj => CellRendering(spacer(Bounds(0, 0, 600, 600)), colorSpec = ObjectColorSpec)
-          case v:Var => CellRendering(text(v.toString), colorSpec = VariableColorSpec)
-          case lc:LeftComp => CellRendering(text(lc.toString), colorSpec = LeftCompColorSpec)
-          case lf:LeftFill => CellRendering(text(lf.toString), colorSpec = LeftFillColorSpec)
-          case rc:RightComp => CellRendering(text(rc.toString), colorSpec = RightCompColorSpec)
-          case rf:RightFill => CellRendering(text(rf.toString), colorSpec = RightFillColorSpec)
+          case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
+          case lc:LeftComp => CellRendering(text(truncate(lc.toString)), colorSpec = LeftCompColorSpec)
+          case lf:LeftFill => CellRendering(text(truncate(lf.toString)), colorSpec = LeftFillColorSpec)
+          case rc:RightComp => CellRendering(text(truncate(rc.toString)), colorSpec = RightCompColorSpec)
+          case rf:RightFill => CellRendering(text(truncate(rf.toString)), colorSpec = RightFillColorSpec)
         }
 
       }

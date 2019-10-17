@@ -25,7 +25,7 @@ object Lf {
 
   val logPane = new LogPane()
 
-  var theory: Theory = new BaezDolanCategory(logPane)
+  var theory: Theory = new MonoidalClosed(logPane)
 
   def editor = theory.editor
   def viewer = theory.viewer
@@ -52,12 +52,11 @@ object Lf {
         ).render)
     )
 
+  val hPane = new HorizontalSplitPane(viewer, logPane)
+
   val viewerPane =
     new FixedBottomPane(
-      new HorizontalSplitPane(
-        viewer,
-        logPane
-      ),
+      hPane,
       PlainComponent(
         div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;").render
       )
@@ -89,10 +88,11 @@ object Lf {
     jQuery(dom.window).on("resize", () => { handleResize })
     setTimeout(100){
       jQuery(dom.window).trigger("resize")
+      hPane.initialize
+      vertSplitPane.initialize
     }
 
     theory.initialize
-
   }
 
 }

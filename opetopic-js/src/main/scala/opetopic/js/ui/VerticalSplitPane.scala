@@ -9,11 +9,13 @@ package opetopic.js.ui
 
 import org.scalajs.jquery._
 import scalatags.JsDom.all._
+import scala.scalajs.js
+import org.scalajs.dom.window.document
 
-class VerticalSplitPane(val top: Component, val bottom: Component) extends Component {
+class VerticalSplitPane(val top: Component, val bottom: Component, initFactor: Double = 0.5) extends Component {
 
   val divider = div(id := "divider",
-    style := "min-height: 5px; background: #36383a; cursor: ns-resize;"
+    style := "min-height: 5px; background: #36383a; cursor: ns-resize; user-drag: none;"
   ).render
 
   val uiElement =
@@ -23,6 +25,15 @@ class VerticalSplitPane(val top: Component, val bottom: Component) extends Compo
       bottom.uiElement
     ).render
 
+  var factor: Double = initFactor
+
+  def setTopBottomHeights(h: Int): Unit = {
+    val dividerHeight = jQuery(divider).height.toInt
+    val topHeight = (h * factor).toInt
+    top.setHeight(topHeight)
+    bottom.setHeight(h - topHeight - dividerHeight)
+  }
+
   override def setWidth(w: Int): Unit = {
     super.setWidth(w)
     top.setWidth(w)
@@ -31,12 +42,40 @@ class VerticalSplitPane(val top: Component, val bottom: Component) extends Compo
 
   override def setHeight(h: Int): Unit = {
     super.setHeight(h)
+    setTopBottomHeights(h)
+  }
 
-    val dividerHeight = jQuery(divider).height.toInt
-    val halfH = (h / 2).toInt
+  var pressed: Boolean = false
+  var pressY: Int = 0
 
-    top.setHeight(halfH)
-    bottom.setHeight(h - halfH - dividerHeight)
+  def doMouseDown(e: JQueryEventObject): Unit =  {
+
+    e.preventDefault()
+    pressY = e.pageY
+    pressed = true
+
+  }
+
+  def doMouseMove(e: JQueryEventObject): Unit = {
+    e.preventDefault
+
+    if (pressed) {
+      val off = jQuery(uiElement).offset().asInstanceOf[Offset]
+      val uiHeight = jQuery(uiElement).height()
+      val offY = e.pageY - off.top
+      factor = offY / uiHeight 
+      setTopBottomHeights(uiHeight.toInt)
+    }
+  }
+  
+  def doMouseUp(ev: JQueryEventObject): Unit = {
+    pressed = false
+  }
+
+  def initialize: Unit = {
+    jQuery(divider).on("mousedown", (e: JQueryEventObject) => doMouseDown(e))
+    jQuery(document).on("mousemove", doMouseMove(_))
+    jQuery(document).on("mouseup", doMouseUp(_))
   }
 
 }

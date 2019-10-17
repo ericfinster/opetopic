@@ -38,6 +38,10 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
   case class Lift(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
   case class Connect(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
 
+  // For playing with adjoints
+  case class Hom(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
+  case class App(val web: SComplex[Expr], val deriv: SDeriv[Expr], val tgt: Expr) extends Expr
+
   object Expr {
 
     implicit class ExprOps[A](e: Expr) {
@@ -50,6 +54,8 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
           case Fill(web, pd) => web.dim + 2
           case Lift(web, deriv, tgt) => web.dim + 1
           case Connect(web, deriv, tgt) => web.dim + 2
+          case Hom(web, deriv, tgt) => web.dim + 1
+          case App(web, deriv, tgt) => web.dim + 2
         }
 
       // Assumes the expression is well-formed
@@ -57,20 +63,63 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
         e match {
           case ObjVar(_) => false
           case Var(_, _) => false
-          case Comp(web, pd) => pd.forall(_.isTgtUniversal)  // Is this a good idea?
+          // Note that this is actually *necessary* to prove the unit law is invertible ...
+          case Comp(web, pd) => pd.forall(_.isTgtUniversal)  
           case Fill(web, pd) => true
-          case Lift(web, deriv, tgt) => false  // Yikes
+          case Lift(web, deriv, tgt) => {
+
+            // Here, I'm not quite sure to understand.
+            // But one case I *do* think I understand is just when it
+            // is a lift at the root of the internal tree.  In this case,
+            // I feel that the only condition should be that all the others
+            // are and the target is.
+
+            false  // Yikes
+
+          }
           case Connect(web, deriv, tgt) => true
+          case Hom(web, deriv, tgt) => false
+          case App(web, deriv, tgt) => true
         }
 
       def isSrcUniversalAt(addr: SAddr): Boolean =
         e match {
           case ObjVar(_) => false
           case Var(_, _) => false
-          case Comp(web, pd) => false 
+          case Comp(web, pd) => {
+
+              def checkCtxt(g: List[(Expr, SDeriv[STree[Expr]])]): Except[Unit] =
+                g match {
+                  case Nil => succeed(())
+                  case (e, d) :: h =>
+                    for {
+                      _ <- verify(e.isSrcUniversalAt(d.g.address),
+                        "Expression: " + e.toString + " is not source universal at " + d.g.address)
+                      // Taking this out for now, but not sure if it should be included ...
+                      // _ <- checkShell(d.plug(SLeaf))
+                      _ <- checkCtxt(h)
+                    } yield ()
+                }
+
+              (for {
+                vAddr <- attempt(pd.horizToVertAddr(addr), "Failed to find incoming leaf.")
+                z <- attempt(pd.seekTo(vAddr), "Failed seek for incoming leaf.")
+                u <- checkCtxt(z.ctxt.g)
+              } yield ()).isRight
+
+          }
           case Fill(web, pd) => false
-          case Lift(web, deriv, tgt) => false  // Yikes
+          case Lift(web, deriv, tgt) => {
+
+            false  // Yikes..
+
+          }
           case Connect(web, deriv, tgt) => addr == deriv.g.address
+          case Hom(web, deriv, tgt) => {
+            // Hmmm.  What about this?
+            false
+          }
+          case App(web, deriv, tgt) => addr == deriv.g.address
         }
 
       def exprComplex: SComplex[Expr] =
@@ -81,6 +130,8 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
           case Fill(web, pd) => web >> SBox(Comp(web, pd), pd.map(SDot(_))) >> SDot(e)
           case Lift(web, deriv, tgt) => Connect(web, deriv, tgt).exprComplex.face(FaceAddr(1, List(SDir(deriv.g.address)))).get
           case Connect(web, deriv, tgt) => web >> SBox(tgt, deriv.plug(Lift(web, deriv, tgt)).map(SDot(_))) >> SDot(e)
+          case Hom(web, deriv, tgt) => App(web, deriv, tgt).exprComplex.face(FaceAddr(1, List(SDir(deriv.g.address)))).get
+          case App(web, deriv, tgt) => web >> SBox(tgt, deriv.plug(Hom(web, deriv, tgt)).map(SDot(_))) >> SDot(e)
         }
 
       def pprint: String =
@@ -91,6 +142,17 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
           case Fill(web, pd) => "Fill(" + pd.toList.map(_.toString).mkString(",") + ")"
           case Lift(web, deriv, tgt) => "Lift(" + tgt.toString + ")"
           case Connect(web, deriv, tgt) => "Connect(" + tgt.toString + ")"
+          case Hom(web, deriv, tgt) => {
+            val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("←")
+            val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("→")
+            "(" + lefts + (if (lefts.length > 0) "→" else "") +
+            tgt.toString + (if (rights.length > 0) "←" else "") + rights + ")"
+          }
+          case App(web, deriv, tgt) => {
+            val rights = deriv.sh.map(_.toList.map(_.toString)).toList.flatten.mkString("←")
+            val lefts = deriv.g.close(SLeaf).toList.map(_.toString).mkString("→")
+            "App(" + lefts + ";" + tgt.toString + ";" + rights + ")"
+          }
         }
 
     }
@@ -108,13 +170,18 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
         implicit def intToUnit(i: Int) : Size =
           fromInt(i)
 
+        def truncate(s: String): String =
+          if (s.length > 10) (s.slice(0,10) + "...") else s
+
         e match {
-          case o:ObjVar => CellRendering(text(o.toString), colorSpec = VariableColorSpec)
-          case v:Var => CellRendering(text(v.toString), colorSpec = VariableColorSpec)
-          case lc:Comp => CellRendering(text(lc.toString), colorSpec = CompColorSpec)
-          case lf:Fill => CellRendering(text(lf.toString), colorSpec = FillColorSpec)
-          case rc:Lift => CellRendering(text(rc.toString), colorSpec = LiftColorSpec)
-          case rf:Connect => CellRendering(text(rf.toString), colorSpec = ConnectColorSpec)
+          case o:ObjVar => CellRendering(text(truncate(o.toString)), colorSpec = VariableColorSpec)
+          case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
+          case lc:Comp => CellRendering(text(truncate(lc.toString)), colorSpec = CompColorSpec)
+          case lf:Fill => CellRendering(text(truncate(lf.toString)), colorSpec = FillColorSpec)
+          case rc:Lift => CellRendering(text(truncate(rc.toString)), colorSpec = LiftColorSpec)
+          case rf:Connect => CellRendering(text(truncate(rf.toString)), colorSpec = ConnectColorSpec)
+          case h:Hom => CellRendering(text(truncate(h.toString)), colorSpec = LiftColorSpec)
+          case a:App => CellRendering(text(truncate(a.toString)), colorSpec = ConnectColorSpec)
         }
 
       }
@@ -154,9 +221,9 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
       fill = "#FFFFFF",
       fillHovered = "#ffa8a8", // "#F3F4F5",
       fillSelected = "#ff7d7d",
-      stroke = "#303e80",
-      strokeHovered = "#303e80",
-      strokeSelected = "#303e80",
+      stroke = "#dd97e8",
+      strokeHovered = "#dd97e8",
+      strokeSelected = "#dd97e8",
       edgeHovered = "#f19091"
     )
 
@@ -164,9 +231,9 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
       fill = "#FFFFFF",
       fillHovered = "#ffa8a8", // "#F3F4F5",
       fillSelected = "#ff7d7d",
-      stroke = "#698030",
-      strokeHovered = "#698030",
-      strokeSelected = "#698030",
+      stroke = "#678bcf",
+      strokeHovered = "#678bcf",
+      strokeSelected = "#678bcf",
       edgeHovered = "#f19091"
     )
 
@@ -269,12 +336,21 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
       case TargetPrimeNook(web, tgtExpr, srcExpr, deriv, addr) => {
         if (srcExpr.isTgtUniversal) {
           succeed(Connect(web, deriv, tgtExpr)) 
+        } else if (web.dim == 0) {
+          succeed(App(web, deriv, tgtExpr))
         } else throwError("Expression " + srcExpr.toString + " is not target universal")
       }
       case SourcePrimeNook(web, tgtExpr, srcExpr, deriv, addr) => {
         if (srcExpr.isSrcUniversalAt(addr)) {
           succeed(Connect(web, deriv, tgtExpr)) 
+        } else if (web.dim == 0) {
+          succeed(App(web, deriv, tgtExpr))
         } else throwError("Expression " + srcExpr.toString + " is not source universal at " + addr.toString)
+      }
+      case InNook(web, deriv, tgt) => {
+        if (web.dim == 0) {
+          succeed(App(web, deriv, tgt))
+        } else throwError("No right lifts in this dimension.")
       }
       case _ => throwError("Invalid lifting configuration")
     }
