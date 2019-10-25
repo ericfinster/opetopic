@@ -96,7 +96,9 @@ object Studio {
 
 
   val flagList = div(cls := "ui fluid inverted vertical menu").render
-  val flagTab = new Tab("flag-tab", PlainComponent(div(cls := "ui inverted segment", style := "padding: 0; margin: 0; overflow-y: auto; overflow-x: hidden;")(flagList).render), true)
+  val flagTab = new Tab("flag-tab",
+    PlainComponent(div(cls := "ui inverted segment",
+      style := "padding: 0; margin: 0; overflow-y: auto; overflow-x: hidden;")(flagList).render), true)
 
   val syntaxPre = pre().render
   val syntaxTab = new Tab("syntax-tab", PlainComponent(div(cls := "ui inverted segment", style := "padding: 0; margin: 0; overflow-x: auto;")(syntaxPre).render))
