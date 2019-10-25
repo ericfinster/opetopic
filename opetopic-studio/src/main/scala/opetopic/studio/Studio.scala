@@ -31,7 +31,7 @@ import JQuerySemanticUI._
 
 object Studio {
 
-  val editor = new SimpleCardinalEditor[SimpleMarker]()
+  val editor = new TabbedCardinalEditor[SimpleMarker]()
   val viewer = new SimpleViewer[Option[SimpleMarker]]
 
   val faceViewer = new SimpleViewer[Option[SimpleMarker]]
@@ -72,10 +72,6 @@ object Studio {
       editor,
       PlainComponent(
         div(cls := "ui inverted menu", style := "margin-top: 0; border-radius: 0;")(
-          a(cls := "item", onclick := { () => onNew })(i(cls := "file outline icon"), "New"),
-          a(cls := "item", onclick := { () => editor.editor.extrudeSelection })(i(cls := "square outline icon"), "Extrude"),
-          a(cls := "item", onclick := { () => editor.editor.loopAtSelection })(i(cls := "tint icon"), "Drop"),
-          a(cls := "item", onclick := { () => editor.editor.sproutAtSelection })(i(cls := "leaf icon"), "Sprout"),
           div(cls := "item")(
             div(cls := "ui input")(input(`type` := "text", id := "label-input", placeholder := "Label ..."))
           ),
@@ -91,9 +87,9 @@ object Studio {
           div(cls := "right menu")(
             div(cls := "item")(
               div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "check icon", id := "follow-icon"), "Follow Selection")
-            ),
-            a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
-            a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
+            )
+            // a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
+            // a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
           )
         ).render)
     )
@@ -256,31 +252,34 @@ object Studio {
 
   }
 
-  def autoLabel(letters: Boolean): Unit = {
-    var lbl: Int = 0
-    val card = editor.editor.cardinal
+  def autoLabel(letters: Boolean): Unit =
+    for {
+      tab <- editor.activeTab
+    } {
 
-    Traverse[Suite].map(card)((nst: SCardNst[editor.editor.NeutralCell]) => {
+      var lbl: Int = 0
+      val card = tab.editor.cardinal
 
-      for { n <- nst.toList.reverse } {
-        n.label = if (letters) {
-          Some(SimpleMarker((lbl + 97).toChar.toString))
-        } else {
-          Some(SimpleMarker(lbl.toString))
+      Traverse[Suite].map(card)((nst: SCardNst[tab.editor.NeutralCell]) => {
+
+        for { n <- nst.toList.reverse } {
+          n.label = if (letters) {
+            Some(SimpleMarker((lbl + 97).toChar.toString))
+          } else {
+            Some(SimpleMarker(lbl.toString))
+          }
+          lbl += 1
         }
-        lbl += 1
-      }
 
-    })
+      })
 
-    editor.editor.renderAll
-    // onEditorSelect
-    
+      tab.editor.renderAll
   }
 
   def updateLabel: Unit =
     for {
-      root <- editor.editor.selectionRoot
+      tab <- editor.activeTab
+      root <- tab.editor.selectionRoot
     } {
 
       import latex.LatexParser
@@ -303,20 +302,19 @@ object Studio {
             Some(SimpleMarker(labelVal, s, td, sd))
         }
 
-      editor.editor.renderAll
-      // onEditorSelect
+      tab.editor.renderAll
 
     }
 
-  def zoomIn: Unit = {
-    editor.scale += 0.1
-    editor.editor.renderAll
-  }
+  // def zoomIn: Unit = {
+  //   editor.scale += 0.1
+  //   editor.editor.renderAll
+  // }
 
-  def zoomOut: Unit = {
-    editor.scale -= 0.1
-    editor.editor.renderAll
-  }
+  // def zoomOut: Unit = {
+  //   editor.scale -= 0.1
+  //   editor.editor.renderAll
+  // }
 
   var followSelection: Boolean = true
 
@@ -332,10 +330,10 @@ object Studio {
     }
   }
 
-  def onNew: Unit = {
-    editor.editor.cardinal = SCardinal[SimpleMarker]()
-    editor.editor.renderAll
-  }
+  // def onNew: Unit = {
+  //   editor.editor.cardinal = SCardinal[SimpleMarker]()
+  //   editor.editor.renderAll
+  // }
 
   class SketchEntry(val name: String, val id: String) {
 
@@ -358,12 +356,12 @@ object Studio {
       viewer.complex = previewPane.complex
       jQuery("#inspector-link").click()
     }
-    
+
     def onEditEntry: Unit =
-      for { c <- previewPane.complex } {
-        // Show also switch modes here ....
-        editor.editor.cardinal = SCardinal(c)
-        editor.editor.renderAll
+      for {
+        c <- previewPane.complex
+      } {
+        editor.newTab(SCardinal(c))
         jQuery("#editor-link").click()
       }
 
@@ -545,7 +543,10 @@ object Studio {
     // Install the resize handler and trigger the event
     // to set defaults ...
     jQuery(dom.window).on("resize", () => { handleResize })
-    setTimeout(100){ jQuery(dom.window).trigger("resize") }
+    setTimeout(100){
+      jQuery(dom.window).trigger("resize")
+      vertSplitPane.initialize
+    }
 
     // Render the editor 
     editor.initialize

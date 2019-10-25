@@ -34,13 +34,13 @@ class TabbedCardinalEditor[A: Renderable](
   // TAB HANDLING
   //
 
-  class EditorTab(val id: String) {
+  class EditorTab(val id: String, card: SCardinal[Option[A]]) {
 
     var xOffset: Double = 0
     var yOffset: Double = 0
     var scale: Double = 0.8
 
-    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(defaultCardinal)
+    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(card)
 
     editor.onCellClick =
       (c: editor.EditorCell) => { }
@@ -90,11 +90,14 @@ class TabbedCardinalEditor[A: Renderable](
   val tabs: Buffer[EditorTab] = Buffer()
   var activeTab: Option[EditorTab] = None
 
-  def newTab: Unit = {
+  def newTab: Unit =
+    newTab(defaultCardinal)
+
+  def newTab(card: SCardinal[Option[A]]): Unit = {
 
     val tabNo = tabs.length + 1
     val tabId = "tab" ++ tabNo.toString
-    val tab = new EditorTab(tabId)
+    val tab = new EditorTab(tabId, card)
     val item = a(cls := "item", attr("data-tab") := tabId, onclick := { () => activeTab = Some(tab) })(tabNo.toString).render
 
     tabs += tab
