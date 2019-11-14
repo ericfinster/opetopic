@@ -88,8 +88,8 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
     // Events
     def onClick: Unit = { selectAsRoot ; onCellClick(thisCell) }
-    def onCtrlClick: Unit = { select ; onCellCtrlClick(thisCell) }
-    def onShiftClick: Unit = { onCellShiftClick(thisCell) }
+    def onCtrlClick: Unit = { onCellCtrlClick(thisCell) }
+    def onShiftClick: Unit = { select ; onCellShiftClick(thisCell) }
 
     def onMouseOver: Unit = {
       if (hoverCofaces) {

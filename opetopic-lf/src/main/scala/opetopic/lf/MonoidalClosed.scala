@@ -341,6 +341,7 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
         tab <- activeTab
         root <- tab.editor.selectionRoot
       } {
+        tab.pushUndo
         if (root.dim == 0) 
           tab.editor.extrudeSelectionWith(Some(Obj), None)
         else
@@ -352,6 +353,7 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
         tab <- activeTab
         root <- tab.editor.selectionRoot
       } {
+        tab.pushUndo
         if (root.dim == 0) 
           tab.editor.sproutAtSelectionWith(Some(Obj), None)
         else

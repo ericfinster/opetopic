@@ -37,6 +37,17 @@ trait LayoutContext[F <: UIFramework] {
   def halfStrokeWidth: Size = half(strokeWidth)
 
   //============================================================================================
+  // DEBUGGING RIG
+  //
+
+  var debugPred: BoxType => Boolean = (_ : BoxType) => false
+
+  def debug(bx: BoxType, str: String): Unit =
+    if (debugPred(bx)) {
+      println(str)
+    }
+
+  //============================================================================================
   // CELL BOXES
   //
 
@@ -188,6 +199,8 @@ trait LayoutContext[F <: UIFramework] {
     nst match {
       case SDot(bx) => {
 
+        debug(bx, "Laying out: " + bx.toString)
+
         bx.clear
 
         val edgeMarker = 
@@ -312,7 +325,7 @@ trait LayoutContext[F <: UIFramework] {
             //  The finished marker for this external box
             //
 
-            LayoutMarker(
+            val lm = LayoutMarker(
 
               element = bx,
               rootEdge = edgeMarker,
@@ -346,6 +359,9 @@ trait LayoutContext[F <: UIFramework] {
 
             )
 
+            debug(bx, "Finished marker: " + lm.toString)
+            lm
+
           }
 
         Some(marker)
@@ -354,6 +370,16 @@ trait LayoutContext[F <: UIFramework] {
       case SBox(bx, cn) => {
 
         bx.clear
+
+        // BUG! - There is a problem with deciding which tree is "left most" and
+        // "right most" by simply counting them here.  The point is that the order
+        // must be determined by the tree structure of the dots, and this global
+        // order *need not* be consistent at the entries of each internal box.
+
+        // This can lead to some subtrees being truncated which in fact should not
+        // be because they appear to be left-most while entering the box, but end
+        // up being somewhere in the center when we actually put them in place
+        // at a dot.  I do not immediately see how to remedy this ....
 
         val (leafCount : Int, leavesWithIndices : STree[(LayoutMarker, Int)]) =
           lvs.mapAccumL(0)((i: Int, m: LayoutMarker) => (i + 1, (m, i)))
@@ -368,14 +394,22 @@ trait LayoutContext[F <: UIFramework] {
                 val (leafMarker, leafIndex) = leafMarkerWithIndex
 
                 if (leafIndex == 0 && leafCount == 1) {
+                  // debug(bx, "Truncating unique: " + leafMarker.element.toString)
                   leafMarker.truncateUnique
                 } else if (leafIndex == 0) {
+                  // debug(bx, "Truncating right: " + leafMarker.element.toString)
                   leafMarker.truncateRight
                 } else if (leafIndex == leafCount - 1) {
+                  // debug(bx, "Truncating left: " + leafMarker.element.toString)
                   leafMarker.truncateLeft
                 } else {
+                  // debug(bx, "Truncating middle: " + leafMarker.element.toString)
                   leafMarker.truncateMiddle
                 }
+
+                // Don't truncate, as a test...
+                // leafMarker.truncateMiddle
+
               }
           })({
             case (snst, layoutTree) =>

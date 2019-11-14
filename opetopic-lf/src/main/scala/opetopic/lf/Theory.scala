@@ -189,6 +189,9 @@ abstract class Theory(val console: Logger) {
 
     } yield {
 
+      // Save the last editor state
+      t.pushUndo
+      
       // Update the complex
       cmplx.foreach({
         case (c, e) => { c.label = Some(e) }
@@ -247,6 +250,8 @@ abstract class Theory(val console: Logger) {
       ident = jQuery("#postulate-input").value.asInstanceOf[String]
       expr <- postulate(face, ident)
     } yield {
+
+      t.pushUndo
 
       val uiElement = a(cls := "item",
         onclick := { () => showExpr(expr) })(ident).render

@@ -487,6 +487,10 @@ trait CardinalTypes {
         case _ => None
       }
 
+
+    def traverseCardinal[G[_], B](f: A => G[B])(implicit isAp: Applicative[G]): G[SCardinal[B]] =
+      CardinalTraverse.traverse(card)(f)(isAp)
+    
     def cardinalComplex: SComplex[Polarity[A]] =
       Traverse[Suite].map(card)(_.toPolarityNesting)
 

@@ -41,6 +41,7 @@ object Studio {
   type ViewerCell = viewer.CellType
 
   editor.onSelectAsRoot = (c: EditorCell) => { onEditorSelect(c) }
+  editor.onCellCtrlClick = (c: EditorCell) => { onShowCell(c) }
   viewer.onSelectAsRoot = (c: ViewerCell) => { onViewerSelect(c) }
 
   // UI Elements
@@ -56,6 +57,9 @@ object Studio {
               button(cls := "ui button")("Save")
             )
           ),
+          a(cls := "item", onclick := { () => onPaste })(i(cls := "edit outline icon"), "Paste"),
+          a(cls := "item", onclick := { () => onEditFace })(i(cls := "edit outline icon"), "Edit Face"),
+          // a(cls := "item", onclick := { () => onRefresh })(i(cls := "star icon"), "Refresh"),
           div(cls := "right menu")(
             div(cls := "item")(
               div(cls := "ui action input")(
@@ -83,14 +87,14 @@ object Studio {
               div(cls := "item", onclick := { () => autoLabel(false) })("Numeric"),
               div(cls := "item", onclick := { () => autoLabel(true) })("Alphabetic")
             )
-          ),
-          div(cls := "right menu")(
-            div(cls := "item")(
-              div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "check icon", id := "follow-icon"), "Follow Selection")
-            )
-            // a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
-            // a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
           )
+          // div(cls := "right menu")(
+          //   div(cls := "item")(
+          //     div(cls := "ui labeled icon button", onclick := { () => onFollowToggle })(i(cls := "check icon", id := "follow-icon"), "Follow Selection")
+          //   )
+          //   // a(cls := "item", onclick := { () => zoomIn })(i(cls := "zoom in icon"), "Zoom In"),
+          //   // a(cls := "item", onclick := { () => zoomOut })(i(cls := "zoom out icon"), "Zoom Out")
+          // )
         ).render)
     )
 
@@ -128,28 +132,28 @@ object Studio {
   val vertSplitPane =
     new VerticalSplitPane(viewerPane, tabPane)
 
+  def onShowCell(c: EditorCell): Unit =
+    for { face <- c.face } {
+      viewer.complex = Some(face)
+    }
+
   def onEditorSelect(c: EditorCell): Unit =
     for { face <- c.face } {
 
-      if (followSelection) {
-        viewer.complex = Some(face)
-      }
-
       c.label match {
         case None => {
-          // showFill("white")
-          // showStroke("black")
           jQuery("#label-input").value("")
         }
         case Some(mk) => {
-          // showFill(mk.colorSpec.fillColor)
-          // showStroke(mk.colorSpec.strokeColor)
           jQuery("#label-input").value(mk.lbl)
         }
       }
       
     }
 
+  // Oh!  We're actually doing this every time there's a viewer select,
+  // not only in the viewer mode.  Probably should fix this for performance
+  // reasons.
   def onViewerSelect(c: ViewerCell): Unit =
     for { cmplx <- viewer.complex ; face <- c.face } {
 
@@ -179,7 +183,7 @@ object Studio {
       // This prints the link flag list ....
       // val flagItr = new FlagIterator(cmplx.withFaceAddresses, Some(c.faceAddress), true, true)
       jQuery(flagList).empty()
-      println("******* Flag List *********")
+      // println("******* Flag List *********")
 
       for { f <- flagItr } {
 
@@ -189,7 +193,7 @@ object Studio {
             case TgtFacet((f , _)) => TgtFacet(f.map(_.lbl).getOrElse(""))
           })
 
-        println(flagStr(strFlag))
+        // println(flagStr(strFlag))
 
         val item = a(cls := "item", onclick := { () => onSelectFlag(f) })(flagStr(strFlag)).render
         jQuery(flagList).append(item)
@@ -197,25 +201,25 @@ object Studio {
       }
 
       // Show the syntax ...
-      import syntax.SyntaxExport
-      import syntax.PrettyPrinter
+      // import syntax.SyntaxExport
+      // import syntax.PrettyPrinter
 
-      SyntaxExport.complexToTerm(face) match {
-        case Xor.Left(msg) => jQuery(syntaxPre).text(msg)
-        case Xor.Right(tm) => {
+      // SyntaxExport.complexToTerm(face) match {
+      //   case Xor.Left(msg) => jQuery(syntaxPre).text(msg)
+      //   case Xor.Right(tm) => {
 
-          jQuery(syntaxPre).empty
+      //     jQuery(syntaxPre).empty
 
-          val strItr = PrettyPrinter.prettyPrint(
-            SyntaxExport.toPrintTree(tm), 80, 2
-          )
+      //     val strItr = PrettyPrinter.prettyPrint(
+      //       SyntaxExport.toPrintTree(tm), 80, 2
+      //     )
 
-          for { str <- strItr } {
-            jQuery(syntaxPre).append(str)
-          }
+      //     for { str <- strItr } {
+      //       jQuery(syntaxPre).append(str)
+      //     }
 
-        }
-      }
+      //   }
+      // }
 
     }
 
@@ -308,34 +312,50 @@ object Studio {
 
     }
 
-  // def zoomIn: Unit = {
-  //   editor.scale += 0.1
-  //   editor.editor.renderAll
-  // }
+  def onPaste: Unit =
+    for {
+      gallery <- viewer.activeGallery
+      root <- gallery.selectionRoot
+      cell <- root.face
+      tab <- editor.activeTab
+      root <- tab.editor.selectionRoot
+      face <- root.boxFace
+      pc <- face.matchWith(cell)
+    } {
 
-  // def zoomOut: Unit = {
-  //   editor.scale -= 0.1
-  //   editor.editor.renderAll
-  // }
+      pc.foreach({
+        case (c, mk) => c.label = mk
+      })
 
-  var followSelection: Boolean = true
+      tab.editor.renderAll
 
-  def onFollowToggle: Unit = {
-    if (followSelection) {
-      followSelection = false
-      jQuery("#follow-icon").removeClass("check")
-      jQuery("#follow-icon").addClass("close")
-    } else {
-      followSelection = true
-      jQuery("#follow-icon").removeClass("close")
-      jQuery("#follow-icon").addClass("check")
     }
-  }
 
-  // def onNew: Unit = {
-  //   editor.editor.cardinal = SCardinal[SimpleMarker]()
-  //   editor.editor.renderAll
-  // }
+  def onEditFace: Unit =
+    for {
+      gallery <- viewer.activeGallery
+      root <- gallery.selectionRoot
+      face <- root.face
+    } {
+      editor.newTab(SCardinal(face))
+    }
+
+  def onRefresh: Unit =
+    for {
+      gallery <- viewer.activeGallery
+    } {
+
+      // Install the debug predicate
+      gallery.debugPred = (bx: gallery.SimpleActiveCell) => {
+        bx.dim == 3
+      }
+
+      gallery.renderAll
+
+      // Reset the debug predicate
+      gallery.debugPred = (bx: gallery.SimpleActiveCell) => false
+
+    }
 
   class SketchEntry(val name: String, val id: String) {
 

@@ -121,6 +121,9 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
     val canSelect: Boolean = true
     var selectionAddress: AddressType = (0, Nil)
 
+    override def toString: String =
+      label.toString
+    
   }
 
 }
