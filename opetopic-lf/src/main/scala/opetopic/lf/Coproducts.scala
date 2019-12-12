@@ -280,7 +280,7 @@ class Coproducts(console: Logger) extends Theory(console) {
   val editor = new CoproductsEditor
   val viewer = new SimpleViewer[Option[Expr]]
 
-  editor.onCellShiftClick = (c: editor.StableCell) => {
+  editor.onCellCtrlClick = (c: editor.StableCell) => {
     for {
       face <- c.face
     } { viewer.complex = Some(face) }
