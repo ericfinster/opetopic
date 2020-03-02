@@ -376,7 +376,7 @@ object Studio {
 
     def onInspectEntry: Unit = {
       viewer.complex = previewPane.complex
-      jQuery("#inspector-link").click()
+      // jQuery("#inspector-link").click()
     }
 
     def onEditEntry: Unit =

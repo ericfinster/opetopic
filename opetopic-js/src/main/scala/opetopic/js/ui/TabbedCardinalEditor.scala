@@ -45,6 +45,7 @@ class TabbedCardinalEditor[A: Renderable](
     var undoQueue: Queue[SCardinal[Option[A]]] = Queue(card)
 
     val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(card)
+    editor.hoverCofaces = true
 
     editor.onCellClick =
       (c: editor.EditorCell) => { }
@@ -72,8 +73,6 @@ class TabbedCardinalEditor[A: Renderable](
       val optCard = editor.cardinal.traverseCardinal[Id, Option[A]](_.label)
       undoQueue = optCard +: undoQueue
 
-      println("Pushed a cardinal ...")
-
     }
 
     def popUndo: Unit =
@@ -82,7 +81,6 @@ class TabbedCardinalEditor[A: Renderable](
         undoQueue = rest
         editor.cardinal = last
         editor.renderAll
-        println("Popped a cardinal ...")
       }
 
     def setViewport(bnds: Bounds): Bounds = {

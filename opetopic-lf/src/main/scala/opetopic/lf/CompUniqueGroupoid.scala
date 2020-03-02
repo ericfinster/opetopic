@@ -219,6 +219,10 @@ class CompUniqueGroupoid(console: Logger) extends Theory(console) {
         succeed(Fill(web, pd))
       }
       case AssertUnique(web, src, tgt, vsh, hsh) => {
+        // Note that you could also check here if the two
+        // composite cells are equal and if the src and tgt
+        // are equal, and in this case, reduce to the identity
+        // and (as you worked out) some unit coherence....
         succeed(Compat(web, src, tgt, vsh, hsh))
       }
       case _ => throwError("Invalid lifting configuration")

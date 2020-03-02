@@ -57,6 +57,7 @@ trait LayoutContext[F <: UIFramework] {
     def labelBounds : Bounds 
 
     def isExternal: Boolean
+    def isVisible: Boolean = true
 
     def targetDecoration: Option[BoundedElement]
     def sourceDecorations: Map[SAddr, BoundedElement]
@@ -245,7 +246,11 @@ trait LayoutContext[F <: UIFramework] {
               val endMarker = midMarker.rootEdge.endMarker
 
               endMarker.rootX = bx.rootX
-              endMarker.rootY = bx.rootY - bx.height
+              endMarker.rootY = if (bx.isVisible) {
+                // Don't cut off the height of invisible
+                // external boxes ...
+                bx.rootY - bx.height
+              } else bx.rootY
 
               bx.horizontalDependents += endMarker
               bx.verticalDependents += endMarker
@@ -265,8 +270,13 @@ trait LayoutContext[F <: UIFramework] {
               val midLeftOffset = if (isOdd) midMarker.leftMargin else zero
               val midRightOffset = if (isOdd) midMarker.rightMargin else zero
 
-              val leftChildShift = max(midLeftOffset + externalPadding + leftChild.rightMargin, bx.leftMargin + externalPadding)
-              val rightChildShift = max(midRightOffset + externalPadding + rightChild.leftMargin, bx.rightMargin + externalPadding)
+              val leftChildShift = if (bx.isVisible) {
+                max(midLeftOffset + externalPadding + leftChild.rightMargin, bx.leftMargin + externalPadding)
+              } else midLeftOffset + externalPadding + leftChild.rightMargin
+
+              val rightChildShift = if (bx.isVisible) {
+                max(midRightOffset + externalPadding + rightChild.leftMargin, bx.rightMargin + externalPadding)
+              } else midRightOffset + (if (isOdd) externalPadding else zero) + rightChild.leftMargin
 
               def doLeftPlacement(marker : LayoutMarker, shift : Size) : Unit = {
 
@@ -276,7 +286,9 @@ trait LayoutContext[F <: UIFramework] {
                 val endMarker = marker.rootEdge.endMarker
 
                 endMarker.rootX = bx.x
-                endMarker.rootY = bx.y + strokeWidth + internalPadding + bx.halfLabelHeight
+                endMarker.rootY = if (bx.isVisible) {
+                  bx.y + strokeWidth + internalPadding + bx.halfLabelHeight
+                } else bx.rootY
 
                 bx.horizontalDependents += endMarker
                 bx.verticalDependents += endMarker
@@ -291,7 +303,9 @@ trait LayoutContext[F <: UIFramework] {
                 val endMarker = marker.rootEdge.endMarker
 
                 endMarker.rootX = bx.x + bx.width
-                endMarker.rootY = bx.y + strokeWidth + internalPadding + bx.halfLabelHeight
+                endMarker.rootY = if (bx.isVisible) {
+                  bx.y + strokeWidth + internalPadding + bx.halfLabelHeight
+                } else bx.rootY
 
                 bx.horizontalDependents += endMarker
                 bx.verticalDependents += endMarker

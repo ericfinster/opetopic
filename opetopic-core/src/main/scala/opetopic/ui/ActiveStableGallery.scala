@@ -64,11 +64,11 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     def renderPanel: Unit = {
 
       val (extCells, intCells) =
-        boxNesting.toList.partition(_.isExternal)
+        boxNesting.toList.filter(_.isVisible).partition(_.isExternal)
 
       val edges =
         if (boxNesting.baseValue.dim > 0)
-          edgeNesting.toList
+          edgeNesting.toList.filter(_.isVisible)
         else List()
 
       panelGroup.children =
@@ -92,6 +92,7 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     def onShiftClick: Unit = { select ; onCellShiftClick(thisCell) }
 
     def onMouseOver: Unit = {
+
       if (hoverCofaces) {
 
         val bc = boxComplex
@@ -102,15 +103,18 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
             case Right(b) => Some(b.onHover)
         })
 
-      } else {
-        boxFace.map(bc => {
-          bc.foreach(b => b.onHover)
-        })
-        onHoverEdge
       }
+
+      boxFace.map(bc => {
+        bc.foreach(b => b.onHover)
+      })
+
+      onHoverEdge
+
     }
 
     def onMouseOut: Unit = {
+      
       if (hoverCofaces) {
 
         val bc = boxComplex
@@ -121,12 +125,13 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
           case Right(b) => Some(b.onUnhover)
         })
 
-      } else {
-        boxFace.map(bc => {
-          bc.foreach(b => b.onUnhover)
-          onUnhoverEdge
-        })
       }
+
+      boxFace.map(bc => {
+        bc.foreach(b => b.onUnhover)
+        onUnhoverEdge
+      })
+
     }
 
     var isHovered: Boolean = false
