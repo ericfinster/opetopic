@@ -83,8 +83,9 @@ class CompUniqueGroupoid(console: Logger) extends Theory(console) {
     //  Renderable instance
     //
 
-    implicit object ExprRenderable extends Renderable[Expr] {
-      def render(f: UIFramework)(e: Expr): f.CellRendering = {
+    implicit def exprRenderable[F <: UIFramework]: Renderable[Expr, F] =
+      new Renderable[Expr, F] {
+        def render(f: F)(e: Expr): f.CellRendering = {
 
         import f._
         import isNumeric._

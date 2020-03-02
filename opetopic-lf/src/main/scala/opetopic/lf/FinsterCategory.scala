@@ -153,29 +153,31 @@ class FinsterCategory(console: Logger) extends Theory(console) {
     //  Renderable instance
     //
 
-    implicit object ExprRenderable extends Renderable[Expr] {
-      def render(f: UIFramework)(e: Expr): f.CellRendering = {
 
-        import f._
-        import isNumeric._
+    implicit def exprRenderable[F <: UIFramework]: Renderable[Expr, F] =
+      new Renderable[Expr, F] {
+        def render(f: F)(e: Expr): f.CellRendering = {
 
-        implicit def intToUnit(i: Int) : Size =
-          fromInt(i)
+          import f._
+          import isNumeric._
 
-        def truncate(s: String): String =
-          if (s.length > 10) (s.slice(0,10) + "...") else s
+          implicit def intToUnit(i: Int) : Size =
+            fromInt(i)
 
-        e match {
-          case o:ObjVar => CellRendering(text(truncate(o.toString)), colorSpec = VariableColorSpec)
-          case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
-          case lc:LeftComp => CellRendering(text(truncate(lc.toString)), colorSpec = LeftCompColorSpec)
-          case lf:LeftFill => CellRendering(text(truncate(lf.toString)), colorSpec = LeftFillColorSpec)
-          case rc:RightComp => CellRendering(text(truncate(rc.toString)), colorSpec = RightCompColorSpec)
-          case rf:RightFill => CellRendering(text(truncate(rf.toString)), colorSpec = RightFillColorSpec)
+          def truncate(s: String): String =
+            if (s.length > 10) (s.slice(0,10) + "...") else s
+
+          e match {
+            case o:ObjVar => CellRendering(text(truncate(o.toString)), colorSpec = VariableColorSpec)
+            case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
+            case lc:LeftComp => CellRendering(text(truncate(lc.toString)), colorSpec = LeftCompColorSpec)
+            case lf:LeftFill => CellRendering(text(truncate(lf.toString)), colorSpec = LeftFillColorSpec)
+            case rc:RightComp => CellRendering(text(truncate(rc.toString)), colorSpec = RightCompColorSpec)
+            case rf:RightFill => CellRendering(text(truncate(rf.toString)), colorSpec = RightFillColorSpec)
+          }
+
         }
-
       }
-    }
 
     object VariableColorSpec extends ColorSpec(
       fill = "#FFFFFF",

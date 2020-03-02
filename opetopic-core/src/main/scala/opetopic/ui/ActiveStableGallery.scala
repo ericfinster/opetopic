@@ -21,6 +21,8 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
 
   val galleryViewport = viewport
   def element = galleryViewport
+  def bounds = Bounds(viewport.viewX, viewport.viewY,
+    viewport.viewWidth, viewport.viewHeight)
 
   def renderAll: Unit = {
 

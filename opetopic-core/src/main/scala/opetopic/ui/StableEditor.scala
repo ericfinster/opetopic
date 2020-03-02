@@ -10,7 +10,7 @@ package opetopic.ui
 import opetopic._
 import opetopic.mtl._
 
-class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])
+class StableEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])(implicit rn: Renderable[A, F])
     extends ActiveStableGallery[F](frmwk)  {
 
   import framework._
@@ -27,8 +27,8 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
   type OptA = Option[A]
   type PolOptA = Polarity[Option[A]]
 
-  val renderer : Renderable[PolOptA] = 
-    Renderable[PolOptA]
+  val renderer : Renderable[PolOptA, F] = 
+    Renderable[PolOptA, F]
 
   //
   //  Visual Options
@@ -500,17 +500,29 @@ class StableEditor[A : Renderable, F <: ActiveFramework](frmwk: F)(c: SCardinal[
 
   }
 
+  // A renderable instance for the current framework
+  // I kind of doubt that this will solve the problem...
+  def editorRenderable: Renderable[StableEditor[A, F], framework.type] =
+    new Renderable[StableEditor[A, F], framework.type] {
+      def render(f: framework.type)(st: StableEditor[A, F]): f.CellRendering = {
+        import f._
+        CellRendering(BoundedElement(galleryViewport, bounds))
+      }
+    }
+
 }
 
 object StableEditor {
 
-  // def apply[A, F <: ActiveFramework](f: F)(implicit r: Renderable[A]): StableEditor[A, F] = 
-  //   new StableEditor(f)(SCardinal(None))
-
-  def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(implicit r: Renderable[A]): StableEditor[A, F] = 
+  def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(implicit r: Renderable[A, F]): StableEditor[A, F] = 
     new StableEditor(f)(SCardinal(c.map(Some(_))))
 
-  // def apply[A, F <: ActiveFramework](f: F)(c: SComplex[Option[A]])(implicit r: Renderable[A]): StableEditor[A, F] = 
-  //   new StableEditor(f)(SCardinal(c))
-
+  // implicit def stableEditorRenderable[A, F <: ActiveFramework](implicit r: Renderable[A, F]): Renderable[StableEditor[A, F], F] =
+  //   new Renderable[StableEditor[A, F], F] {
+  //     def render(frmwk: F)(st: StableEditor[A, F]): frmwk.CellRendering = {
+  //       import frmwk._
+  //       CellRendering(BoundedElement(st.galleryViewport, st.bounds))
+  //     }
+  //   }
+  
 }

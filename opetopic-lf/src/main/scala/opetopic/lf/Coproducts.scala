@@ -153,26 +153,27 @@ class Coproducts(console: Logger) extends Theory(console) {
     //  Renderable instance
     //
 
-    implicit object ExprRenderable extends Renderable[Expr] {
-      def render(f: UIFramework)(e: Expr): f.CellRendering = {
+    implicit def exprRenderable[F <: UIFramework]: Renderable[Expr, F] =
+      new Renderable[Expr, F] {
+        def render(f: F)(e: Expr): f.CellRendering = {
 
-        import f._
-        import isNumeric._
+          import f._
+          import isNumeric._
 
-        implicit def intToUnit(i: Int) : Size =
-          fromInt(i)
+          implicit def intToUnit(i: Int) : Size =
+            fromInt(i)
 
-        e match {
-          case Obj => CellRendering(spacer(Bounds(0, 0, 600, 600)), colorSpec = ObjectColorSpec)
-          case v:Var => CellRendering(text(v.toString), colorSpec = VariableColorSpec)
-          case lc:LeftComp => CellRendering(text(lc.toString), colorSpec = LeftCompColorSpec)
-          case lf:LeftFill => CellRendering(text(lf.toString), colorSpec = LeftFillColorSpec)
-          case rc:RightComp => CellRendering(text(rc.toString), colorSpec = RightCompColorSpec)
-          case rf:RightFill => CellRendering(text(rf.toString), colorSpec = RightFillColorSpec)
+          e match {
+            case Obj => CellRendering(spacer(Bounds(0, 0, 600, 600)), colorSpec = ObjectColorSpec)
+            case v:Var => CellRendering(text(v.toString), colorSpec = VariableColorSpec)
+            case lc:LeftComp => CellRendering(text(lc.toString), colorSpec = LeftCompColorSpec)
+            case lf:LeftFill => CellRendering(text(lf.toString), colorSpec = LeftFillColorSpec)
+            case rc:RightComp => CellRendering(text(rc.toString), colorSpec = RightCompColorSpec)
+            case rf:RightFill => CellRendering(text(rf.toString), colorSpec = RightFillColorSpec)
+          }
+
         }
-
       }
-    }
 
     object ObjectColorSpec extends ColorSpec(
       fill = "#dddddd",

@@ -64,13 +64,13 @@ object Opetopic extends JSApp {
 
     println("Launched Opetopic Javscript ...")
 
-    val editor = new JsStableEditor[Int]
+    // val editor = new JsStableEditor[Int]
 
-    jQuery("#editor-div").append(editor.uiElement)
-    editor.initialize
+    // jQuery("#editor-div").append(editor.uiElement)
+    // editor.initialize
 
-    jQuery(".ui.accordion").accordion()
-    jQuery("#shape-btn").dropdown()
+    // jQuery(".ui.accordion").accordion()
+    // jQuery("#shape-btn").dropdown()
 
   }
 

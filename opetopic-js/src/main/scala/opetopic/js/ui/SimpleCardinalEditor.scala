@@ -21,7 +21,7 @@ import opetopic.mtl._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class SimpleCardinalEditor[A: Renderable](c : SCardinal[Option[A]] = SCardinal[A]()) extends Component {
+class SimpleCardinalEditor[A](c : SCardinal[Option[A]] = SCardinal[A]())(implicit rn: Renderable[A, JsDomFramework.type]) extends Component {
 
   type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
 

@@ -17,7 +17,7 @@ import opetopic.ui._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class JsStableViewer[A: Renderable] {
+class JsStableViewer[A](implicit rn: Renderable[A, JsDomFramework.type]) {
 
   type GalleryType = SimpleActiveGallery[A, JsDomFramework.type]
   type CellType = GalleryType#SimpleActiveCell

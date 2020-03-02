@@ -11,7 +11,7 @@ import scala.collection.mutable.Buffer
 
 import opetopic._
 
-class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val complex: SComplex[A]) 
+class SimpleActiveGallery[A, F <: ActiveFramework](frmwk: F)(val complex: SComplex[A])(implicit rn: Renderable[A, F])
     extends ActiveStableGallery[F](frmwk) with ComplexGallery[F] {
 
   import framework._
@@ -111,11 +111,11 @@ class SimpleActiveGallery[A : Renderable, F <: ActiveFramework](frmwk: F)(val co
     def label: A = myLabel
     def label_=(l: A): Unit = {
       myLabel = l
-      cellRendering = implicitly[Renderable[A]].render(framework)(label)
+      cellRendering = implicitly[Renderable[A, F]].render(framework)(label)
     }
 
     var cellRendering: CellRendering = 
-      implicitly[Renderable[A]].
+      implicitly[Renderable[A, F]].
         render(framework)(label)
 
     val canSelect: Boolean = true

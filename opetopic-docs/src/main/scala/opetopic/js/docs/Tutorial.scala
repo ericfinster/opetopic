@@ -23,8 +23,8 @@ object Tutorial {
   type DocsViewer = JsStableViewer[String]
   type DocsCell = DocsViewer#CellType
 
-  object TutorialRenderable extends Renderable[String] {
-    def render(f: UIFramework)(s: String): f.CellRendering = 
+  object TutorialRenderable extends Renderable[String, JsDomFramework.type] {
+    def render(f: JsDomFramework.type)(s: String): f.CellRendering = 
       f.CellRendering(f.text(s), TutorialColorSpec)
   }
 

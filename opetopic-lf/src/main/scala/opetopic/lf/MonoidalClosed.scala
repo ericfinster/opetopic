@@ -235,29 +235,30 @@ class MonoidalClosed(console: Logger) extends Theory(console) {
     //  Renderable instance
     //
 
-    implicit object ExprRenderable extends Renderable[Expr] {
-      def render(f: UIFramework)(e: Expr): f.CellRendering = {
+    implicit def exprRenderable[F <: UIFramework]: Renderable[Expr, F] =
+      new Renderable[Expr, F] {
+        def render(f: F)(e: Expr): f.CellRendering = {
 
-        import f._
-        import isNumeric._
+          import f._
+          import isNumeric._
 
-        implicit def intToUnit(i: Int) : Size =
-          fromInt(i)
+          implicit def intToUnit(i: Int) : Size =
+            fromInt(i)
 
-        def truncate(s: String): String =
-          if (s.length > 10) (s.slice(0,10) + "...") else s
+          def truncate(s: String): String =
+            if (s.length > 10) (s.slice(0,10) + "...") else s
 
-        e match {
-          case Obj => CellRendering(spacer(Bounds(0, 0, 600, 600)), colorSpec = ObjectColorSpec)
-          case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
-          case lc:LeftComp => CellRendering(text(truncate(lc.toString)), colorSpec = LeftCompColorSpec)
-          case lf:LeftFill => CellRendering(text(truncate(lf.toString)), colorSpec = LeftFillColorSpec)
-          case rc:RightComp => CellRendering(text(truncate(rc.toString)), colorSpec = RightCompColorSpec)
-          case rf:RightFill => CellRendering(text(truncate(rf.toString)), colorSpec = RightFillColorSpec)
+          e match {
+            case Obj => CellRendering(spacer(Bounds(0, 0, 600, 600)), colorSpec = ObjectColorSpec)
+            case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
+            case lc:LeftComp => CellRendering(text(truncate(lc.toString)), colorSpec = LeftCompColorSpec)
+            case lf:LeftFill => CellRendering(text(truncate(lf.toString)), colorSpec = LeftFillColorSpec)
+            case rc:RightComp => CellRendering(text(truncate(rc.toString)), colorSpec = RightCompColorSpec)
+            case rf:RightFill => CellRendering(text(truncate(rf.toString)), colorSpec = RightFillColorSpec)
+          }
+
         }
-
       }
-    }
 
     object ObjectColorSpec extends ColorSpec(
       fill = "#dddddd",

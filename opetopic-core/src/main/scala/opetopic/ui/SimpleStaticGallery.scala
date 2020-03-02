@@ -10,7 +10,7 @@ package opetopic.ui
 import opetopic._
 import opetopic.mtl._
 
-class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val complex: SComplex[A])
+class SimpleStaticGallery[A, F <: UIFramework](frmwk: F)(val complex: SComplex[A])(implicit rn: Renderable[A, F])
     extends StaticStableGallery[F](frmwk) with ComplexGallery[F] {
 
   import framework._
@@ -62,7 +62,7 @@ class SimpleStaticGallery[A : Renderable, F <: UIFramework](frmwk: F)(val comple
   class SimpleStaticCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) extends StaticCell {
 
     val cellRendering: CellRendering = 
-      implicitly[Renderable[A]].
+      implicitly[Renderable[A, F]].
         render(framework)(label)
 
   }

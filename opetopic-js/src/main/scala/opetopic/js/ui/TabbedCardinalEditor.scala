@@ -22,9 +22,9 @@ import opetopic.mtl._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class TabbedCardinalEditor[A: Renderable](
+class TabbedCardinalEditor[A](
   defaultCardinal : SCardinal[Option[A]] = SCardinal[A]()
-) extends Component { thisEditor =>
+)(implicit rn: Renderable[A, JsDomFramework.type]) extends Component { thisEditor =>
 
   type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
 

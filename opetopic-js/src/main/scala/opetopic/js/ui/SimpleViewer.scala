@@ -18,7 +18,7 @@ import opetopic.ui._
 import JsDomFramework._
 import JQuerySemanticUI._
 
-class SimpleViewer[A: Renderable] extends Component {
+class SimpleViewer[A](implicit rn: Renderable[A, JsDomFramework.type]) extends Component {
 
   type GalleryType = SimpleActiveGallery[A, JsDomFramework.type]
   type CellType = GalleryType#SimpleActiveCell

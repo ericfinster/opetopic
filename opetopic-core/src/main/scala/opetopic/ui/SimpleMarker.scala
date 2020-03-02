@@ -93,31 +93,32 @@ object SimpleMarker {
   def unapply(mk: SimpleMarker): Option[(String, ColorSpec, Option[EdgeDecoration], Map[SAddr, EdgeDecoration])] =
     Some(mk.lbl, mk.colorSpec, mk.targetDec, mk.sourceDec)
 
-  implicit object SimpleMarkerRenderable extends Renderable[SimpleMarker] {
-    def render(f: UIFramework)(mk: SimpleMarker): f.CellRendering = {
+  implicit def simpleMarkerRenderable[F <: UIFramework]: Renderable[SimpleMarker, F] =
+    new Renderable[SimpleMarker, F] {
+      def render(f: F)(mk: SimpleMarker): f.CellRendering = {
 
-      import f._
-      import isNumeric._
+        import f._
+        import isNumeric._
 
-      implicit def intToUnit(i: Int) : Size =
-        fromInt(i)
+        implicit def intToUnit(i: Int) : Size =
+          fromInt(i)
 
-      val lblEl = 
-        if (mk.lbl == "")
-          spacer(Bounds(0, 0, 600, 600))
-        else text(mk.lbl)
+        val lblEl =
+          if (mk.lbl == "")
+            spacer(Bounds(0, 0, 600, 600))
+          else text(mk.lbl)
 
-      val td = mk.targetDec.map(_.render(f))
-      val sd = mk.sourceDec.mapValues(_.render(f))
+        val td = mk.targetDec.map(_.render(f))
+        val sd = mk.sourceDec.mapValues(_.render(f))
 
-      CellRendering(lblEl, mk.colorSpec, td, sd)
+        CellRendering(lblEl, mk.colorSpec, td, sd)
 
+      }
     }
-  }
 
-  implicit object SimpleMarkerPointed extends Pointed[SimpleMarker] {
-    val pt: SimpleMarker = new SimpleMarker("")
-  }
+  // implicit object SimpleMarkerPointed extends Pointed[SimpleMarker] {
+  //   val pt: SimpleMarker = new SimpleMarker("")
+  // }
 
 }
 

@@ -161,31 +161,32 @@ class BaezDolanCategory(console: Logger) extends Theory(console) {
     //  Renderable instance
     //
 
-    implicit object ExprRenderable extends Renderable[Expr] {
-      def render(f: UIFramework)(e: Expr): f.CellRendering = {
+    implicit def exprRenderable[F <: UIFramework]: Renderable[Expr, F] =
+      new Renderable[Expr, F] {
+        def render(f: F)(e: Expr): f.CellRendering = {
 
-        import f._
-        import isNumeric._
+          import f._
+          import isNumeric._
 
-        implicit def intToUnit(i: Int) : Size =
-          fromInt(i)
+          implicit def intToUnit(i: Int) : Size =
+            fromInt(i)
 
-        def truncate(s: String): String =
-          if (s.length > 10) (s.slice(0,10) + "...") else s
+          def truncate(s: String): String =
+            if (s.length > 10) (s.slice(0,10) + "...") else s
 
-        e match {
-          case o:ObjVar => CellRendering(text(truncate(o.toString)), colorSpec = VariableColorSpec)
-          case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
-          case lc:Comp => CellRendering(text(truncate(lc.toString)), colorSpec = CompColorSpec)
-          case lf:Fill => CellRendering(text(truncate(lf.toString)), colorSpec = FillColorSpec)
-          case rc:Lift => CellRendering(text(truncate(rc.toString)), colorSpec = LiftColorSpec)
-          case rf:Connect => CellRendering(text(truncate(rf.toString)), colorSpec = ConnectColorSpec)
-          case h:Hom => CellRendering(text(truncate(h.toString)), colorSpec = LiftColorSpec)
-          case a:App => CellRendering(text(truncate(a.toString)), colorSpec = ConnectColorSpec)
+          e match {
+            case o:ObjVar => CellRendering(text(truncate(o.toString)), colorSpec = VariableColorSpec)
+            case v:Var => CellRendering(text(truncate(v.toString)), colorSpec = VariableColorSpec)
+            case lc:Comp => CellRendering(text(truncate(lc.toString)), colorSpec = CompColorSpec)
+            case lf:Fill => CellRendering(text(truncate(lf.toString)), colorSpec = FillColorSpec)
+            case rc:Lift => CellRendering(text(truncate(rc.toString)), colorSpec = LiftColorSpec)
+            case rf:Connect => CellRendering(text(truncate(rf.toString)), colorSpec = ConnectColorSpec)
+            case h:Hom => CellRendering(text(truncate(h.toString)), colorSpec = LiftColorSpec)
+            case a:App => CellRendering(text(truncate(a.toString)), colorSpec = ConnectColorSpec)
+          }
+
         }
-
       }
-    }
 
     object VariableColorSpec extends ColorSpec(
       fill = "#FFFFFF",

@@ -21,9 +21,9 @@ import JQuerySemanticUI._
 
 object FaceAddrRenderable {
 
-  def withComplex[A](cmplx: SComplex[A])(implicit r: Renderable[A]) : Renderable[FaceAddr] =
-    new Renderable[FaceAddr] {
-      def render(f: UIFramework)(fa: FaceAddr): f.CellRendering = {
+  def withComplex[A, F <: UIFramework](cmplx: SComplex[A])(implicit r: Renderable[A, F]) : Renderable[FaceAddr, F] =
+    new Renderable[FaceAddr, F] {
+      def render(f: F)(fa: FaceAddr): f.CellRendering = {
 
         cmplx.elementAt(fa) match {
           case None => f.CellRendering(f.text("*"))
