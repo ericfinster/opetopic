@@ -84,7 +84,8 @@ object FlagExtruder {
           (last, flg).zipped.span({
             // Case of length 2 is special, corresponding to the
             // extrusion of an arrow.  Put everything in the suffix list ....
-            case (f, g) => (flgLen > 2) && (f == g)
+            // case (f, g) => (flgLen > 2) && (f == g)
+            case (f, g) => (f == g)
           })
 
         val (prefix, suffix) = (p.unzip._2.toList, s.unzip._2.toList)

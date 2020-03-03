@@ -500,16 +500,6 @@ class StableEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])(i
 
   }
 
-  // A renderable instance for the current framework
-  // I kind of doubt that this will solve the problem...
-  def editorRenderable: Renderable[StableEditor[A, F], framework.type] =
-    new Renderable[StableEditor[A, F], framework.type] {
-      def render(f: framework.type)(st: StableEditor[A, F]): f.CellRendering = {
-        import f._
-        CellRendering(BoundedElement(galleryViewport, bounds))
-      }
-    }
-
 }
 
 object StableEditor {
@@ -524,5 +514,12 @@ object StableEditor {
   //       CellRendering(BoundedElement(st.galleryViewport, st.bounds))
   //     }
   //   }
+
+  // We seem to be stuck here because the type of the framework is hidden
+  // in various instances.
+
+  // The solution seems clear: you need a version of the stable editor enclosed
+  // inside a more general "multi-editor" class so that the framework is exposed
+  // and you can have this renderable instance internally.
   
 }
