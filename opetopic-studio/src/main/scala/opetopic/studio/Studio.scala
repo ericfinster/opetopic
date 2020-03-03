@@ -265,7 +265,7 @@ object Studio {
       var lbl: Int = 0
       val card = tab.editor.cardinal
 
-      Traverse[Suite].map(card)((nst: SCardNst[tab.editor.NeutralCell]) => {
+      Traverse[Suite].map(card)((nst: SCardNst[tab.editor.SimpleNeutralCell]) => {
 
         for { n <- nst.toList.reverse } {
           n.label = if (letters) {

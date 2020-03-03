@@ -26,7 +26,7 @@ class TabbedCardinalEditor[A](
   defaultCardinal : SCardinal[Option[A]] = SCardinal[A]()
 )(implicit rn: Renderable[A, JsDomFramework.type]) extends Component { thisEditor =>
 
-  type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
+  type StableCell = SimpleStableEditor[A, JsDomFramework.type]#SimpleCell
 
   var onSelectAsRoot: StableCell => Unit = { _ => () }
   var onCellShiftClick: StableCell => Unit = { _ => () }
@@ -44,11 +44,11 @@ class TabbedCardinalEditor[A](
     var undoDepth: Int = 10
     var undoQueue: Queue[SCardinal[Option[A]]] = Queue(card)
 
-    val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(card)
+    val editor = new SimpleStableEditor[A, JsDomFramework.type](JsDomFramework)(card)
     editor.hoverCofaces = true
 
     editor.onCellClick =
-      (c: editor.EditorCell) => { }
+      (c: editor.SimpleCell) => { }
 
     editor.onCellShiftClick =
       (c: StableCell) => onCellShiftClick(c)

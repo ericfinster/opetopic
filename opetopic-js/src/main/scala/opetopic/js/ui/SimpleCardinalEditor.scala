@@ -23,7 +23,7 @@ import JQuerySemanticUI._
 
 class SimpleCardinalEditor[A](c : SCardinal[Option[A]] = SCardinal[A]())(implicit rn: Renderable[A, JsDomFramework.type]) extends Component {
 
-  type StableCell = StableEditor[A, JsDomFramework.type]#EditorCell
+  type StableCell = SimpleStableEditor[A, JsDomFramework.type]#SimpleCell
 
   var onSelectAsRoot: StableCell => Unit = { _ => () }
 
@@ -31,7 +31,7 @@ class SimpleCardinalEditor[A](c : SCardinal[Option[A]] = SCardinal[A]())(implici
   var yOffset: Double = 0
   var scale: Double = 0.8
 
-  val editor = new StableEditor[A, JsDomFramework.type](JsDomFramework)(c)
+  val editor = new SimpleStableEditor[A, JsDomFramework.type](JsDomFramework)(c)
 
   //============================================================================================
   // UI ELEMENTS
@@ -115,7 +115,7 @@ class SimpleCardinalEditor[A](c : SCardinal[Option[A]] = SCardinal[A]())(implici
   def initialize: Unit = {
 
     editor.onCellClick =
-      (c: editor.EditorCell) => { }
+      (c: editor.SimpleCell) => { }
 
     editor.onSelectAsRoot =
       (c: StableCell) => onSelectAsRoot(c)

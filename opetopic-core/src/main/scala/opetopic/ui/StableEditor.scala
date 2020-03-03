@@ -5,521 +5,506 @@
   * @version 0.1 
   */
 
-package opetopic.ui
+// package opetopic.ui
 
-import opetopic._
-import opetopic.mtl._
+// import opetopic._
+// import opetopic.mtl._
 
-class StableEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])(implicit rn: Renderable[A, F])
-    extends ActiveStableGallery[F](frmwk)  {
+// class StableEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[A]])(implicit rn: Renderable[A, F])
+//     extends ActiveStableGallery[F](frmwk)  {
 
-  import framework._
-  import isNumeric._
+//   import framework._
+//   import isNumeric._
 
-  type LabelType = Option[A]
+//   type LabelType = Option[A]
 
-  type PanelType = EditorPanel
-  type CellType = EditorCell
+//   type PanelType = EditorPanel
+//   type CellType = EditorCell
 
-  type AddressType = SCardAddr
-  type SelectionType = EditorCell
+//   type AddressType = SCardAddr
+//   type SelectionType = EditorCell
 
-  type OptA = Option[A]
-  type PolOptA = Polarity[Option[A]]
+//   type OptA = Option[A]
+//   type PolOptA = Polarity[Option[A]]
 
-  val renderer : Renderable[PolOptA, F] = 
-    Renderable[PolOptA, F]
+//   val renderer : Renderable[PolOptA, F] = 
+//     Renderable[PolOptA, F]
 
-  //
-  //  Visual Options
-  //
+//   //
+//   //  Visual Options
+//   //
 
-  var internalPadding : Size = fromInt(400)
-  var externalPadding : Size = fromInt(600)
-  var decorationPadding : Size = fromInt(300)
-  var leafWidth : Size = fromInt(200)
-  var strokeWidth : Size = fromInt(100)
-  var cornerRadius : Size = fromInt(200)
+//   var internalPadding : Size = fromInt(400)
+//   var externalPadding : Size = fromInt(600)
+//   var decorationPadding : Size = fromInt(300)
+//   var leafWidth : Size = fromInt(200)
+//   var strokeWidth : Size = fromInt(100)
+//   var cornerRadius : Size = fromInt(200)
 
-  //
-  //  Gallery Options
-  //
+//   //
+//   //  Gallery Options
+//   //
 
-  var width: Size = fromInt(900)
-  var height: Size = fromInt(300)
-  var panelSpacing: Size = fromInt(2000)
+//   var width: Size = fromInt(900)
+//   var height: Size = fromInt(300)
+//   var panelSpacing: Size = fromInt(2000)
 
-  var layoutWidth: Bounds => Size = 
-    (pb: Bounds) => width
+//   var layoutWidth: Bounds => Size = 
+//     (pb: Bounds) => width
 
-  var layoutHeight: Bounds => Size = 
-    (pb: Bounds) => height
+//   var layoutHeight: Bounds => Size = 
+//     (pb: Bounds) => height
 
-  var layoutViewport: Bounds => Bounds = 
-    (pb: Bounds) => pb
+//   var layoutViewport: Bounds => Bounds = 
+//     (pb: Bounds) => pb
 
-  var firstPanel: Option[Int] = None
-  var lastPanel: Option[Int] = None
+//   var firstPanel: Option[Int] = None
+//   var lastPanel: Option[Int] = None
 
-  //============================================================================================
-  // EDITOR DATA
-  //
+//   //============================================================================================
+//   // EDITOR DATA
+//   //
 
-  var panels : Suite[PanelType] = buildPanels(c)._1
+//   var panels : Suite[PanelType] = buildPanels(c)._1
 
-  def cardinal: SCardinal[NeutralCell] =
-    Traverse[Suite].map(panels)(_.cardinalNesting)
+//   def cardinal: SCardinal[NeutralCell] =
+//     Traverse[Suite].map(panels)(_.cardinalNesting)
 
-  def cardinal_=(c: SCardinal[OptA]): Unit = {
-    panels = buildPanels(c)._1
-  }
+//   def cardinal_=(c: SCardinal[OptA]): Unit = {
+//     panels = buildPanels(c)._1
+//   }
 
-  def complex: SComplex[EditorCell] = 
-    Traverse[Suite].map(panels)(_.boxNesting)
+//   def complex: SComplex[EditorCell] = 
+//     Traverse[Suite].map(panels)(_.boxNesting)
 
-  //============================================================================================
-  // INITIALIZATION
-  //
+//   //============================================================================================
+//   // INITIALIZATION
+//   //
 
-  def buildPanels(c: SCardinal[OptA]): (Suite[PanelType], Int) = 
-    c match {
-      case ||(cn) => {
-        val bn = Traverse[MTree].map(cn)(buildCells(0, _))
+//   def buildPanels(c: SCardinal[OptA]): (Suite[PanelType], Int) = 
+//     c match {
+//       case ||(cn) => {
+//         val bn = Traverse[MTree].map(cn)(buildCells(0, _))
 
-        val inEdge = new NeutralCell(-1, None, true)
-        val outEdge = new NeutralCell(-1, None, false)
-        val en = SBox(outEdge, STree.obj(SDot(inEdge)))
+//         val inEdge = new NeutralCell(-1, None, true)
+//         val outEdge = new NeutralCell(-1, None, false)
+//         val en = SBox(outEdge, STree.obj(SDot(inEdge)))
 
-        (||(new EditorPanel(0, bn, Right(en))), 0)
-      }
-      case tl >> hd => {
-        val (pt, d) = buildPanels(tl)
-        val bn = Traverse[MTree].map(hd)(buildCells(d + 1, _))
-        (pt >> new EditorPanel(d + 1, bn, Left(pt.head)), d + 1)
-      }
-    }
+//         (||(new EditorPanel(0, bn, Right(en))), 0)
+//       }
+//       case tl >> hd => {
+//         val (pt, d) = buildPanels(tl)
+//         val bn = Traverse[MTree].map(hd)(buildCells(d + 1, _))
+//         (pt >> new EditorPanel(d + 1, bn, Left(pt.head)), d + 1)
+//       }
+//     }
 
-  // Here we should take an address prefix as well and store
-  // the actual cardinal address...
-  def buildCells(d: Int, n: SNesting[OptA]): SNesting[NeutralCell] = 
-    n.foldNestingWithAddr[SNesting[NeutralCell]]()({
-      case (optLabel, addr) => SDot(new NeutralCell(d, optLabel, true))
-    })({
-      case (optLabel, addr, cn) => SBox(new NeutralCell(d, optLabel, false), cn)
-    })
+//   // Here we should take an address prefix as well and store
+//   // the actual cardinal address...
+//   def buildCells(d: Int, n: SNesting[OptA]): SNesting[NeutralCell] = 
+//     n.foldNestingWithAddr[SNesting[NeutralCell]]()({
+//       case (optLabel, addr) => SDot(new NeutralCell(d, optLabel, true))
+//     })({
+//       case (optLabel, addr, cn) => SBox(new NeutralCell(d, optLabel, false), cn)
+//     })
 
-  //============================================================================================
-  // SELECTION SEEKING
-  //
+//   //============================================================================================
+//   // SELECTION SEEKING
+//   //
 
-  def seekToAddress(addr: SCardAddr): Option[SNstZipper[NeutralCell]] = 
-    cardinal.seekNesting(addr)
+//   def seekToAddress(addr: SCardAddr): Option[SNstZipper[NeutralCell]] = 
+//     cardinal.seekNesting(addr)
 
-  def seekToCanopy(addr: SCardAddr): Option[SZipper[SNesting[NeutralCell]]] = 
-    cardinal.seekCanopy(addr)
+//   def seekToCanopy(addr: SCardAddr): Option[SZipper[SNesting[NeutralCell]]] = 
+//     cardinal.seekCanopy(addr)
 
-  //============================================================================================
-  // REFRESH ROUTINES
-  //
+//   //============================================================================================
+//   // REFRESH ROUTINES
+//   //
 
-  override def renderAll: Unit = {
-    refreshEdges
-    refreshAddresses
-    super.renderAll
-  }
+//   override def renderAll: Unit = {
+//     refreshEdges
+//     refreshAddresses
+//     super.renderAll
+//   }
 
-  // These should be combined somehow ...
-  def refreshEdges: Unit = 
-    panels.foreach(_.refreshEdges)
+//   // These should be combined somehow ...
+//   def refreshEdges: Unit = 
+//     panels.foreach(_.refreshEdges)
 
-  def refreshAddresses: Unit = {
-    panels.foreach(_.refreshAddresses)
-  }
+//   def refreshAddresses: Unit = {
+//     panels.foreach(_.refreshAddresses)
+//   }
 
-  //============================================================================================
-  // MUTABILITY ROUTINES
-  //
+//   //============================================================================================
+//   // MUTABILITY ROUTINES
+//   //
 
-  def extendPanels(ps: Suite[PanelType]): Suite[PanelType] = {
+//   def extendPanels(ps: Suite[PanelType]): Suite[PanelType] = {
 
-    val ncn : MTree[STree[SNesting[NeutralCell]]] = 
-      Traverse[MTree].map(ps.head.cardinalNesting)(
-        nst => nst.toTreeWith(_ => SDot(new NeutralCell(ps.head.dim + 1, None, true)))
-      )
+//     val ncn : MTree[STree[SNesting[NeutralCell]]] = 
+//       Traverse[MTree].map(ps.head.cardinalNesting)(
+//         nst => nst.toTreeWith(_ => SDot(new NeutralCell(ps.head.dim + 1, None, true)))
+//       )
 
-    val newPanel = new EditorPanel(ps.head.dim + 1, MFix(ncn), Left(ps.head))
+//     val newPanel = new EditorPanel(ps.head.dim + 1, MFix(ncn), Left(ps.head))
 
-    ps >> newPanel
+//     ps >> newPanel
 
-  }
+//   }
 
-  def extractSelection: Option[STree[NeutralCell]] =
-    selectionRoot.flatMap(root => {
+//   def extractSelection: Option[STree[NeutralCell]] =
+//     selectionRoot.flatMap(root => {
 
-      val addr = root.cardinalAddress
+//       val addr = root.cardinalAddress
 
-      for {
-        zp <- seekToCanopy(root.cardinalAddress)
-        cut <- zp.focus.takeWhile((n: SNesting[NeutralCell]) => n.baseValue.isSelected)
-        (et, es) = cut
-      } yield et.map(_.baseValue)
+//       for {
+//         zp <- seekToCanopy(root.cardinalAddress)
+//         cut <- zp.focus.takeWhile((n: SNesting[NeutralCell]) => n.baseValue.isSelected)
+//         (et, es) = cut
+//       } yield et.map(_.baseValue)
 
-    })
+//     })
 
-  def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Option[(SCardAddr, STree[Int])] =
-    selectionRoot match {
-      case None => None
-      case Some(root) => {
+//   def extrudeSelectionWith(tgtVal: OptA, fillVal: OptA): Option[(SCardAddr, STree[Int])] =
+//     selectionRoot match {
+//       case None => None
+//       case Some(root) => {
 
-        if (root.canExtrude) {
+//         if (root.canExtrude) {
 
-          val tgtCell = new NeutralCell(root.dim, tgtVal, false)
-          val fillCell = new NeutralCell(root.dim + 1, fillVal, true)
+//           val tgtCell = new NeutralCell(root.dim, tgtVal, false)
+//           val fillCell = new NeutralCell(root.dim + 1, fillVal, true)
 
-          val extPanels : Suite[PanelType] =
-            if (root.dim == panels.head.dim)
-              extendPanels(panels)
-            else panels
+//           val extPanels : Suite[PanelType] =
+//             if (root.dim == panels.head.dim)
+//               extendPanels(panels)
+//             else panels
 
-          val extCardinal : SCardinal[NeutralCell] =
-            Traverse[Suite].map(extPanels)(_.cardinalNesting)
+//           val extCardinal : SCardinal[NeutralCell] =
+//             Traverse[Suite].map(extPanels)(_.cardinalNesting)
 
-          val extAddr = root.cardinalAddress
+//           val extAddr = root.cardinalAddress
 
-          for {
-            pr <- extCardinal.extrude(extAddr, tgtCell, fillCell)(_.isSelected)
-          } yield {
+//           for {
+//             pr <- extCardinal.extrude(extAddr, tgtCell, fillCell)(_.isSelected)
+//           } yield {
 
-            val (c, msk) = pr
+//             val (c, msk) = pr
 
-            deselectAll
+//             deselectAll
 
-            extPanels.zipWithSuite(c).foreach({
-              case (p, n) => p.cardinalNesting = n
-            })
+//             extPanels.zipWithSuite(c).foreach({
+//               case (p, n) => p.cardinalNesting = n
+//             })
 
-            panels = extPanels
+//             panels = extPanels
 
-            renderAll
-            tgtCell.selectAsRoot
+//             renderAll
+//             tgtCell.selectAsRoot
 
-            (extAddr, msk)
+//             (extAddr, msk)
 
-          }
+//           }
 
-        } else None
+//         } else None
 
-      }
-    }
+//       }
+//     }
 
-  def extrudeSelection: Unit =
-    extrudeSelectionWith(None, None)
+//   def extrudeSelection: Unit =
+//     extrudeSelectionWith(None, None)
 
-  def loopAtSelectionWith(tgtVal: OptA, fillVal: OptA) : Option[SCardAddr] = 
-    selectionRoot match {
-      case None => None
-      case Some(root) => {
+//   def loopAtSelectionWith(tgtVal: OptA, fillVal: OptA) : Option[SCardAddr] = 
+//     selectionRoot match {
+//       case None => None
+//       case Some(root) => {
 
-        if (root.canExtrude) {
+//         if (root.canExtrude) {
 
-          val tgtCell = new NeutralCell(root.dim + 1, tgtVal, false)
-          val fillCell = new NeutralCell(root.dim + 2, fillVal, true)
+//           val tgtCell = new NeutralCell(root.dim + 1, tgtVal, false)
+//           val fillCell = new NeutralCell(root.dim + 2, fillVal, true)
 
-          val extPanels : Suite[PanelType] =
-            if (root.dim == panels.head.dim)
-              extendPanels(extendPanels(panels))
-            else if (root.dim == panels.head.dim - 1)
-              extendPanels(panels)
-            else panels
+//           val extPanels : Suite[PanelType] =
+//             if (root.dim == panels.head.dim)
+//               extendPanels(extendPanels(panels))
+//             else if (root.dim == panels.head.dim - 1)
+//               extendPanels(panels)
+//             else panels
 
-          val extCardinal : SCardinal[NeutralCell] =
-            Traverse[Suite].map(extPanels)(_.cardinalNesting)
+//           val extCardinal : SCardinal[NeutralCell] =
+//             Traverse[Suite].map(extPanels)(_.cardinalNesting)
 
-          val extAddr = root.cardinalAddress
+//           val extAddr = root.cardinalAddress
 
-          for {
-            c <- extCardinal.extrudeLoop(extAddr, tgtCell, fillCell)
-          } yield {
+//           for {
+//             c <- extCardinal.extrudeLoop(extAddr, tgtCell, fillCell)
+//           } yield {
 
-            deselectAll
+//             deselectAll
 
-            extPanels.zipWithSuite(c).foreach({
-              case (p, n) => p.cardinalNesting = n
-            })
+//             extPanels.zipWithSuite(c).foreach({
+//               case (p, n) => p.cardinalNesting = n
+//             })
 
-            panels = extPanels
+//             panels = extPanels
 
-            renderAll
-            root.selectAsRoot
+//             renderAll
+//             root.selectAsRoot
 
-            extAddr
+//             extAddr
 
-          }
+//           }
 
-        } else None
+//         } else None
 
-      }
-    }
+//       }
+//     }
 
-  def loopAtSelection : Unit = {
-    loopAtSelectionWith(None, None)
-  }
+//   def loopAtSelection : Unit = {
+//     loopAtSelectionWith(None, None)
+//   }
 
-  def sproutAtSelectionWith(srcVal: OptA, fillVal: OptA): Option[SCardAddr] = 
-    selectionRoot match {
-      case None => None
-      case Some(root) => {
-        if (root.isExternal) {
+//   def sproutAtSelectionWith(srcVal: OptA, fillVal: OptA): Option[SCardAddr] = 
+//     selectionRoot match {
+//       case None => None
+//       case Some(root) => {
+//         if (root.isExternal) {
 
-          val srcCell = new NeutralCell(root.dim, srcVal, true)
-          val fillCell = new NeutralCell(root.dim + 1, fillVal, true)
+//           val srcCell = new NeutralCell(root.dim, srcVal, true)
+//           val fillCell = new NeutralCell(root.dim + 1, fillVal, true)
 
-          val extPanels : Suite[PanelType] =
-            if (root.dim == panels.head.dim)
-              extendPanels(panels)
-            else panels
+//           val extPanels : Suite[PanelType] =
+//             if (root.dim == panels.head.dim)
+//               extendPanels(panels)
+//             else panels
 
-          val extCardinal : SCardinal[NeutralCell] =
-            Traverse[Suite].map(extPanels)(_.cardinalNesting)
+//           val extCardinal : SCardinal[NeutralCell] =
+//             Traverse[Suite].map(extPanels)(_.cardinalNesting)
 
-          val extAddr = root.cardinalAddress
+//           val extAddr = root.cardinalAddress
 
-          for {
-            c <- extCardinal.sprout(extAddr, srcCell, fillCell)
-          } yield {
+//           for {
+//             c <- extCardinal.sprout(extAddr, srcCell, fillCell)
+//           } yield {
 
-            deselectAll
+//             deselectAll
 
-            extPanels.zipWithSuite(c).foreach({
-              case (p, n) => p.cardinalNesting = n
-            })
+//             extPanels.zipWithSuite(c).foreach({
+//               case (p, n) => p.cardinalNesting = n
+//             })
 
-            panels = extPanels
-            root.isExternal = false
+//             panels = extPanels
+//             root.isExternal = false
 
-            renderAll
-            srcCell.selectAsRoot
+//             renderAll
+//             srcCell.selectAsRoot
 
-            extAddr
+//             extAddr
 
-          }
+//           }
 
-        } else None
+//         } else None
 
-      }
-    }
+//       }
+//     }
 
-  def sproutAtSelection: Unit = {
-    sproutAtSelectionWith(None, None)
-  }
+//   def sproutAtSelection: Unit = {
+//     sproutAtSelectionWith(None, None)
+//   }
 
-  //============================================================================================
-  // PANEL IMPLEMENTATION
-  //
+//   //============================================================================================
+//   // PANEL IMPLEMENTATION
+//   //
 
-  class EditorPanel(
-    val dim: Int,
-    var cardinalNesting: SCardNst[NeutralCell],
-    val edgeData: Either[EditorPanel, SNesting[EditorCell]]
-  ) extends ActiveStablePanel {
+//   class EditorPanel(
+//     val dim: Int,
+//     var cardinalNesting: SCardNst[NeutralCell],
+//     val edgeData: Either[EditorPanel, SNesting[EditorCell]]
+//   ) extends ActiveStablePanel {
 
-    val positiveCell: PositiveCell = new PositiveCell(dim)
-    val negativeCell: NegativeCell = new NegativeCell(dim)
+//     val positiveCell: PositiveCell = new PositiveCell(dim)
+//     val negativeCell: NegativeCell = new NegativeCell(dim)
 
-    def boxNesting: SNesting[EditorCell] = 
-      cardinalNesting.toNesting(
-        positiveCell, 
-        negativeCell
-      )
+//     def boxNesting: SNesting[EditorCell] = 
+//       cardinalNesting.toNesting(
+//         positiveCell, 
+//         negativeCell
+//       )
 
-    def edgeNesting: SNesting[EditorCell] = 
-      edgeData match {
-        case Left(pp) => pp.boxNesting
-        case Right(en) => en
-      }
+//     def edgeNesting: SNesting[EditorCell] = 
+//       edgeData match {
+//         case Left(pp) => pp.boxNesting
+//         case Right(en) => en
+//       }
 
-    def refreshAddresses: Unit = 
-      cardinalNesting.foreachWithAddr(
-        (box, addr) => { box.cardinalAddress = addr }
-      )
+//     def refreshAddresses: Unit = 
+//       cardinalNesting.foreachWithAddr(
+//         (box, addr) => { box.cardinalAddress = addr }
+//       )
 
-    def refreshEdges: Unit = 
-      edgeData match {
-        case Left(pp) => {
+//     def refreshEdges: Unit = 
+//       edgeData match {
+//         case Left(pp) => {
 
-          boxNesting match {
-            case SDot(c) => c.outgoingEdge = Some(pp.boxNesting.baseValue)
-            case SBox(_, cn) => 
-              for {
-                sp <- cn.spine
-                _ <- sp.matchTraverse[EdgeType, Unit](pp.boxNesting.toTree)({
-                  case (c, e) => Some({ c.outgoingEdge = Some(e) })
-                })
-              } { }
-          }
+//           boxNesting match {
+//             case SDot(c) => c.outgoingEdge = Some(pp.boxNesting.baseValue)
+//             case SBox(_, cn) => 
+//               for {
+//                 sp <- cn.spine
+//                 _ <- sp.matchTraverse[EdgeType, Unit](pp.boxNesting.toTree)({
+//                   case (c, e) => Some({ c.outgoingEdge = Some(e) })
+//                 })
+//               } { }
+//           }
           
-        }
-        case Right(en) => {
-          boxNesting.map(c => c.outgoingEdge = Some(en.baseValue))
-        }
-      }
+//         }
+//         case Right(en) => {
+//           boxNesting.map(c => c.outgoingEdge = Some(en.baseValue))
+//         }
+//       }
 
 
-    override def bounds: Bounds = {
+//     override def bounds: Bounds = {
 
-      // Here are all the leaves
-      val lvs = edgeNesting.spine(SDeriv(SLeaf)).getOrElse(SLeaf).toList
+//       // Here are all the leaves
+//       val lvs = edgeNesting.spine(SDeriv(SLeaf)).getOrElse(SLeaf).toList
 
-      // And here are all the boxes
-      val bxs = boxNesting match {
-        case SDot(_) => Nil // Shouldn't happen
-        case SBox(_, cn) => cn.toList.map(_.baseValue).filter(_.isVisible)
-      }
+//       // And here are all the boxes
+//       val bxs = boxNesting match {
+//         case SDot(_) => Nil // Shouldn't happen
+//         case SBox(_, cn) => cn.toList.map(_.baseValue).filter(_.isVisible)
+//       }
 
-      val (boxMinX, boxMaxX, boxMinY, boxMaxY) =
-        bxs match {
-          case Nil => (zero,zero,zero,zero) // Error?
-          case b::bs => {
-            (bs foldLeft (b.x,b.x + b.width, b.y, b.y + b.height))({
-              case ((curMinX, curMaxX, curMinY, curMaxY), cell) => {
-                val nextMinX = isOrdered.min(curMinX, cell.x)
-                val nextMaxX = isOrdered.max(curMaxX, cell.x + cell.width)
-                val nextMinY = isOrdered.min(curMinY, cell.y)
-                val nextMaxY = isOrdered.max(curMaxY, cell.y + cell.height)
-                (nextMinX, nextMaxX, nextMinY, nextMaxY)
-              }
-            })
-          }
-        }
+//       val (boxMinX, boxMaxX, boxMinY, boxMaxY) =
+//         bxs match {
+//           case Nil => (zero,zero,zero,zero) // Error?
+//           case b::bs => {
+//             (bs foldLeft (b.x,b.x + b.width, b.y, b.y + b.height))({
+//               case ((curMinX, curMaxX, curMinY, curMaxY), cell) => {
+//                 val nextMinX = isOrdered.min(curMinX, cell.x)
+//                 val nextMaxX = isOrdered.max(curMaxX, cell.x + cell.width)
+//                 val nextMinY = isOrdered.min(curMinY, cell.y)
+//                 val nextMaxY = isOrdered.max(curMaxY, cell.y + cell.height)
+//                 (nextMinX, nextMaxX, nextMinY, nextMaxY)
+//               }
+//             })
+//           }
+//         }
 
-      // Now adjust if any of the leaves exceed the previous box calculations
-      val (minX, maxX, minY) =
-        (lvs foldLeft (boxMinX, boxMaxX, boxMinY))({
-          case ((curMinX, curMaxX, curMinY), cell) => {
-            val nextMinX = isOrdered.min(curMinX, cell.edgeStartX)
-            val nextMaxX = isOrdered.max(curMaxX, cell.edgeStartX)
-            val nextMinY = isOrdered.min(curMinY, cell.edgeStartY)
-            (nextMinX, nextMaxX, nextMinY)
-          }
-        })
+//       // Now adjust if any of the leaves exceed the previous box calculations
+//       val (minX, maxX, minY) =
+//         (lvs foldLeft (boxMinX, boxMaxX, boxMinY))({
+//           case ((curMinX, curMaxX, curMinY), cell) => {
+//             val nextMinX = isOrdered.min(curMinX, cell.edgeStartX)
+//             val nextMaxX = isOrdered.max(curMaxX, cell.edgeStartX)
+//             val nextMinY = isOrdered.min(curMinY, cell.edgeStartY)
+//             (nextMinX, nextMaxX, nextMinY)
+//           }
+//         })
 
-      Bounds(
-        minX,
-        minY,
-        maxX - minX,
-        (boxMaxY - minY) + (fromInt(4) * externalPadding)
-      )
+//       Bounds(
+//         minX,
+//         minY,
+//         maxX - minX,
+//         (boxMaxY - minY) + (fromInt(4) * externalPadding)
+//       )
 
-    }
+//     }
     
-  }
+//   }
 
-  //============================================================================================
-  // CELL IMPLEMENTATIONS
-  //
+//   //============================================================================================
+//   // CELL IMPLEMENTATIONS
+//   //
 
-  abstract class EditorCell extends ActiveCell {
-    def canExtrude: Boolean
-    def cardinalAddress: SCardAddr
-    def selectionAddress = cardinalAddress
-    def address = cardinalAddress.complexAddress
-    var isExternal: Boolean
-    var label: Option[A]
-  }
+//   abstract class EditorCell extends ActiveCell {
+//     def canExtrude: Boolean
+//     def cardinalAddress: SCardAddr
+//     def selectionAddress = cardinalAddress
+//     def address = cardinalAddress.complexAddress
+//     var isExternal: Boolean
+//     var label: Option[A]
+//   }
 
-  class NeutralCell(
-    val dim: Int,
-    initLabel: Option[A], 
-    var isExternal: Boolean
-  ) extends EditorCell {
+//   class NeutralCell(
+//     val dim: Int,
+//     initLabel: Option[A], 
+//     var isExternal: Boolean
+//   ) extends EditorCell {
 
-    var cardinalAddress: SCardAddr = SCardAddr()
+//     var cardinalAddress: SCardAddr = SCardAddr()
 
-    private var myLabel: Option[A] = initLabel
+//     private var myLabel: Option[A] = initLabel
 
-    def label: Option[A] = myLabel
-    def label_=(opt: Option[A]): Unit = {
-      myLabel = opt
-      cellRendering = renderer.render(framework)(Neutral(label))
-    }
+//     def label: Option[A] = myLabel
+//     def label_=(opt: Option[A]): Unit = {
+//       myLabel = opt
+//       cellRendering = renderer.render(framework)(Neutral(label))
+//     }
 
-    var cellRendering: CellRendering = 
-      renderer.render(framework)(Neutral(label))
+//     var cellRendering: CellRendering = 
+//       renderer.render(framework)(Neutral(label))
 
-    // Selection stuff
-    def canExtrude: Boolean = cardinalAddress.boxAddr == Nil
-    def canSelect: Boolean = true
+//     // Selection stuff
+//     def canExtrude: Boolean = cardinalAddress.boxAddr == Nil
+//     def canSelect: Boolean = true
 
-    override def pathString: String = {
-      if (canExtrude) {
-        var ps : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
-        ps ++= "V " ++ edgeEndY.toString
-        ps
-      } else super.pathString
-    }
+//     override def pathString: String = {
+//       if (canExtrude) {
+//         var ps : String = "M " ++ edgeStartX.toString ++ " " ++ edgeStartY.toString ++ " "
+//         ps ++= "V " ++ edgeEndY.toString
+//         ps
+//       } else super.pathString
+//     }
 
-    override def toString: String = 
-      label.toString
+//     override def toString: String = 
+//       label.toString
 
-  }
+//   }
 
-  abstract class PolarizedCell extends EditorCell {
-    val cardinalAddress: SCardAddr = SCardAddr()
-    def canExtrude = false
-    def canSelect = false
-    override def isVisible = false
-    override def onClick: Unit = deselectAll
-    override def onMouseOver: Unit = ()
-    override def onMouseOut: Unit = ()
-    override def onHover: Unit = ()
-    override def onUnhover: Unit = ()
+//   abstract class PolarizedCell extends EditorCell {
+//     val cardinalAddress: SCardAddr = SCardAddr()
+//     def canExtrude = false
+//     def canSelect = false
+//     override def isVisible = false
+//     override def onClick: Unit = deselectAll
+//     override def onMouseOver: Unit = ()
+//     override def onMouseOut: Unit = ()
+//     override def onHover: Unit = ()
+//     override def onUnhover: Unit = ()
 
-  }
+//   }
 
-  class NegativeCell(val dim: Int) extends PolarizedCell {
+//   class NegativeCell(val dim: Int) extends PolarizedCell {
 
-    var label: Option[A] = None
-    var isExternal: Boolean = true
+//     var label: Option[A] = None
+//     var isExternal: Boolean = true
 
-    val cellRendering: CellRendering = 
-      renderer.render(framework)(Negative())
+//     val cellRendering: CellRendering = 
+//       renderer.render(framework)(Negative())
 
-    override def toString = "-"
+//     override def toString = "-"
 
-  }
+//   }
 
-  class PositiveCell(val dim: Int) extends PolarizedCell {
+//   class PositiveCell(val dim: Int) extends PolarizedCell {
 
-    var label: Option[A] = None
-    var isExternal: Boolean = false
+//     var label: Option[A] = None
+//     var isExternal: Boolean = false
 
-    val cellRendering: CellRendering = 
-      renderer.render(framework)(Positive())
+//     val cellRendering: CellRendering = 
+//       renderer.render(framework)(Positive())
 
-    override def toString = "+"
+//     override def toString = "+"
 
-  }
+//   }
 
-}
+// }
 
-object StableEditor {
+// object StableEditor {
 
-  def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(implicit r: Renderable[A, F]): StableEditor[A, F] = 
-    new StableEditor(f)(SCardinal(c.map(Some(_))))
-
-  // implicit def stableEditorRenderable[A, F <: ActiveFramework](implicit r: Renderable[A, F]): Renderable[StableEditor[A, F], F] =
-  //   new Renderable[StableEditor[A, F], F] {
-  //     def render(frmwk: F)(st: StableEditor[A, F]): frmwk.CellRendering = {
-  //       import frmwk._
-  //       CellRendering(BoundedElement(st.galleryViewport, st.bounds))
-  //     }
-  //   }
-
-  // We seem to be stuck here because the type of the framework is hidden
-  // in various instances.
-
-  // The solution seems clear: you need a version of the stable editor enclosed
-  // inside a more general "multi-editor" class so that the framework is exposed
-  // and you can have this renderable instance internally.
+//   def apply[A, F <: ActiveFramework](f: F)(c: SComplex[A])(implicit r: Renderable[A, F]): StableEditor[A, F] = 
+//     new StableEditor(f)(SCardinal(c.map(Some(_))))
   
-}
+// }
