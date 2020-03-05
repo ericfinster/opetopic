@@ -106,23 +106,30 @@ class SimpleActiveGallery[A, F <: ActiveFramework](frmwk: F)(val complex: SCompl
   class SimpleActiveCell(il: A, val dim: Int, val address: SAddr, val isExternal: Boolean) 
       extends ActiveCell {
 
-    private var myLabel: A = il
-
-    def label: A = myLabel
-    def label_=(l: A): Unit = {
-      myLabel = l
+    def layoutLabel: Unit = {
       cellRendering = implicitly[Renderable[A, F]].render(framework)(label)
+      makeMouseInvisible(labelElement)
     }
+
+    private var myLabel: A = il
 
     var cellRendering: CellRendering = 
       implicitly[Renderable[A, F]].
         render(framework)(label)
+    
+    def label: A = myLabel
+    def label_=(l: A): Unit = {
+      myLabel = l
+      labelNeedsLayout = true
+    }
 
     val canSelect: Boolean = true
     var selectionAddress: AddressType = (0, Nil)
 
     override def toString: String =
       label.toString
+
+    makeMouseInvisible(labelElement)
     
   }
 

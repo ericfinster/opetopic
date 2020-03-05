@@ -53,6 +53,8 @@ trait LayoutContext[F <: UIFramework] {
 
   trait CellBox extends Rooted { thisBox : BoxType =>
 
+    def layoutLabel: Unit
+
     def labelElement : Element 
     def labelBounds : Bounds 
 
@@ -75,6 +77,8 @@ trait LayoutContext[F <: UIFramework] {
     var interiorHeight: Size = zero
 
     var outgoingEdge: Option[EdgeType] = None
+
+    var labelNeedsLayout = false
 
     //
     // Derived Values
@@ -203,6 +207,9 @@ trait LayoutContext[F <: UIFramework] {
         debug(bx, "Laying out: " + bx.toString)
 
         bx.clear
+
+        if (bx.labelNeedsLayout)
+          bx.layoutLabel
 
         val edgeMarker = 
           bx.outgoingEdge.map(edge => {
@@ -384,6 +391,9 @@ trait LayoutContext[F <: UIFramework] {
       case SBox(bx, cn) => {
 
         bx.clear
+
+        if (bx.labelNeedsLayout)
+          bx.layoutLabel
 
         // BUG! - There is a problem with deciding which tree is "left most" and
         // "right most" by simply counting them here.  The point is that the order

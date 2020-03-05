@@ -1,26 +1,29 @@
 @import org.webjars.play.WebJarsUtil
+@import play.api.Play
 
-@(isDev: Boolean)(implicit userOpt: Option[User], webJarsUtil: WebJarsUtil)
+@(isDev: Boolean)(implicit request: RequestHeader, userOpt: Option[User], webJarsUtil: WebJarsUtil)
 
-@main("MultiEdit") {
+@main("MultiEditor") {
 
-  <div>
-
-    <div class="ui centered grid">
-      <div class="twelve wide column">
-	<h3 class="ui dividing header">MultiEdit</h3>
-	<div id="editor-div"></div>
-      </div>
+  <div class="ui basic pushable segment" style="margin-bottom: 0px">
+    
+    <div class="ui left vertical visible inverted sidebar menu" id="editor-left-sidebar">
     </div>
 
+    <div class="ui right inverted visible labeled inline vertical sidebar icon menu">
+    </div>
+    
+    <div class="pusher">
+      <div id="editor-div" style="margin-left:260px; margin-right:84px; height: 100%;">
+      </div>
+    </div>
+    
   </div>
 
   @if(isDev) {
-  <script src='@routes.Assets.at("opetopicmultiedit-fastopt.js")' type="text/javascript"></script>
+    <script src='@routes.Assets.at("opetopicmultiedit-fastopt.js")' type="text/javascript"></script>
   } else {
-  <script src='@routes.Assets.at("opetopicmultiedit-opt.js")' type="text/javascript"></script>
+    <script src='@routes.Assets.at("opetopicmultiedit-opt.js")' type="text/javascript"></script>
   }
-
-  <script src='@routes.Assets.at("opetopicmultiedit-launcher.js")' type="text/javascript"></script>
 
 }

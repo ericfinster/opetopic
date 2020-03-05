@@ -19,20 +19,27 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
   type CellType <: ActiveCell
   type PanelType <: ActiveStablePanel
 
+  // I think we should switch to using the group
+  // as the top level element, and having the viewport
+  // handled by hte actual ui code upstream
+  val galleryGroup = group
+  var groupBounds = Bounds(zero,zero,zero,zero)
+
   val galleryViewport = viewport
   def element = galleryViewport
-  def bounds = Bounds(viewport.viewX, viewport.viewY,
-    viewport.viewWidth, viewport.viewHeight)
 
   def renderAll: Unit = {
 
     val (gbnds, els) = panelElementsAndBounds
     panels.foreach(_.renderAll)
 
+    galleryGroup.children = els.toList
+    groupBounds = gbnds
+
     galleryViewport.width = layoutWidth(gbnds)
     galleryViewport.height = layoutHeight(gbnds)
     galleryViewport.setBounds(layoutViewport(gbnds))
-    galleryViewport.children = els.toList
+    galleryViewport.children = Seq(galleryGroup)
 
   }
 
@@ -205,8 +212,6 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     }
 
     def renderBox: Unit = {
-
-      makeMouseInvisible(labelElement)
 
       boxGroup.children = Seq(boxRect, labelElement)
 

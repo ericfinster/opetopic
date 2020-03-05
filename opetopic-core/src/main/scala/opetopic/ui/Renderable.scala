@@ -9,7 +9,7 @@ package opetopic.ui
 
 import opetopic._
 
-trait Renderable[A, F <: UIFramework] {
+trait Renderable[A, -F <: UIFramework] {
   def render(frmwk: F)(a: A) : frmwk.CellRendering
 }
 
@@ -17,6 +17,17 @@ object Renderable {
 
   def apply[A, F <: UIFramework](implicit r: Renderable[A, F]): Renderable[A, F] = r
 
+
+  implicit def unitRenderable[F <: UIFramework]: Renderable[Unit, F] =
+    new Renderable[Unit, F] {
+      def render(f: F)(u: Unit): f.CellRendering = {
+        import f._
+        import isNumeric._
+        CellRendering(
+          spacer(Bounds(fromInt(0), fromInt(0), fromInt(600), fromInt(600)))
+        )
+      }
+    }
 
   implicit def stringRenderable[F <: UIFramework]: Renderable[String, F] =
     new Renderable[String, F] {

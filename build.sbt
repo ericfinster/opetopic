@@ -30,7 +30,7 @@ val commonSettings = Seq(
     """
 )
 
-lazy val clients = Seq(opetopicJs, opetopicStudio, opetopicDocs, opetopicLf)
+lazy val clients = Seq(opetopicJs, opetopicStudio, opetopicDocs, opetopicLf, opetopicMultiEdit)
 
 lazy val opetopicPlay = (project in file("opetopic-play")).
   settings(commonSettings: _*).
@@ -88,6 +88,22 @@ lazy val opetopicLf = (project in file("opetopic-lf")).
   settings(
     scalaJSUseMainModuleInitializer := true,
     mainClass in Compile := Some("opetopic.lf.Lf"),
+    resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
+    unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
+    libraryDependencies ++= Seq(
+      "org.scala-js" %%% "scalajs-dom" % scalaJsDomVersion,
+      "be.doeraene" %%% "scalajs-jquery" % scalaJsJQueryVersion,
+      "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+      "com.lihaoyi" %%% "upickle" % upickleVersion
+    )
+  ).enablePlugins(ScalaJSPlugin).
+  dependsOn(opetopicJs)
+
+lazy val opetopicMultiEdit = (project in file("opetopic-multiedit")).
+  settings(commonSettings: _*).
+  settings(
+    scalaJSUseMainModuleInitializer := true,
+    mainClass in Compile := Some("opetopic.multiedit.MultiEdit"),
     resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
     unmanagedSourceDirectories in Compile := Seq((scalaSource in Compile).value),
     libraryDependencies ++= Seq(

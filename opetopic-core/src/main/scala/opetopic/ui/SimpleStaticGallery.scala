@@ -61,6 +61,8 @@ class SimpleStaticGallery[A, F <: UIFramework](frmwk: F)(val complex: SComplex[A
 
   class SimpleStaticCell(val label: A, val dim: Int, val address: SAddr, val isExternal: Boolean) extends StaticCell {
 
+    def layoutLabel: Unit = ()
+    
     val cellRendering: CellRendering = 
       implicitly[Renderable[A, F]].
         render(framework)(label)

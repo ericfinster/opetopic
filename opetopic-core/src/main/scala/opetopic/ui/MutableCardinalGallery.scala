@@ -205,6 +205,10 @@ trait MutableCardinalGallery[F <: UIFramework]
     def canExtrude: Boolean = false
     def canSelect: Boolean = false
 
+    // Polarized cells don't need updates on their labels
+    def layoutLabel: Unit = ()
+    labelNeedsLayout = false
+
   }
 
   //============================================================================================

@@ -101,16 +101,23 @@ class SimpleStableEditor[A, F <: ActiveFramework](frmwk: F)(c: SCardinal[Option[
     var isExternal: Boolean
   ) extends SimpleCell with MutableNeutralCell {
 
-    private var myLabel: Option[A] = initLabel
-
-    def label: Option[A] = myLabel
-    def label_=(opt: Option[A]): Unit = {
-      myLabel = opt
+    def layoutLabel: Unit = {
       cellRendering = renderer.render(framework)(Neutral(label))
+      makeMouseInvisible(labelElement)
     }
+
+    private var myLabel: Option[A] = initLabel
 
     var cellRendering: CellRendering = 
       renderer.render(framework)(Neutral(label))
+    
+    def label: Option[A] = myLabel
+    def label_=(opt: Option[A]): Unit = {
+      myLabel = opt
+      labelNeedsLayout = true
+    }
+
+    makeMouseInvisible(labelElement)
 
   }
 

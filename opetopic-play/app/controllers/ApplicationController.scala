@@ -39,10 +39,6 @@ class ApplicationController @Inject() (
     Future.successful(Ok(views.html.index()(request.identity, webJarsUtil)))
   }
 
-  def colorEditor = silhouette.UserAwareAction.async { implicit request =>
-    Future.successful(Ok(views.html.coloredit(true)(request.identity, webJarsUtil)))
-  }
-
   /**
    * Handles the Sign Out action.
    *
@@ -58,5 +54,11 @@ class ApplicationController @Inject() (
   def lf = silhouette.UserAwareAction.async { implicit request => 
     Future.successful(Ok(views.html.lf(env.isDev)(request, None, webJarsUtil)))
   }
+
+  // The multi-editor
+  def multiedit = silhouette.UserAwareAction.async { implicit request =>
+    Future.successful(Ok(views.html.multiedit(env.isDev)(request, None, webJarsUtil)))
+  }
+
 
 }

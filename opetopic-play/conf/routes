@@ -24,6 +24,9 @@ POST	    /renderSketch                    controllers.StudioController.renderSke
 # Lf
 GET         /lf                              controllers.ApplicationController.lf
 
+# MultiEditor
+GET         /multiedit                       controllers.ApplicationController.multiedit
+
 # Documentation
 GET         /docs/*docname                    controllers.DocsController.showDoc(docname)
 
