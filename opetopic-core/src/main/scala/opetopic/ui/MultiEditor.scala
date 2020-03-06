@@ -73,7 +73,12 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
     val tgtEditor = new LevelEditor[A](initCard)
     val fillEditor = new LevelEditor[A](initCard)
 
+    tgtEditor.refreshEdges
+    tgtEditor.refreshAddresses
     tgtEditor.renderAll
+
+    fillEditor.refreshEdges
+    fillEditor.refreshAddresses
     fillEditor.renderAll
 
     dblEditor.extrudeAtAddrWithMask(Some(tgtEditor), Some(fillEditor))(addr, msk)
