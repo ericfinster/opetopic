@@ -241,6 +241,44 @@ trait MutableCardinalGallery[F <: UIFramework]
 
     })
 
+  def extrudeAtAddrWithMask[B](tgtVal: LabelType, fillVal: LabelType)(addr: SCardAddr, msk: STree[B]): Option[Unit] = {
+
+    val dim = addr.dim
+
+    val tgtCell = createNeutralCell(dim, tgtVal, false)
+    val fillCell = createNeutralCell(dim + 1, fillVal, true)
+    
+    val extPanels : Suite[PanelType] =
+      if (dim == panels.head.dim)
+        extendPanels(panels)
+      else panels
+
+    val extCardinal : SCardinal[NeutralCellType] =
+      Traverse[Suite].map(extPanels)(_.cardinalNesting)
+    
+    for {
+      c <- extCardinal.extrudeWithMask(addr, tgtCell, fillCell)(msk)
+    } yield {
+
+      deselectAll
+
+      extPanels.zipWithSuite(c).foreach({
+        case (p, n) => p.cardinalNesting = n
+      })
+
+      panels = extPanels
+
+      refreshEdges
+      refreshAddresses
+      
+      renderAll
+
+      tgtCell.selectAsRoot
+
+    }
+
+  }
+
   def extrudeSelectionWith(tgtVal: LabelType, fillVal: LabelType): Option[(SCardAddr, STree[Int])] =
     selectionRoot match {
       case None => None

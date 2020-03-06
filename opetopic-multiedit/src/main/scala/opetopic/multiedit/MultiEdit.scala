@@ -72,7 +72,10 @@ object MultiEdit {
       // Setup event handling in the editors
       innerControlPane.initialize
       outerControlPane.initialize
-      multiEditPane.initialize
+
+      // No keypress handlers for main multi-editor
+      me.renderAllInner
+      multiEditPane.editor.renderAll
 
     }
 

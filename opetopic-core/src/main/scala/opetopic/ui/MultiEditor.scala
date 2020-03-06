@@ -17,14 +17,68 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
   import frmwk._
   import isNumeric._
 
+  type ExtrusionData = (SCardAddr, STree[Int])
+  
   val innerControlEditor = new LevelEditor[A](SCardinal())
   val outerControlEditor = new LevelEditor[A](SCardinal())
 
+  innerControlEditor.onExtrusion =
+    (pr : ExtrusionData) => { onInnerExtrude(pr._1, pr._2) }
+
+  outerControlEditor.onExtrusion =
+    (pr : ExtrusionData) => { onOuterExtrude(pr._1, pr._2) }
+
+  // Have to disable extrusion for this guy ...
   val dblEditor: LevelEditor[LevelEditor[A]] =
     new LevelEditor[LevelEditor[A]](
       SCardinal(Some(
         new LevelEditor[A](SCardinal())
       )))
+
+  def renderAllInner: Unit =
+    for {
+      _ <- dblEditor.cardinal.traverseCardinal[Option,Unit](
+        (cell: dblEditor.NeutralCell) => {
+          for { ed <- cell.label } yield {
+            ed.renderAll
+            cell.labelNeedsLayout = true
+          }
+        })
+    } yield ()
+
+  def onInnerExtrude(addr: SCardAddr, msk: STree[Int]): Unit = {
+
+    // Traverse the faces of the double editor and extrude in the same
+    // place everywhere.
+
+    dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
+      for {
+        cellEditor <- cell.label
+        u <- cellEditor.extrudeAtAddrWithMask(None, None)(addr, msk)
+      } yield { cell.layoutLabel }
+    })
+
+    dblEditor.renderAll
+
+  }
+
+  def onOuterExtrude(addr: SCardAddr, msk: STree[Int]): Unit = {
+
+    // Okay, we need to create a couple new editor instances
+    // initialized with 
+
+    val initCard: SCardinal[Option[A]] =
+      innerControlEditor.cardinal.map(_.label)
+
+    val tgtEditor = new LevelEditor[A](initCard)
+    val fillEditor = new LevelEditor[A](initCard)
+
+    tgtEditor.renderAll
+    fillEditor.renderAll
+
+    dblEditor.extrudeAtAddrWithMask(Some(tgtEditor), Some(fillEditor))(addr, msk)
+
+  }
 
   //============================================================================================
   // LEVEL EDITOR IMPLEMENTATION
@@ -36,7 +90,6 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
     implicit def levelEditorRenderable[B](implicit rn: Renderable[B, FT]): Renderable[LevelEditor[B], FT] =
       new Renderable[LevelEditor[B], FT] {
         def render(fm: FT)(le: LevelEditor[B]): fm.CellRendering = {
-          le.renderAll
           CellRendering(BoundedElement(le.galleryGroup, le.groupBounds))
         }
       }
@@ -64,6 +117,19 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
 
     val renderer : Renderable[PolOptB, FT] =
       Renderable[PolOptB, FT]
+
+    //============================================================================================
+    // MUTABILITY CALLBACKS
+    //
+
+    var onExtrusion: ExtrusionData => Unit =
+      (_ : ExtrusionData) => () 
+
+    override def extrudeSelectionWith(tgtVal: LabelType, fillVal: LabelType): Option[ExtrusionData] =
+      for {
+        data <- super.extrudeSelectionWith(tgtVal, fillVal)
+        _ = onExtrusion(data)
+      } yield data
 
     //============================================================================================
     // EDITOR DATA
