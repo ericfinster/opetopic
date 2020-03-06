@@ -24,7 +24,7 @@ trait CardinalGallery[F <: UIFramework]
   type AddressType = SCardAddr
 
   // The currently displayed cardinal
-  def cardinal: SCardinal[NeutralCell] 
+  def cardinal: SCardinal[NeutralCellType] 
 
   // The complex calculated from the current cardinal
   def complex: SComplex[CellType] = 

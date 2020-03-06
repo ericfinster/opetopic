@@ -21,6 +21,8 @@ trait SelectableGallery {
   val selectedCells: Buffer[SelectionType] = Buffer.empty
   var selectionRoot: Option[SelectionType] = None
 
+  var selectionEnabled: Boolean = true
+
   def deselectAll: Unit = {
     selectedCells.foreach(_.deselect)
     selectedCells.clear
@@ -40,7 +42,7 @@ trait SelectableGallery {
     var isSelected: Boolean = false
 
     def selectAsRoot: Unit = 
-      if (canSelect) {
+      if (selectionEnabled && canSelect) {
         deselectAll
         isSelected = true
         selectionRoot = Some(thisCell)
@@ -50,7 +52,7 @@ trait SelectableGallery {
       }
 
     def select: Unit = 
-      if (canSelect && ! isSelected) {
+      if (selectionEnabled && canSelect && ! isSelected) {
 
         val buf: Buffer[SelectionType] = Buffer(thisCell)
         var found: Boolean = false

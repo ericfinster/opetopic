@@ -17,24 +17,27 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
   import frmwk._
   import isNumeric._
 
-  type ExtrusionData = (SCardAddr, STree[Int])
-  
   val innerControlEditor = new LevelEditor[A](SCardinal())
   val outerControlEditor = new LevelEditor[A](SCardinal())
 
-  innerControlEditor.onExtrusion =
-    (pr : ExtrusionData) => { onInnerExtrude(pr._1, pr._2) }
-
-  outerControlEditor.onExtrusion =
-    (pr : ExtrusionData) => { onOuterExtrude(pr._1, pr._2) }
+  innerControlEditor.onExtrusion = onInnerExtrude
+  innerControlEditor.onLoop = onInnerLoop
+  innerControlEditor.onSprout = onInnerSprout
+  outerControlEditor.onExtrusion = onOuterExtrude
+  outerControlEditor.onLoop = onOuterLoop
+  outerControlEditor.onSprout = onOuterSprout
 
   // Have to disable extrusion for this guy ...
   val dblEditor: LevelEditor[LevelEditor[A]] =
     new LevelEditor[LevelEditor[A]](
       SCardinal(Some(
-        new LevelEditor[A](SCardinal())
+        { val ed = new LevelEditor[A](SCardinal())
+          ed.selectAfterExtrude = false
+          ed }
       )))
 
+  dblEditor.selectionEnabled = false
+  
   def renderAllInner: Unit =
     for {
       _ <- dblEditor.cardinal.traverseCardinal[Option,Unit](
@@ -62,6 +65,30 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
 
   }
 
+  def onInnerLoop(addr: SCardAddr): Unit = {
+
+    dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
+      for {
+        cellEditor <- cell.label
+        u <- cellEditor.loopAtAddrWith(None, None)(addr)
+      } yield { cell.layoutLabel }
+    })
+
+    dblEditor.renderAll
+  }
+
+  def onInnerSprout(addr: SCardAddr): Unit = {
+
+    dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
+      for {
+        cellEditor <- cell.label
+        u <- cellEditor.sproutAtAddrWith(None, None)(addr)
+      } yield { cell.layoutLabel }
+    })
+
+    dblEditor.renderAll
+  }
+  
   def onOuterExtrude(addr: SCardAddr, msk: STree[Int]): Unit = {
 
     // Okay, we need to create a couple new editor instances
@@ -73,10 +100,12 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
     val tgtEditor = new LevelEditor[A](initCard)
     val fillEditor = new LevelEditor[A](initCard)
 
+    tgtEditor.selectAfterExtrude = false
     tgtEditor.refreshEdges
     tgtEditor.refreshAddresses
     tgtEditor.renderAll
 
+    fillEditor.selectAfterExtrude = false
     fillEditor.refreshEdges
     fillEditor.refreshAddresses
     fillEditor.renderAll
@@ -85,6 +114,50 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
 
   }
 
+  def onOuterLoop(addr: SCardAddr): Unit = {
+
+    val initCard: SCardinal[Option[A]] =
+      innerControlEditor.cardinal.map(_.label)
+
+    val tgtEditor = new LevelEditor[A](initCard)
+    val fillEditor = new LevelEditor[A](initCard)
+
+    tgtEditor.selectAfterExtrude = false
+    tgtEditor.refreshEdges
+    tgtEditor.refreshAddresses
+    tgtEditor.renderAll
+
+    fillEditor.selectAfterExtrude = false
+    fillEditor.refreshEdges
+    fillEditor.refreshAddresses
+    fillEditor.renderAll
+
+    dblEditor.loopAtAddrWith(Some(tgtEditor), Some(fillEditor))(addr)
+
+  }
+
+  def onOuterSprout(addr: SCardAddr): Unit = {
+
+    val initCard: SCardinal[Option[A]] =
+      innerControlEditor.cardinal.map(_.label)
+
+    val tgtEditor = new LevelEditor[A](initCard)
+    val fillEditor = new LevelEditor[A](initCard)
+
+    tgtEditor.selectAfterExtrude = false
+    tgtEditor.refreshEdges
+    tgtEditor.refreshAddresses
+    tgtEditor.renderAll
+
+    fillEditor.selectAfterExtrude = false
+    fillEditor.refreshEdges
+    fillEditor.refreshAddresses
+    fillEditor.renderAll
+
+    dblEditor.sproutAtAddrWith(Some(tgtEditor), Some(fillEditor))(addr)
+
+  }
+  
   //============================================================================================
   // LEVEL EDITOR IMPLEMENTATION
   //
@@ -122,19 +195,6 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
 
     val renderer : Renderable[PolOptB, FT] =
       Renderable[PolOptB, FT]
-
-    //============================================================================================
-    // MUTABILITY CALLBACKS
-    //
-
-    var onExtrusion: ExtrusionData => Unit =
-      (_ : ExtrusionData) => () 
-
-    override def extrudeSelectionWith(tgtVal: LabelType, fillVal: LabelType): Option[ExtrusionData] =
-      for {
-        data <- super.extrudeSelectionWith(tgtVal, fillVal)
-        _ = onExtrusion(data)
-      } yield data
 
     //============================================================================================
     // EDITOR DATA

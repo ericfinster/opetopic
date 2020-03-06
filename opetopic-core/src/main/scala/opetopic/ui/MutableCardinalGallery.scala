@@ -60,6 +60,8 @@ trait MutableCardinalGallery[F <: UIFramework]
   var firstPanel: Option[Int] = None
   var lastPanel: Option[Int] = None
 
+  var selectAfterExtrude: Boolean = true
+
   //============================================================================================
   // REFRESH ROUTINES
   //
@@ -73,6 +75,20 @@ trait MutableCardinalGallery[F <: UIFramework]
   def refreshAddresses: Unit = {
     panels.foreach(_.refreshAddresses)
   }
+
+
+  //============================================================================================
+  // MUTABILITY CALLBACKS
+  //
+
+  var onExtrusion: (SCardAddr, STree[Int]) => Unit =
+    (_: SCardAddr, _: STree[Int]) => ()
+
+  var onLoop: SCardAddr => Unit =
+    (_: SCardAddr) => ()
+
+  var onSprout: SCardAddr => Unit =
+    (_: SCardAddr) => ()
 
   //============================================================================================
   // MUTABLE CARDINAL PANELS
@@ -273,12 +289,15 @@ trait MutableCardinalGallery[F <: UIFramework]
       
       renderAll
 
-      tgtCell.selectAsRoot
+      if (selectAfterExtrude)
+        tgtCell.selectAsRoot
+      
+      // onExtrusion(addr, msk)
 
     }
 
   }
-
+  
   def extrudeSelectionWith(tgtVal: LabelType, fillVal: LabelType): Option[(SCardAddr, STree[Int])] =
     selectionRoot match {
       case None => None
@@ -318,8 +337,11 @@ trait MutableCardinalGallery[F <: UIFramework]
             
             renderAll
 
-            tgtCell.selectAsRoot
+            if (selectAfterExtrude)
+              tgtCell.selectAsRoot
 
+            onExtrusion(extAddr, msk)
+            
             (extAddr, msk)
 
           }
@@ -331,6 +353,49 @@ trait MutableCardinalGallery[F <: UIFramework]
 
   def extrudeSelection: Unit =
     extrudeSelectionWith(defaultLabel, defaultLabel)
+
+  def loopAtAddrWith(tgtVal: LabelType, fillVal: LabelType)(addr: SCardAddr) : Option[SCardAddr] = {
+
+    val dim = addr.dim
+    val tgtCell = createNeutralCell(dim + 1, tgtVal, false)
+    val fillCell = createNeutralCell(dim + 2, fillVal, true)
+
+    val extPanels : Suite[PanelType] =
+      if (dim == panels.head.dim)
+        extendPanels(extendPanels(panels))
+      else if (dim == panels.head.dim - 1)
+        extendPanels(panels)
+      else panels
+
+    val extCardinal : SCardinal[NeutralCellType] =
+      Traverse[Suite].map(extPanels)(_.cardinalNesting)
+
+    for {
+      c <- extCardinal.extrudeLoop(addr, tgtCell, fillCell)
+    } yield {
+
+      deselectAll
+
+      extPanels.zipWithSuite(c).foreach({
+        case (p, n) => p.cardinalNesting = n
+      })
+
+      panels = extPanels
+
+      refreshEdges
+      refreshAddresses
+
+      renderAll
+
+      // if (selectAfterExtrude)
+      //   root.selectAsRoot
+
+      onLoop(addr)
+
+      addr
+
+    }
+  }
 
   def loopAtSelectionWith(tgtVal: LabelType, fillVal: LabelType) : Option[SCardAddr] = 
     selectionRoot match {
@@ -370,7 +435,11 @@ trait MutableCardinalGallery[F <: UIFramework]
             refreshAddresses
 
             renderAll
-            root.selectAsRoot
+
+            if (selectAfterExtrude)
+              root.selectAsRoot
+
+            onLoop(extAddr)
 
             extAddr
 
@@ -385,6 +454,51 @@ trait MutableCardinalGallery[F <: UIFramework]
     loopAtSelectionWith(defaultLabel, defaultLabel)
   }
 
+  def sproutAtAddrWith(srcVal: LabelType, fillVal: LabelType)(addr: SCardAddr): Option[SCardAddr] = {
+
+    val dim = addr.dim
+
+    val srcCell = createNeutralCell(dim, srcVal, true)
+    val fillCell = createNeutralCell(dim + 1, fillVal, true)
+
+    val extPanels : Suite[PanelType] =
+      if (dim == panels.head.dim)
+        extendPanels(panels)
+      else panels
+
+    val extCardinal : SCardinal[NeutralCellType] =
+      Traverse[Suite].map(extPanels)(_.cardinalNesting)
+    
+    for {
+      z <- cardinal.seekNesting(addr)
+      c <- extCardinal.sprout(addr, srcCell, fillCell)
+    } yield {
+
+      deselectAll
+
+      extPanels.zipWithSuite(c).foreach({
+        case (p, n) => p.cardinalNesting = n
+      })
+
+      panels = extPanels
+      z.focus.baseValue.isExternal = false
+
+      refreshEdges
+      refreshAddresses
+      renderAll
+
+      if (selectAfterExtrude)
+        srcCell.selectAsRoot
+
+      onSprout(addr)
+
+      addr
+
+    }
+
+
+  }
+  
   def sproutAtSelectionWith(srcVal: LabelType, fillVal: LabelType): Option[SCardAddr] = 
     selectionRoot match {
       case None => None
@@ -420,7 +534,11 @@ trait MutableCardinalGallery[F <: UIFramework]
             refreshEdges
             refreshAddresses
             renderAll
-            srcCell.selectAsRoot
+
+            if (selectAfterExtrude)
+              srcCell.selectAsRoot
+
+            onSprout(extAddr)
 
             extAddr
 
