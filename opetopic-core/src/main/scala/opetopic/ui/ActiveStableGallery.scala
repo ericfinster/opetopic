@@ -100,47 +100,53 @@ abstract class ActiveStableGallery[F <: ActiveFramework](frmwk: F)
     def onCtrlClick: Unit = { onCellCtrlClick(thisCell) }
     def onShiftClick: Unit = { select ; onCellShiftClick(thisCell) }
 
-    def onMouseOver: Unit = {
-
-      if (hoverCofaces) {
-
-        val bc = boxComplex
-        val codim = bc.dim - dim
-
-        bc.traverseCofaces[Unit](codim, b => b == thisCell)({
-            case Left(b) => Some(())
-            case Right(b) => Some(b.onHover)
-        })
-
-      }
-
+    // Hover implementations
+    def doHoverFaces: Unit = {
       boxFace.map(bc => {
         bc.foreach(b => b.onHover)
       })
+    }
 
+    def doHoverCofaces: Unit = {
+      val bc = boxComplex
+      val codim = bc.dim - dim
+
+      bc.traverseCofaces[Unit](codim, b => b == thisCell)({
+        case Left(b) => Some(())
+        case Right(b) => Some(b.onHover)
+      })
+    }
+
+    def doUnhoverFaces: Unit = {
+      boxFace.map(bc => {
+        bc.foreach(b => b.onUnhover)
+      })
+    }
+
+    def doUnhoverCofaces: Unit = {
+      val bc = boxComplex
+      val codim = bc.dim - dim
+
+      bc.traverseCofaces[Unit](codim, b => b == thisCell)({
+        case Left(b) => Some(())
+        case Right(b) => Some(b.onUnhover)
+      })
+    }
+
+    def onMouseOver: Unit = {
+      if (hoverCofaces)
+        doHoverCofaces
+
+      doHoverFaces
       onHoverEdge
-
     }
 
     def onMouseOut: Unit = {
-      
-      if (hoverCofaces) {
+      if (hoverCofaces) 
+        doUnhoverCofaces
 
-        val bc = boxComplex
-        val codim = bc.dim - dim
-
-        bc.traverseCofaces[Unit](codim, b => b == thisCell)({
-          case Left(b) => Some(())
-          case Right(b) => Some(b.onUnhover)
-        })
-
-      }
-
-      boxFace.map(bc => {
-        bc.foreach(b => b.onUnhover)
-        onUnhoverEdge
-      })
-
+      doUnhoverFaces
+      onUnhoverEdge
     }
 
     var isHovered: Boolean = false

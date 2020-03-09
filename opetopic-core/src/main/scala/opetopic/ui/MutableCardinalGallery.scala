@@ -76,20 +76,6 @@ trait MutableCardinalGallery[F <: UIFramework]
     panels.foreach(_.refreshAddresses)
   }
 
-
-  //============================================================================================
-  // MUTABILITY CALLBACKS
-  //
-
-  var onExtrusion: (SCardAddr, STree[Int]) => Unit =
-    (_: SCardAddr, _: STree[Int]) => ()
-
-  var onLoop: SCardAddr => Unit =
-    (_: SCardAddr) => ()
-
-  var onSprout: SCardAddr => Unit =
-    (_: SCardAddr) => ()
-
   //============================================================================================
   // MUTABLE CARDINAL PANELS
   //
@@ -257,7 +243,7 @@ trait MutableCardinalGallery[F <: UIFramework]
 
     })
 
-  def extrudeAtAddrWithMask[B](tgtVal: LabelType, fillVal: LabelType)(addr: SCardAddr, msk: STree[B]): Option[Unit] = {
+  def extrudeAtAddrWithMask[B](tgtVal: LabelType, fillVal: LabelType)(addr: SCardAddr, msk: STree[B]): Option[(SCardAddr, STree[B])] = {
 
     val dim = addr.dim
 
@@ -292,7 +278,7 @@ trait MutableCardinalGallery[F <: UIFramework]
       if (selectAfterExtrude)
         tgtCell.selectAsRoot
       
-      // onExtrusion(addr, msk)
+      (addr, msk)
 
     }
 
@@ -340,8 +326,6 @@ trait MutableCardinalGallery[F <: UIFramework]
             if (selectAfterExtrude)
               tgtCell.selectAsRoot
 
-            onExtrusion(extAddr, msk)
-            
             (extAddr, msk)
 
           }
@@ -390,8 +374,6 @@ trait MutableCardinalGallery[F <: UIFramework]
       // if (selectAfterExtrude)
       //   root.selectAsRoot
 
-      onLoop(addr)
-
       addr
 
     }
@@ -438,8 +420,6 @@ trait MutableCardinalGallery[F <: UIFramework]
 
             if (selectAfterExtrude)
               root.selectAsRoot
-
-            onLoop(extAddr)
 
             extAddr
 
@@ -490,8 +470,6 @@ trait MutableCardinalGallery[F <: UIFramework]
       if (selectAfterExtrude)
         srcCell.selectAsRoot
 
-      onSprout(addr)
-
       addr
 
     }
@@ -537,8 +515,6 @@ trait MutableCardinalGallery[F <: UIFramework]
 
             if (selectAfterExtrude)
               srcCell.selectAsRoot
-
-            onSprout(extAddr)
 
             extAddr
 

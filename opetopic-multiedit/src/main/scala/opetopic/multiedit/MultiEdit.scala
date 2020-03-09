@@ -74,7 +74,7 @@ object MultiEdit {
       outerControlPane.initialize
 
       // No keypress handlers for main multi-editor
-      me.renderAllInner
+      // me.renderAllInner
       multiEditPane.editor.renderAll
 
     }

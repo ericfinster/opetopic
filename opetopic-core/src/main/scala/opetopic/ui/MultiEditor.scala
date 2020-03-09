@@ -10,153 +10,198 @@ package opetopic.ui
 import opetopic._
 import opetopic.mtl._
 
-class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable[A, F]) {
+class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable[A, F]) { thisMultiEditor => 
 
   type FT = frmwk.type
+  type MultiCell[B] = LevelEditor[B]#LevelNeutralCell
 
   import frmwk._
   import isNumeric._
 
-  val innerControlEditor = new LevelEditor[A](SCardinal())
-  val outerControlEditor = new LevelEditor[A](SCardinal())
+  //============================================================================================
+  // INNER EDITOR
+  //
+  
+  val innerControlEditor = new LevelEditor[A](SCardinal()) {
+    
+    override def extrudeSelectionWith(tgtVal: LabelType, fillVal: LabelType): Option[(SCardAddr, STree[Int])] =
+      super.extrudeSelectionWith(tgtVal, fillVal).map({
+        case (addr, msk) => {
 
-  innerControlEditor.onExtrusion = onInnerExtrude
-  innerControlEditor.onLoop = onInnerLoop
-  innerControlEditor.onSprout = onInnerSprout
-  outerControlEditor.onExtrusion = onOuterExtrude
-  outerControlEditor.onLoop = onOuterLoop
-  outerControlEditor.onSprout = onOuterSprout
+          dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
+            for {
+              cellEditor <- cell.label
+              u <- cellEditor.extrudeAtAddrWithMask(None, None)(addr, msk)
+            } yield { cell.layoutLabel }
+          })
 
-  // Have to disable extrusion for this guy ...
+          dblEditor.renderAll
+
+          (addr, msk)
+
+        }
+      })
+    
+    override def loopAtSelectionWith(tgtVal: LabelType, fillVal: LabelType) : Option[SCardAddr] =
+      super.loopAtSelectionWith(tgtVal, fillVal).flatMap({
+        case addr => {
+
+          dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
+            for {
+              cellEditor <- cell.label
+              u <- cellEditor.loopAtAddrWith(None, None)(addr)
+            } yield { cell.layoutLabel }
+          })
+
+          dblEditor.renderAll
+
+          Some(addr)
+
+        }
+      })
+
+    override def sproutAtSelectionWith(srcVal: LabelType, fillVal: LabelType): Option[SCardAddr] =
+      super.sproutAtSelectionWith(srcVal, fillVal).flatMap({
+        case addr => {
+
+          dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
+            for {
+              cellEditor <- cell.label
+              u <- cellEditor.sproutAtAddrWith(None, None)(addr)
+            } yield { cell.layoutLabel }
+          })
+
+          dblEditor.renderAll
+
+          Some(addr)
+
+        }
+      })
+
+  }
+
+  //============================================================================================
+  // OUTER EDITOR
+  //
+
+  val outerControlEditor = new LevelEditor[A](SCardinal()) {
+
+    def extrusionData: (LevelEditor[A], LevelEditor[A]) = {
+
+      val initCard: SCardinal[Option[A]] =
+        innerControlEditor.cardinal.map(_.label)
+
+      (createNestedEditor(initCard), createNestedEditor(initCard))
+
+    }
+
+    override def extrudeSelectionWith(tgtVal: LabelType, fillVal: LabelType): Option[(SCardAddr, STree[Int])] =
+      super.extrudeSelectionWith(tgtVal, fillVal).flatMap({
+        case (addr, msk) => {
+          val (tgtEd, fillEd) = extrusionData
+          dblEditor.extrudeAtAddrWithMask(Some(tgtEd), Some(fillEd))(addr, msk)
+        }
+      })
+
+    override def loopAtSelectionWith(tgtVal: LabelType, fillVal: LabelType) : Option[SCardAddr] =
+      super.loopAtSelectionWith(tgtVal, fillVal).flatMap({
+        case addr => {
+          val (tgtEd, fillEd) = extrusionData
+          dblEditor.loopAtAddrWith(Some(tgtEd), Some(fillEd))(addr)
+        }
+      })
+
+    override def sproutAtSelectionWith(srcVal: LabelType, fillVal: LabelType): Option[SCardAddr] =
+      super.sproutAtSelectionWith(srcVal, fillVal).flatMap({
+        case addr => {
+          val (tgtEd, fillEd) = extrusionData
+          dblEditor.sproutAtAddrWith(Some(tgtEd), Some(fillEd))(addr)
+        }
+      })
+
+  }
+
+  //============================================================================================
+  // DOUBLE EDITOR
+  //
+
   val dblEditor: LevelEditor[LevelEditor[A]] =
     new LevelEditor[LevelEditor[A]](
-      SCardinal(Some(
-        { val ed = new LevelEditor[A](SCardinal())
-          ed.selectAfterExtrude = false
-          ed }
-      )))
+      SCardinal(Some(createNestedEditor(SCardinal())))
+    ) { 
 
-  dblEditor.selectionEnabled = false
-  
-  def renderAllInner: Unit =
-    for {
-      _ <- dblEditor.cardinal.traverseCardinal[Option,Unit](
-        (cell: dblEditor.NeutralCell) => {
-          for { ed <- cell.label } yield {
-            ed.renderAll
-            cell.labelNeedsLayout = true
-          }
+      override def createNeutralCell(
+        dim: Int, lopt: Option[LevelEditor[A]], isExternal: Boolean
+      ) : LevelNeutralCell = {
+
+        lopt.foreach(le => {
+          le.selectAfterExtrude = false
+          le.refreshEdges
+          le.refreshAddresses
+          le.renderAll
         })
-    } yield ()
 
-  def onInnerExtrude(addr: SCardAddr, msk: STree[Int]): Unit = {
+        val cell = new LevelNeutralCell(dim, lopt, isExternal)
+        lopt.foreach(le => { le.parentCell = Some(cell) })
 
-    // Traverse the faces of the double editor and extrude in the same
-    // place everywhere.
+        cell
 
-    dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
-      for {
-        cellEditor <- cell.label
-        u <- cellEditor.extrudeAtAddrWithMask(None, None)(addr, msk)
-      } yield { cell.layoutLabel }
-    })
+      }
 
-    dblEditor.renderAll
+      selectionEnabled = false
 
-  }
+    }
 
-  def onInnerLoop(addr: SCardAddr): Unit = {
 
-    dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
-      for {
-        cellEditor <- cell.label
-        u <- cellEditor.loopAtAddrWith(None, None)(addr)
-      } yield { cell.layoutLabel }
-    })
+  // Inner editor has customized hovering
+  def createNestedEditor(card: SCardinal[Option[A]]): LevelEditor[A] =
+    new LevelEditor[A](card) { thisEditor => 
 
-    dblEditor.renderAll
-  }
+      override def onHoverCell(cell: LevelNeutralCell): Unit = 
+        for {
+          pc <- thisEditor.parentCell
+          z <- dblEditor.seekToAddress(pc.cardinalAddress)
+          face <- z.focus.baseValue.face
+        } {
 
-  def onInnerSprout(addr: SCardAddr): Unit = {
+          val cellAddr = cell.cardinalAddress
 
-    dblEditor.cardinal.traverseCardinal[Option,Unit]((cell: dblEditor.NeutralCell) => {
-      for {
-        cellEditor <- cell.label
-        u <- cellEditor.sproutAtAddrWith(None, None)(addr)
-      } yield { cell.layoutLabel }
-    })
+          face.foreach(edOpt => {
+            for {
+              ed <- edOpt
+              zl <- ed.seekToAddress(cellAddr)
+            } {
+              val innerCell = zl.focus.baseValue
+              innerCell.doHoverFaces
+              innerCell.onHoverEdge
+            }
+          })
 
-    dblEditor.renderAll
-  }
-  
-  def onOuterExtrude(addr: SCardAddr, msk: STree[Int]): Unit = {
+        }
 
-    // Okay, we need to create a couple new editor instances
-    // initialized with 
+      override def onUnhoverCell(cell: LevelNeutralCell): Unit = 
+        for {
+          pc <- thisEditor.parentCell
+          z <- dblEditor.seekToAddress(pc.cardinalAddress)
+          face <- z.focus.baseValue.face
+        } {
 
-    val initCard: SCardinal[Option[A]] =
-      innerControlEditor.cardinal.map(_.label)
+          val cellAddr = cell.cardinalAddress
 
-    val tgtEditor = new LevelEditor[A](initCard)
-    val fillEditor = new LevelEditor[A](initCard)
+          face.foreach(edOpt => {
+            for {
+              ed <- edOpt
+              zl <- ed.seekToAddress(cellAddr)
+            } {
+              val innerCell = zl.focus.baseValue
+              innerCell.doUnhoverFaces
+              innerCell.onUnhoverEdge
+            }
+          })
 
-    tgtEditor.selectAfterExtrude = false
-    tgtEditor.refreshEdges
-    tgtEditor.refreshAddresses
-    tgtEditor.renderAll
-
-    fillEditor.selectAfterExtrude = false
-    fillEditor.refreshEdges
-    fillEditor.refreshAddresses
-    fillEditor.renderAll
-
-    dblEditor.extrudeAtAddrWithMask(Some(tgtEditor), Some(fillEditor))(addr, msk)
-
-  }
-
-  def onOuterLoop(addr: SCardAddr): Unit = {
-
-    val initCard: SCardinal[Option[A]] =
-      innerControlEditor.cardinal.map(_.label)
-
-    val tgtEditor = new LevelEditor[A](initCard)
-    val fillEditor = new LevelEditor[A](initCard)
-
-    tgtEditor.selectAfterExtrude = false
-    tgtEditor.refreshEdges
-    tgtEditor.refreshAddresses
-    tgtEditor.renderAll
-
-    fillEditor.selectAfterExtrude = false
-    fillEditor.refreshEdges
-    fillEditor.refreshAddresses
-    fillEditor.renderAll
-
-    dblEditor.loopAtAddrWith(Some(tgtEditor), Some(fillEditor))(addr)
-
-  }
-
-  def onOuterSprout(addr: SCardAddr): Unit = {
-
-    val initCard: SCardinal[Option[A]] =
-      innerControlEditor.cardinal.map(_.label)
-
-    val tgtEditor = new LevelEditor[A](initCard)
-    val fillEditor = new LevelEditor[A](initCard)
-
-    tgtEditor.selectAfterExtrude = false
-    tgtEditor.refreshEdges
-    tgtEditor.refreshAddresses
-    tgtEditor.renderAll
-
-    fillEditor.selectAfterExtrude = false
-    fillEditor.refreshEdges
-    fillEditor.refreshAddresses
-    fillEditor.renderAll
-
-    dblEditor.sproutAtAddrWith(Some(tgtEditor), Some(fillEditor))(addr)
-
-  }
+        }
+      
+    }
   
   //============================================================================================
   // LEVEL EDITOR IMPLEMENTATION
@@ -209,6 +254,8 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
       panels = buildPanels(c)._1
     }
 
+    var parentCell : Option[MultiCell[LevelEditor[B]]] = None
+
     //============================================================================================
     // CONSTRUCTORS
     //
@@ -230,6 +277,26 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
 
     def seekToCanopy(addr: SCardAddr): Option[SZipper[SNesting[LevelCell]]] =
       cardinal.seekCanopy(addr)
+
+    //============================================================================================
+    // CUSTOM HOVERING
+    //
+
+    def onHoverCell(cell: LevelNeutralCell): Unit = {
+      if (hoverCofaces)
+        cell.doHoverCofaces
+
+      cell.doHoverFaces
+      cell.onHoverEdge
+    }
+
+    def onUnhoverCell(cell: LevelNeutralCell): Unit = {
+      if (hoverCofaces) 
+        cell.doUnhoverCofaces
+
+      cell.doUnhoverFaces
+      cell.onUnhoverEdge
+    }
 
     //============================================================================================
     // PANEL IMPLEMENTATION
@@ -257,10 +324,11 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
       val dim: Int,
       initLabel: Option[B],
       var isExternal: Boolean
-    ) extends LevelCell with MutableNeutralCell {
+    ) extends LevelCell with MutableNeutralCell { thisNeutralCell => 
 
       def layoutLabel: Unit = {
         cellRendering = renderer.render(framework)(Neutral(label))
+        labelNeedsLayout = false
       }
 
       private var myLabel: Option[B] = initLabel
@@ -272,6 +340,14 @@ class MultiEditor[A, F <: ActiveFramework](val frmwk: F)(implicit rn: Renderable
       def label_=(opt: Option[B]): Unit = {
         myLabel = opt
         labelNeedsLayout = true
+      }
+
+      override def onMouseOver: Unit = {
+        onHoverCell(thisNeutralCell)
+      }
+
+      override def onMouseOut: Unit = {
+        onUnhoverCell(thisNeutralCell)
       }
 
     }
