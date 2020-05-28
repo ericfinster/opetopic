@@ -92,14 +92,14 @@ trait CardinalGallery[F <: UIFramework]
       case ||(cn) => {
         val bn = Traverse[MTree].map(cn)(buildCells(0, _))
 
+        // Hmmm.  You should find a way to not have to expose
+        // a default value here.  It's a bit ugly....
         val inEdge = createNeutralCell(-1, defaultLabel, true)
         val outEdge = createNeutralCell(-1, defaultLabel, false)
         val en = SBox(outEdge, STree.obj(SDot(inEdge)))
 
         (||(createPanel(0, bn, Right(en))), 0)
 
-        // def createPanel(dim: Int, cn: SCardNst[NeutralCellType], ed: Either[PanelType, SNesting[CellType]]): PanelType
-        
       }
       case tl >> hd => {
         val (pt, d) = buildPanels(tl)

@@ -83,16 +83,42 @@ object Lf {
 
   def main: Unit = {
 
-    jQuery("#editor-div").append(vertSplitPane.uiElement)
+    jQuery("#theories").append(
+      palmCategoryEntry,
+      monoidalClosedEntry
+    )
 
-    jQuery(dom.window).on("resize", () => { handleResize })
-    setTimeout(100){
-      jQuery(dom.window).trigger("resize")
-      hPane.initialize
-      vertSplitPane.initialize
-    }
+    // jQuery("#editor-div").append(vertSplitPane.uiElement)
 
-    theory.initialize
+    // jQuery(dom.window).on("resize", () => { handleResize })
+    // setTimeout(100){
+    //   jQuery(dom.window).trigger("resize")
+    //   hPane.initialize
+    //   vertSplitPane.initialize
+    // }
+
+    // theory.initialize
   }
 
+  //
+  //  Theories
+  //
+
+  val palmCategoryEntry =
+    div(cls := "ui secondary clearing inverted segment")(
+      h2("(∞,∞)-Category (Palm's Definition)"),
+      p("""An opetopic higher category using the definition given by Palm.  Liftings
+        are specified recursively from a given collection of "universal" cells."""),
+      button(cls := "ui right floated green button")("Launch")
+    ).render
+
+  val monoidalClosedEntry = 
+    div(cls := "ui secondary clearing inverted segment")(
+      h2("Monoidal Closed (∞,1)-category"),
+      p("A monoidally closed (∞,1)-category.  A model of the planar, linear lambda-calculus."),
+      button(cls := "ui right floated green button")("Launch")
+    ).render
+
+
+  
 }

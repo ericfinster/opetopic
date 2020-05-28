@@ -5,21 +5,14 @@
 
 @main("Logical Framework") {
 
-  <div class="ui basic pushable segment" style="margin-bottom: 0px">
-    
-    <div class="ui left vertical visible inverted sidebar menu" id="editor-left-sidebar">
-    </div>
-
-    <div class="ui right inverted visible labeled inline vertical sidebar icon menu">
-    </div>
-    
-    <div class="pusher">
-      <div id="editor-div" style="margin-left:260px; margin-right:84px; height: 100%;">
+  <div class="lf content">
+    <div class="ui active tab" data-tab="theories-tab">
+      <div class="ui container" id="theories" style="padding-top:40px">
       </div>
     </div>
-    
+    <div class="ui tab" data-tab="interface-tab"></div>
   </div>
-
+  
   @if(isDev) {
     <script src='@routes.Assets.at("opetopiclf-fastopt.js")' type="text/javascript"></script>
   } else {
